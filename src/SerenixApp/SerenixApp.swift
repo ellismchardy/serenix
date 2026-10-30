@@ -5,7 +5,7 @@ import SwiftUI
 struct SerenixApp: App {
     var body: some Scene {
         WindowGroup {
-            Text("Serenix \(SerenixCore.version)")
+            Text("Serenix \(BuildInfo.version)")
         }
     }
 }

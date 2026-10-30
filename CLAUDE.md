@@ -10,7 +10,7 @@ on the phone. Public, MIT-licensed, not affiliated with WHOOP, Inc. Protocol res
 implementation live in the separate `hr-tracker` repo.
 
 ## Stack
-- Language / runtime: Swift 6, iOS 17+
+- Language / runtime: Swift 6 (toolchain 6.4.1, pinned in CI), iOS 17+
 - Framework: SwiftUI, CoreBluetooth, HealthKit (write-only)
 - Database: SwiftData, on device only (no backend)
 - Test runner: Swift Testing
@@ -26,7 +26,7 @@ implementation live in the separate `hr-tracker` repo.
 - Typecheck: `swift build`
 
 ## Layout
-- `src/` — application code: `SerenixCore` (pure logic) and the iOS app shell
+- `src/` — application code: `src/SerenixCore` (pure logic) and `src/SerenixApp` (iOS shell)
 - `tests/` — tests (mirror the src/ structure); fixture rules in `docs/conventions.md`
 - `specs/` — feature specs (the source of truth)
 - `plans/` — disposable execution plans
