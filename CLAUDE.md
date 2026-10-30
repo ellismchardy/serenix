@@ -1,27 +1,32 @@
-# <PROJECT NAME>
+# Serenix
 
 > The project constitution. Loaded into context every session, so keep it **short** —
 > shorter files get followed more reliably. Push detail into docs/ and reference it.
 
 ## What this is
-<One or two sentences: what the app does and who it's for.>
+An iOS wellness tracker that reads a Whoop 5.0 Strap directly over Bluetooth, so owners without
+a WHOOP membership get sleep, Nightly Metrics, Sleep Score, Readiness and Load. Everything runs
+on the phone. Not affiliated with WHOOP, Inc. Protocol research and the Python reference
+implementation live in the separate `hr-tracker` repo.
 
 ## Stack
-- Language / runtime: <e.g. TypeScript, Node 20 / Python 3.12>
-- Framework: <e.g. Next.js / FastAPI>
-- Database: <e.g. Postgres / SQLite>
-- Test runner: <e.g. vitest / pytest>
+- Language / runtime: Swift 6, iOS 17+
+- Framework: SwiftUI, CoreBluetooth, HealthKit (write-only)
+- Database: SwiftData, on device only (no backend)
+- Test runner: Swift Testing
+- **No Mac.** `SerenixCore` builds and tests on Windows/Linux. The iOS app builds only on
+  GitHub Actions macOS and is sideloaded with Sideloadly (see ADR 0003).
 
 ## Key commands
-- Install: `<e.g. npm install>`
-- Run (dev): `<e.g. npm run dev>`
-- Test: `<e.g. npm test>`
-- Lint: `<e.g. npm run lint>`
-- Typecheck: `<e.g. npm run typecheck>`
+- Install: `<decided in /scaffold>`
+- Run (dev): download the unsigned `.ipa` from the CI macOS job, sideload with Sideloadly
+- Test: `swift test`
+- Lint: `swift format lint --strict --recursive src tests`
+- Typecheck: `swift build`
 
 ## Layout
-- `src/` — application code
-- `tests/` — tests (mirror the src/ structure)
+- `src/` — application code: `SerenixCore` (pure logic) and the iOS app shell
+- `tests/` — tests (mirror the src/ structure); fixtures are anonymised real nights
 - `specs/` — feature specs (the source of truth)
 - `plans/` — disposable execution plans
 - `docs/` — deeper reference (see below); `docs/adr/` — one file per decision (the *why*)

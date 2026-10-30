@@ -4,24 +4,40 @@ The "how we do things here" rules. Claude reads this to match existing patterns 
 inventing new ones.
 
 ## Naming
-- Files: <e.g. kebab-case>
-- Variables/functions: <e.g. camelCase>
-- Components/classes: <e.g. PascalCase>
-- Tests: `<e.g. *.test.ts next to source>`
+- Files: PascalCase, named after the main type they hold (`HistoryRecord.swift`)
+- Variables/functions: lowerCamelCase
+- Components/classes: UpperCamelCase types (Swift API Design Guidelines)
+- Tests: `<Subject>Tests.swift` under `tests/`, mirroring `src/`
+- Use GLOSSARY.md terms in type names: `HistorySync`, `SleepPeriod`, `Readiness`. Never use
+  WHOOP's score names (recovery, strain) in code or UI.
 
 ## Code patterns
-- <e.g. Prefer pure functions in core; side effects at the edges.>
-- <e.g. No business logic in route handlers.>
-- <e.g. Validate input at the boundary.>
+- **Logic in `SerenixCore`, I/O in the shell.** If it can be decided without CoreBluetooth,
+  SwiftData, HealthKit or SwiftUI, it belongs in `SerenixCore`, which imports Foundation only.
+  The shell stays thin enough that testing it by hand on the phone is enough.
+- Prefer value types (`struct`, `enum`) and pure functions in `SerenixCore`. Pass time in (no
+  `Date()` inside logic) so it can be tested.
+- Parse at the boundary: raw Strap bytes become typed History Records in one place. Nothing
+  downstream sees `Data` or byte offsets.
+- Decoders are per Strap model, behind one protocol, so a new model means adding a decoder.
+- Algorithm constants (thresholds, windows) are named constants with a comment on the unit and
+  where the value came from, as in `hr-tracker`.
+- Times are stored in UTC. Convert to local time only to assign a Night or a Day.
 
 ## Testing
-- Framework: <e.g. vitest>
+- Framework: Swift Testing (`import Testing`, `@Test`, `#expect`)
 - Every feature ships with tests; every bug fix ships with a regression test.
 - Test behavior through public interfaces, at the seams the spec agrees — never internals.
 - Test naming: describe the behavior, not the implementation.
 - Expected values are known literals or come from the spec — never recomputed like the code.
+  For algorithms ported from `hr-tracker`, the expected values are that tool's output on the
+  same fixture night.
+- Fixtures are trimmed, anonymised real History Records (serial and device ID removed) under
+  `tests/`. Never commit raw `.pklg` captures or sysdiagnoses.
 - Mock only at system boundaries (external APIs, time, randomness); don't mock what you don't
   own without a wrapper. Full rules: `.claude/skills/tdd/`.
+- The shell (BLE, SwiftData, HealthKit, UI) is checked by hand on a real phone, with the steps
+  listed in the PR.
 
 ## Code review
 - Every task and every PR is reviewed on two separate axes: **spec** (`spec-reviewer`) and
@@ -29,6 +45,7 @@ inventing new ones.
 - This file *is* the standards the reviewer enforces. Mechanical rules (banned APIs, import
   shapes, file locations) belong in the linter or a hook instead; keep this file for judgement
   calls.
+- Solo project: the author merges their own PRs once both review axes and CI are green.
 
 ## Git
 - Branch per change: `feat/<name>`, `fix/<name>`, `chore/<name>`. `prototype/<name>` branches
@@ -37,11 +54,12 @@ inventing new ones.
 - Commit messages: imperative mood, present tense ("add login validation").
 - One PR per branch, body from `.github/pull_request_template.md`, squash-merged to `main`
   with green CI.
+- Issues are tracked in GitHub Issues.
 
 ## Definition of done
 - [ ] Meets the spec's success criteria
 - [ ] Tests pass (new + existing), locally and in CI
-- [ ] Lint + typecheck clean
+- [ ] Lint (`swift format lint`) + build clean, and the macOS CI job builds the app
 - [ ] Both review axes clear of blocking findings
 - [ ] Spec still reads true; GLOSSARY.md updated for new terms; an ADR in `docs/adr/` if a
       hard-to-reverse choice was made

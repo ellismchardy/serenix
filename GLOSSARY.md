@@ -1,19 +1,87 @@
-# Glossary — <PROJECT NAME>
+# Glossary — Serenix
 
 > The project's shared (ubiquitous) language. Code, specs, tests, and conversation all use
 > these terms, so one precise word replaces a paragraph of explanation. Filled in by /kickoff
 > and kept current by the `domain-modeling` skill. Definitions only — no implementation details.
 
-<One or two sentences: what this domain is.>
+Personal wellness tracking from a wearable's raw sensor data: sleep, overnight physiology, and
+daily scores, computed on the user's phone without the wearable vendor's subscription.
 
-## Language
+## Devices and data
 
-**<Term>**:
-<One or two sentences: what it IS, not what it does.>
-_Avoid_: <synonyms we've agreed not to use>
+**Strap**:
+The wrist-worn Whoop band the user owns (a Whoop 5.0 in v1), treated as a sensor that stores
+raw readings.
+_Avoid_: band, device, tracker, wearable (when the Whoop specifically is meant)
 
-<!-- Example:
-**Order**:
-A customer's confirmed request to buy one or more products.
-_Avoid_: purchase, transaction
--->
+**History Record**:
+One second of raw readings stored on the Strap: heart rate, RR intervals, motion, skin
+temperature, steps, and (during an SpO2 Window) an SpO2 reading.
+_Avoid_: sample, data point, packet
+
+**History Sync**:
+The transfer of every History Record the Strap holds that is newer than the last acknowledged
+one, from the Strap to the phone.
+_Avoid_: download, backfill, import
+
+**SpO2 Window**:
+A short period, during sleep, in which the Strap measures blood-oxygen saturation and writes
+readings into its History Records.
+
+## Sleep
+
+**Sleep Period**:
+The main stretch of a night from Sleep Onset to Final Wake, including brief wake bouts inside
+it.
+_Avoid_: sleep session, night (when the period itself is meant)
+
+**Sleep Onset**:
+The moment the user first falls asleep within a Sleep Period.
+
+**Final Wake**:
+The moment the user last wakes at the end of a Sleep Period.
+
+**Time in Bed**:
+The span around a Sleep Period during which the user is lying down but not up and about.
+
+**Night**:
+One Sleep Period, dated by the local calendar date of its Final Wake. A nap is not a Night.
+_Avoid_: sleep, cycle
+
+**Day**:
+One local calendar day, midnight to midnight.
+_Avoid_: cycle
+
+## Metrics and scores
+
+**Baseline**:
+The user's typical HRV and Resting HR, taken over their most recent Nights.
+_Avoid_: norm, average (when the personal reference is meant)
+
+**Nightly Metrics**:
+The physiological measures taken over one Sleep Period: Resting HR, HRV, respiratory rate, skin
+temperature, and SpO2.
+_Avoid_: vitals, biometrics
+
+**Resting HR**:
+The user's lowest sustained heart rate during a Sleep Period.
+_Avoid_: RHR (in prose; fine as an abbreviation in code)
+
+**HRV**:
+Heart-rate variability during a Sleep Period, expressed as RMSSD in milliseconds.
+
+**Sleep Score**:
+Serenix's rating of how well the user slept in one Sleep Period.
+_Avoid_: sleep performance, sleep quality
+
+**Readiness**:
+Serenix's rating of how prepared the user's body is for exertion, derived from Nightly Metrics
+relative to their own baseline.
+_Avoid_: recovery (WHOOP's term)
+
+**Load**:
+Serenix's measure of how much cardiovascular exertion the user accumulated over a day.
+_Avoid_: strain (WHOOP's term), effort, exertion score
+
+**Stress**:
+Serenix's measure of physiological stress through the day. Not in v1.
