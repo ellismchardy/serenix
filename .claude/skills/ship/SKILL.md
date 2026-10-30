@@ -48,9 +48,13 @@ to go ahead in this session.
    Use `GLOSSARY.md` terms. Show the title and body to the user.
 6. **Push and open** (after confirmation): `git push -u origin <branch>`. If the branch
    already has an open PR (`gh pr list --head <branch> --state open` — `gh pr view` also finds
-   closed ones), update it: `gh pr edit <n> --base main
-   --title "<title>" --body-file <tmp file>`. Otherwise `gh pr create --base main --title
-   "<title>" --body-file <tmp file>`. Report the PR URL.
+   closed ones), update it: `gh pr edit <n> --base main --title "<title>"
+   --body-file <tmp file>`. Otherwise `gh pr create --base main --title "<title>"
+   --body-file <tmp file>`. `.claude/hooks/block-dangerous-git.sh` matches the whole shell
+   command text and deliberately over-blocks, so: write the body file with the file-writing
+   tool (never a heredoc), keep blocked commands out of the title (e.g. "push … main",
+   `--no-verify`), and run the push as its own call (a line break between it and
+   `--base main` reads as a push to `main`). Report the PR URL.
 7. **Merge** — only when the user says to. First confirm `gh pr checks` is green (or, before
    `/scaffold`, that there are no checks) and required reviews are in. Then check for PRs
    stacked on this branch (`gh pr list --base <branch>`) and retarget each to `main` (`gh pr
@@ -58,6 +62,11 @@ to go ahead in this session.
    them for good instead of retargeting. Then `gh pr merge --squash --delete-branch`, `git
    checkout main`, `git pull --ff-only`. Report the squash commit on `main`, and tell the user
    any retargeted PR now needs `main` merged in (its next `/ship` step 2 does that).
+   Finally `git fetch --prune` and list local branches whose remote is gone
+   (`git branch -vv | grep ': gone]'`) — older leftovers; `--delete-branch` already removed
+   this one. If there are none, say nothing. A squash-merged branch looks unmerged to git, so
+   only `-D` removes it, and the hook blocks that for Claude: give the user the line to run
+   (`! git branch -D <branches>`) rather than trying it.
 
 ## Rules
 - Never force-push, never push directly to `main`, never `--no-verify`, never merge with red

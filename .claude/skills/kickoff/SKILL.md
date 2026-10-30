@@ -23,15 +23,18 @@ plan, or code exists.
    can't responsibly infer, and give a recommended answer for every question.
 4. **Write nothing but `GLOSSARY.md` until the interview is done.** Domain terms get captured
    inline as they're resolved (that's the domain-modeling discipline); everything else waits.
-5. **Confirm your own additions.** When the frontier is empty, before writing, list every statement you plan to put in the
-   files that the interview did not settle (error policy, logging, fallback behaviour,
+5. **Confirm your own additions.** Before writing, list every statement you plan to put in the
+   files that the interview did not settle (error policy, logging, fallback behavior,
    defaults you'd pick) and have the user confirm, change, or drop each. Anything unconfirmed
    becomes a placeholder.
-6. Then fill in the files, keeping each to its template's structure:
+6. When the frontier is empty, fill in the files, keeping each to its template's structure:
    - `CLAUDE.md` — keep it **short** (it loads every session): what it is, stack, key commands,
      layout. Push detail into `docs/` and reference it.
    - `docs/architecture.md` — components, data model, external deps, cross-cutting concerns.
-   - `docs/conventions.md` — naming, code patterns, testing, git rules.
+   - `docs/conventions.md` — naming, code patterns, testing, git rules. Sort each rule: a
+     **judgement call** goes in the prose sections; a **mechanical** one a script could check
+     (banned import or API, forbidden word, file location) goes as a one-liner under
+     "Checked by tooling", which `/scaffold` turns into a lint rule or check script.
    - `GLOSSARY.md` — the domain terms settled in the interview.
    - `docs/adr/` — one ADR per real choice the interview settled (stack, database, deploy
      target…) that passes the three-part test in `docs/adr/README.md`. Delete the worked
@@ -50,15 +53,15 @@ plan, or code exists.
 Show the filled-in files for review. Once the user is happy, land the kickoff **before** any
 other work, so nothing gets stacked on an unmerged branch:
 1. Commit on a `chore/kickoff` branch (never on `main`).
-2. If there's no GitHub remote yet, the user creates it and makes the first push of `main`
-   themselves (`.claude/hooks/block-dangerous-git.sh` blocks Claude from pushing `main`).
-   Say so when you first show the files, and give them the commands.
-3. Say "**ready to ship: `chore/kickoff`**" with a one-line summary, and stop. The user runs
-   `/ship`, which opens the PR and merges it.
+2. If there's no GitHub remote for *this project* yet (a clone may still point at the
+   template), the user creates it and makes the first push of `main` themselves
+   (`.claude/hooks/block-dangerous-git.sh` blocks Claude from pushing `main`). Say so up front
+   and give them the commands.
+3. Say "**ready to ship: `chore/kickoff`**" with a one-line summary and the next steps below,
+   then stop. The user runs `/ship`, which pushes, opens the PR, and squash-merges it.
 
-In the same message, say what comes after the merge: `/scaffold`, branched from the updated
-`main`, to stand up the runnable
-skeleton for the chosen stack (before any feature work), then `/write-spec` on their first
-feature. If the first milestone is still too big or foggy to spec in one go,
-suggest `/wayfinder` to chart it first. If setup needs steps only a human can do (accounts,
-API keys, CI secrets), the `wizard` skill can script them.
+Next steps to give them: `/scaffold`, branched from the updated `main`, to stand up the
+runnable skeleton for the chosen stack (before any feature work), then `/write-spec` on their
+first feature. If the first milestone is still too big or foggy to spec in one go, suggest
+`/wayfinder` to chart it first. If setup needs steps only a human can do (accounts, API keys,
+CI secrets), the `wizard` skill can script them.

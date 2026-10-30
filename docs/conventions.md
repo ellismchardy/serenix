@@ -45,9 +45,17 @@ inventing new ones.
 - Every task and every PR is reviewed on two separate axes: **spec** (`spec-reviewer`) and
   **standards** (`standards-reviewer`). Blocking findings are fixed before commit/merge.
 - This file *is* the standards the reviewer enforces. Mechanical rules (banned APIs, import
-  shapes, file locations) belong in the linter or a hook instead; keep this file for judgement
-  calls.
+  shapes, file locations) go as one-liners under *Checked by tooling*, enforced by the linter
+  or a script; everything else here is a judgement call.
 - Solo project: the author merges their own PRs once both review axes and CI are green.
+
+## Checked by tooling
+(not yet enforced — needs `scripts/check-rules`, run by the pre-commit hook and CI)
+One line per mechanical rule; the linter or `scripts/check-rules` enforces it in the pre-commit
+hook and CI, so reviewers needn't. Add new ones here *and* to the check.
+- `src/SerenixCore/` imports Foundation only.
+- No `Date()` in `src/SerenixCore/`; time is passed in.
+- WHOOP's score names (recovery, strain, sleep performance) appear nowhere in `src/`.
 
 ## Git
 - Branch per change: `feat/<name>`, `fix/<name>`, `chore/<name>`. `prototype/<name>` branches

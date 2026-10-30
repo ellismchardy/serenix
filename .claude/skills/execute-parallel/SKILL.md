@@ -58,7 +58,7 @@ both review axes, its own commit — so CLAUDE.md's "one task at a time" holds *
    `git branch -d <task branch>`.
    Leave any unmerged worktree in place and tell the user.
 7. When every box is ticked, finish as `/execute` does (spec `Status: built`, plan to
-   `plans/done/`, commit) and point the user at `/ship`.
+   `plans/done/`, commit, then "**ready to ship: `<branch>`**").
 
 ## Rules
 - Same rules as `/execute`: no spec edits, no scope expansion, never mask a failure, stop and

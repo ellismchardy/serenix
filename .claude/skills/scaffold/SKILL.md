@@ -32,15 +32,29 @@ kickoff and before the first `/write-spec`. It writes setup/config and a hello-w
    - `.env.example` listing every config key the skeleton reads, with dummy values.
 4. Wire the **guardrails**, so a mistake is caught by a machine before a reviewer:
    - **CI:** `.github/workflows/ci.yml` running install → lint → typecheck → test on every pull
-     request and on pushes to `main`, using the exact key commands from CLAUDE.md.
+     request and on pushes to `main`, using the exact key commands from CLAUDE.md. Add a job
+     that checks the repo's own hooks: `shellcheck` on every shell hook (`.claude/hooks/*.sh`
+     and the pre-commit hook if git runs it directly), a check that each is stored executable
+     (`git ls-files -s <file>` shows mode `100755`), and
+     `bash .claude/hooks/block-dangerous-git.test.sh`.
    - **Pre-commit hook** using the stack's idiomatic tool (e.g. Husky + lint-staged for Node,
-     `pre-commit` for Python): format + lint the staged files, then typecheck. Keep it fast;
-     the full test suite belongs in CI.
+     `pre-commit` for Python): lint the staged files, then typecheck. Keep it fast; the full
+     test suite belongs in CI. If it formats, it must only *check* formatting or let the tool
+     handle partial staging (lint-staged, `pre-commit` do) — **never `git add` whole files from
+     the hook**, which sweeps unstaged edits into the commit. A hand-written hook script must
+     be committed executable (`git update-index --chmod=+x <file>`; Windows won't set it).
+   - **Rule checks:** each rule under "Checked by tooling" in `docs/conventions.md` becomes a
+     linter rule or a line in a small `scripts/check-rules` script, run by both the pre-commit
+     hook and CI. Then delete the "(not yet enforced — `/scaffold` wires these)" note there. If
+     the section holds only the `<e.g. …>` placeholders, skip this; don't create an empty
+     script.
 5. Verify the toolchain end-to-end by actually running the commands:
    - install succeeds
    - `test` runs and the one trivial test is green
    - `lint` and `typecheck` pass clean
-   - the pre-commit hook fires on a commit
+   - the pre-commit hook fires on a commit, and a partially staged file commits only its
+     staged part
+   - each rule check fails on a deliberate violation, then passes once it's removed
    - the dev/run command launches (or note why it can't be auto-verified in this environment)
 6. Report what you created and the exact result of each command you ran.
 
@@ -50,8 +64,8 @@ kickoff and before the first `/write-spec`. It writes setup/config and a hello-w
 - Don't re-litigate stack decisions — they live in `docs/adr/`. If setup forces a NEW real
   choice (e.g. which Electron bundler) that passes the test in `docs/adr/README.md`, make it,
   then add an ADR.
-- Scaffolding is setup, not a feature: do it on a `chore/scaffold` branch and open a PR like
-  any other change (`/ship` handles that).
+- Scaffolding is setup, not a feature: do it on a `chore/scaffold` branch, which the user
+  `/ship`s like any other change.
 - Match `docs/conventions.md` exactly (file naming, test location, formatting).
 - Never commit secrets; ensure `.env` and key stores are git-ignored from the start.
 - Keep the skeleton minimal — the goal is "toolchain proven," not "lots of code."
@@ -59,6 +73,6 @@ kickoff and before the first `/write-spec`. It writes setup/config and a hello-w
   rather than claiming success.
 
 ## Then
-Report the green toolchain (which commands pass). Point the user at `/ship` to open the
-scaffold PR, then `/write-spec` on their first feature — ideally the riskiest piece, since
-everything else builds on it.
+Report the green toolchain (which commands pass) and say "**ready to ship:
+`chore/scaffold`**". After it merges, the next step is `/write-spec` on their first feature —
+ideally the riskiest piece, since everything else builds on it.

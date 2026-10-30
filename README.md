@@ -49,13 +49,18 @@ Two more durable records sit beside the specs:
 
 ## First-time setup
 
-1. Use this repo as a GitHub **template** (or clone it) for your new project.
+1. Use this repo as a GitHub **template** (or clone it) for your new project. From a local
+   copy instead: copy the folder **without** `.git` (otherwise it keeps this repo's history
+   and `origin`), run `git init -b main` and commit, and name the folder after the project
+   before starting Claude Code in it — Windows can't rename a folder a session has open.
 2. `/kickoff <one-paragraph idea>` → Claude grills you in rounds (each question comes with a
    recommended answer), then fills in `CLAUDE.md`, `docs/`, `GLOSSARY.md`, and the first ADRs.
-3. `/scaffold` → Claude stands up the runnable skeleton for the chosen stack (deps,
-   build/test/lint config, CI workflow, pre-commit hook, a hello-world that proves the
-   toolchain) and verifies every command passes. No features yet.
-4. `/ship` the scaffold as your first PR, then `/write-spec` your first feature — ideally the
+   `/ship` that `chore/kickoff` branch before anything else (on a new repo you push `main`
+   yourself first; Claude isn't allowed to).
+3. `/scaffold` from the updated `main` → Claude stands up the runnable skeleton for the chosen
+   stack (deps, build/test/lint config, CI workflow, pre-commit hook, a hello-world that proves
+   the toolchain) and verifies every command passes. No features yet.
+4. `/ship` the scaffold, then `/write-spec` your first feature — ideally the
    riskiest piece.
 
 ## The loops
