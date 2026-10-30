@@ -19,8 +19,8 @@ implementation live in the separate `hr-tracker` repo.
 
 ## Key commands
 - Install: see `docs/dev-setup.md` (Windows toolchain, pre-commit hook, sideloading)
-- Run (dev): CI builds the app from `project.yml` (XcodeGen); download the unsigned `.ipa`
-  from the CI macOS job, sideload with Sideloadly
+- Run (dev): CI builds the app from `project.yml` (XcodeGen); sideload it per
+  `docs/dev-setup.md`
 - Test: `swift test`
 - Lint: `swift format lint --strict --recursive src tests Package.swift`
 - Typecheck: `swift build`
