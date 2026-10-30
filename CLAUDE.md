@@ -6,7 +6,7 @@
 ## What this is
 An iOS wellness tracker that reads a Whoop 5.0 Strap directly over Bluetooth, so owners without
 a WHOOP membership get sleep, Nightly Metrics, Sleep Score, Readiness and Load. Everything runs
-on the phone. Not affiliated with WHOOP, Inc. Protocol research and the Python reference
+on the phone. Public, MIT-licensed, not affiliated with WHOOP, Inc. Protocol research and the Python reference
 implementation live in the separate `hr-tracker` repo.
 
 ## Stack
@@ -26,7 +26,7 @@ implementation live in the separate `hr-tracker` repo.
 
 ## Layout
 - `src/` — application code: `SerenixCore` (pure logic) and the iOS app shell
-- `tests/` — tests (mirror the src/ structure); fixtures are anonymised real nights
+- `tests/` — tests (mirror the src/ structure); fixture rules in `docs/conventions.md`
 - `specs/` — feature specs (the source of truth)
 - `plans/` — disposable execution plans
 - `docs/` — deeper reference (see below); `docs/adr/` — one file per decision (the *why*)

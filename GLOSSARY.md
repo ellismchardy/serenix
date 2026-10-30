@@ -28,12 +28,16 @@ _Avoid_: download, backfill, import
 A short period, during sleep, in which the Strap measures blood-oxygen saturation and writes
 readings into its History Records.
 
+**Sync Cursor**:
+The last History Record the phone has acknowledged to the Strap. The next History Sync
+starts after it.
+
 ## Sleep
 
 **Sleep Period**:
 The main stretch of a night from Sleep Onset to Final Wake, including brief wake bouts inside
 it.
-_Avoid_: sleep session, night (when the period itself is meant)
+_Avoid_: sleep session
 
 **Sleep Onset**:
 The moment the user first falls asleep within a Sleep Period.
@@ -45,8 +49,12 @@ The moment the user last wakes at the end of a Sleep Period.
 The span around a Sleep Period during which the user is lying down but not up and about.
 
 **Night**:
-One Sleep Period, dated by the local calendar date of its Final Wake. A nap is not a Night.
+The dated record of one night's sleep: a Sleep Period together with the Nightly Metrics and
+scores drawn from it, dated by the local calendar date of its Final Wake.
 _Avoid_: sleep, cycle
+
+**Nap**:
+A stretch of sleep outside the Sleep Period. A Nap never makes a Night.
 
 **Day**:
 One local calendar day, midnight to midnight.
@@ -74,14 +82,17 @@ Heart-rate variability during a Sleep Period, expressed as RMSSD in milliseconds
 Serenix's rating of how well the user slept in one Sleep Period.
 _Avoid_: sleep performance, sleep quality
 
+**Calibrating**:
+The state of Readiness while too few Nights exist to form a Baseline.
+
 **Readiness**:
 Serenix's rating of how prepared the user's body is for exertion, derived from Nightly Metrics
-relative to their own baseline.
+relative to their own Baseline.
 _Avoid_: recovery (WHOOP's term)
 
 **Load**:
-Serenix's measure of how much cardiovascular exertion the user accumulated over a day.
+Serenix's measure of how much cardiovascular exertion the user accumulated over a Day.
 _Avoid_: strain (WHOOP's term), effort, exertion score
 
 **Stress**:
-Serenix's measure of physiological stress through the day. Not in v1.
+Serenix's measure of physiological stress through a Day.
