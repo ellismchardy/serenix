@@ -18,7 +18,7 @@ implementation live in the separate `hr-tracker` repo.
   GitHub Actions macOS and is sideloaded with Sideloadly (see ADR 0003).
 
 ## Key commands
-- Install: Swift 6 toolchain, then `git config core.hooksPath .githooks` (pre-commit hook)
+- Install: see `docs/dev-setup.md` (Windows toolchain, pre-commit hook, sideloading)
 - Run (dev): CI builds the app from `project.yml` (XcodeGen); download the unsigned `.ipa`
   from the CI macOS job, sideload with Sideloadly
 - Test: `swift test`
