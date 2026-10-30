@@ -33,3 +33,7 @@ DerivedData/
 xcuserdata/
 *.ipa
 src/SerenixApp/Info.plist
+
+# Bluetooth captures and phone diagnostics: they hold the Strap serial and raw health data
+*.pklg
+sysdiagnose_*

@@ -42,7 +42,7 @@ The app is split in two (ADR 0002):
 - **Day**: a local calendar day with its Load. Kept forever.
 - **Baseline**: derived from the last 14 Nights, not stored. Readiness is "calibrating" until
   4 Nights exist.
-- **Sync cursor**: the last History Record the Strap acknowledged, so each sync only gets
+- **Sync Cursor**: the last History Record the phone acknowledged to the Strap, so each sync only gets
   newer records.
 
 All scores run 0–100 on Serenix's own scales (ADR 0005). The exact formulas live in each
@@ -59,14 +59,20 @@ score's spec.
 - **Sideloadly** (developer machine only): signs the `.ipa` with a free Apple ID and installs
   it on the phone. Installs expire after 7 days.
 
+## Not in v1
+Sleep stages (light, deep, REM), Stress, reading other devices from Apple Health, Fitbit,
+background sync, iCloud sync, and the Whoop 4.0 and MG.
+
 ## Cross-cutting concerns
 - Auth: none. No accounts. The only "auth" is BLE pairing with the Strap, which encrypts the
   link the Whoop service needs.
 - Errors: `SerenixCore` returns typed errors and never crashes on malformed frames: a bad CRC
   or unknown record type is reported and skipped. The shell shows sync failures to the user.
-- Logging/observability: `os.Logger` on the device only. No analytics or telemetry, so
-  health data never leaves the phone (ADR 0001).
+- Logging/observability: `os.Logger` on the device only. No automatic analytics or
+  telemetry (ADR 0001). Bug and crash reports are **user-initiated**: the user chooses to send
+  the details (e.g. by email) and sees what is sent. What a report contains is set by its spec.
 - Config/secrets: none at runtime. Signing for TestFlight or the App Store needs the Apple
   Developer Program; until then there are no secrets.
 - Sync: foreground only. History Sync runs when the app opens (ADR 0004).
-- Privacy: test fixtures are trimmed real nights with the serial and device ID removed.
+- Privacy: test fixtures are the owner's real nights, published in this public repo by choice;
+  rules in `docs/conventions.md` (Testing).

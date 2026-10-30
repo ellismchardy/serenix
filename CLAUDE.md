@@ -6,7 +6,7 @@
 ## What this is
 An iOS wellness tracker that reads a Whoop 5.0 Strap directly over Bluetooth, so owners without
 a WHOOP membership get sleep, Nightly Metrics, Sleep Score, Readiness and Load. Everything runs
-on the phone. Not affiliated with WHOOP, Inc. Protocol research and the Python reference
+on the phone. Public, MIT-licensed, not affiliated with WHOOP, Inc. Protocol research and the Python reference
 implementation live in the separate `hr-tracker` repo.
 
 ## Stack
@@ -19,14 +19,15 @@ implementation live in the separate `hr-tracker` repo.
 
 ## Key commands
 - Install: Swift 6 toolchain, then `git config core.hooksPath .githooks` (pre-commit hook)
-- Run (dev): CI generates the Xcode project from `project.yml` (XcodeGen); download the unsigned `.ipa` from the CI macOS job, sideload with Sideloadly
+- Run (dev): CI builds the app from `project.yml` (XcodeGen); download the unsigned `.ipa`
+  from the CI macOS job, sideload with Sideloadly
 - Test: `swift test`
 - Lint: `swift format lint --strict --recursive src tests Package.swift`
 - Typecheck: `swift build`
 
 ## Layout
 - `src/` — application code: `SerenixCore` (pure logic) and the iOS app shell
-- `tests/` — tests (mirror the src/ structure); fixtures are anonymised real nights
+- `tests/` — tests (mirror the src/ structure); fixture rules in `docs/conventions.md`
 - `specs/` — feature specs (the source of truth)
 - `plans/` — disposable execution plans
 - `docs/` — deeper reference (see below); `docs/adr/` — one file per decision (the *why*)
@@ -49,8 +50,9 @@ Not sure which flow fits? See `docs/workflows.md`.
 1. **Spec-driven.** Don't write code for a feature until a spec exists in `specs/`. Don't
    start coding until there's an approved plan.
 2. **TDD.** Write a failing test first, confirm it fails, then implement until green.
-   Never weaken or delete a test to make it pass. (Only exception: throwaway prototypes on
-   never-merged `prototype/` branches.)
+   Never weaken or delete a test to make it pass. (Exceptions: throwaway prototypes on
+   never-merged `prototype/` branches, and the thin iOS shell, which can't run on Windows and
+   is checked by hand on a phone per ADR 0002. Logic in `SerenixCore` is always test-first.)
 3. **Fix root causes, not symptoms.** When something fails, diagnose and fix the underlying
    cause. Never mask a bug to make the suite look green — no swallowing errors, special-casing
    inputs, hardcoding expected results, or loosening assertions. Green must mean correct.
