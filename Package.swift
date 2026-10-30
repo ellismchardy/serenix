@@ -13,7 +13,8 @@ let package = Package(
         .testTarget(
             name: "SerenixCoreTests",
             dependencies: ["SerenixCore"],
-            path: "tests/SerenixCoreTests"
+            path: "tests/SerenixCoreTests",
+            resources: [.copy("Fixtures")]
         ),
     ]
 )

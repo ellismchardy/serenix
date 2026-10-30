@@ -19,15 +19,16 @@ Log keeps the **last 5 syncs**.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice:** test fixture + Frame codec
+1. [x] **Slice:** test fixture + Frame codec
    - Build the fixture once from `hr-tracker/captures/sixteen_session_2026-10-27.txt` with a
      small script in `scripts/`: keep each Frame's direction, characteristic and hex; replace
      the serial (Device Info read and hello reply) and device ID with fake values; recompute
      the CRCs of changed Frames. Never commit the raw capture.
    - `SerenixCore` Frame codec: build command Frames (header from the known table, sequence
      number, CRC32) and parse incoming Frames, rejecting bad CRCs.
-   - Seam: History Sync session (codec underneath it) · Files: `scripts/make-sync-fixture.py`,
-     `tests/SerenixCoreTests/Fixtures/`, `src/SerenixCore/Frame*.swift`,
+   - Seam: Frame codec (public `Frame`/`Command`), under the History Sync session · Files:
+     `scripts/make-sync-fixture.py`, `tests/SerenixCoreTests/Fixtures/`,
+     `tests/SerenixCoreTests/SyncCapture.swift` (fixture reader), `src/SerenixCore/Frame*.swift`,
      `tests/SerenixCoreTests/FrameTests.swift`, `Package.swift` (test resources)
    - Done when: encoding each captured command with its sequence number gives its exact bytes;
      every Strap Frame parses with a valid CRC; a one-byte change is rejected.
