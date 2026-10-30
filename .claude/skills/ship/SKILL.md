@@ -45,11 +45,17 @@ to go ahead in this session.
      *blast radius* (who/what breaks if it's wrong).
    - Link the spec, the archived plan, any ADRs, and `Closes #<issue>` if there is one.
    Use `GLOSSARY.md` terms. Show the title and body to the user.
-6. **Push and open** (after confirmation): `git push -u origin <branch>`, then
-   `gh pr create --base main --title "<title>" --body-file <tmp file>`. Report the PR URL.
+6. **Push and open** (after confirmation): `git push -u origin <branch>`. If the branch
+   already has an open PR (`gh pr view <branch>`), update it: `gh pr edit <n> --base main
+   --title "<title>" --body-file <tmp file>`. Otherwise `gh pr create --base main --title
+   "<title>" --body-file <tmp file>`. Report the PR URL.
 7. **Merge** — only when the user says to. First confirm `gh pr checks` is green and required
-   reviews are in. Then `gh pr merge --squash --delete-branch`, `git checkout main`,
-   `git pull --ff-only`. Report the squash commit on `main`.
+   reviews are in. Then check for PRs stacked on this branch (`gh pr list --base <branch>`)
+   and retarget each to `main` (`gh pr edit <n> --base main`): `--delete-branch` deletes
+   their base, and GitHub then **closes** them for good instead of retargeting. Then
+   `gh pr merge --squash --delete-branch`, `git checkout main`, `git pull --ff-only`. Report
+   the squash commit on `main`, and tell the user any retargeted PR now needs `main` merged
+   in (its next `/ship` step 2 does that).
 
 ## Rules
 - Never force-push, never push directly to `main`, never `--no-verify`, never merge with red
