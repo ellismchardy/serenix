@@ -23,7 +23,11 @@ plan, or code exists.
    can't responsibly infer, and give a recommended answer for every question.
 4. **Write nothing but `GLOSSARY.md` until the interview is done.** Domain terms get captured
    inline as they're resolved (that's the domain-modeling discipline); everything else waits.
-5. When the frontier is empty, fill in the files, keeping each to its template's structure:
+5. **Confirm your own additions.** When the frontier is empty, before writing, list every statement you plan to put in the
+   files that the interview did not settle (error policy, logging, fallback behaviour,
+   defaults you'd pick) and have the user confirm, change, or drop each. Anything unconfirmed
+   becomes a placeholder.
+6. Then fill in the files, keeping each to its template's structure:
    - `CLAUDE.md` — keep it **short** (it loads every session): what it is, stack, key commands,
      layout. Push detail into `docs/` and reference it.
    - `docs/architecture.md` — components, data model, external deps, cross-cutting concerns.
@@ -43,8 +47,18 @@ plan, or code exists.
 - This skill fills in CLAUDE.md, docs/, and GLOSSARY.md only. No spec, no feature code.
 
 ## Then
-Show the filled-in files for review. Once the user is happy, point them at `/scaffold` to stand
-up the runnable skeleton for the chosen stack (before any feature work), then `/write-spec` on
-their first feature. If the first milestone is still too big or foggy to spec in one go,
+Show the filled-in files for review. Once the user is happy, land the kickoff **before** any
+other work, so nothing gets stacked on an unmerged branch:
+1. Commit on a `chore/kickoff` branch (never on `main`).
+2. If there's no GitHub remote yet, the user creates it and makes the first push of `main`
+   themselves (`.claude/hooks/block-dangerous-git.sh` blocks Claude from pushing `main`).
+   Say so when you first show the files, and give them the commands.
+3. Say "**ready to ship: `chore/kickoff`**" with a one-line summary, and stop. The user runs
+   `/ship`, which opens the PR and merges it.
+
+In the same message, say what comes after the merge: `/scaffold`, branched from the updated
+`main`, to stand up the runnable
+skeleton for the chosen stack (before any feature work), then `/write-spec` on their first
+feature. If the first milestone is still too big or foggy to spec in one go,
 suggest `/wayfinder` to chart it first. If setup needs steps only a human can do (accounts,
 API keys, CI secrets), the `wizard` skill can script them.
