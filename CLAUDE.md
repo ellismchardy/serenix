@@ -49,8 +49,9 @@ Not sure which flow fits? See `docs/workflows.md`.
 1. **Spec-driven.** Don't write code for a feature until a spec exists in `specs/`. Don't
    start coding until there's an approved plan.
 2. **TDD.** Write a failing test first, confirm it fails, then implement until green.
-   Never weaken or delete a test to make it pass. (Only exception: throwaway prototypes on
-   never-merged `prototype/` branches.)
+   Never weaken or delete a test to make it pass. (Exceptions: throwaway prototypes on
+   never-merged `prototype/` branches, and the thin iOS shell, which can't run on Windows and
+   is checked by hand on a phone per ADR 0002. Logic in `SerenixCore` is always test-first.)
 3. **Fix root causes, not symptoms.** When something fails, diagnose and fix the underlying
    cause. Never mask a bug to make the suite look green — no swallowing errors, special-casing
    inputs, hardcoding expected results, or loosening assertions. Green must mean correct.

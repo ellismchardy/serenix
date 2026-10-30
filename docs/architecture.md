@@ -68,8 +68,9 @@ background sync, iCloud sync, and the Whoop 4.0 and MG.
   link the Whoop service needs.
 - Errors: `SerenixCore` returns typed errors and never crashes on malformed frames: a bad CRC
   or unknown record type is reported and skipped. The shell shows sync failures to the user.
-- Logging/observability: `os.Logger` on the device only. No analytics or telemetry, so
-  health data never leaves the phone (ADR 0001).
+- Logging/observability: `os.Logger` on the device only. No automatic analytics or
+  telemetry (ADR 0001). Bug and crash reports are **user-initiated**: the user chooses to send
+  the details (e.g. by email) and sees what is sent. What a report contains is set by its spec.
 - Config/secrets: none at runtime. Signing for TestFlight or the App Store needs the Apple
   Developer Program; until then there are no secrets.
 - Sync: foreground only. History Sync runs when the app opens (ADR 0004).
