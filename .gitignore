@@ -23,3 +23,24 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Swift / Xcode
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+xcuserdata/
+*.ipa
+src/SerenixApp/Info.plist
+
+# Bluetooth captures and phone diagnostics: they hold the Strap serial and raw health data
+*.pklg
+sysdiagnose_*
+
+# Signing material and crash logs (may hold device identifiers)
+*.p12
+*.mobileprovision
+*.cer
+*.certSigningRequest
+*.ips

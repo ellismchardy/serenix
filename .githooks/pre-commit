@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Lint staged Swift files, then build. Install once: git config core.hooksPath .githooks
+# Never modifies or re-stages files, so partial staging stays intact. Fix lint errors with
+# `swift format format --in-place <file>`. Checks the working tree, so it's best-effort;
+# CI is the real gate.
+set -euo pipefail
+
+files=()
+while IFS= read -r -d '' f; do
+    files+=("$f")
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.swift')
+
+if [ "${#files[@]}" -gt 0 ] && ! swift format lint --strict "${files[@]}"; then
+    echo "pre-commit: lint failed. Run: swift format format --in-place <file>" >&2
+    exit 1
+fi
+swift build

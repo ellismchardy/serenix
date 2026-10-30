@@ -1,0 +1,28 @@
+# XcodeGen spec for the iOS shell. CI generates Serenix.xcodeproj from this (no Mac locally,
+# docs/adr/0003); the generated project is git-ignored.
+name: Serenix
+options:
+  bundleIdPrefix: com.ellismchardy
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  Serenix:
+    path: .
+targets:
+  Serenix:
+    type: application
+    platform: iOS
+    sources: [src/SerenixApp]
+    scheme: {}
+    dependencies:
+      - package: Serenix
+        product: SerenixCore
+    info:
+      path: src/SerenixApp/Info.plist
+      properties:
+        CFBundleDisplayName: Serenix
+        UILaunchScreen: {}
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"

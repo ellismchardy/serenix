@@ -29,10 +29,10 @@ The app is split in two (ADR 0002):
 | Sync logic | The History Sync state machine: which commands to send, when to acknowledge, when a sync is complete. Transport-agnostic | `src/SerenixCore/` |
 | Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records | `src/SerenixCore/` |
 | Metrics & scores | Nightly Metrics, Baseline, Sleep Score, Readiness, Load | `src/SerenixCore/` |
-| BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/<iOS app — set in /scaffold>/` |
-| Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever) | `src/<iOS app>/` |
-| Health export | Writes Resting HR, HRV, SpO2, respiratory rate and sleep to Apple Health | `src/<iOS app>/` |
-| UI | SwiftUI screens | `src/<iOS app>/` |
+| BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |
+| Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever) | `src/SerenixApp/` |
+| Health export | Writes Resting HR, HRV, SpO2, respiratory rate and sleep to Apple Health | `src/SerenixApp/` |
+| UI | SwiftUI screens | `src/SerenixApp/` |
 
 ## Data model
 - **History Record**: one per second from the Strap, keyed by the Strap's record counter, with
