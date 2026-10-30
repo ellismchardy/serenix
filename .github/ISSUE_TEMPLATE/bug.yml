@@ -1,0 +1,48 @@
+name: Bug report
+description: Something is broken, throwing, wrong, or slow.
+labels: ["bug", "needs-triage"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The exact symptom — error message, wrong output, or timing. Redact secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: The correct behavior. Link the spec in specs/ if you know it.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence of steps or inputs that triggers it.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often
+      options:
+        - Every time
+        - Sometimes (flaky)
+        - Once / unsure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit / environment
+      placeholder: e.g. main@abc1234, staging, Chrome 130
+  - type: textarea
+    id: context
+    attributes:
+      label: Logs, screenshots, or other context
+      description: Redact secrets and personal data before pasting.
