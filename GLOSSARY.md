@@ -28,9 +28,29 @@ _Avoid_: download, backfill, import
 A short period, during sleep, in which the Strap measures blood-oxygen saturation and writes
 readings into its History Records.
 
+**Record Counter**:
+The Strap's sequence number for a History Record, one higher for each record it stores. It
+identifies a History Record.
+_Avoid_: index, record ID
+
+**Batch**:
+A group of History Records the Strap sends together during a History Sync, ending with a Sync
+Cursor.
+_Avoid_: chunk, page, burst
+
 **Sync Cursor**:
-The last History Record the phone has acknowledged to the Strap. The next History Sync
-starts after it.
+An opaque position in the Strap's storage, given by the Strap at the end of each Batch. Echoing
+it back acknowledges the Batch, and the Strap then never sends those History Records again.
+The Strap keeps it; the phone never stores or computes it.
+
+**Frame**:
+One message exchanged with the Strap: a command, a reply, or data.
+_Avoid_: packet, message
+
+**Sync Log**:
+The record of every Frame exchanged with the Strap, in order, with direction and time. Kept on
+the phone and shared only when the user chooses to.
+_Avoid_: debug log, trace
 
 ## Sleep
 
