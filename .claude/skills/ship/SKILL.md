@@ -25,7 +25,8 @@ to go ahead in this session.
    conflicts, stop and walk the user through them — never resolve a conflict by discarding
    either side's intent.
 3. **Run every check** from CLAUDE.md's Key commands (install, lint, typecheck, full test
-   suite). All must be green; fix root causes, never mask.
+   suite). All must be green; fix root causes, never mask. Before `/scaffold` there is nothing
+   to run (placeholder commands, no CI) — say so, and the branch merges on review alone.
 4. **Review the whole branch.** Dispatch `spec-reviewer` and `standards-reviewer` **in
    parallel** with the diff command `git diff origin/main...HEAD`, the commit list
    (`git log origin/main..HEAD --oneline`), the spec path, and the archived plan path (in
@@ -46,16 +47,17 @@ to go ahead in this session.
    - Link the spec, the archived plan, any ADRs, and `Closes #<issue>` if there is one.
    Use `GLOSSARY.md` terms. Show the title and body to the user.
 6. **Push and open** (after confirmation): `git push -u origin <branch>`. If the branch
-   already has an open PR (`gh pr view <branch>`), update it: `gh pr edit <n> --base main
+   already has an open PR (`gh pr list --head <branch> --state open` — `gh pr view` also finds
+   closed ones), update it: `gh pr edit <n> --base main
    --title "<title>" --body-file <tmp file>`. Otherwise `gh pr create --base main --title
    "<title>" --body-file <tmp file>`. Report the PR URL.
-7. **Merge** — only when the user says to. First confirm `gh pr checks` is green and required
-   reviews are in. Then check for PRs stacked on this branch (`gh pr list --base <branch>`)
-   and retarget each to `main` (`gh pr edit <n> --base main`): `--delete-branch` deletes
-   their base, and GitHub then **closes** them for good instead of retargeting. Then
-   `gh pr merge --squash --delete-branch`, `git checkout main`, `git pull --ff-only`. Report
-   the squash commit on `main`, and tell the user any retargeted PR now needs `main` merged
-   in (its next `/ship` step 2 does that).
+7. **Merge** — only when the user says to. First confirm `gh pr checks` is green (or, before
+   `/scaffold`, that there are no checks) and required reviews are in. Then check for PRs
+   stacked on this branch (`gh pr list --base <branch>`) and retarget each to `main` (`gh pr
+   edit <n> --base main`): `--delete-branch` deletes their base, and GitHub then **closes**
+   them for good instead of retargeting. Then `gh pr merge --squash --delete-branch`, `git
+   checkout main`, `git pull --ff-only`. Report the squash commit on `main`, and tell the user
+   any retargeted PR now needs `main` merged in (its next `/ship` step 2 does that).
 
 ## Rules
 - Never force-push, never push directly to `main`, never `--no-verify`, never merge with red
