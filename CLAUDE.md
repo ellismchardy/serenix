@@ -18,10 +18,10 @@ implementation live in the separate `hr-tracker` repo.
   GitHub Actions macOS and is sideloaded with Sideloadly (see ADR 0003).
 
 ## Key commands
-- Install: `<decided in /scaffold>`
-- Run (dev): download the unsigned `.ipa` from the CI macOS job, sideload with Sideloadly
+- Install: Swift 6 toolchain, then `git config core.hooksPath .githooks` (pre-commit hook)
+- Run (dev): CI generates the Xcode project from `project.yml` (XcodeGen); download the unsigned `.ipa` from the CI macOS job, sideload with Sideloadly
 - Test: `swift test`
-- Lint: `swift format lint --strict --recursive src tests`
+- Lint: `swift format lint --strict --recursive src tests Package.swift`
 - Typecheck: `swift build`
 
 ## Layout

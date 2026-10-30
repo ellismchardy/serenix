@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  core:
+    name: SerenixCore (lint, build, test)
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint
+        run: swift format lint --strict --recursive src tests Package.swift
+      - name: Typecheck
+        run: swift build
+      - name: Test
+        run: swift test
+
+  ios:
+    name: iOS app (unsigned .ipa)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build
+        run: |
+          xcodebuild -project Serenix.xcodeproj -scheme Serenix \
+            -sdk iphoneos -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build
+      - name: Package .ipa
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Serenix.app Payload/
+          zip -qr Serenix.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Serenix-ipa
+          path: Serenix.ipa

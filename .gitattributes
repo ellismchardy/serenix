@@ -1,2 +1,7 @@
 # Shell scripts must keep LF endings or bash fails on Windows checkouts (autocrlf).
 *.sh text eol=lf
+# Swift sources and config stay LF so swift-format sees the same bytes on Windows and CI.
+*.swift text eol=lf
+*.yml text eol=lf
+.swift-format text eol=lf
+.githooks/* text eol=lf

@@ -23,3 +23,13 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Swift / Xcode
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+xcuserdata/
+*.ipa
+src/SerenixApp/Info.plist
