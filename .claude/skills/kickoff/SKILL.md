@@ -53,7 +53,8 @@ other work, so nothing gets stacked on an unmerged branch:
 2. If there's no GitHub remote yet, the user creates it and makes the first push of `main`
    themselves (`.claude/hooks/block-dangerous-git.sh` blocks Claude from pushing `main`).
    Say so up front and give them the commands.
-3. `/ship` the kickoff branch and merge it.
+3. Say "**ready to ship: `chore/kickoff`**" and stop. The user runs `/ship`, which opens the
+   PR and merges it.
 
 Then point them at `/scaffold`, branched from the updated `main`, to stand up the runnable
 skeleton for the chosen stack (before any feature work), then `/write-spec` on their first

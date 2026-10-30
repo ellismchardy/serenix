@@ -68,9 +68,10 @@ Not sure which flow fits? See `docs/workflows.md`.
 8. **Branch per feature; merge before the next.** Start every feature/fix on its own branch
    off `main` (`feat/<name>` / `fix/<name>`, or `chore/<name>` for setup/tooling/docs with no
    spec) — never commit feature work to `main` or stack new work on another feature's branch.
-   Open the PR when you first push the branch (`/ship`), **squash-merge** it (one commit per
-   feature on `main`), and merge before starting the next feature, then branch the next one
-   from freshly-updated `main`.
+   Only `/ship` pushes a branch, opens its PR and **squash-merges** it (one commit per feature
+   on `main`), and the user runs it: when a branch is finished, say "**ready to ship:
+   `<branch>`**" with a one-line summary, and stop. Merge before starting the next feature,
+   then branch the next one from freshly-updated `main`.
 
 ## Hard nevers
 - Never commit secrets or `.env` files.
