@@ -1,11 +1,12 @@
-import SerenixCore
 import SwiftUI
 
 @main
 struct SerenixApp: App {
+    @StateObject private var connection = StrapConnection()
+
     var body: some Scene {
         WindowGroup {
-            Text("Serenix \(BuildInfo.version)")
+            MainView(connection: connection)
         }
     }
 }
