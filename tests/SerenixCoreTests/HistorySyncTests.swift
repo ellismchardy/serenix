@@ -271,3 +271,189 @@ private func syncs(in connection: SyncCapture.Connection) -> (
     #expect(last.fed.map { isMetadataFrame($0, kind: completeKind) } == true)
     #expect(last.stateAfter == .completed)
 }
+
+// MARK: - Failure rules
+
+/// Index in `strapMessages` of the Strap's reply to the session's `0x0b` get clock
+/// (19:50:17.091).
+private let getClockReplyIndex = 3
+
+/// Index in `strapMessages` of the captured reply to the captured app's `0x3f`
+/// (19:50:18.020).
+private let reply3fIndex = 7
+
+/// Index in `strapMessages` of connection 2's first Batch start (19:50:20.752).
+private let firstBatchStartIndex = 17
+
+/// Index in `strapMessages` of the 10th per-second 0x2f Frame of connection 2's first Batch
+/// (19:50:21.323, Record Counter 2863315: Frame bytes 11..<15 `d3 b0 2b 00`). Nine per-second
+/// 0x2f Frames of that Batch come before it.
+private let tenthRecordOfFirstBatchIndex = 52
+
+/// `strapMessages` with the message at `index` replaced by `bytes`, same time and channel.
+private func strapMessages(replacingAt index: Int, with bytes: [UInt8]) -> [SyncCapture.Message] {
+    var messages = Array(strapMessages)
+    let original = messages[index]
+    messages[index] = SyncCapture.Message(
+        time: original.time,
+        direction: original.direction,
+        characteristic: original.characteristic,
+        bytes: bytes
+    )
+    return messages
+}
+
+/// Checks that in every one of `steps`, the session is `.failed(failure)`, sends nothing,
+/// yields no History Records, and still logs the message fed as from the Strap.
+private func expectFailedThroughout(_ steps: ArraySlice<Step>, with failure: HistorySyncFailure) {
+    #expect(steps.allSatisfy { $0.stateAfter == .failed(failure) })
+    #expect(steps.flatMap(\.output.framesToSend).isEmpty)
+    #expect(steps.flatMap(\.output.historyRecords).isEmpty)
+    let syncLog = steps.flatMap(\.output.syncLog)
+    #expect(syncLog.map(\.time) == steps.map(\.time))
+    #expect(syncLog.allSatisfy { $0.direction == .fromStrap })
+    #expect(syncLog.map(\.bytes) == steps.compactMap(\.fed))
+}
+
+/// Commands a session sends up to and including `0x16` (send history), before any Batch.
+private let handshakeOps: [UInt8] = [0x91, 0x0a, 0x0a, 0x0b, 0x61, 0x45, 0x1a, 0x22, 0x16]
+
+@Test func aBadCRCInsideABatchFailsTheSyncAndTheBatchIsNotAcknowledged() throws {
+    // The fixture's record 2863315 with Frame byte 22 (body byte 14) changed from 0x41 to
+    // 0x42, and the CRC deliberately left as captured, so the Frame fails its CRC check.
+    var corrupted = strapMessages[tenthRecordOfFirstBatchIndex].bytes
+    try #require(corrupted[11..<15] == [0xd3, 0xb0, 0x2b, 0x00])
+    try #require(corrupted[22] == 0x41)
+    corrupted[22] = 0x42
+    let steps = replaySession(
+        strapMessages(replacingAt: tenthRecordOfFirstBatchIndex, with: corrupted),
+        startingAt: capturedPhoneTime
+    )
+    // steps[0] is start; steps[i + 1] fed strapMessages[i].
+    let failedAt = tenthRecordOfFirstBatchIndex + 1
+
+    #expect(steps[failedAt - 1].stateAfter == .running)
+    expectFailedThroughout(steps[failedAt...], with: .badCRC)
+    // No Batch is acknowledged: nothing goes out after the handshake and 0x16.
+    #expect(steps.flatMap(\.output.framesToSend).map(op(of:)) == handshakeOps)
+    // The nine per-second 0x2f Frames of the first Batch before the bad one.
+    #expect(steps.flatMap(\.output.historyRecords).count == 9)
+}
+
+@Test func aFrameCutShortInsideABatchFailsTheSyncAndTheBatchIsNotAcknowledged() throws {
+    // The fixture's record 2863315 with its last 10 bytes (the end of the body and the CRC)
+    // dropped, so its length field (74 00) no longer matches its size: a Frame cut short.
+    let captured = strapMessages[tenthRecordOfFirstBatchIndex].bytes
+    try #require(captured[11..<15] == [0xd3, 0xb0, 0x2b, 0x00])
+    let cutShort = Array(captured.dropLast(10))
+    let steps = replaySession(
+        strapMessages(replacingAt: tenthRecordOfFirstBatchIndex, with: cutShort),
+        startingAt: capturedPhoneTime
+    )
+    let failedAt = tenthRecordOfFirstBatchIndex + 1
+
+    #expect(steps[failedAt - 1].stateAfter == .running)
+    expectFailedThroughout(steps[failedAt...], with: .lengthMismatch)
+    #expect(steps.flatMap(\.output.framesToSend).map(op(of:)) == handshakeOps)
+    #expect(steps.flatMap(\.output.historyRecords).count == 9)
+}
+
+@Test func anUndecodableHistoryRecordInsideABatchFailsTheSyncAndTheBatchIsNotAcknowledged() {
+    // The first 20 body bytes of the fixture's record 2862853, re-framed with a fresh length
+    // and CRC (zlib.crc32): length field 18 00, CRC fa 3e 49 ae. A per-second 0x2f Frame far
+    // shorter than the 112-byte body. The
+    // same Frame as HistoryRecordTests' perSecondFrameOfAnUnexpectedLengthIsRejected. It
+    // replaces the 10th per-second 0x2f Frame of connection 2's first Batch.
+    let shortRecord: [UInt8] = [
+        0xaa, 0x01, 0x18, 0x00, 0x01, 0x00, 0x3f, 0xb1,
+        0x2f, 0x12, 0x80, 0x05, 0xaf, 0x2b, 0x00, 0x05,
+        0xfe, 0xe0, 0x6a, 0x3d, 0x4a, 0x00, 0x45, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xfa, 0x3e, 0x49, 0xae,
+    ]
+    let steps = replaySession(
+        strapMessages(replacingAt: tenthRecordOfFirstBatchIndex, with: shortRecord),
+        startingAt: capturedPhoneTime
+    )
+    let failedAt = tenthRecordOfFirstBatchIndex + 1
+
+    #expect(steps[failedAt - 1].stateAfter == .running)
+    expectFailedThroughout(
+        steps[failedAt...],
+        with: .undecodableHistoryRecord(.unexpectedLength(20))
+    )
+    #expect(steps.flatMap(\.output.framesToSend).map(op(of:)) == handshakeOps)
+    #expect(steps.flatMap(\.output.historyRecords).count == 9)
+}
+
+@Test func anErrorStatusInAReplyToTheSessionsCommandFailsTheSync() throws {
+    // The Strap's captured reply to the 0x0b get clock, body `24 89 0b 03 01 …`, with Frame
+    // byte 12 (the status) changed from 0x01 (done) to 0x03, and the CRC recomputed with
+    // zlib.crc32 (captured 7c 24 aa 62, now e3 ba 91 8e).
+    let captured = strapMessages[getClockReplyIndex].bytes
+    try #require(captured[10] == 0x0b && captured[12] == 0x01)
+    let errorReply: [UInt8] = [
+        0xaa, 0x01, 0x14, 0x00, 0x01, 0x00, 0x21, 0xb1,
+        0x24, 0x89, 0x0b, 0x03, 0x03, 0x78, 0x00, 0xe1,
+        0x6a, 0x8f, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xe3, 0xba, 0x91, 0x8e,
+    ]
+    let steps = replaySession(
+        strapMessages(replacingAt: getClockReplyIndex, with: errorReply),
+        startingAt: capturedPhoneTime
+    )
+    let failedAt = getClockReplyIndex + 1
+
+    #expect(steps[failedAt - 1].stateAfter == .running)
+    expectFailedThroughout(steps[failedAt...], with: .errorStatus(op: 0x0b, status: 0x03))
+    // Hello, both set clocks and get clock went out; no command after.
+    #expect(steps.flatMap(\.output.framesToSend).map(op(of:)) == [0x91, 0x0a, 0x0a, 0x0b])
+    #expect(steps.flatMap(\.output.historyRecords).isEmpty)
+}
+
+@Test func anErrorStatusInAReplyToACommandTheSessionNeverSentDoesNotFailTheSync() throws {
+    // The Strap answers the captured app's 0x3f with status 0x03 (hr-tracker: the Strap logs
+    // 0x3f as unknown). This session never sends 0x3f, so the reply is not its concern.
+    let reply = strapMessages[reply3fIndex].bytes
+    try #require(reply[10] == 0x3f && reply[12] == 0x03)
+    #expect(replay[reply3fIndex + 1].stateAfter == .running)
+    #expect(replay.last?.stateAfter == .completed)
+}
+
+@Test func aReportedTimeoutFailsTheSyncAndLaterFramesAreOnlyLogged() throws {
+    try #require(isMetadataFrame(strapMessages[firstBatchStartIndex].bytes, kind: batchStartKind))
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+    for (index, message) in strapMessages[...firstBatchStartIndex].enumerated() {
+        let time = capturedPhoneTime.addingTimeInterval(Double(index + 1))
+        _ = session.receive(message.bytes, at: time)
+    }
+    #expect(session.state == .running)
+
+    session.reportTimeout()
+    #expect(session.state == .failed(.timedOut))
+
+    var steps: [Step] = []
+    for (index, message) in strapMessages[(firstBatchStartIndex + 1)...].enumerated() {
+        let time = capturedPhoneTime.addingTimeInterval(Double(firstBatchStartIndex + 2 + index))
+        let output = session.receive(message.bytes, at: time)
+        steps.append(
+            Step(fed: message.bytes, time: time, output: output, stateAfter: session.state)
+        )
+    }
+    // Every Strap message after the first Batch start, through the complete Frame.
+    #expect(steps.count == 282)
+    expectFailedThroughout(steps[...], with: .timedOut)
+}
+
+@Test func aReportedTimeoutAfterTheSyncCompletesLeavesItCompleted() {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+    for (index, message) in strapMessages.enumerated() {
+        let time = capturedPhoneTime.addingTimeInterval(Double(index + 1))
+        _ = session.receive(message.bytes, at: time)
+    }
+    #expect(session.state == .completed)
+
+    session.reportTimeout()
+    #expect(session.state == .completed)
+}

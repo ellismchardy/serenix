@@ -18,6 +18,22 @@ public struct SyncLogEntry: Equatable, Sendable {
 public enum HistorySyncState: Equatable, Sendable {
     case running
     case completed
+    case failed(HistorySyncFailure)
+}
+
+/// Why a History Sync failed. The Batch being received when it failed is never acknowledged,
+/// so the Strap sends it again next time.
+public enum HistorySyncFailure: Error, Equatable, Sendable {
+    /// A Frame from the Strap failed its CRC check.
+    case badCRC
+    /// A Frame from the Strap whose length field disagrees with its size, e.g. one cut short.
+    case lengthMismatch
+    /// The decoder rejected a per-second `0x2f` Frame.
+    case undecodableHistoryRecord(HistoryRecordError)
+    /// The Strap's reply to one of this session's commands carried an error status.
+    case errorStatus(op: UInt8, status: UInt8)
+    /// The caller reported that the Strap stopped responding.
+    case timedOut
 }
 
 /// What one step of a History Sync produced.
@@ -45,6 +61,8 @@ public struct HistorySync: Sendable {
     /// The op of the command whose final reply the session is waiting for.
     private var awaitedOp: UInt8?
     private var nextSequence: UInt8 = 1
+    /// Ops of the commands this session has sent; a reply to any other op is not ours to judge.
+    private var sentOps: Set<UInt8> = []
     /// Record Counters already yielded in this sync, so a Batch the Strap re-sends is skipped.
     private var yieldedRecordCounters: Set<UInt32> = []
 
@@ -78,20 +96,40 @@ public struct HistorySync: Sendable {
     public mutating func receive(_ bytes: [UInt8], at time: Date) -> HistorySyncOutput {
         var output = HistorySyncOutput()
         output.syncLog.append(SyncLogEntry(time: time, direction: .fromStrap, bytes: bytes))
-        // Messages that aren't Frames are logged and otherwise ignored. A bad CRC, and a
-        // History Record the decoder rejects, fail the sync once the failure rules exist
-        // (plan 001, task 7).
-        guard state == .running, let frame = try? Frame(bytes: bytes) else { return output }
+        guard state == .running else { return output }
+        let frame: Frame
+        do {
+            frame = try Frame(bytes: bytes)
+        } catch .badCRC {
+            state = .failed(.badCRC)
+            return output
+        } catch .lengthMismatch {
+            // Likely a Frame cut short; ignoring it could acknowledge a lost History Record.
+            state = .failed(.lengthMismatch)
+            return output
+        } catch {
+            // Messages that aren't Frames are logged and otherwise ignored.
+            return output
+        }
         let body = frame.body
         switch frame.type {
         case FrameType.reply where body.count > replyStatusOffset:
-            if body[replyOpOffset] == awaitedOp, body[replyStatusOffset] == replyDone {
+            let op = body[replyOpOffset]
+            let status = body[replyStatusOffset]
+            if sentOps.contains(op), status != replyDone, status != replyMore {
+                state = .failed(.errorStatus(op: op, status: status))
+            } else if op == awaitedOp, status == replyDone {
                 sendNextStep(at: time, into: &output)
             }
         case FrameType.historicalData:
-            if let record = try? decoder.historyRecord(from: frame),
-                yieldedRecordCounters.insert(record.recordCounter).inserted
-            {
+            let record: HistoryRecord?
+            do {
+                record = try decoder.historyRecord(from: frame)
+            } catch {
+                state = .failed(.undecodableHistoryRecord(error))
+                return output
+            }
+            if let record, yieldedRecordCounters.insert(record.recordCounter).inserted {
                 output.historyRecords.append(record)
             }
         case FrameType.metadata where body.count > metadataKindOffset:
@@ -111,6 +149,12 @@ public struct HistorySync: Sendable {
             break
         }
         return output
+    }
+
+    /// Reports that the Strap stopped responding; a running sync fails.
+    public mutating func reportTimeout() {
+        guard state == .running else { return }
+        state = .failed(.timedOut)
     }
 
     private mutating func sendNextStep(at time: Date, into output: inout HistorySyncOutput) {
@@ -140,6 +184,7 @@ public struct HistorySync: Sendable {
         } catch {
             preconditionFailure("every History Sync command has a known header check: \(error)")
         }
+        sentOps.insert(command.op)
         output.framesToSend.append(bytes)
         output.syncLog.append(SyncLogEntry(time: time, direction: .toStrap, bytes: bytes))
     }
@@ -162,8 +207,10 @@ private let helloSequence: UInt8 = 1
 /// A reply body is `24 <strap seq> <op> <phone seq> <status> …`.
 private let replyOpOffset = 2
 private let replyStatusOffset = 4
-/// The final reply to a command. `02` comes first when a longer reply follows.
+/// The final reply to a command. `02` comes first when a longer reply follows. Any other
+/// status is an error: the Strap answers `0x3f`, which it logs as unhandled, with `03`.
 private let replyDone: UInt8 = 0x01
+private let replyMore: UInt8 = 0x02
 
 /// A metadata body's byte 2: `01` Batch start, `02` Batch end, `03` sync complete (worked out
 /// from the 27 Oct 2026 capture).
