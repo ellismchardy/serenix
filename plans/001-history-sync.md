@@ -40,7 +40,7 @@ Log keeps the **last 5 syncs**.
    - Seam: History Sync session (decoder underneath it) · Files: `src/SerenixCore/HistoryRecord*.swift`,
      `tests/SerenixCoreTests/HistoryRecordTests.swift`
    - Done when: decoded Record Counter, timestamp and HR match the committed literals.
-3. [ ] **Slice:** History Sync session, happy path for one sync
+3. [x] **Slice:** History Sync session, happy path for one sync
    - Pure state machine: handshake in the captured order (no `0x03`, no `0x3f`, clock from the
      time passed in) → `0x22` → `0x16` → per Batch keep History Records and echo the Sync
      Cursor in `0x17` → complete on the Strap's "complete" Frame. Every Frame in or out becomes
