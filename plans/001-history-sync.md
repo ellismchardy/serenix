@@ -93,6 +93,9 @@ Log keeps the **last 5 syncs**.
      session seam); the shell reads model/firmware from Device Info. Debug screen shows the
      store stats (count, first/last Record Counter and time, gaps), last-sync count, data
      range, battery, firmware, the last 5 syncs' Sync Log, and Share log via the share sheet.
+   - Already there from task 4 (pulled forward to diagnose the first phone sync): a basic
+     Share log of the current sync, as text from `src/SerenixCore/SyncLogText.swift`, and a
+     debug list of the newest 200 entries. Extend these to the last 5 syncs.
    - Seam: History Sync session (range, battery) + manual on the iPhone · Files:
      `src/SerenixCore/HistorySync*.swift`, `tests/SerenixCoreTests/HistorySyncTests.swift`,
      `src/SerenixApp/`

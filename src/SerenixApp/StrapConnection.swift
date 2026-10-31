@@ -43,9 +43,11 @@ enum StrapPhase: Equatable {
 final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     @Published private(set) var phase: StrapPhase = .idle
     @Published private(set) var strapName: String?
-    /// The current or last sync's Sync Log. In memory only for now (plan 001, task 4).
-    @Published private(set) var syncLog: [SyncLogEntry] = []
-    @Published private(set) var historyRecordsReceived = 0
+    /// The current or last sync's Sync Log. In memory only for now (plan 001, task 4). Not
+    /// `@Published`: a day's sync is ~100,000 Frames, and redrawing the screen for each one
+    /// slowed the first phone sync to a crawl. `refreshTimer` redraws instead.
+    private(set) var syncLog: [SyncLogEntry] = []
+    private(set) var historyRecordsReceived = 0
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
@@ -56,6 +58,8 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     private var wantsConnection = false
     /// Asked to sync before the Strap was connected and subscribed.
     private var wantsSync = false
+    /// Redraws the screen every `screenRefreshInterval` while a sync runs.
+    private var refreshTimer: Timer?
 
     override init() {
         super.init()
@@ -129,7 +133,22 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         let output = session.start(at: Date())
         self.session = session
         phase = .syncing
+        refreshTimer?.invalidate()
+        let timer = Timer(timeInterval: screenRefreshInterval, repeats: true) { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        // `.common`, so the screen keeps updating while the user scrolls.
+        RunLoop.main.add(timer, forMode: .common)
+        refreshTimer = timer
         handle(output, state: session.state)
+    }
+
+    /// Forgets the session and redraws the screen one last time with the final Sync Log.
+    private func endSession() {
+        session = nil
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+        objectWillChange.send()
     }
 
     /// Writes what the session asked for, records what it produced, and ends the sync if the
@@ -155,7 +174,7 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
 
     /// Ends the connection; the spec disconnects after every sync.
     private func finish(as newPhase: StrapPhase) {
-        session = nil
+        endSession()
         wantsSync = false
         wantsConnection = false
         phase = newPhase
@@ -181,7 +200,7 @@ extension StrapConnection: CBCentralManagerDelegate {
         case .poweredOff, .resetting:
             // iOS may not report the disconnect, and the peripheral objects are no longer valid.
             let wasSyncing = phase == .syncing
-            session = nil
+            endSession()
             commandCharacteristic = nil
             subscribed = []
             peripheral = nil
@@ -233,7 +252,7 @@ extension StrapConnection: CBCentralManagerDelegate {
         subscribed = []
         switch phase {
         case .syncing:
-            session = nil
+            endSession()
             let reason = error.map { ": \($0.localizedDescription)" } ?? ""
             phase = .failed("The Strap disconnected mid-sync\(reason).")
         case .connecting, .connected:
@@ -355,3 +374,7 @@ private enum StrapGATT {
         ]
     }
 }
+
+/// Seconds between screen redraws during a sync: often enough to watch the counts move, rare
+/// enough that drawing never competes with Bluetooth on the main thread.
+private let screenRefreshInterval: TimeInterval = 0.5
