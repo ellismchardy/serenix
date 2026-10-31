@@ -235,7 +235,7 @@ private func syncs(in connection: SyncCapture.Connection) -> (
     // Connection 2's first Batch (19:50:20.752 Batch start to 19:50:21.564 Batch end, 30
     // per-second 0x2f Frames) is fed a second time straight after itself: a re-send within one
     // sync. Everything else is replayed as captured. A re-send after an interrupted sync
-    // reaches a new session; the store's unique Record Counter key covers that (plan task 8).
+    // reaches a new session; the store's unique Record Counter and timestamp key covers that.
     let batchStart = try #require(
         strapMessages.firstIndex { isMetadataFrame($0.bytes, kind: batchStartKind) }
     )
@@ -249,6 +249,83 @@ private func syncs(in connection: SyncCapture.Connection) -> (
     // Connection 2's sync holds 178 distinct per-second 0x2f Frames; the re-sent 30 add none.
     #expect(records.count == 178)
     #expect(Set(records.map(\.recordCounter)).count == 178)
+}
+
+/// The fixture's record 2863315 (`tenthRecordOfFirstBatchIndex`) with only its timestamp changed,
+/// as after a Strap reboot reuses a Record Counter: Frame bytes 15..<19 (body bytes 7..<11, u32
+/// little-endian) changed from `d0 ff e0 6a` (1793130448, 19:47:28Z) to `e3 ff e0 6a`
+/// (1793130467, 19:47:47Z, 19 s later, as with Record Counter 3,155,039 on the first phone
+/// sync), and the CRC recomputed with zlib.crc32 over the body (the bytes after the 8-byte
+/// header, before the CRC): captured `5b 45 00 0b`, now `3a 66 f1 e2`.
+private let rebootedRecord: [UInt8] = [
+    0xaa, 0x01, 0x74, 0x00, 0x01, 0x00, 0x3f, 0xb1,
+    0x2f, 0x12, 0x80, 0xd3, 0xb0, 0x2b, 0x00, 0xe3,
+    0xff, 0xe0, 0x6a, 0x99, 0x19, 0x00, 0x41, 0x02,
+    0x81, 0x03, 0xf1, 0x01, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x01, 0x49, 0x09, 0x8c, 0x42, 0x41, 0x00,
+    0xff, 0x60, 0xcf, 0x9e, 0x3d, 0xae, 0x07, 0x54,
+    0xbd, 0x00, 0x20, 0x90, 0x3e, 0x00, 0xfc, 0x78,
+    0x3f, 0x06, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x2b, 0x01, 0x3e,
+    0x01, 0x2b, 0x0d, 0x50, 0x09, 0x01, 0x0c, 0x02,
+    0x0c, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x99, 0xae, 0x2f, 0x32, 0x00, 0x00,
+    0x00, 0x0d, 0x4d, 0xa1, 0xc0, 0x00, 0x00, 0x00,
+    0x3a, 0x66, 0xf1, 0xe2,
+]
+
+/// Connection 2's Strap messages with `rebootedRecord` fed `copies` times straight after the
+/// original record 2863315, inside the first Batch. Checks the fixture still holds the original.
+private func strapMessagesWithRebootedRecord(copies: Int) throws -> [SyncCapture.Message] {
+    let original = strapMessages[tenthRecordOfFirstBatchIndex]
+    try #require(original.bytes[11..<15] == [0xd3, 0xb0, 0x2b, 0x00])
+    try #require(original.bytes[15..<19] == [0xd0, 0xff, 0xe0, 0x6a])
+    try #require(original.bytes.suffix(crcSize) == [0x5b, 0x45, 0x00, 0x0b])
+    // Apart from the timestamp and the CRC, the edited Frame is the original byte for byte.
+    let end = original.bytes.count - crcSize
+    try #require(rebootedRecord.count == original.bytes.count)
+    try #require(rebootedRecord[..<15] == original.bytes[..<15])
+    try #require(rebootedRecord[19..<end] == original.bytes[19..<end])
+    let copy = SyncCapture.Message(
+        time: original.time,
+        direction: original.direction,
+        characteristic: original.characteristic,
+        bytes: rebootedRecord
+    )
+    var messages = Array(strapMessages)
+    messages.insert(
+        contentsOf: Array(repeating: copy, count: copies),
+        at: tenthRecordOfFirstBatchIndex + 1
+    )
+    return messages
+}
+
+@Test func aRecordSharingOnlyARecordCounterIsYieldedAsAnotherHistoryRecord() throws {
+    let records = historyRecords(replaying: try strapMessagesWithRebootedRecord(copies: 1))
+    // Connection 2's 178 distinct per-second 0x2f Frames, plus the rebooted record.
+    #expect(records.count == 179)
+    let sharingCounter = records.filter { $0.recordCounter == 2_863_315 }
+    #expect(
+        sharingCounter.map(\.timestamp) == [
+            Date(timeIntervalSince1970: 1_793_130_448),  // 2026-10-27T19:47:28Z
+            Date(timeIntervalSince1970: 1_793_130_467),  // 2026-10-27T19:47:47Z
+        ]
+    )
+}
+
+@Test func aRecordWithTheSameRecordCounterAndTimestampTwiceIsYieldedOnce() throws {
+    let records = historyRecords(replaying: try strapMessagesWithRebootedRecord(copies: 2))
+    // The rebooted record's second copy adds nothing.
+    #expect(records.count == 179)
+    let sharingCounter = records.filter { $0.recordCounter == 2_863_315 }
+    #expect(
+        sharingCounter.map(\.timestamp) == [
+            Date(timeIntervalSince1970: 1_793_130_448),  // 2026-10-27T19:47:28Z
+            Date(timeIntervalSince1970: 1_793_130_467),  // 2026-10-27T19:47:47Z
+        ]
+    )
 }
 
 @Test func anEmptyBatchIsAcknowledgedAndTheSyncCompletesWithNoHistoryRecords() throws {

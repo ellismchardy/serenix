@@ -96,7 +96,7 @@ the store and the full debug screen; the session doesn't change.
      rejects (`HistoryRecordError`), is not acknowledged and the session fails with that
      reason; an error status in a reply, or a reported timeout, fails the session with the
      reason.
-8. [ ] **Slice:** identify History Records by Record Counter and timestamp
+8. [x] **Slice:** identify History Records by Record Counter and timestamp
    - Blocked by: 5 (changes its in-sync de-duplication)
    - The session skips a History Record only when it has already yielded one with the same
      Record Counter *and* timestamp in this sync; one that only shares a Record Counter is
