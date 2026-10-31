@@ -19,6 +19,9 @@ Log keeps the **last 5 syncs**.
 Spec change (31 Oct, ADR 0006): a sync that has started finishes in the background. It needs
 task 8's 10-second timer and "not started twice", so it is a shell-only slice (task 9) between
 the store and the full debug screen; the session doesn't change.
+Spec change (31 Oct, issue #7): sync progress and time left. The session works them out from
+the times passed in (test-first), and the main screen draws them; task 10, ahead of the
+background checks, so they can be watched during those.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
@@ -123,8 +126,26 @@ the store and the full debug screen; the session doesn't change.
      stored. "Sync now" straight after received ~8 while the Strap was worn (new seconds, not
      re-sends) and 0 with it off the wrist, stored unchanged. The Strap seems to record only
      while worn: a sync after it was mostly off the wrist received 0.
-10. [ ] **Slice:** finish a started sync in the background
+10. [ ] **Slice:** sync progress and time left
+   - Blocked by: 9 (draws on its main-screen sync status)
+   - The session reports its progress (none before the first History Record; then from the
+     first History Record's timestamp to the start time passed in, measured by the newest one
+     so far, never decreasing, clamped to 0–1) and its time left (none until 2 seconds after
+     the first History Record arrived; then the time since it arrived × (1 − progress) ÷
+     progress). Test with connection 2 of the capture replayed at known times, expected values
+     worked out by hand from the fixture's timestamps and committed as literals; and the empty
+     sync of connection 1. The main screen shows "Starting…", then a progress bar and "about N
+     min left" (rounded up) or "less than a minute left".
+   - Seam: History Sync session + manual on the iPhone · Files:
+     `src/SerenixCore/HistorySync*.swift`, `tests/SerenixCoreTests/HistorySyncTests.swift`,
+     `src/SerenixApp/`
+   - Done when: the spec's three progress criteria pass (progress over a replay, time left at
+     known times, an empty sync with no progress); on the phone, a sync of at least an hour's
+     backlog shows "Starting…", a filling bar and a falling time left, and ends "Up to date".
+11. [ ] **Slice:** finish a started sync in the background
    - Blocked by: 9 (needs its 10-second timer and the "not started twice" rule)
+   - Built and committed (104ea06); waiting only on its phone checks, which need a real
+     backlog (a night's wear), so it's ticked after them.
    - Declare iOS's Bluetooth background mode (central role, `UIBackgroundModes:
      bluetooth-central`) in `project.yml`; no state restoration. Timers don't run while iOS
      keeps Serenix suspended between Bluetooth events, so the shell measures the 10 seconds
@@ -137,7 +158,7 @@ the store and the full debug screen; the session doesn't change.
      the lock; switching apps for a minute mid-sync logs Frames from that minute with no
      second handshake; taking the Strap out of range mid-sync while locked shows the failure
      with a reason, and the next sync leaves 0 Record Counter gaps.
-11. [ ] **Slice:** full debug screen and Share log
+12. [ ] **Slice:** full debug screen and Share log
    - Blocked by: 7, 9
    - Session reports the `0x22` data range and `0x1a` battery level (test-first, at the
      session seam); the shell reads model/firmware from Device Info. Debug screen shows the
@@ -153,9 +174,9 @@ the store and the full debug screen; the session doesn't change.
      shows range, battery and firmware, and Share log opens the share sheet; closing Serenix
      mid-sync then syncing again leaves 0 gaps between the first and last Record Counter of the
      interrupted and resumed syncs (moved from task 9).
-12. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
+13. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
     criterion checked, with the manual steps and their results written in the PR.
-    - Blocked by: 10, 11
+    - Blocked by: 10, 11, 12
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
