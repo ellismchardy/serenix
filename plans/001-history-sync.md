@@ -74,7 +74,8 @@ Log keeps the **last 5 syncs**.
      History Records.
 7. [ ] **Slice:** failure rules
    - Seam: History Sync session · Files: same as 5
-   - Done when: a Batch with a bad-CRC Frame is not acknowledged and the session fails with that
+   - Done when: a Batch with a bad-CRC Frame, or with a per-second `0x2f` Frame the decoder
+     rejects (`HistoryRecordError`), is not acknowledged and the session fails with that
      reason; an error status in a reply, or a reported timeout, fails the session with the
      reason.
 8. [ ] **Slice:** store, triggers and remembered Strap

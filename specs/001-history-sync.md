@@ -1,7 +1,7 @@
 # 001 — History Sync
 
 **Status:** approved
-**Last updated:** 2026-10-30
+**Last updated:** 2026-10-31
 
 ## Problem
 Every Serenix feature (sleep, Nightly Metrics, scores) is computed from the Strap's History
@@ -57,9 +57,10 @@ sync (console logs, events, optical bursts, live HR) are logged and otherwise ig
 
 **Failures.** The sync stops and reports a reason, keeping every History Record already stored,
 when: the Strap can't be found or connected, pairing is refused, a Frame fails its CRC check,
-the Strap replies with an error status, or the Strap sends nothing for **10 seconds**. A Batch
-containing a Frame that failed its CRC check is **not** acknowledged, so the Strap re-sends it
-next time. Disconnecting mid-sync is the same: the unacknowledged Batch comes again.
+a per-second `0x2f` Frame can't be decoded as a History Record (for example, a firmware update
+changed its length), the Strap replies with an error status, or the Strap sends nothing for
+**10 seconds**. A Batch containing a Frame that failed its CRC check or couldn't be decoded is
+**not** acknowledged, so the Strap keeps it and re-sends it next time. Disconnecting mid-sync is the same: the unacknowledged Batch comes again.
 
 **Status and debug screen.** The main screen shows the sync state (connecting / syncing / up to
 date / failed with reason) and when the last sync finished. A debug screen, reached from
@@ -125,6 +126,8 @@ Automated (`swift test`, on Windows and in CI):
       History Records.
 - [ ] A Batch containing a Frame with a bad CRC is not acknowledged, and the session fails with
       that reason.
+- [ ] A per-second `0x2f` Frame of an unexpected length is rejected by the decoder; a Batch
+      containing one is not acknowledged, and the session fails with that reason.
 - [ ] An error status in a reply, or a reported timeout, ends the session as failed with the
       reason.
 - [ ] Every Frame sent and received appears in the Sync Log, in order, with its direction.
