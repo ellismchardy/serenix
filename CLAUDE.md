@@ -6,8 +6,7 @@
 ## What this is
 An iOS wellness tracker that reads a Whoop 5.0 Strap directly over Bluetooth, so owners without
 a WHOOP membership get sleep, Nightly Metrics, Sleep Score, Readiness and Load. Everything runs
-on the phone. The repo is public (free macOS CI, ADR 0003) but not open source: no license, no
-outside contributions. Not affiliated with WHOOP, Inc. Protocol research and the Python reference
+on the phone. Public, MIT-licensed, not affiliated with WHOOP, Inc. Protocol research and the Python reference
 implementation live in the separate `hr-tracker` repo.
 
 ## Stack

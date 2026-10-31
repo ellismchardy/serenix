@@ -82,7 +82,7 @@ CI. [CLAUDE.md](CLAUDE.md), [docs/conventions.md](docs/conventions.md) and
 Test fixtures are trimmed real History Records from the project owner's own nights, with
 identifiers removed. Raw Bluetooth captures and sysdiagnoses are never committed.
 
-## Credits
+## License
 
-Some of the Claude Code development tooling in `.claude/` is adapted from third-party projects;
-see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE). Some of the Claude Code development tooling in `.claude/` is adapted from
+third-party projects; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
