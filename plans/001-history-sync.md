@@ -16,6 +16,9 @@ failures); the shell grows in two later slices (storage and triggers, then the f
 screen). Settled for the spec's `/plan` questions: commands are written **with response**
 (the capture has 233 write requests and 223 write responses, no write commands), and the Sync
 Log keeps the **last 5 syncs**.
+Spec change (31 Oct, ADR 0006): a sync that has started finishes in the background. It needs
+task 8's 10-second timer and "not started twice", so it is a shell-only slice (task 9) between
+the store and the full debug screen; the session doesn't change.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
@@ -102,7 +105,21 @@ Log keeps the **last 5 syncs**.
    - Done when: on the phone, relaunching reconnects without asking; opening Serenix syncs and
      the state reads "up to date"; Sync now straight after shows 0 new; closing mid-sync then
      syncing again leaves 0 Record Counter gaps.
-9. [ ] **Slice:** full debug screen and Share log
+9. [ ] **Slice:** finish a started sync in the background
+   - Blocked by: 8 (needs its 10-second timer and the "not started twice" rule)
+   - Declare iOS's Bluetooth background mode (central role, `UIBackgroundModes:
+     bluetooth-central`) in `project.yml`; no state restoration. Timers don't run while iOS
+     keeps Serenix suspended between Bluetooth events, so the shell measures the 10 seconds
+     from the last Frame and also checks it when the next Frame arrives and when Serenix
+     returns to the foreground, reporting the timeout to the session if it has passed.
+     Returning to Serenix during a running sync shows that sync and starts no other.
+   - Seam: manual on the iPhone · Files: `project.yml`, `src/SerenixApp/`
+   - Done when: on the phone, the spec's three background checks pass: a backlog sync with the
+     phone locked straight away reads "Up to date" on unlock, with Frames logged throughout
+     the lock; switching apps for a minute mid-sync logs Frames from that minute with no
+     second handshake; taking the Strap out of range mid-sync while locked shows the failure
+     with a reason, and the next sync leaves 0 Record Counter gaps.
+10. [ ] **Slice:** full debug screen and Share log
    - Blocked by: 7, 8
    - Session reports the `0x22` data range and `0x1a` battery level (test-first, at the
      session seam); the shell reads model/firmware from Device Info. Debug screen shows the
@@ -116,9 +133,9 @@ Log keeps the **last 5 syncs**.
      `src/SerenixApp/`
    - Done when: the session tests for range and battery pass; on the phone the debug screen
      shows range, battery and firmware, and Share log opens the share sheet.
-10. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
+11. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
     criterion checked, with the manual steps and their results written in the PR.
-    - Blocked by: 9
+    - Blocked by: 9, 10
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
