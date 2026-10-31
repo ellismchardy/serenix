@@ -68,7 +68,7 @@ Log keeps the **last 5 syncs**.
      `tests/SerenixCoreTests/HistorySyncTests.swift`
    - Done when: replaying the whole capture yields exactly 1,036 History Records, each Record
      Counter once; replaying a Batch twice yields no duplicates.
-6. [ ] **Slice:** empty Batch
+6. [x] **Slice:** empty Batch
    - Seam: History Sync session · Files: same as 5
    - Done when: an all-`ff` Sync Cursor is acknowledged and the sync completes with 0 new
      History Records.

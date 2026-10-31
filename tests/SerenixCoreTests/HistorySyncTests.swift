@@ -191,28 +191,41 @@ private func historyRecords(replaying messages: [SyncCapture.Message]) -> [Histo
     replaySession(messages, startingAt: capturedPhoneTime).flatMap(\.output.historyRecords)
 }
 
+/// A connection's Strap messages cut after every complete Frame: one piece per sync (from the
+/// end of the previous sync to its complete Frame), then whatever the Strap sent after the
+/// last complete Frame.
+private func syncs(in connection: SyncCapture.Connection) -> (
+    syncs: [[SyncCapture.Message]], leftover: [SyncCapture.Message]
+) {
+    var syncs: [[SyncCapture.Message]] = []
+    var sync: [SyncCapture.Message] = []
+    for message in connection.messages where message.direction == .in {
+        sync.append(message)
+        if isMetadataFrame(message.bytes, kind: completeKind) {
+            syncs.append(sync)
+            sync = []
+        }
+    }
+    return (syncs, sync)
+}
+
 @Test func replayingTheWholeCaptureYieldsEachHistoryRecordOnce() {
     // A session ends at the Strap's complete Frame, and the capture holds 11 syncs across its
-    // 5 connections. So each connection's Strap messages are cut after every complete Frame,
-    // and each piece (one sync, from the end of the previous sync to its complete Frame) is
-    // replayed into a fresh session, as the app would start a new History Sync each time.
+    // 5 connections. So each sync is replayed into a fresh session, as the app would start a
+    // new History Sync each time.
     var records: [HistoryRecord] = []
-    var syncs = 0
+    var syncCount = 0
     for connection in SyncCapture.historySync20261027.connections {
-        var sync: [SyncCapture.Message] = []
-        for message in connection.messages where message.direction == .in {
-            sync.append(message)
-            if isMetadataFrame(message.bytes, kind: completeKind) {
-                records += historyRecords(replaying: sync)
-                syncs += 1
-                sync = []
-            }
+        let (connectionSyncs, leftover) = syncs(in: connection)
+        for sync in connectionSyncs {
+            records += historyRecords(replaying: sync)
         }
+        syncCount += connectionSyncs.count
         // What the Strap sent after a connection's last complete Frame (replies, live HR,
         // logs) holds no History Record.
-        #expect(historyRecords(replaying: sync).isEmpty)
+        #expect(historyRecords(replaying: leftover).isEmpty)
     }
-    #expect(syncs == 11)
+    #expect(syncCount == 11)
     // The fixture's per-second 0x2f Frames across all 5 connections.
     #expect(records.count == 1_036)
     #expect(Set(records.map(\.recordCounter)).count == 1_036)
@@ -236,4 +249,25 @@ private func historyRecords(replaying messages: [SyncCapture.Message]) -> [Histo
     // Connection 2's sync holds 178 distinct per-second 0x2f Frames; the re-sent 30 add none.
     #expect(records.count == 178)
     #expect(Set(records.map(\.recordCounter)).count == 178)
+}
+
+@Test func anEmptyBatchIsAcknowledgedAndTheSyncCompletesWithNoHistoryRecords() throws {
+    // Connection 1's second sync: the app's 0x16 at 19:44:11.400, Batch start at 19:44:11.458,
+    // Batch end at 19:44:11.460 with Sync Cursor ffffffffffffffff and no per-second 0x2f
+    // Frames, the app's 0x17 01ffffffffffffffff at 19:44:11.611, then complete at
+    // 19:44:11.640. It is replayed into a fresh session.
+    let connection1Syncs = syncs(in: SyncCapture.historySync20261027.connections[0]).syncs
+    try #require(connection1Syncs.count == 3)
+    let steps = replaySession(connection1Syncs[1], startingAt: capturedPhoneTime)
+
+    let acknowledgements = steps.flatMap(\.output.framesToSend).filter { op(of: $0) == 0x17 }
+    #expect(
+        acknowledgements.map(arguments(of:)) == [
+            [0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+        ]
+    )
+    #expect(steps.flatMap(\.output.historyRecords).isEmpty)
+    let last = try #require(steps.last)
+    #expect(last.fed.map { isMetadataFrame($0, kind: completeKind) } == true)
+    #expect(last.stateAfter == .completed)
 }
