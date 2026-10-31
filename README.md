@@ -82,7 +82,7 @@ Test fixtures are trimmed real History Records from the project owner's own nigh
 here by choice with identifiers removed. Please don't commit raw Bluetooth captures or
 sysdiagnoses.
 
-## License
+## Credits
 
-MIT. Some development tooling is adapted from third-party projects; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Some of the Claude Code development tooling in `.claude/` is adapted from third-party projects;
+see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
