@@ -29,8 +29,9 @@ A short period, during sleep, in which the Strap measures blood-oxygen saturatio
 readings into its History Records.
 
 **Record Counter**:
-The Strap's sequence number for a History Record, one higher for each record it stores. It
-identifies a History Record.
+The Strap's sequence number for a History Record, one higher for each record it stores. Together
+with the record's timestamp it identifies a History Record: after a reboot the Strap can reuse
+a Record Counter for a new record.
 _Avoid_: index, record ID
 
 **Batch**:

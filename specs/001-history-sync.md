@@ -58,8 +58,11 @@ again on the next sync.
 
 **History Records.** Only `0x2f` Frames of the per-second variant are History Records. Each one is
 decoded (Record Counter, timestamp, HR, RR intervals, motion, skin temperature, steps, SpO2) and
-stored together with its raw bytes. A History Record whose Record Counter is already stored is
-ignored, so a Batch the Strap re-sends is never stored twice. Other Frames that arrive during a
+stored together with its raw bytes. A History Record is identified by its Record Counter and
+timestamp together, because after a reboot the Strap can reuse a Record Counter for a new
+record. One whose Record Counter and timestamp are both already stored (or already received in
+this sync) is ignored, so a Batch the Strap re-sends is never stored twice; one that only
+shares a Record Counter is kept. Other Frames that arrive during a
 sync (console logs, events, optical bursts, live HR) are logged and otherwise ignored.
 
 **Empty sync.** When the Strap has nothing new, it sends an empty Batch whose Sync Cursor is all
@@ -105,8 +108,8 @@ it.
   notify. Moves bytes between the Strap and the History Sync session, runs the 10-second timer,
   and remembers the connected Strap. Declares iOS's Bluetooth background mode (central role)
   so a running sync keeps receiving Frames in the background; no state restoration.
-- **iOS shell — History Record store.** SwiftData, keyed by Record Counter, storing decoded
-  fields plus raw bytes (so improved decoders can re-read them).
+- **iOS shell — History Record store.** SwiftData, keyed by Record Counter and timestamp,
+  storing decoded fields plus raw bytes (so improved decoders can re-read them).
 - **iOS shell — screens.** Connect Strap, the sync status on the main screen, and the debug
   screen.
 - Follows ADR 0001 (on-device only), 0002 (logic in `SerenixCore`), 0006 (sync starts on app
@@ -138,6 +141,9 @@ Automated (`swift test`, on Windows and in CI):
       History Records.
 - [ ] Replaying a Batch twice (the re-send after an interrupted sync) produces no duplicate
       History Records.
+- [ ] Two per-second `0x2f` Frames in one sync with the same Record Counter but different
+      timestamps (as after a Strap reboot) both yield History Records; the same Record Counter
+      and timestamp a second time yields none.
 - [ ] A Batch containing a Frame with a bad CRC is not acknowledged, and the session fails with
       that reason.
 - [ ] A per-second `0x2f` Frame of an unexpected length is rejected by the decoder; a Batch
@@ -200,6 +206,11 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - Fixture: a cleaned copy of that capture, with the serial and device ID replaced and the CRCs
   of changed Frames recalculated (docs/conventions.md, Testing). The raw capture is never
   committed.
+- First phone sync (31 Oct 2026): after a likely Strap reboot (its log uptime puts the start at
+  ~18:17), Record Counter 3,155,039 came twice with timestamps 19 s apart, on two different
+  records, and nothing was recorded until the next sync set the clock. Hence identifying a
+  History Record by Record Counter and timestamp. **Assumption:** the same Record Counter and
+  timestamp always mean the same record re-sent.
 - `protocol.md` says header bytes 4–5 are always `00 01`; that's only true for Frames the phone
   sends. Frames from the Strap carry `01 00` and different header-check values, so incoming
   Frames are checked by CRC only.
