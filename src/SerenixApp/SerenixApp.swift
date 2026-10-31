@@ -10,8 +10,14 @@ struct SerenixApp: App {
             MainView(connection: connection)
                 // A History Sync runs each time Serenix comes to the foreground (spec 001).
                 .onChange(of: scenePhase, initial: true) { oldPhase, newPhase in
-                    guard newPhase == .active else { return }
-                    connection.sceneBecameActive(fromBackground: oldPhase == .background)
+                    switch newPhase {
+                    case .active:
+                        connection.sceneBecameActive(fromBackground: oldPhase == .background)
+                    case .background:
+                        connection.sceneWentToBackground()
+                    default:
+                        break
+                    }
                 }
         }
     }

@@ -69,6 +69,9 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     private var connectTimer: Timer?
     /// Whether Serenix has already synced on open since launch.
     private var hasOpened = false
+    /// Whether a sync was running (or starting) when Serenix went to the background. Coming
+    /// back then shows that sync or its result rather than starting another (spec 001).
+    private var syncWasUnderwayInBackground = false
     /// Asked to connect before Bluetooth was powered on.
     private var wantsConnection = false
     /// Asked to sync before the Strap was connected and subscribed.
@@ -90,10 +93,21 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     /// connected (before that, the user starts with "Connect Strap"). Not on returning from
     /// Control Center or a notification, which is the app staying open (spec 001 non-goals).
     func sceneBecameActive(fromBackground: Bool) {
+        // A sync that went silent while Serenix was in the background shows as failed now.
+        failIfStrapWentSilent(at: Date())
+        let syncWasUnderway = syncWasUnderwayInBackground
+        syncWasUnderwayInBackground = false
+        guard !syncWasUnderway else { return }
         guard fromBackground || !hasOpened else { return }
         hasOpened = true
         guard rememberedStrap != nil else { return }
         syncNow()
+    }
+
+    /// Notes whether a sync is underway as Serenix goes to the background, where it carries on
+    /// (ADR 0006).
+    func sceneWentToBackground() {
+        syncWasUnderwayInBackground = phase.isBusy
     }
 
     func connect() {
@@ -215,14 +229,24 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
 
     private func syncTimerFired() {
         objectWillChange.send()
+        failIfStrapWentSilent(at: Date())
+    }
+
+    /// Fails the sync if the Strap has sent nothing for `strapSilenceTimeout`. The sync timer
+    /// checks this, and so do the next Frame and Serenix returning to the foreground, because
+    /// timers don't run while iOS keeps Serenix suspended in the background (ADR 0006).
+    /// Returns whether it failed the sync.
+    @discardableResult
+    private func failIfStrapWentSilent(at now: Date) -> Bool {
         guard var session, let lastHeardFromStrap,
-            Date().timeIntervalSince(lastHeardFromStrap) >= strapSilenceTimeout
-        else { return }
+            now.timeIntervalSince(lastHeardFromStrap) >= strapSilenceTimeout
+        else { return false }
         session.reportTimeout()
         self.session = session
         if case .failed(let failure) = session.state {
             finish(as: .failed(reason(for: failure)))
         }
+        return true
     }
 
     /// Forgets the session and redraws the screen one last time with the final Sync Log.
@@ -300,6 +324,10 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         wantsSync = false
         wantsConnection = false
         phase = newPhase
+        // Forget the link now, not when iOS reports the disconnect, so a quick "Sync now"
+        // reconnects instead of writing to a connection that's closing.
+        commandCharacteristic = nil
+        subscribed = []
         if let peripheral {
             central.cancelPeripheralConnection(peripheral)
         }
@@ -458,13 +486,16 @@ extension StrapConnection: CBPeripheralDelegate {
         didUpdateValueFor characteristic: CBCharacteristic,
         error: Error?
     ) {
+        let now = Date()
+        // A gap this long means nothing arrived for 10 s, whether the Strap went silent or iOS
+        // held Serenix up; either way it counts as the Strap not responding (spec 001).
+        if failIfStrapWentSilent(at: now) { return }
         guard phase == .syncing, var session else { return }
         if let error {
             fail("Couldn't read from the Strap: \(error.localizedDescription)")
             return
         }
         guard let value = characteristic.value else { return }
-        let now = Date()
         lastHeardFromStrap = now
         let output = session.receive(Array(value), at: now)
         self.session = session
