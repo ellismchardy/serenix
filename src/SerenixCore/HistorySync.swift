@@ -52,8 +52,7 @@ public struct HistorySync: Sendable {
 
     /// Begins the sync; `time` is the phone's current time, used to set the Strap's clock.
     public mutating func start(at time: Date) -> HistorySyncOutput {
-        let seconds = UInt32(time.timeIntervalSince1970)
-        let clock = (0..<4).map { UInt8(truncatingIfNeeded: seconds >> (8 * $0)) }
+        let clock = littleEndianBytes(UInt32(time.timeIntervalSince1970))
         pendingSteps = [
             [Command(op: helloOp, arguments: [0x01])],
             // The captured app sends both forms back to back; the Strap replies to the second.
@@ -77,20 +76,21 @@ public struct HistorySync: Sendable {
     public mutating func receive(_ bytes: [UInt8], at time: Date) -> HistorySyncOutput {
         var output = HistorySyncOutput()
         output.syncLog.append(SyncLogEntry(time: time, direction: .fromStrap, bytes: bytes))
-        // Messages that aren't Frames are logged and otherwise ignored. A bad CRC fails the
-        // sync once the failure rules exist (plan 001, task 7).
+        // Messages that aren't Frames are logged and otherwise ignored. A bad CRC, and a
+        // History Record the decoder rejects, fail the sync once the failure rules exist
+        // (plan 001, task 7).
         guard state == .running, let frame = try? Frame(bytes: bytes) else { return output }
         let body = frame.body
         switch frame.type {
-        case replyType where body.count > replyStatusOffset:
+        case FrameType.reply where body.count > replyStatusOffset:
             if body[replyOpOffset] == awaitedOp, body[replyStatusOffset] == replyDone {
                 sendNextStep(at: time, into: &output)
             }
-        case historicalDataType:
-            if let record = decoder.historyRecord(from: frame) {
+        case FrameType.historicalData:
+            if let record = try? decoder.historyRecord(from: frame) {
                 output.historyRecords.append(record)
             }
-        case metadataType where body.count > metadataKindOffset:
+        case FrameType.metadata where body.count > metadataKindOffset:
             switch body[metadataKindOffset] {
             case batchEndKind where body.count >= syncCursorRange.upperBound:
                 let acknowledge = Command(
@@ -154,11 +154,6 @@ private let sendHistoryOp: UInt8 = 0x16
 /// Acknowledges a Batch: `01`, then the Batch's 8-byte Sync Cursor.
 private let acknowledgeOp: UInt8 = 0x17
 private let helloSequence: UInt8 = 1
-
-// Frame types (body[0]).
-private let replyType: UInt8 = 0x24
-private let historicalDataType: UInt8 = 0x2f
-private let metadataType: UInt8 = 0x31
 
 /// A reply body is `24 <strap seq> <op> <phone seq> <status> …`.
 private let replyOpOffset = 2

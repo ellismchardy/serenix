@@ -27,9 +27,9 @@ public struct Frame: Equatable, Sendable {
             bytes[0] == frameStart[0], bytes[1] == frameStart[1]
         else { throw .notAFrame }
         let body = Array(bytes[frameHeaderCount..<(bytes.count - crcCount)])
-        let length = Int(bytes[2]) | Int(bytes[3]) << 8
+        let length = Int(uint16(bytes, at: lengthOffset))
         guard length == body.count + lengthFieldExtra else { throw .lengthMismatch }
-        guard Array(bytes[(bytes.count - crcCount)...]) == littleEndian(crc32(body)) else {
+        guard Array(bytes[(bytes.count - crcCount)...]) == littleEndianBytes(crc32(body)) else {
             throw .badCRC
         }
         self.body = body
@@ -48,13 +48,13 @@ public struct Command: Equatable, Sendable {
 
     /// The Frame bytes to write, numbered `sequence` (starts at 1 on each connection).
     public func frame(sequence: UInt8) throws(FrameError) -> [UInt8] {
-        let body = [commandType, sequence, op] + arguments
+        let body = [FrameType.command, sequence, op] + arguments
         let length = body.count + lengthFieldExtra
         guard let headerCheck = commandHeaderChecks[length] else {
             throw .unknownLength(length)
         }
         return frameStart + [UInt8(length & 0xff), UInt8(length >> 8)] + phoneDirection
-            + headerCheck + body + littleEndian(crc32(body))
+            + headerCheck + body + littleEndianBytes(crc32(body))
     }
 }
 
@@ -71,8 +71,20 @@ private let typeByteCount = 1
 private let crcCount = 4
 /// The length field counts the body plus 4 (hr-tracker `docs/protocol.md`, verified).
 private let lengthFieldExtra = 4
-/// Packet type of a command from the phone.
-private let commandType: UInt8 = 0x23
+/// Where the u16 LE length field sits.
+private let lengthOffset = 2
+
+/// Frame types (`body[0]`), from hr-tracker `docs/protocol.md`.
+enum FrameType {
+    /// A command from the phone.
+    static let command: UInt8 = 0x23
+    /// The Strap's reply to a command.
+    static let reply: UInt8 = 0x24
+    /// History Records (and optical bursts) during a History Sync.
+    static let historicalData: UInt8 = 0x2f
+    /// Batch start, Batch end and sync complete during a History Sync.
+    static let metadata: UInt8 = 0x31
+}
 
 /// Header check of a command Frame, by length field. The algorithm is unknown; these are the
 /// values observed in the 27 Oct 2026 capture, which cover every command a History Sync sends.
@@ -82,10 +94,6 @@ private let commandHeaderChecks: [Int: [UInt8]] = [
     0x0f: [0xe7, 0x05],
     0x10: [0xe0, 0xd1],
 ]
-
-private func littleEndian(_ value: UInt32) -> [UInt8] {
-    (0..<4).map { UInt8(truncatingIfNeeded: value >> (8 * $0)) }
-}
 
 /// CRC-32 (IEEE 802.3, as zlib's `crc32`), which the Strap uses over each Frame's body.
 private func crc32(_ bytes: [UInt8]) -> UInt32 {

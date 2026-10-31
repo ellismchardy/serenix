@@ -25,10 +25,15 @@ private func isMetadataFrame(_ bytes: [UInt8], kind: UInt8) -> Bool {
         && bytes[headerSize + 2] == kind
 }
 
-/// The Sync Cursor of a Batch-end Frame: body[13..<21].
-private func syncCursor(ofBatchEnd bytes: [UInt8]) -> [UInt8] {
-    Array(bytes[(headerSize + 13)..<(headerSize + 21)])
-}
+/// The Sync Cursors of connection 2's five Batch ends, in order, as captured (bytes 21..<29 of
+/// each Batch-end Frame, and the arguments after `01` of the captured app's `0x17`s).
+private let capturedSyncCursors: [[UInt8]] = [
+    [0xc3, 0xc5, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00],
+    [0xc6, 0xc5, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00],
+    [0xc9, 0xc5, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00],
+    [0xcc, 0xc5, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00],
+    [0xcd, 0xc5, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00],
+]
 
 private func op(of frame: [UInt8]) -> UInt8 { frame[opOffset] }
 
@@ -118,21 +123,20 @@ private let framesSent: [[UInt8]] = replay.flatMap(\.output.framesToSend)
     }
 }
 
-@Test func eachAcknowledgementEchoesTheSyncCursorOfTheBatchEndBeforeIt() throws {
-    var lastSyncCursor: [UInt8]?
-    var acknowledgements = 0
+@Test func eachAcknowledgementEchoesTheSyncCursorOfTheBatchEndBeforeIt() {
+    var cursorsAcknowledged: [[UInt8]] = []
     for step in replay {
-        if let fed = step.fed, isMetadataFrame(fed, kind: batchEndKind) {
-            lastSyncCursor = syncCursor(ofBatchEnd: fed)
-        }
-        for frame in step.output.framesToSend where op(of: frame) == 0x17 {
-            acknowledgements += 1
-            let cursor = try #require(lastSyncCursor, "0x17 sent before any Batch end")
-            #expect(cursor.count == 8)
-            #expect(arguments(of: frame) == [0x01] + cursor)
+        let acknowledgements = step.output.framesToSend.filter { op(of: $0) == 0x17 }
+        // An acknowledgement goes out in answer to a Batch end, and only then.
+        let fedBatchEnd = step.fed.map { isMetadataFrame($0, kind: batchEndKind) } ?? false
+        #expect(acknowledgements.count == (fedBatchEnd ? 1 : 0))
+        for frame in acknowledgements {
+            let arguments = arguments(of: frame)
+            #expect(arguments.first == 0x01)
+            cursorsAcknowledged.append(Array(arguments.dropFirst()))
         }
     }
-    #expect(acknowledgements == 5)
+    #expect(cursorsAcknowledged == capturedSyncCursors)
 }
 
 @Test func syncIsRunningUntilTheStrapSaysItIsComplete() throws {
