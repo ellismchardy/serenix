@@ -45,6 +45,8 @@ public struct HistorySync: Sendable {
     /// The op of the command whose final reply the session is waiting for.
     private var awaitedOp: UInt8?
     private var nextSequence: UInt8 = 1
+    /// Record Counters already yielded in this sync, so a Batch the Strap re-sends is skipped.
+    private var yieldedRecordCounters: Set<UInt32> = []
 
     public init(decoder: any HistoryRecordDecoder = Whoop5HistoryRecordDecoder()) {
         self.decoder = decoder
@@ -87,7 +89,9 @@ public struct HistorySync: Sendable {
                 sendNextStep(at: time, into: &output)
             }
         case FrameType.historicalData:
-            if let record = try? decoder.historyRecord(from: frame) {
+            if let record = try? decoder.historyRecord(from: frame),
+                yieldedRecordCounters.insert(record.recordCounter).inserted
+            {
                 output.historyRecords.append(record)
             }
         case FrameType.metadata where body.count > metadataKindOffset:

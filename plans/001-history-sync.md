@@ -60,7 +60,7 @@ Log keeps the **last 5 syncs**.
    - Done when: on the phone, Connect Strap + Sync now completes a sync and the debug screen
      shows History Records received > 0 and the Sync Log. Records the answer to the spec's
      pairing open question in the PR.
-5. [ ] **Slice:** full-capture replay and de-duplication
+5. [x] **Slice:** full-capture replay and de-duplication
    - Blocked by: 3
    - The session ignores a Record Counter it has already yielded in this sync. Across syncs,
      de-duplication is the store's unique Record Counter key (task 8), checked by hand.

@@ -16,7 +16,8 @@ private let crcSize = 4
 private let sequenceOffset = headerSize + 1
 private let opOffset = headerSize + 2
 
-/// A `0x31` metadata Frame's body[2]: the end of a Batch, or the end of the whole sync.
+/// A `0x31` metadata Frame's body[2]: the start or end of a Batch, or the end of the whole sync.
+private let batchStartKind: UInt8 = 0x01
 private let batchEndKind: UInt8 = 0x02
 private let completeKind: UInt8 = 0x03
 
@@ -70,14 +71,15 @@ private struct Step {
     let stateAfter: HistorySyncState
 }
 
-/// Starts a session at `startTime`, then feeds it every Strap message of connection 2 up to
-/// and including the complete Frame. Each receive call gets its own time, one second apart.
-private func replayConnection2(startingAt startTime: Date) -> [Step] {
+/// Starts a fresh session at `startTime`, then feeds it `messages` in order. Each receive call
+/// gets its own time, one second apart.
+private func replaySession(_ messages: [SyncCapture.Message], startingAt startTime: Date) -> [Step]
+{
     var session = HistorySync()
     var steps: [Step] = []
     let started = session.start(at: startTime)
     steps.append(Step(fed: nil, time: startTime, output: started, stateAfter: session.state))
-    for (index, message) in strapMessages.enumerated() {
+    for (index, message) in messages.enumerated() {
         let time = startTime.addingTimeInterval(Double(index + 1))
         let output = session.receive(message.bytes, at: time)
         steps.append(
@@ -85,6 +87,11 @@ private func replayConnection2(startingAt startTime: Date) -> [Step] {
         )
     }
     return steps
+}
+
+/// Replays every Strap message of connection 2 up to and including the complete Frame.
+private func replayConnection2(startingAt startTime: Date) -> [Step] {
+    replaySession(Array(strapMessages), startingAt: startTime)
 }
 
 private let replay = replayConnection2(startingAt: capturedPhoneTime)
@@ -176,4 +183,57 @@ private let framesSent: [[UInt8]] = replay.flatMap(\.output.framesToSend)
     #expect(syncLog.map(\.direction) == expectedDirections)
     #expect(syncLog.map(\.bytes) == expectedBytes)
     #expect(syncLog.map(\.time) == expectedTimes)
+}
+
+/// Replays `messages` into a fresh session started at `capturedPhoneTime`, one second apart,
+/// and returns every History Record it yielded, in order.
+private func historyRecords(replaying messages: [SyncCapture.Message]) -> [HistoryRecord] {
+    replaySession(messages, startingAt: capturedPhoneTime).flatMap(\.output.historyRecords)
+}
+
+@Test func replayingTheWholeCaptureYieldsEachHistoryRecordOnce() {
+    // A session ends at the Strap's complete Frame, and the capture holds 11 syncs across its
+    // 5 connections. So each connection's Strap messages are cut after every complete Frame,
+    // and each piece (one sync, from the end of the previous sync to its complete Frame) is
+    // replayed into a fresh session, as the app would start a new History Sync each time.
+    var records: [HistoryRecord] = []
+    var syncs = 0
+    for connection in SyncCapture.historySync20261027.connections {
+        var sync: [SyncCapture.Message] = []
+        for message in connection.messages where message.direction == .in {
+            sync.append(message)
+            if isMetadataFrame(message.bytes, kind: completeKind) {
+                records += historyRecords(replaying: sync)
+                syncs += 1
+                sync = []
+            }
+        }
+        // What the Strap sent after a connection's last complete Frame (replies, live HR,
+        // logs) holds no History Record.
+        #expect(historyRecords(replaying: sync).isEmpty)
+    }
+    #expect(syncs == 11)
+    // The fixture's per-second 0x2f Frames across all 5 connections.
+    #expect(records.count == 1_036)
+    #expect(Set(records.map(\.recordCounter)).count == 1_036)
+}
+
+@Test func aBatchTheStrapSendsTwiceYieldsNoDuplicateHistoryRecords() throws {
+    // Connection 2's first Batch (19:50:20.752 Batch start to 19:50:21.564 Batch end, 30
+    // per-second 0x2f Frames) is fed a second time straight after itself: a re-send within one
+    // sync. Everything else is replayed as captured. A re-send after an interrupted sync
+    // reaches a new session; the store's unique Record Counter key covers that (plan task 8).
+    let batchStart = try #require(
+        strapMessages.firstIndex { isMetadataFrame($0.bytes, kind: batchStartKind) }
+    )
+    let batchEnd = try #require(
+        strapMessages.firstIndex { isMetadataFrame($0.bytes, kind: batchEndKind) }
+    )
+    let batch = Array(strapMessages[batchStart...batchEnd])
+    let messages =
+        Array(strapMessages[...batchEnd]) + batch + Array(strapMessages[(batchEnd + 1)...])
+    let records = historyRecords(replaying: messages)
+    // Connection 2's sync holds 178 distinct per-second 0x2f Frames; the re-sent 30 add none.
+    #expect(records.count == 178)
+    #expect(Set(records.map(\.recordCounter)).count == 178)
 }
