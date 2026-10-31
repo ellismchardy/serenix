@@ -16,6 +16,10 @@ struct DebugView: View {
                     "History Records received",
                     value: "\(connection.historyRecordsReceived)"
                 )
+                LabeledContent(
+                    "History Records stored",
+                    value: "\(connection.historyRecordsStored)"
+                )
                 LabeledContent("Sync Log entries", value: "\(connection.syncLog.count)")
                 ShareLink(
                     item: SyncLogFile(entries: connection.syncLog),

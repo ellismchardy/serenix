@@ -64,7 +64,7 @@ public struct HistorySync: Sendable {
     /// Ops of the commands this session has sent; a reply to any other op is not ours to judge.
     private var sentOps: Set<UInt8> = []
     /// History Records already yielded in this sync, so a Batch the Strap re-sends is skipped.
-    private var yieldedRecords: Set<HistoryRecordKey> = []
+    private var yieldedRecords: Set<String> = []
 
     public init(decoder: any HistoryRecordDecoder = Whoop5HistoryRecordDecoder()) {
         self.decoder = decoder
@@ -129,7 +129,7 @@ public struct HistorySync: Sendable {
                 state = .failed(.undecodableHistoryRecord(error))
                 return output
             }
-            if let record, yieldedRecords.insert(HistoryRecordKey(record)).inserted {
+            if let record, yieldedRecords.insert(record.identity).inserted {
                 output.historyRecords.append(record)
             }
         case FrameType.metadata where body.count > metadataKindOffset:
@@ -219,15 +219,3 @@ private let batchEndKind: UInt8 = 0x02
 private let syncCompleteKind: UInt8 = 0x03
 /// Where a Batch-end body carries the Sync Cursor.
 private let syncCursorRange = 13..<21
-
-/// What identifies a History Record: its Record Counter and timestamp together, because after a
-/// reboot the Strap can reuse a Record Counter for a new record (spec 001).
-private struct HistoryRecordKey: Hashable {
-    let recordCounter: UInt32
-    let timestamp: Date
-
-    init(_ record: HistoryRecord) {
-        recordCounter = record.recordCounter
-        timestamp = record.timestamp
-    }
-}

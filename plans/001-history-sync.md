@@ -116,8 +116,8 @@ the store and the full debug screen; the session doesn't change.
      10-second timer reported to the session; sync status on the main screen.
    - Seam: manual on the iPhone · Files: `src/SerenixApp/`
    - Done when: on the phone, relaunching reconnects without asking; opening Serenix syncs and
-     the state reads "up to date"; Sync now straight after shows 0 new; closing mid-sync then
-     syncing again leaves 0 Record Counter gaps.
+     the state reads "up to date"; Sync now straight after shows 0 History Records received.
+     (The 0-gaps check after closing mid-sync moved to task 11, which adds the gap count.)
 10. [ ] **Slice:** finish a started sync in the background
    - Blocked by: 9 (needs its 10-second timer and the "not started twice" rule)
    - Declare iOS's Bluetooth background mode (central role, `UIBackgroundModes:
@@ -145,7 +145,9 @@ the store and the full debug screen; the session doesn't change.
      `src/SerenixCore/HistorySync*.swift`, `tests/SerenixCoreTests/HistorySyncTests.swift`,
      `src/SerenixApp/`
    - Done when: the session tests for range and battery pass; on the phone the debug screen
-     shows range, battery and firmware, and Share log opens the share sheet.
+     shows range, battery and firmware, and Share log opens the share sheet; closing Serenix
+     mid-sync then syncing again leaves 0 gaps between the first and last Record Counter of the
+     interrupted and resumed syncs (moved from task 9).
 12. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
     criterion checked, with the manual steps and their results written in the PR.
     - Blocked by: 10, 11

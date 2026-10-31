@@ -23,6 +23,15 @@ public struct HistoryRecord: Equatable, Sendable {
     public let rawBytes: [UInt8]
 }
 
+extension HistoryRecord {
+    /// What identifies this History Record: its Record Counter and timestamp together, as
+    /// `<Record Counter>@<Unix seconds>`. After a reboot the Strap can reuse a Record Counter for
+    /// a new record (spec 001), so the counter alone isn't enough.
+    public var identity: String {
+        "\(recordCounter)@\(Int64(timestamp.timeIntervalSince1970))"
+    }
+}
+
 /// Why a Frame that should hold a History Record can't be decoded.
 public enum HistoryRecordError: Error, Equatable, Sendable {
     /// A per-second record whose body isn't the length the decoder knows, e.g. after a

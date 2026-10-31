@@ -172,3 +172,9 @@ private let skinTemperatureTolerance = 0.001
         try decoder.historyRecord(from: frame)
     }
 }
+
+@Test func historyRecordIsIdentifiedByItsRecordCounterAndTimestamp() throws {
+    // The fixture's record 2863315 was taken at 1793130448 (2026-10-27T19:47:28Z).
+    let record = try #require(try recordsByCounter()[2_863_315])
+    #expect(record.identity == "2863315@1793130448")
+}

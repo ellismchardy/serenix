@@ -1,6 +1,7 @@
 import CoreBluetooth
 import Foundation
 import SerenixCore
+import os
 
 /// Where the Strap connection and its History Sync have got to, for display.
 enum StrapPhase: Equatable {
@@ -45,25 +46,54 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     @Published private(set) var strapName: String?
     /// The current or last sync's Sync Log. In memory only for now (plan 001, task 4). Not
     /// `@Published`: a day's sync is ~100,000 Frames, and redrawing the screen for each one
-    /// slowed the first phone sync to a crawl. `refreshTimer` redraws instead.
+    /// slowed the first phone sync to a crawl. `syncTimer` redraws instead.
     private(set) var syncLog: [SyncLogEntry] = []
+    /// History Records received in the current or last sync.
     private(set) var historyRecordsReceived = 0
+    @Published private(set) var historyRecordsStored = 0
+    /// When the last sync completed and how many History Records it received, kept across
+    /// launches.
+    @Published private(set) var lastSyncCompleted: Date?
+    @Published private(set) var lastSyncRecordCount = 0
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
     private var commandCharacteristic: CBCharacteristic?
     private var subscribed: Set<CBUUID> = []
     private var session: HistorySync?
+    /// The store, or why it couldn't be opened; a sync then fails with that reason.
+    private let store: Result<HistoryRecordStore, Error>
+    /// When the Strap last sent anything in the current sync, for the 10-second timeout.
+    private var lastHeardFromStrap: Date?
+    /// Gives up on finding or connecting to the Strap after `connectTimeout`.
+    private var connectTimer: Timer?
+    /// Whether Serenix has already synced on open since launch.
+    private var hasOpened = false
     /// Asked to connect before Bluetooth was powered on.
     private var wantsConnection = false
     /// Asked to sync before the Strap was connected and subscribed.
     private var wantsSync = false
-    /// Redraws the screen every `screenRefreshInterval` while a sync runs.
-    private var refreshTimer: Timer?
+    /// Fires every `syncTimerInterval` while a sync runs: redraws the screen and checks the
+    /// 10-second timeout.
+    private var syncTimer: Timer?
 
     override init() {
+        store = Result { try HistoryRecordStore() }
         super.init()
         central = CBCentralManager(delegate: self, queue: nil)
+        lastSyncCompleted = UserDefaults.standard.object(forKey: lastSyncCompletedKey) as? Date
+        lastSyncRecordCount = UserDefaults.standard.integer(forKey: lastSyncRecordCountKey)
+        refreshStoredCount()
+    }
+
+    /// Syncs when Serenix launches or comes back from the background, once a Strap has been
+    /// connected (before that, the user starts with "Connect Strap"). Not on returning from
+    /// Control Center or a notification, which is the app staying open (spec 001 non-goals).
+    func sceneBecameActive(fromBackground: Bool) {
+        guard fromBackground || !hasOpened else { return }
+        hasOpened = true
+        guard rememberedStrap != nil else { return }
+        syncNow()
     }
 
     func connect() {
@@ -99,10 +129,27 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
             && subscribed == StrapGATT.notifyCharacteristics
     }
 
+    /// The Strap connected before, by its Bluetooth identifier, kept across launches.
+    private var rememberedStrap: UUID? {
+        UserDefaults.standard.string(forKey: rememberedStrapKey).flatMap(UUID.init(uuidString:))
+    }
+
     private func startConnecting() {
+        connectTimer?.invalidate()
+        connectTimer = Timer.scheduledTimer(withTimeInterval: connectTimeout, repeats: false) {
+            [weak self] _ in
+            self?.connectTimedOut()
+        }
         if let peripheral {
             phase = .connecting
             central.connect(peripheral)
+            return
+        }
+        // Reconnect to the remembered Strap without scanning: iOS still has its pairing.
+        if let rememberedStrap,
+            let known = central.retrievePeripherals(withIdentifiers: [rememberedStrap]).first
+        {
+            use(known)
             return
         }
         // A Strap that's still linked to the iPhone doesn't advertise, so look there first.
@@ -116,6 +163,23 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         central.scanForPeripherals(withServices: nil)
     }
 
+    private func connectTimedOut() {
+        guard phase == .searching || phase == .connecting else { return }
+        central.stopScan()
+        fail("Couldn't find the Strap. Check it's nearby and charged, then try again.")
+    }
+
+    private func refreshStoredCount() {
+        guard case .success(let store) = self.store else { return }
+        do {
+            historyRecordsStored = try store.count()
+        } catch {
+            storeLog.error(
+                "Couldn't count stored History Records: \(error.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+
     private func use(_ found: CBPeripheral) {
         central.stopScan()
         peripheral = found
@@ -127,35 +191,71 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
 
     private func startSync() {
         wantsSync = false
+        if case .failure(let error) = store {
+            fail("Couldn't open the History Record store: \(error.localizedDescription)")
+            return
+        }
         syncLog = []
         historyRecordsReceived = 0
         var session = HistorySync()
-        let output = session.start(at: Date())
+        let now = Date()
+        let output = session.start(at: now)
         self.session = session
+        lastHeardFromStrap = now
         phase = .syncing
-        refreshTimer?.invalidate()
-        let timer = Timer(timeInterval: screenRefreshInterval, repeats: true) { [weak self] _ in
-            self?.objectWillChange.send()
+        syncTimer?.invalidate()
+        let timer = Timer(timeInterval: syncTimerInterval, repeats: true) { [weak self] _ in
+            self?.syncTimerFired()
         }
         // `.common`, so the screen keeps updating while the user scrolls.
         RunLoop.main.add(timer, forMode: .common)
-        refreshTimer = timer
+        syncTimer = timer
         handle(output, state: session.state)
+    }
+
+    private func syncTimerFired() {
+        objectWillChange.send()
+        guard var session, let lastHeardFromStrap,
+            Date().timeIntervalSince(lastHeardFromStrap) >= strapSilenceTimeout
+        else { return }
+        session.reportTimeout()
+        self.session = session
+        if case .failed(let failure) = session.state {
+            finish(as: .failed(reason(for: failure)))
+        }
     }
 
     /// Forgets the session and redraws the screen one last time with the final Sync Log.
     private func endSession() {
         session = nil
-        refreshTimer?.invalidate()
-        refreshTimer = nil
+        lastHeardFromStrap = nil
+        syncTimer?.invalidate()
+        syncTimer = nil
+        // Records received after the last acknowledgement were never acknowledged, so the Strap
+        // sends them again; drop them rather than carry them into the next sync.
+        if case .success(let store) = self.store { store.discardUnsaved() }
+        refreshStoredCount()
         objectWillChange.send()
     }
 
-    /// Writes what the session asked for, records what it produced, and ends the sync if the
-    /// session completed or failed.
+    /// Stores the History Records the session produced, writes what it asked for, and ends the
+    /// sync if the session completed or failed.
     private func handle(_ output: HistorySyncOutput, state: HistorySyncState) {
         syncLog += output.syncLog
         historyRecordsReceived += output.historyRecords.count
+        guard case .success(let store) = self.store else { return }
+        store.insert(output.historyRecords)
+        if !output.framesToSend.isEmpty || state != .running {
+            // Save before writing: once the Strap has an acknowledgement it never sends those
+            // History Records again, so they must be on the phone first.
+            do {
+                try store.save()
+            } catch {
+                store.discardUnsaved()
+                fail("Couldn't store History Records: \(error.localizedDescription)")
+                return
+            }
+        }
         if let peripheral, let commandCharacteristic {
             for frame in output.framesToSend {
                 // With response, as the captured app writes (plan 001).
@@ -166,14 +266,36 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         case .running:
             break
         case .completed:
+            let now = Date()
+            lastSyncCompleted = now
+            lastSyncRecordCount = historyRecordsReceived
+            UserDefaults.standard.set(now, forKey: lastSyncCompletedKey)
+            UserDefaults.standard.set(historyRecordsReceived, forKey: lastSyncRecordCountKey)
             finish(as: .synced)
         case .failed(let failure):
-            finish(as: .failed("\(failure)"))
+            finish(as: .failed(reason(for: failure)))
+        }
+    }
+
+    private func reason(for failure: HistorySyncFailure) -> String {
+        switch failure {
+        case .badCRC:
+            "A Frame from the Strap failed its CRC check."
+        case .lengthMismatch:
+            "A Frame from the Strap had the wrong length."
+        case .undecodableHistoryRecord(let error):
+            "A History Record couldn't be decoded (\(error))."
+        case .errorStatus(let op, let status):
+            String(format: "The Strap answered command 0x%02x with error 0x%02x.", op, status)
+        case .timedOut:
+            "The Strap stopped responding."
         }
     }
 
     /// Ends the connection; the spec disconnects after every sync.
     private func finish(as newPhase: StrapPhase) {
+        connectTimer?.invalidate()
+        connectTimer = nil
         endSession()
         wantsSync = false
         wantsConnection = false
@@ -232,6 +354,9 @@ extension StrapConnection: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        // Connected: pairing, if iOS needs it, happens next and isn't timed.
+        connectTimer?.invalidate()
+        connectTimer = nil
         peripheral.discoverServices([StrapGATT.service])
     }
 
@@ -323,6 +448,7 @@ extension StrapConnection: CBPeripheralDelegate {
         guard characteristic.isNotifying else { return }
         subscribed.insert(characteristic.uuid)
         guard isReady else { return }
+        UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: rememberedStrapKey)
         phase = .connected
         if wantsSync { startSync() }
     }
@@ -338,7 +464,9 @@ extension StrapConnection: CBPeripheralDelegate {
             return
         }
         guard let value = characteristic.value else { return }
-        let output = session.receive(Array(value), at: Date())
+        let now = Date()
+        lastHeardFromStrap = now
+        let output = session.receive(Array(value), at: now)
         self.session = session
         handle(output, state: session.state)
     }
@@ -375,6 +503,22 @@ private enum StrapGATT {
     }
 }
 
-/// Seconds between screen redraws during a sync: often enough to watch the counts move, rare
-/// enough that drawing never competes with Bluetooth on the main thread.
-private let screenRefreshInterval: TimeInterval = 0.5
+/// Seconds between screen redraws (and timeout checks) during a sync: often enough to watch the
+/// counts move, rare enough that drawing never competes with Bluetooth on the main thread.
+private let syncTimerInterval: TimeInterval = 0.5
+
+/// Seconds without a Frame from the Strap before a sync fails as "stopped responding" (spec 001,
+/// an assumption: the capture shows replies within milliseconds).
+private let strapSilenceTimeout: TimeInterval = 10
+
+/// UserDefaults keys. The remembered Strap is its CoreBluetooth identifier, which is specific to
+/// this iPhone.
+private let rememberedStrapKey = "rememberedStrap"
+private let lastSyncCompletedKey = "lastSyncCompleted"
+private let lastSyncRecordCountKey = "lastSyncRecordCount"
+
+/// Seconds to look for or connect to the Strap before the attempt fails (spec 001: "can't be
+/// found or connected"). An assumption: a Strap in range connects within a second or two.
+private let connectTimeout: TimeInterval = 30
+
+private let storeLog = Logger(subsystem: "com.ellismchardy.Serenix", category: "store")
