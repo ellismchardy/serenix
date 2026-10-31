@@ -16,7 +16,7 @@ Everything runs on your phone. There's no backend, no account and no telemetry.
 ## What it does (v1)
 
 - **History Sync**: when the app opens, it pulls every new History Record (one second of heart
-  rate, RR intervals, motion, skin temperature, steps and SpO2) off the Strap.
+  rate, RR intervals, motion, skin temperature and steps, plus SpO2 during sleep) off the Strap.
 - **Sleep**: finds each Night's Sleep Period, Sleep Onset, Final Wake and Time in Bed.
 - **Nightly Metrics**: Resting HR, HRV, respiratory rate, skin temperature and SpO2.
 - **Scores**: Sleep Score, Readiness (against your own Baseline) and daily Load, each 0–100 on
@@ -70,17 +70,17 @@ docs/              architecture, conventions, dev setup, workflows, ADRs
 GLOSSARY.md        the project's shared vocabulary
 ```
 
-## Contributing
+## Development process
+
+Serenix is a personal project and isn't open to outside contributions.
 
 Development is spec-driven and test-first: a feature gets a spec in `specs/`, then a plan, then
 is built one test-first slice at a time, and every change lands as a squash-merged PR with green
 CI. [CLAUDE.md](CLAUDE.md), [docs/conventions.md](docs/conventions.md) and
-[docs/workflows.md](docs/workflows.md) describe the process. Bugs and feature requests go in
-GitHub Issues.
+[docs/workflows.md](docs/workflows.md) describe the process.
 
-Test fixtures are trimmed real History Records from the project owner's own nights, published
-here by choice with identifiers removed. Please don't commit raw Bluetooth captures or
-sysdiagnoses.
+Test fixtures are trimmed real History Records from the project owner's own nights, with
+identifiers removed. Raw Bluetooth captures and sysdiagnoses are never committed.
 
 ## Credits
 
