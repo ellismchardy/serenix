@@ -108,7 +108,7 @@ the store and the full debug screen; the session doesn't change.
    - Done when: the spec criterion passes (same Record Counter, different timestamps: both
      yielded; same Record Counter and timestamp again: none), and the full-replay and
      Batch-twice tests still pass.
-9. [ ] **Slice:** store, triggers and remembered Strap
+9. [x] **Slice:** store, triggers and remembered Strap
    - Blocked by: 4, 7, 8 (needs the session's timeout report from 7 and its key from 8)
    - SwiftData History Record store keyed by Record Counter and timestamp (decoded fields +
      raw bytes);
@@ -118,6 +118,11 @@ the store and the full debug screen; the session doesn't change.
    - Done when: on the phone, relaunching reconnects without asking; opening Serenix syncs and
      the state reads "up to date"; Sync now straight after shows 0 History Records received.
      (The 0-gaps check after closing mid-sync moved to task 11, which adds the gap count.)
+   - **Result on the phone (31 Oct 2026), for the PR:** after one "Connect Strap", relaunching
+     reconnected and synced by itself and read "Up to date"; 84 History Records received and 84
+     stored. "Sync now" straight after received ~8 while the Strap was worn (new seconds, not
+     re-sends) and 0 with it off the wrist, stored unchanged. The Strap seems to record only
+     while worn: a sync after it was mostly off the wrist received 0.
 10. [ ] **Slice:** finish a started sync in the background
    - Blocked by: 9 (needs its 10-second timer and the "not started twice" rule)
    - Declare iOS's Bluetooth background mode (central role, `UIBackgroundModes:
