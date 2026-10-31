@@ -50,7 +50,7 @@ Log keeps the **last 5 syncs**.
    - Done when: replaying one captured sync sends the captured op codes and arguments in order
      (minus `0x03`/`0x3f`, clock from the test); each `0x17` carries the preceding Batch end's
      8 Sync Cursor bytes; every Frame appears in the Sync Log with its direction.
-4. [ ] **Slice:** first real sync on the phone (tracer through the shell)
+4. [x] **Slice:** first real sync on the phone (tracer through the shell)
    - Blocked by: 3
    - CoreBluetooth Strap connection (scan, connect, pair, subscribe to the four notify
      channels, write with response), a minimal "Connect Strap" screen, a "Sync now" button, and
@@ -60,6 +60,21 @@ Log keeps the **last 5 syncs**.
    - Done when: on the phone, Connect Strap + Sync now completes a sync and the debug screen
      shows History Records received > 0 and the Sync Log. Records the answer to the spec's
      pairing open question in the PR.
+   - **Result on the phone (31 Oct 2026), for the PR:**
+     - **Pairing:** the iPhone's existing pairing works. "Connect Strap" connected in about a
+       second with no pairing prompt. It doesn't connect on launch yet (task 8).
+     - **Sync:** 101,424 Frames in 6 min 28 s (~232 History Records/s), 1,579 Batches all
+       acknowledged and answered OK, then "complete": 90,044 History Records from 30 Oct
+       13:29 to 31 Oct 18:17 UTC. No bad CRCs or failures.
+     - **First attempt stalled** when the phone locked mid-sync (Serenix suspended). The Strap
+       had taken the last acknowledgement, so the next sync carried on with no gap. This led
+       to ADR 0006 (finish in the background).
+     - **Found:** redrawing on every Frame made a big sync crawl, and the Sync Log couldn't
+       leave the phone. Fixed by redrawing twice a second and a basic Share log.
+     - **For task 8:** the Strap likely rebooted at ~18:17 (its uptime in the logs). Right
+       after, Record Counter 3,155,039 was used for two different records, so keying the store
+       on Record Counter alone would drop one, and nothing was recorded 18:17–19:00. Also a
+       hole of 875 Record Counters on 30 Oct 15:06–15:21 that the Strap never sent.
 5. [x] **Slice:** full-capture replay and de-duplication
    - Blocked by: 3
    - The session ignores a Record Counter it has already yielded in this sync. Across syncs,
