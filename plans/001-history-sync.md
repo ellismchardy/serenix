@@ -32,7 +32,7 @@ Log keeps the **last 5 syncs**.
      `tests/SerenixCoreTests/FrameTests.swift`, `Package.swift` (test resources)
    - Done when: encoding each captured command with its sequence number gives its exact bytes;
      every Strap Frame parses with a valid CRC; a one-byte change is rejected.
-2. [ ] **Slice:** History Record decoder
+2. [x] **Slice:** History Record decoder
    - Decode per-second `0x2f` Frames (Record Counter, timestamp, HR, RR, motion, skin
      temperature, steps, SpO2, raw bytes) behind a per-Strap-model interface. Ignore the
      optical-burst variant. Expected values come from `hr-tracker/tools/history.py` run once
