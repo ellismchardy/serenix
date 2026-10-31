@@ -61,7 +61,7 @@ score's spec.
 
 ## Not in v1
 Sleep stages (light, deep, REM), Stress, reading other devices from Apple Health, Fitbit,
-background sync, iCloud sync, and the Whoop 4.0 and MG.
+starting a sync in the background, iCloud sync, and the Whoop 4.0 and MG.
 
 ## Cross-cutting concerns
 - Auth: none. No accounts. The only "auth" is BLE pairing with the Strap, which encrypts the
@@ -73,6 +73,7 @@ background sync, iCloud sync, and the Whoop 4.0 and MG.
   the details (e.g. by email) and sees what is sent. What a report contains is set by its spec.
 - Config/secrets: none at runtime. Signing for TestFlight or the App Store needs the Apple
   Developer Program; until then there are no secrets.
-- Sync: foreground only. History Sync runs when the app opens (ADR 0004).
+- Sync: History Sync starts when the app opens or on "Sync now", and a sync that has started
+  finishes in the background (ADR 0006).
 - Privacy: test fixtures are the owner's real nights, published in this public repo by choice;
   rules in `docs/conventions.md` (Testing).

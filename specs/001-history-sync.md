@@ -23,6 +23,8 @@ yet ends up stored on the phone, with a debug screen that shows exactly what hap
 5. As a Strap owner with nothing new on the Strap, I want the sync to finish quickly and say so.
 6. As the developer without a Mac, I want to see and share the Sync Log from the phone, so that
    I can tell why a sync failed.
+7. As a Strap owner with a big backlog, I want a sync to keep going when I lock the phone or
+   switch apps, so that I don't have to watch Serenix for minutes while it finishes.
 
 ## Behavior
 **Connecting the Strap.** On first run there is a "Connect Strap" step. Serenix scans for a Strap
@@ -33,6 +35,14 @@ that Strap and reconnects to it automatically. One Strap only.
 
 **When a History Sync runs.** Each time Serenix comes to the foreground, and when the user taps
 "Sync now". A sync already running is not started twice.
+
+**Continuing in the background.** A History Sync that has started keeps going when the phone
+locks or the user switches apps, until it completes or fails: History Records keep arriving and
+Batches keep being acknowledged. Coming back to Serenix shows the sync still running or its
+result; it does not start a second one. Serenix never *starts* a sync while in the background,
+and does not notify the user when a background sync ends. If iOS ends Serenix mid-sync, nothing
+special happens: History Records already stored are kept, and the unacknowledged Batch comes
+again on the next sync.
 
 **One History Sync.**
 1. Connect and subscribe to the Strap's notify channels.
@@ -61,6 +71,8 @@ a per-second `0x2f` Frame can't be decoded as a History Record (for example, a f
 changed its length), the Strap replies with an error status, or the Strap sends nothing for
 **10 seconds**. A Batch containing a Frame that failed its CRC check or couldn't be decoded is
 **not** acknowledged, so the Strap keeps it and re-sends it next time. Disconnecting mid-sync is the same: the unacknowledged Batch comes again.
+The 10 seconds apply in the background too: a sync whose Strap went silent while Serenix was in
+the background shows as failed ("stopped responding") by the time the user looks.
 
 **Status and debug screen.** The main screen shows the sync state (connecting / syncing / up to
 date / failed with reason) and when the last sync finished. A debug screen, reached from
@@ -91,12 +103,14 @@ it.
   rules. It never stores the Sync Cursor (the Strap owns it).
 - **iOS shell — Strap connection.** CoreBluetooth: scan, connect, pair, subscribe, write and
   notify. Moves bytes between the Strap and the History Sync session, runs the 10-second timer,
-  and remembers the connected Strap.
+  and remembers the connected Strap. Declares iOS's Bluetooth background mode (central role)
+  so a running sync keeps receiving Frames in the background; no state restoration.
 - **iOS shell — History Record store.** SwiftData, keyed by Record Counter, storing decoded
   fields plus raw bytes (so improved decoders can re-read them).
 - **iOS shell — screens.** Connect Strap, the sync status on the main screen, and the debug
   screen.
-- Follows ADR 0001 (on-device only), 0002 (logic in `SerenixCore`), 0004 (sync on app open).
+- Follows ADR 0001 (on-device only), 0002 (logic in `SerenixCore`), 0006 (sync starts on app
+  open and finishes in the background).
 
 ## Seams under test
 - **History Sync session (`SerenixCore`)** — fed the Strap's Frames from the real 27 Oct capture,
@@ -142,11 +156,23 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
       period synced.
 - [ ] The debug screen shows the data range, battery level and firmware, and "Share log" opens
       the iOS share sheet with the Sync Log.
+- [ ] Starting a sync of a backlog of at least an hour, then locking the phone straight away:
+      on unlocking after it would have finished, the state reads "Up to date" and the shared
+      Sync Log has Frames timestamped throughout the time the phone was locked.
+- [ ] Starting a sync, then switching to another app for a minute: the shared Sync Log has
+      Frames from that minute, and returning to Serenix shows the same sync (no second
+      handshake in the Sync Log).
+- [ ] Taking the Strap out of range mid-sync while the phone is locked: on unlocking, Serenix
+      shows the sync failed with a reason, and the next sync leaves 0 gaps in Record Counters
+      across the period synced.
 
 ## Non-goals (explicitly out of scope)
 - Pruning History Records after 30 days — its own spec.
 - Sleep, Nightly Metrics, scores, Apple Health export — later specs.
-- Background sync, or staying connected and re-syncing while the app is open (ADR 0004).
+- Starting a History Sync while Serenix is in the background (Strap in range, a schedule), or
+  iOS relaunching Serenix to finish a sync it ended (state restoration) — a later spec.
+- Staying connected between syncs, or re-syncing while the app stays open.
+- A notification when a background sync ends.
 - Live heart rate.
 - More than one Strap, or forgetting/replacing the Strap.
 - Detecting or preventing another app syncing the same Strap. If another app acknowledges
