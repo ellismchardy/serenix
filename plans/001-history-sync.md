@@ -96,17 +96,30 @@ the store and the full debug screen; the session doesn't change.
      rejects (`HistoryRecordError`), is not acknowledged and the session fails with that
      reason; an error status in a reply, or a reported timeout, fails the session with the
      reason.
-8. [ ] **Slice:** store, triggers and remembered Strap
-   - Blocked by: 4, 7 (needs the session's timeout report from 7)
-   - SwiftData History Record store keyed by Record Counter (decoded fields + raw bytes);
+8. [ ] **Slice:** identify History Records by Record Counter and timestamp
+   - Blocked by: 5 (changes its in-sync de-duplication)
+   - The session skips a History Record only when it has already yielded one with the same
+     Record Counter *and* timestamp in this sync; one that only shares a Record Counter is
+     yielded. Test with an edited fixture Frame: a per-second record of connection 2 with only
+     its timestamp changed, CRC recomputed (docs/conventions.md, Testing), fed after the
+     original, as after a Strap reboot; and that Frame fed twice.
+   - Seam: History Sync session · Files: `src/SerenixCore/HistorySync.swift`,
+     `tests/SerenixCoreTests/HistorySyncTests.swift`
+   - Done when: the spec criterion passes (same Record Counter, different timestamps: both
+     yielded; same Record Counter and timestamp again: none), and the full-replay and
+     Batch-twice tests still pass.
+9. [ ] **Slice:** store, triggers and remembered Strap
+   - Blocked by: 4, 7, 8 (needs the session's timeout report from 7 and its key from 8)
+   - SwiftData History Record store keyed by Record Counter and timestamp (decoded fields +
+     raw bytes);
      sync on foreground (not started twice); remember the Strap and reconnect on relaunch; the
      10-second timer reported to the session; sync status on the main screen.
    - Seam: manual on the iPhone · Files: `src/SerenixApp/`
    - Done when: on the phone, relaunching reconnects without asking; opening Serenix syncs and
      the state reads "up to date"; Sync now straight after shows 0 new; closing mid-sync then
      syncing again leaves 0 Record Counter gaps.
-9. [ ] **Slice:** finish a started sync in the background
-   - Blocked by: 8 (needs its 10-second timer and the "not started twice" rule)
+10. [ ] **Slice:** finish a started sync in the background
+   - Blocked by: 9 (needs its 10-second timer and the "not started twice" rule)
    - Declare iOS's Bluetooth background mode (central role, `UIBackgroundModes:
      bluetooth-central`) in `project.yml`; no state restoration. Timers don't run while iOS
      keeps Serenix suspended between Bluetooth events, so the shell measures the 10 seconds
@@ -119,8 +132,8 @@ the store and the full debug screen; the session doesn't change.
      the lock; switching apps for a minute mid-sync logs Frames from that minute with no
      second handshake; taking the Strap out of range mid-sync while locked shows the failure
      with a reason, and the next sync leaves 0 Record Counter gaps.
-10. [ ] **Slice:** full debug screen and Share log
-   - Blocked by: 7, 8
+11. [ ] **Slice:** full debug screen and Share log
+   - Blocked by: 7, 9
    - Session reports the `0x22` data range and `0x1a` battery level (test-first, at the
      session seam); the shell reads model/firmware from Device Info. Debug screen shows the
      store stats (count, first/last Record Counter and time, gaps), last-sync count, data
@@ -133,9 +146,9 @@ the store and the full debug screen; the session doesn't change.
      `src/SerenixApp/`
    - Done when: the session tests for range and battery pass; on the phone the debug screen
      shows range, battery and firmware, and Share log opens the share sheet.
-11. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
+12. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
     criterion checked, with the manual steps and their results written in the PR.
-    - Blocked by: 9, 10
+    - Blocked by: 10, 11
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
