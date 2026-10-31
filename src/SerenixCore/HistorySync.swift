@@ -65,6 +65,12 @@ public struct HistorySync: Sendable {
     private var sentOps: Set<UInt8> = []
     /// History Records already yielded in this sync, so a Batch the Strap re-sends is skipped.
     private var yieldedRecords: Set<String> = []
+    /// For progress and time left: when the sync started, this sync's first and newest History
+    /// Record timestamps (the Strap's clock), and when the first one arrived.
+    private var startTime: Date?
+    private var firstRecordTimestamp: Date?
+    private var newestRecordTimestamp: Date?
+    private var firstRecordArrival: Date?
 
     public init(decoder: any HistoryRecordDecoder = Whoop5HistoryRecordDecoder()) {
         self.decoder = decoder
@@ -72,6 +78,7 @@ public struct HistorySync: Sendable {
 
     /// Begins the sync; `time` is the phone's current time, used to set the Strap's clock.
     public mutating func start(at time: Date) -> HistorySyncOutput {
+        startTime = time
         let clock = littleEndianBytes(UInt32(time.timeIntervalSince1970))
         pendingSteps = [
             [Command(op: helloOp, arguments: [0x01])],
@@ -130,6 +137,7 @@ public struct HistorySync: Sendable {
                 return output
             }
             if let record, yieldedRecords.insert(record.identity).inserted {
+                noteProgress(of: record, arrivedAt: time)
                 output.historyRecords.append(record)
             }
         case FrameType.metadata where body.count > metadataKindOffset:
@@ -155,6 +163,47 @@ public struct HistorySync: Sendable {
     public mutating func reportTimeout() {
         guard state == .running else { return }
         state = .failed(.timedOut)
+    }
+
+    /// How far this sync has got, 0 to 1: from its first History Record's timestamp to the time
+    /// it started, measured by the newest History Record so far (spec 001, Sync progress). Nil
+    /// before the first History Record, so for an empty sync it stays nil.
+    public var progress: Double? {
+        guard let startTime, let first = firstRecordTimestamp, let newest = newestRecordTimestamp
+        else { return nil }
+        let span = startTime.timeIntervalSince(first)
+        // A Strap clock ahead of the phone's can put records at or past the start time.
+        guard span > 0 else { return 1 }
+        return min(max(newest.timeIntervalSince(first) / span, 0), 1)
+    }
+
+    /// Seconds left, from the rate so far: the time since the first History Record arrived,
+    /// scaled by the progress still to go. Nil until `timeLeftDelay` after that first arrival,
+    /// and while there's no progress to go on.
+    public func timeLeft(at now: Date) -> TimeInterval? {
+        guard let progress, let arrival = firstRecordArrival else { return nil }
+        let elapsed = now.timeIntervalSince(arrival)
+        guard elapsed >= timeLeftDelay, progress > 0 else { return nil }
+        guard progress < 1 else { return 0 }
+        return elapsed * (1 - progress) / progress
+    }
+
+    /// How the time left reads (spec 001, Sync progress): "about N min left", rounded up to whole
+    /// minutes, or "less than a minute left".
+    public static func timeLeftText(_ seconds: TimeInterval) -> String {
+        guard seconds >= 60 else { return "less than a minute left" }
+        return "about \(Int((seconds / 60).rounded(.up))) min left"
+    }
+
+    private mutating func noteProgress(of record: HistoryRecord, arrivedAt time: Date) {
+        if firstRecordTimestamp == nil {
+            firstRecordTimestamp = record.timestamp
+            firstRecordArrival = time
+        }
+        // The newest so far, so progress never goes backwards even if records arrive out of
+        // order.
+        if let newest = newestRecordTimestamp, newest >= record.timestamp { return }
+        newestRecordTimestamp = record.timestamp
     }
 
     private mutating func sendNextStep(at time: Date, into output: inout HistorySyncOutput) {
@@ -203,6 +252,9 @@ private let sendHistoryOp: UInt8 = 0x16
 /// Acknowledges a Batch: `01`, then the Batch's 8-byte Sync Cursor.
 private let acknowledgeOp: UInt8 = 0x17
 private let helloSequence: UInt8 = 1
+/// Seconds after the first History Record before the time left is shown: too few records
+/// before then to tell the rate (spec 001, an assumption).
+private let timeLeftDelay: TimeInterval = 2
 
 /// A reply body is `24 <strap seq> <op> <phone seq> <status> …`.
 private let replyOpOffset = 2

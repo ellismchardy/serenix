@@ -55,6 +55,10 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     /// launches.
     @Published private(set) var lastSyncCompleted: Date?
     @Published private(set) var lastSyncRecordCount = 0
+    /// The running sync's progress (0 to 1) and seconds left, from the session; nil before
+    /// they're known. `syncTimer` redraws the screen to show them.
+    var syncProgress: Double? { session?.progress }
+    var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?

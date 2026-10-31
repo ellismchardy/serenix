@@ -11,6 +11,12 @@ struct MainView: View {
                 VStack(spacing: 6) {
                     Text(connection.phase.displayText)
                         .multilineTextAlignment(.center)
+                    if connection.phase == .syncing {
+                        SyncProgressView(
+                            progress: connection.syncProgress,
+                            timeLeft: connection.syncTimeLeft
+                        )
+                    }
                     Text(lastSyncText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -39,5 +45,30 @@ struct MainView: View {
         guard let completed = connection.lastSyncCompleted else { return "Never synced" }
         let when = completed.formatted(date: .abbreviated, time: .shortened)
         return "Last sync \(when) · \(connection.lastSyncRecordCount) History Records received"
+    }
+}
+
+/// A running sync's progress bar and time left (spec 001, Sync progress): "Starting…" until the
+/// session reports progress.
+private struct SyncProgressView: View {
+    let progress: Double?
+    let timeLeft: TimeInterval?
+
+    var body: some View {
+        if let progress {
+            VStack(spacing: 4) {
+                ProgressView(value: progress)
+                if let timeLeft {
+                    Text(HistorySync.timeLeftText(timeLeft))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal)
+        } else {
+            Text("Starting…")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
     }
 }

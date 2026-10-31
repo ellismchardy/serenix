@@ -534,3 +534,123 @@ private let handshakeOps: [UInt8] = [0x91, 0x0a, 0x0a, 0x0b, 0x61, 0x45, 0x1a, 0
     session.reportTimeout()
     #expect(session.state == .completed)
 }
+
+// MARK: - Progress and time left
+
+/// Index in `strapMessages` of connection 2's first per-second 0x2f Frame (19:50:20.9, Record
+/// Counter 2863306, timestamp 1793130439 = 2026-10-27T19:47:19Z): the session's first History
+/// Record. The nine History Records up to `tenthRecordOfFirstBatchIndex` follow it, 1 s apart.
+private let firstRecordIndex = 42
+
+/// Starts a fresh session at `startTime` and feeds it `messages` one second apart, as
+/// `replaySession` does, returning the session's progress after `start` and after each message.
+private func progressReplaying(
+    _ messages: [SyncCapture.Message],
+    startingAt startTime: Date = capturedPhoneTime
+) -> (progress: [Double?], session: HistorySync) {
+    var session = HistorySync()
+    _ = session.start(at: startTime)
+    var progress: [Double?] = [session.progress]
+    for (index, message) in messages.enumerated() {
+        _ = session.receive(
+            message.bytes,
+            at: startTime.addingTimeInterval(Double(index + 1))
+        )
+        progress.append(session.progress)
+    }
+    return (progress, session)
+}
+
+@Test func progressRunsFromTheFirstHistoryRecordToTheStartTimeAndNeverGoesBackwards() throws {
+    try #require(
+        strapMessages[tenthRecordOfFirstBatchIndex].bytes[11..<15] == [0xd3, 0xb0, 0x2b, 0x00]
+    )
+    let (progress, session) = progressReplaying(Array(strapMessages))
+    try #require(session.state == .completed)
+    // progress[0] is after start; progress[i + 1] is after strapMessages[i].
+    #expect(progress[...firstRecordIndex].allSatisfy { $0 == nil })
+
+    let afterFirstRecord = progress[(firstRecordIndex + 1)...]
+    let values = afterFirstRecord.compactMap { $0 }
+    #expect(values.count == afterFirstRecord.count)
+    #expect(values.allSatisfy { (0...1).contains($0) })
+    #expect(zip(values, values.dropFirst()).allSatisfy { $0 <= $1 })
+
+    // First History Record 1793130439 (19:47:19Z), start time 1793130616 (19:50:16Z): 177 s
+    // to cover. The first History Record alone has come 0 s: progress 0.
+    #expect(progress[firstRecordIndex + 1] == 0)
+    // After the 10th, Record Counter 2863315 at 1793130448 (19:47:28Z): 9 / 177.
+    let afterTenth = try #require(progress[tenthRecordOfFirstBatchIndex + 1])
+    #expect(abs(afterTenth - 0.050_847_457_627_118_64) < 1e-9)
+    // The last History Record, Record Counter 2863483, is at 1793130619 (19:50:19Z), 3 s past
+    // the start time: 180 / 177 clamps to 1.
+    let last = try #require(progress.last ?? nil)
+    #expect(abs(last - 1) < 1e-9)
+}
+
+@Test func progressAfterTheLastHistoryRecordIsHowFarItCameTowardsTheStartTime() throws {
+    // The same replay started 10 s later, at 1793130626 (19:50:26Z), so nothing is clamped: the
+    // first History Record (1793130439) is 187 s before the start and the last (1793130619) is
+    // 180 s after the first: 180 / 187.
+    let start = Date(timeIntervalSince1970: 1_793_130_626)
+    let (progress, session) = progressReplaying(Array(strapMessages), startingAt: start)
+    try #require(session.state == .completed)
+    let last = try #require(progress.last ?? nil)
+    #expect(abs(last - 0.962_566_844_919_786_1) < 1e-9)
+}
+
+@Test func timeLeftIsKnownTwoSecondsAfterTheFirstHistoryRecordArrives() throws {
+    try #require(
+        strapMessages[tenthRecordOfFirstBatchIndex].bytes[11..<15] == [0xd3, 0xb0, 0x2b, 0x00]
+    )
+    // Start at T = 1793130616 (19:50:16Z). Everything up to and including the 10th History
+    // Record arrives at T + 1 s, so the first History Record arrived at T + 1 s and progress is
+    // (1793130448 − 1793130439) / (1793130616 − 1793130439) = 9 / 177.
+    let start = capturedPhoneTime
+    let firstArrival = start.addingTimeInterval(1)
+    var session = HistorySync()
+    _ = session.start(at: start)
+    for message in strapMessages[...tenthRecordOfFirstBatchIndex] {
+        _ = session.receive(message.bytes, at: firstArrival)
+    }
+    let progress = try #require(session.progress)
+    try #require(abs(progress - 0.050_847_457_627_118_64) < 1e-9)
+
+    // 1.9 s after the first History Record arrived: too soon.
+    #expect(session.timeLeft(at: firstArrival.addingTimeInterval(1.9)) == nil)
+    // 2 s after: 2 × (1 − 9/177) ÷ (9/177) = 2 × 168 / 9 = 37.333… s.
+    let atTwoSeconds = try #require(session.timeLeft(at: firstArrival.addingTimeInterval(2)))
+    #expect(abs(atTwoSeconds - 37.333_333_333_333_33) < 1e-9)
+    // 10 s after: 10 × 168 / 9 = 186.666… s.
+    let atTenSeconds = try #require(session.timeLeft(at: firstArrival.addingTimeInterval(10)))
+    #expect(abs(atTenSeconds - 186.666_666_666_666_67) < 1e-9)
+
+    // The rest arrives at T + 20 s; the last History Record (1793130619) brings progress to 1,
+    // so nothing is left.
+    for message in strapMessages[(tenthRecordOfFirstBatchIndex + 1)...] {
+        _ = session.receive(message.bytes, at: start.addingTimeInterval(20))
+    }
+    try #require(session.state == .completed)
+    #expect(session.timeLeft(at: start.addingTimeInterval(21)) == 0)
+}
+
+@Test func anEmptySyncReportsNoProgressAndCompletes() throws {
+    // Connection 1's second sync: an empty Batch with Sync Cursor ffffffffffffffff, no
+    // per-second 0x2f Frames, then complete.
+    let connection1Syncs = syncs(in: SyncCapture.historySync20261027.connections[0]).syncs
+    try #require(connection1Syncs.count == 3)
+    let (progress, session) = progressReplaying(connection1Syncs[1])
+    #expect(progress.count == connection1Syncs[1].count + 1)
+    #expect(progress.allSatisfy { $0 == nil })
+    #expect(session.timeLeft(at: capturedPhoneTime.addingTimeInterval(60)) == nil)
+    #expect(session.state == .completed)
+}
+
+@Test func timeLeftReadsInWholeMinutesRoundedUpOrLessThanAMinute() {
+    // Spec 001, Sync progress: "about N min left" rounded up, or "less than a minute left".
+    #expect(HistorySync.timeLeftText(0) == "less than a minute left")
+    #expect(HistorySync.timeLeftText(59.9) == "less than a minute left")
+    #expect(HistorySync.timeLeftText(60) == "about 1 min left")
+    #expect(HistorySync.timeLeftText(60.1) == "about 2 min left")
+    #expect(HistorySync.timeLeftText(186.67) == "about 4 min left")
+}
