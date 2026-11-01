@@ -136,6 +136,34 @@ enum NightlyMetrics {
         return best.map { $0.hertz * 60 }
     }
 
+    /// Seconds between two records in an SpO2 Window that still count as one window. metrics.py
+    /// `SPO2_GAP`.
+    private static let longestSpO2Gap = 5.0
+    /// %: the SpO2 readings kept; other values inside a window look like status bits.
+    /// metrics.py `spo2_windows()`.
+    private static let keptSpO2Readings = 85...100
+
+    /// %: each SpO2 Window's median of its kept readings, then the mean of the windows that have
+    /// one. metrics.py `spo2_windows()` and `main()`.
+    static func spo2(of records: [HistoryRecord]) -> Double? {
+        var windows: [[HistoryRecord]] = []
+        for record in records where record.isInSpO2Window {
+            if let last = windows.last?.last,
+                record.timestamp.timeIntervalSince(last.timestamp) <= longestSpO2Gap
+            {
+                windows[windows.count - 1].append(record)
+            } else {
+                windows.append([record])
+            }
+        }
+        let medians = windows.compactMap { window -> Double? in
+            let readings = window.map(\.spo2).filter { keptSpO2Readings.contains($0) }
+            return readings.isEmpty ? nil : median(of: readings.map(Double.init))
+        }
+        guard !medians.isEmpty else { return nil }
+        return medians.reduce(0, +) / Double(medians.count)
+    }
+
     /// °C: the mean of every record's skin temperature, including the minutes while the Strap
     /// warms up. metrics.py `main()`.
     static func skinTemperature(of records: [HistoryRecord]) -> Double? {

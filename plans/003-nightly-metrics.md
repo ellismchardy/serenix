@@ -75,7 +75,7 @@ Assumptions (consistent with the spec, stated for review):
    - Seam: Nights from History Records · Files: `src/SerenixCore/NightlyMetrics.swift`,
      `tests/SerenixCoreTests/NightsTests.swift`
    - Done when: respiratory rate matches within ±0.05 (part of criterion 2).
-5. [ ] **Slice:** SpO2 (windows split by gaps > 5 s, median of 85–100 readings, mean of windows)
+5. [x] **Slice:** SpO2 (windows split by gaps > 5 s, median of 85–100 readings, mean of windows)
    and missing metrics: no SpO2 Window → SpO2 missing, others unchanged; no RR → HRV and
    respiratory rate missing, others unchanged; Resting HR missing under 30 minutes.
    - Seam: Nights from History Records · Files: `src/SerenixCore/NightlyMetrics.swift`,
@@ -85,11 +85,12 @@ Assumptions (consistent with the spec, stated for review):
    still or moving minutes): shuffled and duplicated records give the same Night; two windows give
    one Night each; two windows with one date keep the one with more Time Asleep; longest run 6 →
    no Night, 7 → Night; empty or sparse window → no Night; 59 vs 60 minutes of wake → one vs two
-   Sleep Periods.
+   Sleep Periods; a Sleep Period with under 30 minutes of records has Resting HR missing (moved
+   from task 5, which had no short Sleep Period to test it with).
    - Seam: Nights from History Records · Files: `src/SerenixCore/Nights.swift`,
      `src/SerenixCore/SleepPeriod.swift`, `tests/SerenixCoreTests/NightsTests.swift`,
      `tests/SerenixCoreTests/HistoryRecordBuilder.swift` (new helper)
-   - Done when: criteria 3–7 and 10 pass.
+   - Done when: criteria 3–7 and 10 pass, and the short-Sleep-Period Resting HR test passes.
 7. [ ] **Slice (shell):** `StoredNight` in SwiftData; after a completed sync, rebuild the touched
    night windows and their neighbours and replace their Nights; Today screen reads stored Nights;
    remove `SampleNights` and Debug's "Show sample Nights" switch.

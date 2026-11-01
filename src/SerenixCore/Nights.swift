@@ -31,6 +31,7 @@ public func nights(from records: [HistoryRecord], in timeZone: TimeZone) -> [Nig
                     finalWake: period.finalWake
                 ),
                 skinTemperature: NightlyMetrics.skinTemperature(of: asleep),
+                spo2: NightlyMetrics.spo2(of: asleep),
                 sleepOnset: period.sleepOnset,
                 finalWake: period.finalWake,
                 timeAsleep: period.timeAsleep,
