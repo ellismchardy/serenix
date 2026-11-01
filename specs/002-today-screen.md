@@ -69,7 +69,8 @@ screen only when there's something to say:
   or an error from the Strap).
 
 Paused and failed stay up until tapped or swiped away; tapping shows the reason and a Retry
-button. With no sync running and none just finished, no pill shows. Which pill shows, and
+button. With no sync running and none just finished, no pill shows, and a sync the user
+cancels shows none either. Which pill shows, and
 whether a failure is paused or failed, is decided by the Today view; how long a pill stays up
 is the shell's. Pulling down on the Today screen starts a sync (001's Sync now) unless one is
 running.
@@ -282,8 +283,8 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [ ] Which sync pill shows: connecting and syncing → "Syncing"; a sync just finished → "Sync
       successful"; Strap not found, Bluetooth unavailable or the Strap disconnecting → "Sync
       paused", carrying its reason and "Serenix will try again next time you open it."; any
-      other failure → "Sync failed" carrying its reason; idle with no sync just finished → no
-      pill.
+      other failure → "Sync failed" carrying its reason; idle with no sync just finished, or a
+      sync the user cancelled → no pill.
 - [ ] The greeting on today with the name "Ellis" is "Good morning, Ellis" at 05:00 and 08:12,
       "Good afternoon, Ellis" at 12:00, and "Good evening, Ellis" at 18:00 and 04:59; with no
       name, or a name of only spaces, it is "Good morning" at 08:12; an earlier Day has no

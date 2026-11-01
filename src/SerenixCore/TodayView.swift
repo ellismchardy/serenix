@@ -35,7 +35,8 @@ public struct TodayView: Equatable, Sendable {
     public let readinessFill: Double
     public let sleepScoreFill: Double
     public let loadFill: Double
-    public let syncPill: SyncPill
+    /// Nil when there is nothing to say.
+    public let syncPill: SyncPill?
     /// Nil on a Day without a Night.
     public let vsBaseline: VsBaseline?
     /// Nil on a Day without a Night.
@@ -108,7 +109,7 @@ public struct TodayView: Equatable, Sendable {
         loadText = scoreText(load)
         loadFill = ringFill(load)
 
-        syncPill = SyncPill(sync, timeZone: timeZone)
+        syncPill = SyncPill(sync)
 
         tilesHeading = isToday ? "Last night" : day.text
         timeAsleepTile = night.map { TimeAsleepTile(for: $0, among: nights, timeZone: timeZone) }

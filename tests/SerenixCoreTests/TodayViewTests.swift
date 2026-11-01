@@ -24,7 +24,7 @@ private func todayView(
     dayLoads: [DayLoad] = dayLoads,
     showing day: Day,
     at time: Date = now,
-    sync: SyncStatus = .connecting,
+    sync: SyncStatus = .idle,
     profileName: String? = nil
 ) -> TodayView {
     TodayView(
@@ -162,7 +162,7 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         showing: oct31,
         now: lateOnOct31InNewYork,
         timeZone: newYork,
-        sync: .connecting
+        sync: .idle
     )
     #expect(newYorkToday.title == "Sat 31 Oct")
     #expect(!newYorkToday.showsTodayPill)
@@ -177,7 +177,7 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         showing: oct25,
         now: justAfterMidnightOct25InLondon,
         timeZone: london,
-        sync: .connecting
+        sync: .idle
     )
     #expect(londonToday.title == "Sun 25 Oct")
     #expect(!londonToday.showsTodayPill)
@@ -196,7 +196,7 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         showing: jan1,
         now: middayJan1,
         timeZone: london,
-        sync: .connecting
+        sync: .idle
     )
     #expect(view.title == "Fri 1 Jan")
     #expect(!view.showsTodayPill)
@@ -205,38 +205,50 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
 
 // MARK: Sync pill
 
-@Test func syncPillNamesTheHistorySyncState() {
-    let connecting = todayView(nights: [], showing: nov1, sync: .connecting).syncPill
-    #expect(connecting.text == "Connecting…")
-    #expect(connecting.failureReason == nil)
-    #expect(!connecting.showsProgress)
+private let strapNotFound =
+    "Couldn't find the Strap. Check it's nearby and charged, then try again."
+private let badFrame = "A Frame from the Strap failed its CRC check."
 
-    let syncing = todayView(nights: [], showing: nov1, sync: .syncing).syncPill
-    #expect(syncing.text == "Syncing")
-    #expect(syncing.failureReason == nil)
-    #expect(syncing.showsProgress)
+@Test(
+    arguments: [
+        (.syncing, .syncing, "Syncing", nil, true),
+        (.justFinished, .successful, "Sync successful", nil, false),
+        (
+            .failed(reason: strapNotFound, cause: .strapUnreachable), .paused, "Sync paused",
+            strapNotFound + " Serenix will try again next time you open it.", false
+        ),
+        (.failed(reason: badFrame, cause: .other), .failed, "Sync failed", badFrame, false),
+    ] as [(SyncStatus, SyncPillKind, String, String?, Bool)]
+)
+func syncPillShowsWhereTheHistorySyncHasGot(
+    sync: SyncStatus,
+    kind: SyncPillKind,
+    text: String,
+    detail: String?,
+    showsProgress: Bool
+) {
+    let pill = todayView(nights: [], showing: nov1, sync: sync).syncPill
 
-    // 2026-11-01T08:10:00Z, 08:10 local in London.
-    let lastSync = Date(timeIntervalSince1970: 1_793_520_600)
-    let upToDate = todayView(nights: [], showing: nov1, sync: .upToDate(lastSync: lastSync))
-        .syncPill
-    #expect(upToDate.text == "Synced 08:10")
-    #expect(upToDate.failureReason == nil)
-    #expect(!upToDate.showsProgress)
+    #expect(pill?.kind == kind)
+    #expect(pill?.text == text)
+    #expect(pill != nil && pill?.detail == detail)
+    #expect(pill?.showsProgress == showsProgress)
+}
 
-    let neverSynced = todayView(nights: [], showing: nov1, sync: .upToDate(lastSync: nil))
-        .syncPill
-    #expect(neverSynced.text == "Not synced")
-    #expect(!neverSynced.showsProgress)
+@Test func withNothingToSayNoSyncPillShows() {
+    let view = todayView(nights: [], showing: nov1, sync: .idle)
 
-    let failed = todayView(
+    #expect(view.syncPill == nil)
+}
+
+@Test func aSyncTheUserCancelledShowsNoSyncPill() {
+    let view = todayView(
         nights: [],
         showing: nov1,
-        sync: .failed(reason: "The Strap stopped responding.")
-    ).syncPill
-    #expect(failed.text == "Sync failed")
-    #expect(failed.failureReason == "The Strap stopped responding.")
-    #expect(!failed.showsProgress)
+        sync: .failed(reason: "Cancelled mid-sync.", cause: .cancelled)
+    )
+
+    #expect(view.syncPill == nil)
 }
 
 // MARK: Rings
@@ -847,7 +859,7 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
         showing: nov1,
         now: now,
         timeZone: newYork,
-        sync: .connecting
+        sync: .idle
     )
 
     #expect(view.timeAsleepTile?.spanText == "18:45 → 01:57")

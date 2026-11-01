@@ -8,7 +8,12 @@ struct TodayScreen: View {
     /// The Day picked in the date picker; nil is today, whatever today is when the screen draws.
     @State private var pickedDay: Day?
     @State private var showsDatePicker = false
-    @State private var showsSyncFailure = false
+    /// The pill the user swiped away, or "Sync successful" once its 3 seconds are up; it shows
+    /// again as soon as the Today view gives a different pill.
+    @State private var dismissedPill: SyncPill?
+    /// The paused, failed or syncing pill whose detail is open, kept as tapped while it's open.
+    @State private var detailPill: SyncPill?
+    @State private var showsPillDetail = false
     @State private var openPopup: TodayPopup?
     @State private var showsProfileMenu = false
     /// Debug's "Show sample Nights" (plan 002, task 8): off at launch and never saved.
@@ -43,7 +48,6 @@ struct TodayScreen: View {
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    syncRow(today)
                     if let message = today.noNightMessage {
                         Text(message)
                             .font(.title3)
@@ -55,11 +59,34 @@ struct TodayScreen: View {
                 }
                 .padding()
             }
-            .alert("Sync failed", isPresented: $showsSyncFailure) {
-                Button("Retry") { connection.syncNow() }
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(today.syncPill.failureReason ?? "")
+            // Pulling down starts a sync (001's Sync now) unless one is running.
+            .refreshable { @MainActor in
+                if !connection.phase.isBusy { connection.syncNow() }
+            }
+            .overlay(alignment: .top) {
+                syncPill(today).animation(.spring, value: visiblePill(today))
+            }
+            .onChange(of: today.syncPill) { dismissedPill = nil }
+            // "Sync successful" slides away after 3 seconds.
+            .task(id: today.syncPill) {
+                guard let pill = today.syncPill, pill.kind == .successful else { return }
+                try? await Task.sleep(for: .seconds(successfulPillSeconds))
+                if !Task.isCancelled { dismissedPill = pill }
+            }
+            .alert(
+                detailPill?.text ?? "",
+                isPresented: $showsPillDetail,
+                presenting: detailPill
+            ) { pill in
+                if pill.kind == .syncing {
+                    Button("Cancel sync", role: .destructive) { connection.cancel() }
+                    Button("Keep syncing", role: .cancel) {}
+                } else {
+                    Button("Retry") { connection.syncNow() }
+                    Button("OK", role: .cancel) { dismissedPill = pill }
+                }
+            } message: { pill in
+                Text(pill.detail ?? "")
             }
             .sheet(item: $openPopup) { popup in
                 TodayPopupView(popup: popup, today: today)
@@ -119,25 +146,46 @@ struct TodayScreen: View {
         }
     }
 
-    /// The sync pill and 001's progress and Cancel; task 3 turns this into the pop-up pill.
-    private func syncRow(_ today: TodayView) -> some View {
-        VStack(spacing: 6) {
-            HStack {
-                Button(today.syncPill.text) { tapSyncPill(today.syncPill) }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                Spacer()
+    /// Paused and failed pills can be swiped away; syncing can't, and successful goes by itself.
+    private func isSwipeable(_ pill: SyncPill) -> Bool {
+        pill.kind == .paused || pill.kind == .failed
+    }
+
+    /// The Today view's sync pill, unless it was swiped away or has timed out.
+    private func visiblePill(_ today: TodayView) -> SyncPill? {
+        guard let pill = today.syncPill, pill != dismissedPill else { return nil }
+        return pill
+    }
+
+    /// The pill sliding down over the top: tap a syncing pill to cancel, a paused or failed one
+    /// for its reason and Retry; swipe up to put it away.
+    @ViewBuilder
+    private func syncPill(_ today: TodayView) -> some View {
+        if let pill = visiblePill(today) {
+            SyncPillView(
+                pill: pill,
+                progress: connection.syncProgress,
+                timeLeft: connection.syncTimeLeft
+            )
+            .padding(.top, 4)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .onTapGesture {
+                if pill.kind == .successful {
+                    dismissedPill = pill
+                } else {
+                    detailPill = pill
+                    showsPillDetail = true
+                }
             }
-            if today.syncPill.showsProgress {
-                SyncProgressView(
-                    progress: connection.syncProgress,
-                    timeLeft: connection.syncTimeLeft
-                )
-            }
-            // 001's Cancel, kept while connecting or syncing.
-            if connection.phase.isBusy {
-                Button("Cancel", role: .cancel) { connection.cancel() }
-                    .font(.footnote)
+            // Syncing stays up until the sync ends, keeping Cancel in reach.
+            .gesture(
+                DragGesture(minimumDistance: 10).onEnded { drag in
+                    if drag.translation.height < 0, isSwipeable(pill) { dismissedPill = pill }
+                }
+            )
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(named: "Dismiss") {
+                if isSwipeable(pill) { dismissedPill = pill }
             }
         }
     }
@@ -256,41 +304,6 @@ struct TodayScreen: View {
         openPopup = nil
         pickedDay = nil
     }
-
-    /// A failed sync shows its reason and Retry; otherwise a tap starts a sync unless one is
-    /// already running.
-    private func tapSyncPill(_ pill: SyncPill) {
-        if pill.failureReason != nil {
-            showsSyncFailure = true
-        } else if !connection.phase.isBusy {
-            connection.syncNow()
-        }
-    }
-}
-
-/// A running sync's progress bar and time left (spec 001, Sync progress): "Starting…" until the
-/// session reports progress.
-private struct SyncProgressView: View {
-    let progress: Double?
-    let timeLeft: TimeInterval?
-
-    var body: some View {
-        if let progress {
-            VStack(spacing: 4) {
-                ProgressView(value: progress)
-                if let timeLeft {
-                    Text(HistorySync.timeLeftText(timeLeft))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal)
-        } else {
-            Text("Starting…")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-    }
 }
 
 /// The date picker the title's ▾ opens: a graphical calendar limited to the Today view's range,
@@ -318,3 +331,6 @@ private struct DayPicker: View {
         .onChange(of: selection) { _, picked in pick(picked) }
     }
 }
+
+/// How long "Sync successful" stays up (spec 002, Sync pill).
+private let successfulPillSeconds = 3

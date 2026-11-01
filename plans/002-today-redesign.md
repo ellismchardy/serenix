@@ -46,7 +46,7 @@ its change — an approved clarification of desired behaviour, not a plan decisi
      `TodayViewTests.swift`, `src/SerenixApp/ProfileStore.swift`, `NamePrompt.swift` (new),
      `SerenixApp.swift`, `TodayScreen.swift`
    - Done when: the greeting and avatar-letter criteria pass.
-3. [ ] **Slice:** Sync pop-up pill — `SyncStatus` becomes syncing (incl. connecting) /
+3. [x] **Slice:** Sync pop-up pill — `SyncStatus` becomes syncing (incl. connecting) /
    just finished / idle / failed(reason, cause: Strap unreachable or other); `SyncPill` gains a
    kind (syncing, successful, paused, failed), text and detail; no pill when idle.
    Shell: `StrapPhase.failed` carries the cause (not found, couldn't connect, Bluetooth
