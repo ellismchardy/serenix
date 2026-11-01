@@ -1503,6 +1503,18 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     #expect(canBeDismissed(.justFinished) == false)
 }
 
+@Test func theWeekStripIsTitledWithTheMonthOfTheDayShown() {
+    let oct28 = Day(year: 2026, month: 10, day: 28)
+    let onOct28 = todayView(nights: nightsOct1ToNov1, showing: oct28)
+    let onNov1 = todayView(nights: nightsOct1ToNov1, showing: nov1)
+
+    // Both show the strip 26 Oct to 1 Nov; its title follows the Day shown, not the last Day.
+    #expect(onOct28.weekStrip.days.map(\.number) == [26, 27, 28, 29, 30, 31, 1])
+    #expect(onOct28.weekStrip.title == "October 2026")
+    #expect(onNov1.weekStrip.days.map(\.number) == [26, 27, 28, 29, 30, 31, 1])
+    #expect(onNov1.weekStrip.title == "November 2026")
+}
+
 @Test func theLaterWeekArrowStopsAtToday() {
     let view = todayView(nights: nightsOct1ToNov1, showing: Day(year: 2026, month: 10, day: 28))
 

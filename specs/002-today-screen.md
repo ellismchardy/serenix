@@ -58,7 +58,8 @@ Profile name shows under it in bold; with no name, the greeting stands alone.
 W T F S) over its date number, with the Day shown highlighted in the accent colour. The seven
 Days are the week holding the Day shown, counted back from today in sevens: today and the six
 Days before it, then the seven before those, and so on. Its title is the month and year of the
-strip's last Day, e.g. "November 2026". Tapping a Day shows it; a Day with no Night is dimmed
+Day shown, e.g. "October 2026" with 28 Oct shown, even when the strip runs into November.
+Tapping a Day shows it; a Day with no Night is dimmed
 but can still be shown ("No Night recorded" with its Load). A Day before the earliest Night's
 Day is greyed out and can't be tapped. ‹ shows the Day a week earlier, but never before the
 earliest Night's Day; it is disabled on that Day. › shows the Day a week later, but never after
@@ -284,6 +285,9 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       runs from today to today and ‹ and › are both disabled.
 - [x] With Nights from 1 Oct to 1 Nov, ‹ on 1 Nov goes to 25 Oct and › on 25 Oct to 1 Nov; on
       25 Oct the strip runs Mon 19 Oct to Sun 25 Oct, titled "October 2026".
+- [x] The week strip is titled with the month of the Day shown: with Nights from 1 Oct to 1 Nov,
+      28 Oct shows the strip 26 Oct to 1 Nov titled "October 2026", and 1 Nov shows the same
+      strip titled "November 2026".
 - [x] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
       Day's values.
 - [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.

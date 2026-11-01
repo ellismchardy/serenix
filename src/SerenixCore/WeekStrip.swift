@@ -3,7 +3,8 @@ import Foundation
 /// The week strip under the Today screen's top bar (spec 002, Week strip): seven Days holding the
 /// Day shown, counted back from today in sevens, with where ‹ and › go.
 public struct WeekStrip: Equatable, Sendable {
-    /// The month and year of the strip's last Day, e.g. "November 2026".
+    /// The month and year of the Day shown, e.g. "October 2026" with 28 Oct shown, even when the
+    /// strip runs into November.
     public let title: String
     /// Seven Days, oldest first.
     public let days: [WeekStripDay]
@@ -31,7 +32,7 @@ public struct WeekStrip: Equatable, Sendable {
                 isInRange: day >= earliest
             )
         }
-        title = last.monthTitle
+        title = shown.monthTitle
         earlierDay = shown > earliest ? max(shown.adding(days: -Self.length), earliest) : nil
         laterDay = shown < today ? min(shown.adding(days: Self.length), today) : nil
     }
