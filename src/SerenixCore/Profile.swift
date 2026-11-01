@@ -1,13 +1,56 @@
 import Foundation
 
-/// The Profile (GLOSSARY): the user's name, used to address them (spec 002, Profile).
-struct Profile: Equatable, Sendable {
-    /// Trimmed of spaces; nil when there's no name or only spaces.
-    let name: String?
+/// The Profile's sex, used only for heart-rate calculations (spec 005, Profile).
+public enum Sex: String, CaseIterable, Sendable {
+    case female
+    case male
+    case preferNotToSay
+}
 
-    init(name: String?) {
+/// The Profile (GLOSSARY): the user's name, used to address them (spec 002, Profile), and
+/// optionally their birth year, sex and Max HR, used to work out Load (spec 005, Profile). Kept
+/// on the phone only.
+public struct Profile: Equatable, Sendable {
+    /// Trimmed of spaces; nil when there's no name or only spaces.
+    public let name: String?
+    /// Nil when not set. Kept as given: the allowed range depends on the year, so the picker
+    /// limits it and `estimatedMaxHR(in:)` ignores one outside it.
+    public let birthYear: Int?
+    /// Prefer not to say when not set.
+    public let sex: Sex
+    /// The Max HR the user entered, in bpm; nil when not set or outside `allowedMaxHR` (the
+    /// shell's field only offers that range).
+    public let maxHR: Int?
+
+    public init(
+        name: String?,
+        birthYear: Int? = nil,
+        sex: Sex = .preferNotToSay,
+        maxHR: Int? = nil
+    ) {
         let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.name = trimmed.isEmpty ? nil : trimmed
+        self.birthYear = birthYear
+        self.sex = sex
+        self.maxHR = maxHR.flatMap { Self.allowedMaxHR.contains($0) ? $0 : nil }
+    }
+
+    /// Whole bpm a user can enter as Max HR (spec 005, Profile).
+    public static let allowedMaxHR = 100...230
+
+    /// Birth years a user can pick in `year`: 100 to 13 years before it (spec 005, Profile).
+    public static func allowedBirthYears(in year: Int) -> ClosedRange<Int> {
+        (year - oldestAge)...(year - youngestAge)
+    }
+
+    /// Max HR estimated from age with Tanaka's 208 − 0.7 × age, in bpm and unrounded, age being
+    /// `year` − birth year (spec 005, Max HR; docs/research/cardio-load-methods.md); nil with no
+    /// birth year, or one outside `allowedBirthYears(in: year)`.
+    public func estimatedMaxHR(in year: Int) -> Double? {
+        guard let birthYear, Self.allowedBirthYears(in: year).contains(birthYear) else {
+            return nil
+        }
+        return Self.tanakaIntercept - Self.tanakaSlope * Double(year - birthYear)
     }
 
     /// The avatar's letter: the name's first letter, upper-cased.
@@ -32,6 +75,13 @@ struct Profile: Equatable, Sendable {
             }
         return "Good \(partOfDay)!"
     }
+
+    /// Ages in years the birth year picker spans (spec 005, Profile).
+    private static let oldestAge = 100
+    private static let youngestAge = 13
+    /// Tanaka, Monahan & Seals 2001: bpm, and bpm per year of age.
+    private static let tanakaIntercept = 208.0
+    private static let tanakaSlope = 0.7
 
     /// Local hours the parts of the day start at (spec 002, Greeting); evening runs to 04:59.
     private static let morningFrom = 5

@@ -19,7 +19,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
 - **Profile** (`src/SerenixCore/Profile.swift`): gains `birthYear: Int?`, `sex: Sex` (`.female`,
   `.male`, `.preferNotToSay`, default) and `maxHR: Int?`. It also gets range checks (Max HR
   100–230; birth year 100 to 13 years before a given year) and
-  `estimatedMaxHR(in year:) -> Int?` (Tanaka, rounded). Today it's an internal struct built from
+  `estimatedMaxHR(in year:) -> Double?` (Tanaka, unrounded as the spec's formula; nil for a birth year outside the range). Today it's an internal struct built from
   the name only. It becomes public where Load and the shell need it, and keeps `init(name:)`
   working.
 - **Load of a Day** (new `src/SerenixCore/Load.swift`):
@@ -45,7 +45,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice:** Profile gains birth year, sex and Max HR, with their ranges and the Max HR
+1. [x] **Slice:** Profile gains birth year, sex and Max HR, with their ranges and the Max HR
    estimate.
    - Seam: Profile · Files: `src/SerenixCore/Profile.swift`, `tests/SerenixCoreTests/ProfileTests.swift` (new)
    - Done when: the spec's Profile criterion passes (Max HR 100–230, birth year 100 to 13 years
