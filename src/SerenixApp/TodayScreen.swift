@@ -100,7 +100,14 @@ struct TodayScreen: View {
                 }
             }
             .sheet(isPresented: $showsProfileMenu) {
-                ProfileMenu(connection: connection, showsSampleNights: $showsSampleNights)
+                ProfileMenu(
+                    connection: connection,
+                    profile: profile,
+                    avatarLetter: today.avatarLetter,
+                    menuName: today.menuName,
+                    syncOffersRetry: today.syncOffersRetry,
+                    showsSampleNights: $showsSampleNights
+                )
             }
             // Switching the sample Nights on or off starts again from today.
             .onChange(of: showsSampleNights) { showToday() }

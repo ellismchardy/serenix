@@ -37,6 +37,8 @@ public struct TodayView: Equatable, Sendable {
     public let loadFill: Double
     /// Nil when there is nothing to say.
     public let syncPill: SyncPill?
+    /// Whether the profile menu's Sync now reads Retry sync: after a paused or failed sync.
+    public let syncOffersRetry: Bool
     /// Nil on a Day without a Night.
     public let vsBaseline: VsBaseline?
     /// Nil on a Day without a Night.
@@ -109,7 +111,9 @@ public struct TodayView: Equatable, Sendable {
         loadText = scoreText(load)
         loadFill = ringFill(load)
 
-        syncPill = SyncPill(sync)
+        let syncPill = SyncPill(sync)
+        self.syncPill = syncPill
+        syncOffersRetry = syncPill?.kind == .paused || syncPill?.kind == .failed
 
         tilesHeading = isToday ? "Last night" : day.text
         timeAsleepTile = night.map { TimeAsleepTile(for: $0, timeZone: timeZone) }

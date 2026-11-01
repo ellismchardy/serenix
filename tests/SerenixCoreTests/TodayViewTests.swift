@@ -1431,3 +1431,16 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     #expect(view.avatarLetter == nil)
     #expect(view.menuName == "Add your name")
 }
+
+@Test func syncNowOffersARetryOnlyAfterAPausedOrFailedSync() {
+    func offersRetry(_ sync: SyncStatus) -> Bool {
+        todayView(nights: [], showing: nov1, sync: sync).syncOffersRetry
+    }
+
+    #expect(offersRetry(.failed(reason: "Not found.", cause: .strapUnreachable)))
+    #expect(offersRetry(.failed(reason: "Bad Frame.", cause: .other)))
+    #expect(!offersRetry(.failed(reason: "Cancelled mid-sync.", cause: .cancelled)))
+    #expect(!offersRetry(.idle))
+    #expect(!offersRetry(.syncing))
+    #expect(!offersRetry(.justFinished))
+}

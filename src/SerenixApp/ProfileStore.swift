@@ -27,9 +27,14 @@ final class ProfileStore: ObservableObject {
     /// Records the first-launch prompt's answer: the name after Continue (none if left blank),
     /// nil after Skip.
     func answerNamePrompt(with name: String?) {
+        rename(to: name)
+        hasBeenAskedForName = true
+    }
+
+    /// Sets the name, trimmed of spaces; a blank one counts as none.
+    func rename(to name: String?) {
         let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.name = trimmed.isEmpty ? nil : trimmed
-        hasBeenAskedForName = true
     }
 }
 

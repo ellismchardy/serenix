@@ -71,7 +71,7 @@ its change — an approved clarification of desired behaviour, not a plan decisi
      Watch limits), `TimeAsleepTile.swift`, `TodayViewTests.swift` (remove trend-line tests),
      `src/SerenixApp/MetricTileView.swift`
    - Done when: the status-word, gauge-position and no-trend-line criteria pass.
-5. [ ] **Slice (shell only, ADR 0002):** Profile menu restyle — ✕ to close; header with the
+5. [x] **Slice (shell only, ADR 0002):** Profile menu restyle — ✕ to close; header with the
    large avatar and name ("Add your name"), tapping edits the name; grouped rounded rows:
    Connected · model (Not found before pairing), battery, last sync, Sync now / Retry sync;
    Debug; footer.
