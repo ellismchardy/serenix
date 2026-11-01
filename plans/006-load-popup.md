@@ -87,7 +87,7 @@ ignored, and nothing holds a connection between syncs.
    - Seam: Load of a Day · Files: as task 3
    - Done when: the Highest HR criterion passes (150 at 09:00; all HR 0 gives none), and so do
      Highest HR 164 and 200 in criteria 1–2.
-5. [ ] **Slice:** Typical Load.
+5. [x] **Slice:** Typical Load.
    - Blocked by: 1
    - Seam: Today view's input; Typical Load is a pure function, tested directly · Files: `src/SerenixCore/TypicalLoad.swift` (new), `tests/SerenixCoreTests/TypicalLoadTests.swift` (new)
    - Done when: the numeric part of the Typical Load criterion passes: 45; 46 with a half;
