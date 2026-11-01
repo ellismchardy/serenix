@@ -107,13 +107,13 @@ _Avoid_: cycle
 
 **Baseline**:
 The user's typical Resting HR, HRV, respiratory rate and skin temperature, and the Spread of
-each, taken over their most recent Nights, and their typical Load, taken over their most recent
-Days. SpO2 has no Baseline.
+each, taken over their most recent Nights. It also holds their typical Load, taken over their
+most recent Days. SpO2 has no Baseline.
 _Avoid_: norm, average, usual (when the personal reference is meant)
 
 **Spread**:
-How much one Nightly Metric usually varies from Night to Night for the user; part of its
-Baseline.
+How much one Nightly Metric usually varies from Night to Night for the user; part of that
+metric's Baseline.
 _Avoid_: variability (clashes with HRV), SD, deviation
 
 **Zone**:
@@ -142,7 +142,7 @@ Serenix's rating of how well the user slept in one Sleep Period.
 _Avoid_: sleep performance, sleep quality
 
 **Calibrating**:
-The state of Readiness while too few Nights exist to form a Baseline.
+The state of Readiness while too few Nights exist to form an HRV or Resting HR Baseline.
 
 **Readiness**:
 Serenix's rating of how prepared the user's body is for exertion, from their HRV and Resting HR
