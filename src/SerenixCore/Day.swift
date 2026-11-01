@@ -41,6 +41,7 @@ public struct Day: Hashable, Comparable, Sendable {
     }
 
     /// The Day `count` Days later (earlier when negative).
+    /// A Day is always a real date (see `init`), so the fallback to `self` never happens in practice.
     func adding(days count: Int) -> Day {
         let calendar = Self.utcCalendar
         guard let midnight = calendar.date(from: components),

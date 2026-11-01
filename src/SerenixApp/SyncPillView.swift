@@ -2,7 +2,7 @@ import SerenixCore
 import SwiftUI
 
 /// The sync pill that slides down over the top of the Today screen (spec 002, Sync pill):
-/// grey with a spinner and 001's progress while syncing, green ✓ when a sync finishes, amber ⚠
+/// a spinner, a purple outline and 001's progress while syncing, green ✓ when a sync finishes, amber ⚠
 /// when it's paused and red ✕ when it failed. The Today view decides which; the screen decides
 /// how long it stays up.
 struct SyncPillView: View {

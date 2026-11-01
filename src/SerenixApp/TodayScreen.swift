@@ -5,7 +5,8 @@ import SwiftUI
 struct TodayScreen: View {
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
-    /// The Day picked in the date picker; nil is today, whatever today is when the screen draws.
+    /// The Day picked in the week strip or the date picker; nil is today, whatever today is when
+    /// the screen draws.
     @State private var pickedDay: Day?
     @State private var showsDatePicker = false
     /// The bell is a placeholder until a notifications spec (spec 002, Non-goals).
@@ -325,7 +326,7 @@ struct TodayScreen: View {
     }
 }
 
-/// The date picker the title's ▾ opens: a graphical calendar limited to the Today view's range,
+/// The date picker the calendar button opens: a graphical calendar limited to the Today view's range,
 /// from the Day of the earliest Night to today. Picking a date shows it.
 private struct DayPicker: View {
     let range: ClosedRange<Date>
