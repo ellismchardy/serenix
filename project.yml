@@ -22,6 +22,11 @@ targets:
       properties:
         CFBundleDisplayName: Serenix
         UILaunchScreen: {}
+        NSBluetoothAlwaysUsageDescription: >-
+          Serenix connects to your Whoop Strap over Bluetooth to sync its History Records.
+        # A History Sync that has started finishes in the background (ADR 0006). No state
+        # restoration: Serenix never starts a sync in the background.
+        UIBackgroundModes: [bluetooth-central]
     settings:
       base:
         SWIFT_VERSION: "6.0"

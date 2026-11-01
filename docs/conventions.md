@@ -36,6 +36,9 @@ inventing new ones.
 - Fixtures are trimmed real History Records from the project owner's own nights, published in
   this public repo with their agreement. Serial and device ID are removed. They live under
   `tests/`. Never commit raw `.pklg` captures or sysdiagnoses.
+- When no real capture has a case (e.g. an SpO2 Window), a test may edit a real fixture Frame:
+  its comment names the bytes changed and their values, and the CRC is recomputed (unless the
+  test is about a bad CRC).
 - Mock only at system boundaries (external APIs, time, randomness); don't mock what you don't
   own without a wrapper. Full rules: `.claude/skills/tdd/`.
 - The shell (BLE, SwiftData, HealthKit, UI) is checked by hand on a real phone, with the steps
