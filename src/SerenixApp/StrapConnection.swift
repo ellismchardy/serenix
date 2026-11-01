@@ -364,18 +364,21 @@ final class StrapConnection: NSObject, ObservableObject {
                 )
             }
             // Without the stored Nights, Resting HR would be wrong, so the Days stay queued.
-            let profile = ProfileStore.storedProfile
             var queuedDays: [DayRebuild] = []
             if nights != nil {
                 queuedDays = await MainActor.run { DayLoadStore.pendingRebuilds }
             }
             for rebuild in queuedDays {
+                guard let nights else { break }
                 await MainActor.run { self.dayRebuildInProgress = rebuild }
+                // Read per Day, after marking it in progress: a Profile change from here on queues
+                // this Day once more, so it's never left worked out with the old Profile.
+                let profile = ProfileStore.storedProfile
                 do {
                     if rebuild.isDue(at: now) {
                         try DayLoadStore.apply(
                             rebuild,
-                            nights: nights ?? [],
+                            nights: nights,
                             profile: profile,
                             in: container,
                             timeZone: timeZone

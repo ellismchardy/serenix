@@ -1860,8 +1860,13 @@ func aLoadMissingForAnotherReasonKeepsTheUsualLabelAndNoTap(reason: LoadMissing)
 }
 
 @Test func aLoadThatIsThereKeepsTheUsualLabelAndNoTap() {
-    let view = todayView(nights: [Night(day: nov1)], showing: nov1)
+    let view = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 40)],
+        showing: nov1
+    )
 
+    #expect(view.loadText == "40")
     #expect(view.loadLabel == "Load so far")
     #expect(!view.loadOpensProfileMenu)
 }

@@ -159,9 +159,9 @@ struct ProfileMenu: View {
     /// The birth years the picker offers this year, newest first: 100 to 13 years ago (spec 005,
     /// Profile), plus a stored one that has since fallen outside, so it still shows.
     private var birthYearOptions: [Int] {
-        var years = Array(Profile.allowedBirthYears(in: currentYear).reversed())
+        var years = Array(Profile.allowedBirthYears(in: currentYear))
         if let stored = profile.birthYear, !years.contains(stored) { years.append(stored) }
-        return years
+        return years.sorted(by: >)
     }
 
     /// A blank Max HR: the estimate from age for this year, e.g. "Estimated 180 from your age",

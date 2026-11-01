@@ -113,8 +113,8 @@ applies: "Yesterday's Load was high (82)" when the Day before the Day shown had 
 more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Resting HR is up 4 bpm" when
 Resting HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
 or "A, B and C." before the band's sentence. The Load caps (50, 33) and the high-Load mark (55)
-are named constants and assumptions, set by the Load spec (005) and to tune with real Days. Closing it hides it for that
-Night, remembered on the phone across
+are named constants and assumptions, set by the Load spec (005) and to tune with real Days.
+Closing it hides it for that Night, remembered on the phone across
 relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
 missing.
 
@@ -351,8 +351,8 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - A Load popup with hourly Load; a later spec (spec 005 leaves it out).
 - Profile menu rows for Apple Health (Integrations), Export data, Contact us, Report a bug and
   Write a review. Each comes with its own spec.
-- Anything else in the Profile (photo, units; birth year, sex and Max HR come with spec 005), any account, sign-in or server, and other
-  messages using the name. Each would be its own spec.
+- Anything else in the Profile (photo, units; birth year, sex and Max HR come with spec 005),
+  any account, sign-in or server, and other messages using the name. Each would be its own spec.
 - Streaks and a "Health KPI" summary from the reference designs.
 - Editing, deleting or hiding a Night; Naps; Stress.
 - Notifications, widgets, or a Watch app. The bell is only a placeholder until a notifications
