@@ -1,92 +1,133 @@
 import SerenixCore
 import SwiftUI
 
-/// One Nightly Metric's tile on the Today screen (spec 002, Tiles): its name, value, difference
-/// from Baseline (or SpO2's level) and trend line. The value and the line under it take the
-/// Zone's colour.
+/// One Nightly Metric's tile on the Today screen (spec 002, Tiles): its icon and name, value, a ✓
+/// status word and a vertical gauge, the status word and gauge in the Zone's colour.
 struct MetricTileView: View {
     let tile: MetricTile
 
     var body: some View {
         TileCard(
+            icon: tile.metric.icon,
             name: tile.metric.name,
             valueText: tile.valueText,
-            detailText: tile.differenceText,
+            detailText: tile.statusText,
             colour: tile.zone?.colour,
-            trend: tile.trend
+            gauge: tile.gauge,
+            showsGauge: true
         )
     }
 }
 
-/// The Time Asleep tile (spec 002, Tiles): the duration, Sleep Onset → Final Wake and its trend
-/// line. It has no Zone.
+/// The Time Asleep tile (spec 002, Tiles): the duration and Sleep Onset → Final Wake, with no
+/// Zone, status word or gauge.
 struct TimeAsleepTileView: View {
     let tile: TimeAsleepTile
 
     var body: some View {
         TileCard(
+            icon: "bed.double",
             name: "Time Asleep",
             valueText: tile.valueText,
             detailText: tile.spanText,
             colour: nil,
-            trend: tile.trend
+            gauge: nil,
+            showsGauge: false
         )
     }
 }
 
 /// The card both kinds of tile draw.
 private struct TileCard: View {
+    let icon: String
     let name: String
     let valueText: String
+    /// The status word, or for Time Asleep the Sleep Onset → Final Wake span.
     let detailText: String
-    /// The Zone's colour; nil draws the value in the primary colour and the line in secondary.
+    /// The Zone's colour; nil for no Zone (Calibrating, missing, or Time Asleep).
     let colour: Color?
-    let trend: [Double]
+    let gauge: Double?
+    let showsGauge: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(name)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Text(valueText)
-                .font(.title2.bold())
-                .monospacedDigit()
-                .foregroundStyle(colour ?? .primary)
-            Text(detailText)
-                .font(.footnote)
-                .foregroundStyle(colour ?? .secondary)
-            TrendLine(values: trend)
-                .stroke(colour ?? .secondary, lineWidth: 1.5)
-                .frame(height: 24)
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(name, systemImage: icon)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(valueText)
+                    .font(.title2.bold())
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                HStack(spacing: 4) {
+                    if let colour {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(colour)
+                            .accessibilityHidden(true)
+                    }
+                    Text(detailText)
+                        .foregroundStyle(colour ?? .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .font(.footnote.weight(.semibold))
+            }
+            Spacer(minLength: 0)
+            if showsGauge {
+                VerticalGauge(position: gauge, colour: colour ?? .secondary)
+                    .frame(width: 14, height: 64)
+                    .accessibilityHidden(true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// A trend line through the Today view's values, oldest on the left, scaled to fill the frame.
-/// Fewer than two values draw nothing.
-private struct TrendLine: Shape {
-    let values: [Double]
+/// A vertical track filled from the bottom to the Today view's position, 0 to 1, with a knob at
+/// the top of the fill. An empty track when there's no position.
+private struct VerticalGauge: View {
+    let position: Double?
+    let colour: Color
 
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        guard values.count >= 2, let low = values.min(), let high = values.max() else {
-            return path
+    var body: some View {
+        GeometryReader { geometry in
+            let height = geometry.size.height
+            let width = geometry.size.width
+            ZStack(alignment: .bottom) {
+                Capsule().fill(.quaternary)
+                if let position {
+                    let filled = max(width, height * position)
+                    Capsule()
+                        .fill(colour.opacity(0.7))
+                        .frame(height: filled)
+                    Circle()
+                        .fill(.white)
+                        .overlay(Circle().strokeBorder(colour, lineWidth: 3))
+                        .frame(width: width + 4, height: width + 4)
+                        // Centred on the fill's rounded top, half a track-width below its end.
+                        .offset(y: -(filled - width - 2))
+                }
+            }
+            .frame(width: width, height: height, alignment: .bottom)
         }
-        let range = high - low
-        let step = rect.width / CGFloat(values.count - 1)
-        for (index, value) in values.enumerated() {
-            // A flat line sits in the middle.
-            let height = range > 0 ? (value - low) / range : 0.5
-            let point = CGPoint(
-                x: rect.minX + step * CGFloat(index),
-                y: rect.maxY - rect.height * height
-            )
-            if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+    }
+}
+
+extension NightlyMetric {
+    /// The SF Symbol on its tile.
+    var icon: String {
+        switch self {
+        case .restingHR: "heart"
+        case .hrv: "waveform.path.ecg"
+        case .respiratoryRate: "lungs"
+        case .skinTemperature: "thermometer.medium"
+        case .spo2: "drop"
         }
-        return path
     }
 }
 

@@ -62,7 +62,7 @@ its change — an approved clarification of desired behaviour, not a plan decisi
      `ProfileMenu.swift`
    - Done when: the "which sync pill shows" criterion passes, including a cancelled sync → no
      pill.
-4. [ ] **Slice:** Tiles — `MetricTile` gains a status word ("Normal" / "Low" / "High", SpO2's
+4. [x] **Slice:** Tiles — `MetricTile` gains a status word ("Normal" / "Low" / "High", SpO2's
    level words, "Calibrating", "—") and a gauge position (0.5 + d / (2 × Watch limit), clamped;
    SpO2 88–100%; nil when Calibrating or missing); the tile `trend` and Time Asleep `trend` go
    (popup chart keeps `recentNights`). Shell: tile with icon, value, ✓ status word and a

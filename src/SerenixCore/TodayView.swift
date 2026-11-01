@@ -112,7 +112,7 @@ public struct TodayView: Equatable, Sendable {
         syncPill = SyncPill(sync)
 
         tilesHeading = isToday ? "Last night" : day.text
-        timeAsleepTile = night.map { TimeAsleepTile(for: $0, among: nights, timeZone: timeZone) }
+        timeAsleepTile = night.map { TimeAsleepTile(for: $0, timeZone: timeZone) }
         let tiles =
             night.map { night in
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }

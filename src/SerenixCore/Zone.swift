@@ -84,6 +84,40 @@ public enum Zone: Equatable, Sendable {
         }
     }
 
+    /// Where `value` sits on its tile's gauge, 0 (bottom) to 1 (top), clamped (spec 002, Tiles):
+    /// the Baseline at 0.5 and the Watch limit on each side at the ends, or for SpO2 a fixed
+    /// scale. Nil when the metric needs a Baseline and has none, or HRV's Baseline is 0 or less.
+    static func gaugePosition(_ metric: NightlyMetric, value: Double, baseline: Double?)
+        -> Double?
+    {
+        let position: Double
+        switch (metric, baseline) {
+        case (.spo2, _):
+            position = (value - spo2GaugeBottom) / (spo2GaugeTop - spo2GaugeBottom)
+        case (.hrv, let baseline?) where baseline > 0:
+            position = centred((value - baseline) / baseline, limit: -hrvWatchFrom)
+        case (.restingHR, let baseline?):
+            position = centred(value - baseline, limit: restingHRWatchUpTo)
+        case (.respiratoryRate, let baseline?):
+            position = centred(value - baseline, limit: respiratoryRateWatchUpTo)
+        case (.skinTemperature, let baseline?):
+            position = centred(value - baseline, limit: skinTemperatureWatchUpTo)
+        default:
+            return nil
+        }
+        return min(max(position, 0), 1)
+    }
+
+    /// The Baseline at 0.5, `limit` either side at 0 and 1.
+    private static func centred(_ difference: Double, limit: Double) -> Double {
+        0.5 + difference / (2 * limit)
+    }
+
+    /// The SpO2 at the bottom of its gauge, % (spec 002, Tiles).
+    private static let spo2GaugeBottom = 88.0
+    /// The SpO2 at the top of its gauge, % (spec 002, Tiles).
+    private static let spo2GaugeTop = 100.0
+
     /// For measures where higher is better.
     private static func atLeast(_ measure: Double, inRange: Double, watch: Double) -> Zone {
         let tolerance = boundaryTolerance

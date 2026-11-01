@@ -758,64 +758,90 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
     )
 }
 
-// MARK: Trend lines
+// MARK: Status words and gauges
 
-/// Nights from 23 Oct to 31 Oct, one per Day, with a distinct value for every metric.
-private func nightsOct23ToOct31(hrvOnOct27: Double? = 44) -> [Night] {
-    let restingHR: [Double] = [60, 59, 58, 57, 56, 55, 54, 53, 52.5]
-    let hrv: [Double?] = [40, 41, 42, 43, hrvOnOct27, 45, 46, 47, 48.4]
-    let respiratoryRate: [Double] = [13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9]
-    let skinTemperature: [Double] = [33.1, 33.2, 33.3, 33.4, 33.5, 33.6, 33.7, 33.8, 33.9]
-    let spo2: [Double] = [90, 91, 92, 93, 94, 95, 96, 97, 98]
-    let timeAsleep: [TimeInterval] = [
-        25_000, 25_100, 25_200, 25_300, 25_400, 25_500, 25_600, 25_700, 25_800,
-    ]
-    return (0..<9).map { index in
-        Night(
-            day: Day(year: 2026, month: 10, day: 23 + index),
-            restingHR: restingHR[index],
-            hrv: hrv[index],
-            respiratoryRate: respiratoryRate[index],
-            skinTemperature: skinTemperature[index],
-            spo2: spo2[index],
-            timeAsleep: timeAsleep[index]
-        )
-    }
-}
-
-/// A Night after 31 Oct, which must never appear in 31 Oct's trend lines.
-private let laterNightOnNov1 = Night(
-    day: nov1,
-    restingHR: 99,
-    hrv: 99,
-    respiratoryRate: 19.9,
-    skinTemperature: 39.9,
-    spo2: 80,
-    timeAsleep: 99_999
+@Test(
+    arguments: [
+        (.hrv, Night(day: nov1, hrv: 57), "Normal"),
+        (.hrv, Night(day: nov1, hrv: 54), "Low"),
+        (.restingHR, Night(day: nov1, restingHR: 53), "Normal"),
+        (.restingHR, Night(day: nov1, restingHR: 55), "High"),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), "High"),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.0), "Low"),
+        (.skinTemperature, Night(day: nov1, skinTemperature: 34.5), "High"),
+        (.skinTemperature, Night(day: nov1, skinTemperature: 33.5), "Low"),
+        (.spo2, Night(day: nov1, spo2: 97), "95% or above"),
+        (.spo2, Night(day: nov1, spo2: 93), "Below 95%"),
+        (.spo2, Night(day: nov1, spo2: 90), "Below 92%"),
+    ] as [(NightlyMetric, Night, String)]
 )
-
-@Test func eachTrendLineHoldsTheSevenMostRecentNightsUpToTheNightShownOldestFirst() {
-    // Given newest first, so the order of the input can't stand in for sorting.
-    let nights = [laterNightOnNov1] + nightsOct23ToOct31().reversed()
-    let view = todayView(nights: nights, showing: oct31)
-
-    #expect(view.tile(.restingHR)?.trend == [58, 57, 56, 55, 54, 53, 52.5])
-    #expect(view.tile(.hrv)?.trend == [42, 43, 44, 45, 46, 47, 48.4])
-    #expect(view.tile(.respiratoryRate)?.trend == [13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9])
-    #expect(view.tile(.skinTemperature)?.trend == [33.3, 33.4, 33.5, 33.6, 33.7, 33.8, 33.9])
-    #expect(view.tile(.spo2)?.trend == [92, 93, 94, 95, 96, 97, 98])
-    #expect(
-        view.timeAsleepTile?.trend == [25_200, 25_300, 25_400, 25_500, 25_600, 25_700, 25_800]
-    )
+func tileStatusWordAgainstExactBaselines(metric: NightlyMetric, night: Night, word: String) {
+    #expect(nov1Tile(metric, of: night)?.statusText == word)
 }
 
-@Test func aNightMissingTheValueIsLeftOutOfTheTrendLine() {
-    let nights = nightsOct23ToOct31(hrvOnOct27: nil) + [laterNightOnNov1]
-    let view = todayView(nights: nights, showing: oct31)
+@Test(
+    arguments: [
+        (.hrv, Night(day: nov1, hrv: 60), 0.5),
+        (.hrv, Night(day: nov1, hrv: 55.5), 0.25),
+        (.hrv, Night(day: nov1, hrv: 51), 0),
+        (.hrv, Night(day: nov1, hrv: 75), 1),
+        (.restingHR, Night(day: nov1, restingHR: 54), 0.75),
+        (.restingHR, Night(day: nov1, restingHR: 48), 0),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 14.5), 0.75),
+        (.skinTemperature, Night(day: nov1, skinTemperature: 33.7), 0.25),
+        (.spo2, Night(day: nov1, spo2: 97), 0.75),
+        (.spo2, Night(day: nov1, spo2: 85), 0),
+    ] as [(NightlyMetric, Night, Double)]
+)
+func tileGaugePositionAgainstExactBaselines(metric: NightlyMetric, night: Night, gauge: Double) {
+    let tile = nov1Tile(metric, of: night)
 
-    // 27 Oct's Night is one of the 7 but has no HRV; 24 Oct's Night doesn't take its place.
-    #expect(view.tile(.hrv)?.trend == [42, 43, 45, 46, 47, 48.4])
-    #expect(view.tile(.restingHR)?.trend == [58, 57, 56, 55, 54, 53, 52.5])
+    #expect(isClose(tile?.gauge, to: gauge), "gauge \(String(describing: tile?.gauge))")
+}
+
+@Test func aCalibratingMetricSaysCalibratingAndHasNoGaugeButSpO2Has() throws {
+    let earlier = nightsBeforeNov1(
+        hrv: [60, 60],
+        restingHR: [52, 52],
+        respiratoryRate: [14.0, 14.0],
+        skinTemperature: [34.0, 34.0],
+        spo2: [97, 97]
+    )
+    let night = Night(
+        day: nov1,
+        restingHR: 55,
+        hrv: 54,
+        respiratoryRate: 15.0,
+        skinTemperature: 34.5,
+        spo2: 97
+    )
+    let view = todayView(nights: earlier + [night], showing: nov1)
+
+    for metric in [NightlyMetric.restingHR, .hrv, .respiratoryRate, .skinTemperature] {
+        let tile = try #require(view.tile(metric), "\(metric)")
+        #expect(tile.statusText == "Calibrating", "\(metric)")
+        #expect(tile.gauge == nil, "\(metric)")
+    }
+    let spo2 = try #require(view.tile(.spo2))
+    #expect(spo2.statusText == "95% or above")
+    #expect(isClose(spo2.gauge, to: 0.75))
+}
+
+@Test func aMissingNightlyMetricHasADashForItsStatusWordAndNoGauge() {
+    let earlier = nightsBeforeNov1(
+        hrv: [60, 60, 60],
+        restingHR: [52, 52, 52],
+        respiratoryRate: [14.0, 14.0, 14.0],
+        skinTemperature: [34.0, 34.0, 34.0],
+        spo2: [97, 97, 97]
+    )
+    let view = todayView(nights: earlier + [Night(day: nov1)], showing: nov1)
+
+    #expect(view.tiles.count == 5)
+    for tile in view.tiles {
+        #expect(tile.statusText == "—", "\(tile.metric)")
+        #expect(tile.gauge == nil, "\(tile.metric)")
+    }
 }
 
 // MARK: Time Asleep tile
@@ -836,7 +862,6 @@ private let finalWakeNov1At0657 = Date(timeIntervalSince1970: 1_793_516_220)
 
     #expect(tile?.valueText == "7h 40m")
     #expect(tile?.spanText == "22:45 → 06:57")
-    #expect(tile?.trend == [27_600])
 }
 
 @Test(
@@ -871,7 +896,6 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
 
     #expect(tile?.valueText == "—")
     #expect(tile?.spanText == "22:45 → 06:57")
-    #expect(tile?.trend == [])
 }
 
 @Test func theSpanIsADashWithoutSleepOnsetOrFinalWake() {
@@ -918,7 +942,6 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
     let view = todayView(nights: [Night(day: nov1, timeAsleep: -300)], showing: nov1)
 
     #expect(view.timeAsleepTile?.valueText == "—")
-    #expect(view.timeAsleepTile?.trend == [])
 }
 
 // MARK: vs your Baseline

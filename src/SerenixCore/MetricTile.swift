@@ -12,8 +12,12 @@ public struct MetricTile: Equatable, Sendable {
     public let differenceText: String
     /// Nil while Calibrating or when the value is missing.
     public let zone: Zone?
-    /// The trend line's values, oldest first.
-    public let trend: [Double]
+    /// "Normal" when In range, else "Low" or "High" by the side of the Baseline the value is on;
+    /// SpO2's level; "Calibrating" while the Baseline is; "—" when the value is missing.
+    public let statusText: String
+    /// Where the value sits on the tile's gauge, 0 (bottom) to 1 (top); nil while Calibrating or
+    /// when the value is missing.
+    public let gauge: Double?
     /// Which way the difference from Baseline goes as shown; nil when it shows as zero or there's
     /// no difference to show.
     let differenceDirection: BaselineDirection?
@@ -24,26 +28,35 @@ public struct MetricTile: Equatable, Sendable {
         let baseline =
             metric.hasBaseline ? Baseline(metric, for: night, among: nights).median : nil
         self.baseline = baseline
-        zone = value.flatMap { Zone(metric, value: $0, baseline: baseline) }
+        let zone = value.flatMap { Zone(metric, value: $0, baseline: baseline) }
+        self.zone = zone
         valueText = value.map { formattedValue(of: metric, $0) } ?? missingText
         // The difference as shown, in whole units: its text and its direction both come from it.
         let shown = value.flatMap { value in
             baseline.flatMap { shownDifference(of: metric, value - $0, $0) }
         }
-        differenceText =
+        // Missing, SpO2 and Calibrating read the same on both lines; only a comparison differs.
+        let sharedText: String? =
             switch (value, baseline) {
             case (nil, _): missingText
             case (_, _) where metric == .spo2: spo2LevelText(zone)
             case (_, nil): "Calibrating"
-            case (_, _?): shown.map { formattedDifference(of: metric, $0) } ?? missingText
+            case (_, _?): nil
             }
+        differenceText =
+            sharedText ?? shown.map { formattedDifference(of: metric, $0) } ?? missingText
         differenceDirection =
             switch shown?.signum() {
             case 1?: .up
             case (-1)?: .down
             default: nil
             }
-        trend = trendValues(of: { $0.value(of: metric) }, upTo: night, among: nights)
+        statusText =
+            sharedText
+            ?? value.flatMap { value in
+                baseline.map { statusWord(zone, below: value < $0) }
+            } ?? missingText
+        gauge = value.flatMap { Zone.gaugePosition(metric, value: $0, baseline: baseline) }
     }
 }
 
@@ -84,6 +97,16 @@ private func formattedDifference(of metric: NightlyMetric, _ shown: Int) -> Stri
     case .restingHR: "\(sign)\(size) bpm"
     case .respiratoryRate, .skinTemperature: "\(sign)\(size / 10).\(size % 10)"
     case .spo2: missingText
+    }
+}
+
+/// A tile's status word (spec 002, Tiles): "Normal" In range, otherwise "Low" below the
+/// Baseline and "High" above it; "—" when there's no Zone (HRV against a Baseline of 0 or less).
+private func statusWord(_ zone: Zone?, below: Bool) -> String {
+    switch zone {
+    case .inRange: "Normal"
+    case .watch, .outOfRange: below ? "Low" : "High"
+    case nil: missingText
     }
 }
 
