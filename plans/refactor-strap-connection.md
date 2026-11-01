@@ -37,7 +37,7 @@ jobs (store-stats refresh, Sync Log save) are chained so each waits for the one 
    - Files: `src/SerenixApp/StrapConnection.swift`
    - Done when: each refresh and each save awaits the previous one's task, so stats can't land
      out of order and two saves never prune together; CI builds the app.
-4. [ ] **Prefactor (shell):** `StrapConnection` is `@MainActor`, not `@unchecked Sendable`
+4. [x] **Prefactor (shell):** `StrapConnection` is `@MainActor`, not `@unchecked Sendable`
    - Files: `src/SerenixApp/StrapConnection.swift` (and its callers only if CI demands it)
    - Done when: no `@unchecked Sendable` remains; the delegate conformances are
      `@preconcurrency`; timers hop with `MainActor.assumeIsolated`; only the background jobs
