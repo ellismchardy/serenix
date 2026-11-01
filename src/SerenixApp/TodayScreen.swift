@@ -29,7 +29,7 @@ struct TodayScreen: View {
                             .font(.title3)
                             .foregroundStyle(.secondary)
                     }
-                    LabeledContent(today.loadLabel, value: today.loadText)
+                    rings(today)
                 }
                 .padding()
             }
@@ -71,6 +71,39 @@ struct TodayScreen: View {
                 Button("Cancel", role: .cancel) { connection.cancel() }
                     .font(.footnote)
             }
+        }
+    }
+
+    /// Sleep Score, Readiness in the middle and largest with its band word, and Load.
+    private func rings(_ today: TodayView) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            ScoreRing(
+                text: today.sleepScoreText,
+                fill: today.sleepScoreFill,
+                label: "Sleep Score",
+                diameter: 84
+            )
+            VStack(spacing: 8) {
+                ScoreRing(
+                    text: today.readinessText,
+                    fill: today.readinessFill,
+                    label: "Readiness",
+                    diameter: 170,
+                    colour: today.readinessBand?.colour ?? .secondary,
+                    labelInside: true
+                )
+                if let band = today.readinessBand {
+                    Text(band.word)
+                        .font(.title3.bold())
+                        .foregroundStyle(band.colour)
+                }
+            }
+            ScoreRing(
+                text: today.loadText,
+                fill: today.loadFill,
+                label: today.loadLabel,
+                diameter: 84
+            )
         }
     }
 

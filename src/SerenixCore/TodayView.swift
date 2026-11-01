@@ -13,8 +13,19 @@ public struct TodayView: Equatable, Sendable {
     /// "No Night yet" on today or "No Night recorded" on an earlier Day; nil when the Day has a
     /// Night. Another Day's Night is never shown in its place.
     public let noNightMessage: String?
+    /// The Night's Readiness, or "—" when it's missing or there's no Night.
+    public let readinessText: String
+    /// Nil whenever Readiness is missing.
+    public let readinessBand: ReadinessBand?
+    /// The Night's Sleep Score, or "—".
+    public let sleepScoreText: String
     public let loadLabel: String
     public let loadText: String
+    /// How far each ring fills, 0 to 1: its 0–100 score out of 100 (ADR 0005), or 0 when the
+    /// score is missing.
+    public let readinessFill: Double
+    public let sleepScoreFill: Double
+    public let loadFill: Double
     public let syncPill: SyncPill
 
     public init(
@@ -34,12 +45,19 @@ public struct TodayView: Equatable, Sendable {
         earlierDay = earliestNight.flatMap { $0 < day ? day.adding(days: -1) : nil }
         laterDay = day < today ? day.adding(days: 1) : nil
 
-        let hasNight = nights.contains { $0.day == day }
-        noNightMessage = hasNight ? nil : isToday ? "No Night yet" : "No Night recorded"
+        let night = nights.first { $0.day == day }
+        noNightMessage = night != nil ? nil : isToday ? "No Night yet" : "No Night recorded"
+
+        readinessText = scoreText(night?.readiness)
+        readinessBand = night?.readiness.map(ReadinessBand.init)
+        readinessFill = ringFill(night?.readiness)
+        sleepScoreText = scoreText(night?.sleepScore)
+        sleepScoreFill = ringFill(night?.sleepScore)
 
         loadLabel = isToday ? "Load so far" : "Load"
         let load = dayLoads.first { $0.day == day }?.load
-        loadText = load.map(String.init) ?? missingText
+        loadText = scoreText(load)
+        loadFill = ringFill(load)
 
         syncPill = SyncPill(sync, timeZone: timeZone)
     }
@@ -47,3 +65,13 @@ public struct TodayView: Equatable, Sendable {
 
 /// How a missing value reads (spec 002, Missing values).
 let missingText = "—"
+
+/// A 0–100 score as a whole number, or "—" when it's missing.
+private func scoreText(_ score: Int?) -> String {
+    score.map(String.init) ?? missingText
+}
+
+/// A 0–100 score as a ring's fill, 0 to 1; an empty ring when it's missing.
+private func ringFill(_ score: Int?) -> Double {
+    score.map { Double($0) / 100 } ?? 0
+}

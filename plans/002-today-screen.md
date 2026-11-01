@@ -45,7 +45,7 @@ Assumptions (consistent with the spec, stated so review can check them):
      to `SyncStatus` only)
    - Done when: the 30 Oct / 31 Oct / 1 Nov arrows criterion, the "No Night yet" criterion, the
      "Load so far" criterion, the missing-Load "—" part, and the sync pill criterion pass.
-2. [ ] **Slice:** Rings: Readiness number and band (Ready / Steady / Take it easy), Sleep Score,
+2. [x] **Slice:** Rings: Readiness number and band (Ready / Steady / Take it easy), Sleep Score,
    missing scores as "—"; shell draws the three rings.
    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`,
      `tests/SerenixCoreTests/TodayViewTests.swift`, `src/SerenixApp/TodayScreen.swift`,

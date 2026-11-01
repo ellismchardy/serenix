@@ -183,3 +183,70 @@ private func todayView(
     #expect(failed.failureReason == "The Strap stopped responding.")
     #expect(!failed.showsProgress)
 }
+
+// MARK: Rings
+
+@Test(arguments: [
+    (100, "100", ReadinessBand.ready, "Ready"),
+    (67, "67", .ready, "Ready"),
+    (66, "66", .steady, "Steady"),
+    (34, "34", .steady, "Steady"),
+    (33, "33", .takeItEasy, "Take it easy"),
+    (0, "0", .takeItEasy, "Take it easy"),
+])
+func readinessShowsItsNumberAndBand(
+    readiness: Int,
+    text: String,
+    band: ReadinessBand,
+    word: String
+) {
+    let view = todayView(nights: [Night(day: nov1, readiness: readiness)], showing: nov1)
+
+    #expect(view.readinessText == text)
+    #expect(view.readinessBand == band)
+    #expect(view.readinessBand?.word == word)
+}
+
+@Test func sleepScoreShowsItsNumber() {
+    let view = todayView(nights: [Night(day: nov1, sleepScore: 84)], showing: nov1)
+
+    #expect(view.sleepScoreText == "84")
+}
+
+// MARK: Missing values
+
+@Test func aNightWithoutScoresShowsDashesAndNoBand() {
+    let view = todayView(nights: [Night(day: nov1)], showing: nov1)
+
+    #expect(view.sleepScoreText == "—")
+    #expect(view.readinessText == "—")
+    #expect(view.readinessBand == nil)
+}
+
+@Test func aDayWithoutANightShowsNoOtherDaysScores() {
+    let nights = [
+        Night(day: oct30, sleepScore: 81, readiness: 72),
+        Night(day: nov1, sleepScore: 84, readiness: 67),
+    ]
+    let view = todayView(nights: nights, showing: oct31)
+
+    #expect(view.sleepScoreText == "—")
+    #expect(view.readinessText == "—")
+    #expect(view.readinessBand == nil)
+}
+
+@Test func eachRingFillsToItsScoreOutOf100() {
+    let view = todayView(nights: [Night(day: nov1, sleepScore: 84, readiness: 67)], showing: nov1)
+
+    #expect(view.sleepScoreFill == 0.84)
+    #expect(view.readinessFill == 0.67)
+    #expect(view.loadFill == 0.05)
+}
+
+@Test func aRingWithAMissingScoreIsEmpty() {
+    let view = todayView(nights: [Night(day: nov1)], dayLoads: [], showing: nov1)
+
+    #expect(view.sleepScoreFill == 0)
+    #expect(view.readinessFill == 0)
+    #expect(view.loadFill == 0)
+}
