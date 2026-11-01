@@ -82,7 +82,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Blocked by: (none)
    - Seam: Today view · Files: `src/SerenixCore/ReadinessAdvice.swift`, `tests/SerenixCoreTests/TodayViewTests.swift` (rewrite the 002 advice test's 60/30/69 expectations to the new values; that follows the changed spec 002 criterion)
    - Done when: the spec 005 advice criterion and spec 002's unticked advice criterion pass.
-8. [ ] **Slice:** Today view: "Add your age" and the ring tap flag for a Load missing for lack
+8. [x] **Slice:** Today view: "Add your age" and the ring tap flag for a Load missing for lack
    of Max HR; the normal label otherwise.
    - Blocked by: 4, 7
    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`
@@ -102,6 +102,8 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
     - The Load ring opens the profile menu when `loadOpensProfileMenu` is true.
     - None of these fields is ever logged.
     - Seam: shell (by hand) · Files: `src/SerenixApp/ProfileStore.swift`, `src/SerenixApp/ProfileMenu.swift`, `src/SerenixApp/TodayScreen.swift`, `src/SerenixApp/StrapConnection.swift`
+    - Check "Add your age" by hand on a Day with synced records: with none, Load is missing for no
+      records first, so the ring keeps its usual label (spec review, task 8).
     - Done when: the macOS CI job builds; the remaining manual criteria (Add your age, the rows surviving a relaunch, no Profile fields in a shared Sync Log) are listed with steps for the PR.
 11. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
     and `swift build` are green, the macOS CI job builds, and every spec 005 criterion (plus

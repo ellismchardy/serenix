@@ -1826,3 +1826,42 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
             + "recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }
+
+// MARK: Add your age (spec 005)
+
+@Test func aLoadMissingForNoMaxHRAsksForTheAgeAndOpensTheProfileMenu() {
+    let noMaxHR = [
+        DayLoad(day: oct31, load: nil, missingReason: .noMaxHR),
+        DayLoad(day: nov1, load: nil, missingReason: .noMaxHR),
+    ]
+    let today = todayView(nights: [Night(day: nov1)], dayLoads: noMaxHR, showing: nov1)
+    let earlier = todayView(nights: [Night(day: oct31)], dayLoads: noMaxHR, showing: oct31)
+
+    #expect(today.loadLabel == "Add your age")
+    #expect(today.loadText == "—")
+    #expect(today.loadOpensProfileMenu)
+    #expect(earlier.loadLabel == "Add your age")
+    #expect(earlier.loadOpensProfileMenu)
+}
+
+@Test(arguments: [LoadMissing.noRecords, .maxHRNotAboveRestingHR])
+func aLoadMissingForAnotherReasonKeepsTheUsualLabelAndNoTap(reason: LoadMissing) {
+    let missing = [
+        DayLoad(day: oct31, load: nil, missingReason: reason),
+        DayLoad(day: nov1, load: nil, missingReason: reason),
+    ]
+    let today = todayView(nights: [Night(day: nov1)], dayLoads: missing, showing: nov1)
+    let earlier = todayView(nights: [Night(day: oct31)], dayLoads: missing, showing: oct31)
+
+    #expect(today.loadLabel == "Load so far")
+    #expect(!today.loadOpensProfileMenu)
+    #expect(earlier.loadLabel == "Load")
+    #expect(!earlier.loadOpensProfileMenu)
+}
+
+@Test func aLoadThatIsThereKeepsTheUsualLabelAndNoTap() {
+    let view = todayView(nights: [Night(day: nov1)], showing: nov1)
+
+    #expect(view.loadLabel == "Load so far")
+    #expect(!view.loadOpensProfileMenu)
+}
