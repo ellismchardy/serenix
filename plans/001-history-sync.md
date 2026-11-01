@@ -126,7 +126,7 @@ background checks, so they can be watched during those.
      stored. "Sync now" straight after received ~8 while the Strap was worn (new seconds, not
      re-sends) and 0 with it off the wrist, stored unchanged. The Strap seems to record only
      while worn: a sync after it was mostly off the wrist received 0.
-10. [ ] **Slice:** sync progress and time left
+10. [x] **Slice:** sync progress and time left
    - Blocked by: 9 (draws on its main-screen sync status)
    - The session reports its progress (none before the first History Record; then from the
      first History Record's timestamp to the start time passed in, measured by the newest one
@@ -142,10 +142,18 @@ background checks, so they can be watched during those.
    - Done when: the spec's three progress criteria pass (progress over a replay, time left at
      known times, an empty sync with no progress); on the phone, a sync of at least an hour's
      backlog shows "Starting…", a filling bar and a falling time left, and ends "Up to date".
+   - **Result on the phone (1 Nov 2026), for the PR:** a night's backlog (27,793 History
+     Records, 2 min 23 s) showed "Starting…", then the bar and "about 5 min left" falling as it
+     filled, and ended "Up to date". The first estimate was high (the start of a sync is slower)
+     and settled as it ran.
 11. [ ] **Slice:** finish a started sync in the background
    - Blocked by: 9 (needs its 10-second timer and the "not started twice" rule)
    - Built and committed (104ea06); waiting only on its phone checks, which need a real
      backlog (a night's wear), so it's ticked after them.
+   - **Lock and switch apps passed (1 Nov 2026):** the same sync, with the phone locked and
+     then another app in front, kept receiving Frames throughout (longest gap 0.2 s, ~194
+     History Records/s, one handshake, 0 Record Counter gaps) and ended "Up to date". The
+     out-of-range check is still to do.
    - Declare iOS's Bluetooth background mode (central role, `UIBackgroundModes:
      bluetooth-central`) in `project.yml`; no state restoration. Timers don't run while iOS
      keeps Serenix suspended between Bluetooth events, so the shell measures the 10 seconds
