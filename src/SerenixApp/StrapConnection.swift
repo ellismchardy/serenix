@@ -89,6 +89,10 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     private var wantsConnection = false
     /// Asked to sync before the Strap was connected and subscribed.
     private var wantsSync = false
+    /// The latest store-stats refresh and Sync Log save. Each new one waits for the one before,
+    /// so stats never land out of order and two saves never prune the same old Sync Log.
+    private var storeStatsRefresh: Task<Void, Never>?
+    private var syncLogSave: Task<Void, Never>?
     /// Fires every `syncTimerInterval` while a sync runs: redraws the screen and checks whether
     /// the Strap went silent.
     private var syncTimer: Timer?
@@ -211,7 +215,9 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     private func refreshStoreStats() {
         guard case .success(let store) = self.store else { return }
         let container = store.container
-        Task.detached(priority: .utility) { [self] in
+        let previous = storeStatsRefresh
+        storeStatsRefresh = Task.detached(priority: .utility) { [self] in
+            await previous?.value
             do {
                 let stats = try HistoryRecordStore.stats(in: container)
                 await MainActor.run { self.storeStats = stats }
@@ -238,7 +244,9 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         guard let syncStartedAt, case .success(let archive) = logArchive else { return }
         // A day's Sync Log is ~25 MB of text, so build and write it off the main thread.
         let entries = syncLog
-        Task.detached(priority: .utility) {
+        let previous = syncLogSave
+        syncLogSave = Task.detached(priority: .utility) {
+            await previous?.value
             do {
                 try archive.save(entries, syncStartedAt: syncStartedAt)
             } catch {
