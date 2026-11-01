@@ -51,7 +51,7 @@ reference.
      `SyncPillView.swift`, `WeekStripView.swift`, `BaselineComparisonRow.swift`,
      `ProfileMenu.swift`
    - Done when: `swift build` and the CI macOS job are green; the manual steps are in the PR.
-4. [ ] **Verify:** full suite + lint + build green, CI macOS green; the 3 unticked automated
+4. [x] **Verify:** full suite + lint + build green, CI macOS green; the 3 unticked automated
    criteria ticked; manual phone steps (top bar, week strip, Look/Appearance incl. Dark and
    relaunch, plus the existing ones) listed for the PR.
    - Blocked by: 3
@@ -66,3 +66,35 @@ reference.
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
+
+## Manual phone steps (for the PR checklist)
+On the iPhone with the sideloaded CI build, Profile → Debug → Show sample Nights on. Compare
+with prototype variant F.
+
+**Top bar:**
+- [ ] The avatar (your letter on purple) is on the left and opens the profile menu; "Good
+      morning!" (or afternoon / evening, by the time now) sits in small text over your name in
+      bold, and stays the same on an earlier Day; with no name, the greeting stands alone.
+- [ ] The calendar button opens a picker limited to the earliest sample Night through today;
+      picking a Day shows it. The bell shows "No notifications yet.".
+
+**Week strip:**
+- [ ] Seven Days ending today, titled with the month; the Day shown is a purple pill; Days
+      without a Night are dimmed but open "No Night recorded"; Days before the earliest Night
+      are greyed out and can't be tapped.
+- [ ] ‹ moves a week back (to 25 Oct from 1 Nov in the sample), never before the earliest
+      Night, and is disabled there; › moves a week forward, never past today, disabled on today.
+
+**Look and Appearance:**
+- [ ] Light grey background, white rounded cards with soft shadows (week strip, rings, vs your
+      Baseline, tiles, round buttons), purple for the avatar, the Day shown, buttons, the
+      syncing pill's outline and the Sleep Score ring. Readiness band and Zone colours are still
+      green, amber and red.
+- [ ] Profile → Appearance: Dark switches everything dark at once, purple accent kept; Light
+      forces light; System follows iOS. Switch Dark → System with the menu open, and again
+      after closing it, with iOS in Light: both return to light straight away.
+- [ ] Relaunch Serenix: the chosen Appearance is kept.
+
+**Everything from the earlier 002 steps and 001** still passes: rings and popups, tiles with
+gauges, the sync pill (syncing, successful, paused, failed, cancel shows nothing), the name
+prompt and editing the name, the name not in a shared Sync Log, and spec 001's manual checks.

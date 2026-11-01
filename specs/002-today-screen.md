@@ -1,6 +1,6 @@
 # 002 — Today screen
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-01
 
 ## Problem
@@ -255,13 +255,13 @@ other metrics are whole numbers.
 
 ## Success criteria (must be checkable)
 Automated (`swift test`, on Windows and in CI). Expected values are literals worked out by hand:
-- [ ] With Nights dated 30 Oct and 1 Nov and the current time 1 Nov 08:12, the view on 1 Nov
+- [x] With Nights dated 30 Oct and 1 Nov and the current time 1 Nov 08:12, the view on 1 Nov
       shows the 1 Nov Night; its week strip is titled "November 2026" and runs Mon 26 Oct to Sun
       1 Nov with 1 Nov shown, 31 Oct and 26–29 Oct marked as without a Night, 26–29 Oct out of
       range, ‹ going to 30 Oct and › disabled. The date picker runs from 30 Oct to 1 Nov. On 31
       Oct the view shows "No Night recorded" with that Day's Load. With no Nights, the picker
       runs from today to today and ‹ and › are both disabled.
-- [ ] With Nights from 1 Oct to 1 Nov, ‹ on 1 Nov goes to 25 Oct and › on 25 Oct to 1 Nov; on
+- [x] With Nights from 1 Oct to 1 Nov, ‹ on 1 Nov goes to 25 Oct and › on 25 Oct to 1 Nov; on
       25 Oct the strip runs Mon 19 Oct to Sun 25 Oct, titled "October 2026".
 - [x] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
       Day's values.
@@ -311,7 +311,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       paused", carrying its reason and "Serenix will try again next time you open it."; any
       other failure → "Sync failed" carrying its reason; idle with no sync just finished, or a
       sync the user cancelled → no pill.
-- [ ] The greeting is "Good morning!" at 05:00 and 08:12, "Good afternoon!" at 12:00, and "Good
+- [x] The greeting is "Good morning!" at 05:00 and 08:12, "Good afternoon!" at 12:00, and "Good
       evening!" at 18:00 and 04:59, on today and on an earlier Day alike; the name under it is
       "Ellis" for "Ellis" and none for no name or a name of only spaces.
 - [x] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
