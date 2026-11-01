@@ -198,9 +198,9 @@ struct TodayScreen: View {
         }
     }
 
-    /// Sleep Score, Readiness in the middle with its band word, and Load, all the same size.
+    /// Sleep Score, Readiness in the middle and Load, the same size, spread evenly across the card.
     private func rings(_ today: TodayView) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .top, spacing: 0) {
             Button {
                 open(.sleep, in: today)
             } label: {
@@ -214,6 +214,7 @@ struct TodayScreen: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
             Button {
                 open(.readiness, in: today)
             } label: {
@@ -227,12 +228,14 @@ struct TodayScreen: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
             ScoreRing(
                 text: today.loadText,
                 fill: today.loadFill,
                 label: today.loadLabel,
                 diameter: ringDiameter
             )
+            .frame(maxWidth: .infinity)
             // Tapping the Load ring does nothing in spec 002.
         }
         .frame(maxWidth: .infinity)
