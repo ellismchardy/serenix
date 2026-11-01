@@ -89,12 +89,19 @@ running.
 
 **Rings.** Three rings, all 0–100 (ADR 0005):
 - **Readiness**, in the middle, the same size as the other two. It shows the number, with
-  "Readiness" and then the band word below the ring: **Ready** (67–100), **Steady** (34–66),
-  **Take it easy** (0–33).
-  The ring and word take the band's colour: green, amber, red. When Readiness is Calibrating,
-  the ring is empty and shows "n/4", the Nights so far.
+  "Readiness" below the ring, which takes the band's colour: green, amber, red. Its band is
+  **Ready** (67–100), **Steady** (34–66) or **Take it easy** (0–33). When Readiness is
+  Calibrating, the ring is empty and shows "n/4", the Nights so far.
 - **Sleep Score** on the left.
 - **Load** on the right, labelled "Load so far" on today and "Load" on earlier Days.
+
+The three rings line up level, with nothing under the Readiness ring that the others don't
+have.
+
+**Readiness message.** A card under the rings with the band word in the band's colour (e.g.
+"Ready") and an ✕. Closing it hides it for that Night, remembered on the phone across
+relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
+missing.
 
 **vs your Baseline.** HRV and Resting HR, each with its value, its difference from Baseline,
 and a bar showing which way it moved from Baseline:
@@ -321,8 +328,9 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - [ ] After a sync with real Nights, the Today screen shows the rings, vs your Baseline and six
       tiles, with values matching the Today view's output for that data.
-- [x] Zone colours show green, amber and red as given, and the Readiness ring and word share the
-      band colour.
+- [ ] Zone colours show green, amber and red as given; the three rings line up level; the
+      Readiness message card under them shows the band word in the ring's band colour, its ✕
+      hides it for that Night (still hidden after relaunching), and another Night shows its own.
 - [ ] The top bar shows the avatar, the greeting over the name, and the calendar and bell
       buttons; the calendar opens a picker limited to the earliest Night through today and
       picking a Day shows it; the bell shows "No notifications yet.".

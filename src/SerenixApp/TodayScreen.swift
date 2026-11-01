@@ -21,6 +21,9 @@ struct TodayScreen: View {
     @State private var showsProfileMenu = false
     /// Debug's "Show sample Nights" (plan 002, task 8): off at launch and never saved.
     @State private var showsSampleNights = false
+    /// The Nights whose Readiness message was closed, kept on the phone (spec 002, Readiness
+    /// message).
+    @State private var closedMessages = ClosedReadinessMessages()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -52,6 +55,7 @@ struct TodayScreen: View {
                             .foregroundStyle(.secondary)
                     }
                     rings(today)
+                    readinessMessage(today, for: shownDay)
                     vsBaseline(today)
                     tiles(today)
                 }
@@ -210,26 +214,19 @@ struct TodayScreen: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            VStack(spacing: 8) {
-                Button {
-                    open(.readiness, in: today)
-                } label: {
-                    ScoreRing(
-                        text: today.readinessText,
-                        fill: today.readinessFill,
-                        label: "Readiness",
-                        diameter: ringDiameter,
-                        colour: today.readinessBand?.colour ?? .secondary
-                    )
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                if let band = today.readinessBand {
-                    Text(band.word)
-                        .font(.subheadline.bold())
-                        .foregroundStyle(band.colour)
-                }
+            Button {
+                open(.readiness, in: today)
+            } label: {
+                ScoreRing(
+                    text: today.readinessText,
+                    fill: today.readinessFill,
+                    label: "Readiness",
+                    diameter: ringDiameter,
+                    colour: today.readinessBand?.colour ?? .secondary
+                )
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             ScoreRing(
                 text: today.loadText,
                 fill: today.loadFill,
@@ -241,6 +238,34 @@ struct TodayScreen: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .themeCard()
+    }
+
+    /// The band word for the Night shown, in its colour, on a card with an ✕ that hides it for
+    /// that Night; none while Readiness is Calibrating or missing.
+    @ViewBuilder
+    private func readinessMessage(_ today: TodayView, for day: Day) -> some View {
+        if let band = today.readinessBand, !closedMessages.contains(day) {
+            HStack {
+                Text(band.word)
+                    .font(.headline)
+                    .foregroundStyle(band.colour)
+                Spacer()
+                Button {
+                    withAnimation { closedMessages.close(day) }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 28)
+                        .background(Theme.accentSoft, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close")
+            }
+            .padding(16)
+            .themeCard()
+            .transition(.opacity)
+        }
     }
 
     /// HRV and Resting HR against Baseline, or the one Calibrating line; nothing on a Day without
@@ -354,3 +379,28 @@ private let successfulPillSeconds = 3
 
 /// All three rings' size, points (spec 002, Rings: the same size).
 private let ringDiameter: CGFloat = 84
+
+/// The Nights whose Readiness message the user closed, by the Night's Day, kept in UserDefaults
+/// on this phone so a closed message stays closed after relaunching.
+private struct ClosedReadinessMessages {
+    private var keys = Set(UserDefaults.standard.stringArray(forKey: Self.storageKey) ?? [])
+
+    func contains(_ day: Day) -> Bool { keys.contains(Self.key(day)) }
+
+    mutating func close(_ day: Day) {
+        keys.insert(Self.key(day))
+        // Only recent Nights matter; keep the list from growing for ever.
+        let kept = keys.sorted().suffix(Self.keptNights)
+        keys = Set(kept)
+        UserDefaults.standard.set(Array(kept), forKey: Self.storageKey)
+    }
+
+    /// e.g. "2026-11-01", which sorts by date.
+    private static func key(_ day: Day) -> String {
+        String(format: "%04ld-%02ld-%02ld", day.year, day.month, day.dayOfMonth)
+    }
+
+    /// How many closed Nights to remember.
+    private static let keptNights = 60
+    private static let storageKey = "closedReadinessMessages"
+}
