@@ -80,6 +80,16 @@ The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus t
 inside it.
 _Avoid_: sleep duration, total sleep
 
+**Sleep Need**:
+How much Time Asleep the user needs on a given night: the Time Asleep they typically need, plus
+extra to repay Sleep Debt.
+_Avoid_: sleep goal, sleep target
+
+**Sleep Debt**:
+How far the user's Time Asleep has fallen short of the Time Asleep they typically need over
+recent Nights, added up.
+_Avoid_: sleep deficit, sleep owed
+
 **Night**:
 The dated record of one night's sleep: a Sleep Period together with the Nightly Metrics and
 scores drawn from it, dated by the local calendar date of its Final Wake.
