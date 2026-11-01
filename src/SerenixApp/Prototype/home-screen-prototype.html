@@ -1,0 +1,541 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway, never merged (branch prototype/homescreen).
+  Question: what should the Serenix home screen look like?
+  Four structurally different home screens, switchable via ?variant=A|B|C|D,
+  the floating bar at the bottom, or the ← → keys. Scenario via ?scenario=.
+  Run: double-click this file. Mock data only; nothing is stored.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Screen Prototype</title>
+<style>
+  :root {
+    --bg: #e9e9ee; --panel: #fff; --ink: #111; --sub: #666;
+    --s-bg: #000; --s-card: #1c1c1e; --s-card2: #2c2c2e; --s-ink: #f5f5f7; --s-sub: #8e8e93;
+    --track: #3a3a3c; --sep: #38383a;
+    --sleep: #818cf8; --load: #fb923c; --good: #4ade80; --mid: #fbbf24; --low: #fb7185; --hr: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+  .stage { display: flex; gap: 32px; justify-content: center; align-items: flex-start; padding: 24px 16px 96px; flex-wrap: wrap; }
+
+  /* phone */
+  .phone { width: 390px; max-width: 100%; height: 844px; border-radius: 52px; border: 12px solid #111; background: var(--s-bg); position: relative; overflow: hidden; color: var(--s-ink); box-shadow: 0 20px 50px rgba(0,0,0,.25); flex: none; }
+  .statusbar { position: absolute; top: 0; left: 0; right: 0; height: 48px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font-weight: 600; font-size: 15px; z-index: 5; background: linear-gradient(var(--s-bg) 70%, transparent); }
+  .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 32px; border-radius: 20px; background: #000; z-index: 6; }
+  .screen { position: absolute; inset: 0; overflow-y: auto; padding: 54px 18px 40px; scrollbar-width: none; }
+  .screen::-webkit-scrollbar { display: none; }
+  .tap { transition: opacity .1s; } .tap:active { opacity: .6; }
+  .muted { color: var(--s-sub); }
+  .card { background: var(--s-card); border-radius: 14px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--s-card2); color: var(--s-sub); }
+  .pill.err { background: #3b1219; color: #fda4af; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .spin { width: 10px; height: 10px; border: 2px solid var(--s-sub); border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .navbtn { width: 32px; height: 32px; border-radius: 50%; background: var(--s-card); display: grid; place-items: center; font-size: 18px; }
+  .navbtn[disabled] { opacity: .3; cursor: default; }
+  .up { color: var(--good); } .down { color: var(--low); }
+
+  /* sheet */
+  .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 10; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 82%; overflow-y: auto; background: var(--s-card); border-radius: 22px 22px 0 0; padding: 10px 20px 34px; z-index: 11; animation: up .2s ease-out; }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--track); margin: 0 auto 14px; }
+  .sheet h2 { margin: 0 0 2px; font-size: 22px; }
+  .kv { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--sep); }
+  .kv:last-child { border-bottom: 0; }
+
+  /* A — rings */
+  .a-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 14px; }
+  .a-rings { display: flex; justify-content: space-between; margin: 18px 0 8px; }
+  .a-ring { position: relative; width: 108px; text-align: center; }
+  .a-ring .in { position: absolute; top: 0; left: 0; width: 108px; height: 108px; display: grid; place-content: center; }
+  .a-ring .v { font-size: 30px; font-weight: 700; line-height: 1; }
+  .a-ring .lbl { margin-top: 8px; font-size: 13px; font-weight: 600; }
+  .a-sec { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--s-sub); margin: 22px 4px 6px; }
+  .a-list .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--sep); width: 100%; }
+  .a-list .item:last-child { border-bottom: 0; }
+
+  /* B — briefing */
+  .b-date { font-size: 13px; color: var(--s-sub); margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .b-hero { margin: 26px 0 6px; }
+  .b-word { font-size: 46px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+  .b-num { font-size: 96px; font-weight: 800; letter-spacing: -.04em; line-height: .95; }
+  .b-lede { font-size: 19px; line-height: 1.4; margin: 16px 0 26px; color: #d1d1d6; }
+  .b-lede b { color: var(--s-ink); }
+  .b-why { margin-bottom: 22px; }
+  .b-bar { height: 6px; border-radius: 3px; background: var(--track); position: relative; margin-top: 6px; }
+  .b-bar > i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .b-bar > .mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--s-sub); }
+  .b-hist .item { display: flex; justify-content: space-between; width: 100%; padding: 11px 0; border-bottom: 1px solid var(--sep); }
+
+  /* C — night timeline */
+  .c-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 6px 0 16px; }
+  .c-day { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border-radius: 12px; font-size: 11px; color: var(--s-sub); }
+  .c-day b { font-size: 16px; color: var(--s-ink); }
+  .c-day.sel { background: var(--s-card2); }
+  .c-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+  .c-chip { padding: 10px 12px; }
+  .c-chip .v { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .c-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .c-tile { padding: 12px; }
+  .c-tile .v { font-size: 22px; font-weight: 700; }
+
+  /* D — trends */
+  .d-title { font-size: 34px; font-weight: 800; margin: 8px 0 4px; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--s-card); border-radius: 9px; padding: 2px; margin: 12px 0 16px; }
+  .seg button { text-align: center; padding: 6px 0; border-radius: 7px; font-size: 13px; font-weight: 600; }
+  .seg button.on { background: var(--s-card2); }
+  .d-row { display: grid; grid-template-columns: 1fr 120px 64px; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--sep); width: 100%; }
+  .d-row:last-child { border-bottom: 0; }
+  .d-row .v { text-align: right; font-size: 20px; font-weight: 700; }
+
+  /* empty */
+  .empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 14px; padding: 0 20px; }
+  .bigbtn { background: var(--s-ink); color: #000; font-weight: 600; padding: 13px 28px; border-radius: 14px; text-align: center; }
+
+  /* prototype panel + switcher (not part of the design) */
+  .panel { width: 340px; max-width: 100%; background: var(--panel); border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .panel h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--sub); }
+  .panel .opts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .panel .opts button { border: 1px solid #ccc; border-radius: 8px; padding: 5px 9px; font-size: 13px; }
+  .panel .opts button.on { background: #111; color: #fff; border-color: #111; }
+  .panel p { color: var(--sub); font-size: 13px; margin: 0 0 16px; }
+  .panel pre { background: #f4f4f6; border-radius: 8px; padding: 10px; font-size: 11.5px; overflow-x: auto; margin: 0; white-space: pre-wrap; }
+  .switcher { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; background: #ff2d87; color: #fff; padding: 6px; border-radius: 99px; box-shadow: 0 6px 20px rgba(0,0,0,.3); z-index: 100; font-weight: 600; }
+  .switcher button { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; text-align: center; }
+  .switcher button:hover { background: rgba(255,255,255,.2); }
+  .switcher span { min-width: 210px; text-align: center; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>08:12</span><span>●●● ▮</span></div>
+    <div class="screen" id="screen"></div>
+    <div id="sheet"></div>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+<div class="switcher">
+  <button data-act="prev-variant" title="Previous variant (←)">‹</button>
+  <span id="vlabel"></span>
+  <button data-act="next-variant" title="Next variant (→)">›</button>
+</div>
+
+<script>
+// ---------- mock data (deterministic) ----------
+let seed = 42;
+const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const avg = a => a.reduce((s, x) => s + x, 0) / a.length;
+const TODAY = new Date(2026, 10, 1);
+const NOW_MIN = 8 * 60 + 12;
+
+const RAW = [];
+for (let i = 0; i < 30; i++) {
+  const date = new Date(TODAY); date.setDate(date.getDate() - i);
+  // times are minutes from local midnight of the Night's date (negative = evening before)
+  const onset = -75 + Math.round(R() * 70) + (i === 3 ? 80 : 0);
+  const wake = 380 + Math.round(R() * 70);
+  const wakeMins = 8 + Math.round(R() * 32);
+  const bedStart = onset - 8 - Math.round(R() * 20);
+  const bedEnd = wake + 4 + Math.round(R() * 18);
+  let rhr = Math.round(51 + R() * 6 + (i === 3 ? 6 : 0));
+  let hrv = Math.round(54 + R() * 16 - (i === 3 ? 15 : 0));
+  if (i === 0) { rhr = 51; hrv = 67; }
+  const resp = +(13.8 + R() * 1.2 + (i === 3 ? 0.8 : 0)).toFixed(1);
+  const skin = +(33.7 + R() * 0.6 + (i === 3 ? 0.4 : 0)).toFixed(1);
+  const spo2 = Math.round(95 + R() * 3);
+  const asleep = wake - onset - wakeMins;
+  const sleepScore = clamp(Math.round(asleep / 480 * 80 + (1 - wakeMins / 60) * 20), 1, 100);
+  // heart rate every 5 min across the Sleep Period, with a couple of wake bouts
+  const hr = [], n5 = Math.floor((wake - onset) / 5);
+  const bouts = [Math.floor(R() * n5), Math.floor(R() * n5)];
+  for (let k = 0; k <= n5; k++) {
+    let v = rhr + 11 * Math.exp(-k / 18) + 2.5 * Math.sin(k / 8) + R() * 2.5;
+    if (k > n5 * 0.85) v += (k - n5 * 0.85) * 0.4;
+    if (bouts.some(b => Math.abs(b - k) < 2)) v += 13;
+    hr.push(Math.round(v));
+  }
+  // Load for the Day: hourly contributions, a workout or two; today only up to now
+  const hourly = [];
+  const workout = 7 + Math.floor(R() * 12);
+  for (let h = 0; h < 24; h++) {
+    let v = h < 7 || h > 22 ? R() * 0.2 : 0.4 + R() * 1.2;
+    if (h === workout) v += 14 + R() * 22;
+    if (i === 0 && h === 7) v += 6;
+    hourly.push(i === 0 && h > 8 ? null : +v.toFixed(1));
+  }
+  const load = Math.round(hourly.reduce((s, x) => s + (x || 0), 0));
+  RAW.push({ i, date, onset, wake, wakeMins, bedStart, bedEnd, asleep, rhr, hrv, resp, skin, spo2, sleepScore, hr, hourly, load, today: i === 0 });
+}
+
+// Baseline from up to 14 earlier Nights; Readiness is Calibrating until 4 Nights exist
+function derive(list) {
+  return list.map((n, i) => {
+    const prior = list.slice(i + 1, i + 15);
+    const count = list.length - i;
+    let base = null, readiness = null;
+    if (count >= 4) {
+      base = { hrv: avg(prior.map(p => p.hrv)), rhr: avg(prior.map(p => p.rhr)) };
+      readiness = clamp(Math.round(58 + 140 * (n.hrv - base.hrv) / base.hrv - 3.5 * (n.rhr - base.rhr) + (n.sleepScore - 75) * 0.5), 1, 99);
+    }
+    return { ...n, base, readiness, nightsSoFar: count };
+  });
+}
+
+const METRICS = [
+  { key: 'rhr', name: 'Resting HR', unit: 'bpm', fmt: v => v, better: -1 },
+  { key: 'hrv', name: 'HRV', unit: 'ms', fmt: v => v, better: 1 },
+  { key: 'resp', name: 'Respiratory rate', unit: 'br/min', fmt: v => v.toFixed(1) },
+  { key: 'skin', name: 'Skin temperature', unit: '°C', fmt: v => v.toFixed(1) },
+  { key: 'spo2', name: 'SpO2', unit: '%', fmt: v => v },
+];
+
+// ---------- state ----------
+const SCENARIOS = {
+  normal: 'Synced',
+  calibrating: 'Calibrating (2 Nights)',
+  syncing: 'Syncing on open',
+  failed: 'Sync failed',
+  first: 'First launch',
+};
+const VARIANTS = { A: 'Score rings', B: 'Briefing', C: 'Night timeline', D: 'Trends' };
+const qs = new URLSearchParams(location.search);
+const state = {
+  variant: VARIANTS[qs.get('variant')] ? qs.get('variant') : 'A',
+  scenario: SCENARIOS[qs.get('scenario')] ? qs.get('scenario') : 'normal',
+  night: 0, sheet: null, range: 14, syncProgress: 0,
+};
+let timer = null;
+
+function nights() {
+  switch (state.scenario) {
+    case 'calibrating': return derive(RAW.slice(0, 2));
+    case 'syncing': case 'failed': return derive(RAW).slice(1); // latest Night not on the phone yet
+    case 'first': return [];
+    default: return derive(RAW);
+  }
+}
+
+// ---------- formatting ----------
+const pad = n => String(n).padStart(2, '0');
+const clock = m => { m = ((m % 1440) + 1440) % 1440; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+const dur = m => `${Math.floor(m / 60)}h ${pad(m % 60)}m`;
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dlabel = d => `${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`;
+const nightName = n => n.today ? 'Last night' : dlabel(n.date);
+const band = r => r == null ? 'var(--s-sub)' : r >= 67 ? 'var(--good)' : r >= 34 ? 'var(--mid)' : 'var(--low)';
+const bandWord = r => r == null ? 'Calibrating' : r >= 67 ? 'Ready' : r >= 34 ? 'Steady' : 'Take it easy';
+const loadLabel = n => n.today ? 'so far today' : 'that Day';
+function delta(n, key) {
+  if (!n.base) return '';
+  const d = n[key] - n.base[key];
+  const good = key === 'hrv' ? d >= 0 : d <= 0;
+  const txt = key === 'hrv' ? `${d >= 0 ? '+' : ''}${Math.round(d / n.base.hrv * 100)}%` : `${d >= 0 ? '+' : ''}${d.toFixed(0)} bpm`;
+  return `<span class="${good ? 'up' : 'down'}">${txt}</span>`;
+}
+
+function syncStatus(style) {
+  const s = state.scenario;
+  if (s === 'syncing') {
+    const recs = Math.round(state.syncProgress / 100 * 28640).toLocaleString();
+    return style === 'text' ? `Syncing with your Strap… ${recs} of 28,640 History Records`
+      : `<span class="pill"><span class="spin"></span>Syncing · ${state.syncProgress}%</span>`;
+  }
+  if (s === 'failed') return style === 'text' ? `Couldn't reach your Strap. Showing data up to Sat 07:12. <button class="tap" data-act="sync" style="color:var(--sleep)">Retry</button>`
+    : `<button class="pill err tap" data-act="sync">⚠ Strap not found · Retry</button>`;
+  return style === 'text' ? 'Synced with your Strap at 08:10' : `<button class="pill tap" data-act="sync"><span class="dot" style="background:var(--good)"></span>Synced 08:10</button>`;
+}
+
+// ---------- tiny charts ----------
+function ring(v, max, color, size, stroke) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r, f = v == null ? 0 : Math.min(1, v / max), h = size / 2;
+  return `<svg width="${size}" height="${size}"><circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="var(--track)" stroke-width="${stroke}" ${v == null ? 'stroke-dasharray="2 6"' : ''}/>
+    <circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c * f} ${c}" transform="rotate(-90 ${h} ${h})"/></svg>`;
+}
+function spark(vals, w, h, color, bandRange) {
+  const v = vals.filter(x => x != null);
+  if (v.length < 2) return `<svg width="${w}" height="${h}"></svg>`;
+  let lo = Math.min(...v), hi = Math.max(...v);
+  if (bandRange) { lo = Math.min(lo, bandRange[0]); hi = Math.max(hi, bandRange[1]); }
+  const p = (hi - lo) * 0.15 || 1; lo -= p; hi += p;
+  const x = i => 3 + i * (w - 6) / (vals.length - 1), y = val => h - 3 - (val - lo) / (hi - lo) * (h - 6);
+  const pts = vals.map((val, i) => val == null ? null : `${x(i).toFixed(1)},${y(val).toFixed(1)}`).filter(Boolean);
+  const bandSvg = bandRange ? `<rect x="0" width="${w}" y="${y(bandRange[1])}" height="${Math.max(1, y(bandRange[0]) - y(bandRange[1]))}" fill="${color}" opacity=".13"/>` : '';
+  const last = vals.length - 1;
+  return `<svg width="${w}" height="${h}">${bandSvg}<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${vals[last] != null ? `<circle cx="${x(last)}" cy="${y(vals[last])}" r="3.5" fill="${color}"/>` : ''}</svg>`;
+}
+function nightChart(n, w, h) {
+  const t0 = n.bedStart, t1 = n.bedEnd, top = 8, bot = h - 22;
+  const x = t => (t - t0) / (t1 - t0) * w;
+  const lo = Math.min(...n.hr) - 3, hi = Math.max(...n.hr) + 3;
+  const y = v => bot - (v - lo) / (hi - lo) * (bot - top);
+  const pts = n.hr.map((v, k) => `${x(n.onset + k * 5).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const lab = (t, txt, anchor) => `<text x="${clamp(x(t), 16, w - 16)}" y="${h - 6}" font-size="10" fill="var(--s-sub)" text-anchor="${anchor}">${txt}</text>`;
+  return `<svg width="${w}" height="${h}" style="display:block">
+    <rect x="${x(n.onset)}" y="${top - 4}" width="${x(n.wake) - x(n.onset)}" height="${bot - top + 8}" fill="var(--sleep)" opacity=".12" rx="6"/>
+    <line x1="${x(n.onset)}" x2="${x(n.onset)}" y1="${top - 4}" y2="${bot + 4}" stroke="var(--sleep)" stroke-dasharray="2 3"/>
+    <line x1="${x(n.wake)}" x2="${x(n.wake)}" y1="${top - 4}" y2="${bot + 4}" stroke="var(--sleep)" stroke-dasharray="2 3"/>
+    <line x1="0" x2="${w}" y1="${y(n.rhr)}" y2="${y(n.rhr)}" stroke="var(--s-sub)" stroke-dasharray="1 4"/>
+    <polyline points="${pts}" fill="none" stroke="var(--hr)" stroke-width="1.6" stroke-linejoin="round"/>
+    ${lab(n.onset, clock(n.onset), 'middle')}${lab(n.wake, clock(n.wake), 'middle')}
+  </svg>`;
+}
+function loadBars(n, w, h) {
+  const max = Math.max(10, ...n.hourly.filter(x => x != null)), bw = w / 24;
+  return `<svg width="${w}" height="${h + 14}">${n.hourly.map((v, i) => v == null
+    ? `<rect x="${i * bw + 1}" y="${h - 2}" width="${bw - 2}" height="2" fill="var(--track)"/>`
+    : `<rect x="${i * bw + 1}" y="${h - Math.max(2, v / max * h)}" width="${bw - 2}" height="${Math.max(2, v / max * h)}" rx="2" fill="var(--load)"/>`).join('')}
+    ${[0, 6, 12, 18].map(t => `<text x="${t * bw}" y="${h + 12}" font-size="10" fill="var(--s-sub)">${pad(t)}</text>`).join('')}</svg>`;
+}
+
+// ---------- shared bits ----------
+function empty() {
+  if (state.scenario === 'syncing') return `<div class="empty"><div class="spin" style="width:28px;height:28px;border-width:3px"></div>
+    <h2 style="margin:0">Getting your first Night</h2><div class="muted">${syncStatus('text')}</div><div class="muted" style="font-size:13px">Keep the app open and the Strap nearby.</div></div>`;
+  return `<div class="empty"><div style="font-size:54px">⌚</div><h2 style="margin:0">Connect your Strap</h2>
+    <div class="muted">Serenix reads your Whoop 5.0 over Bluetooth. Your first Night appears after you sleep with it on.</div>
+    <button class="bigbtn tap" data-act="sync">Pair Strap</button></div>`;
+}
+function navArrows(list) {
+  return `<button class="navbtn tap" data-act="older" ${state.night >= list.length - 1 ? 'disabled' : ''}>‹</button>
+          <button class="navbtn tap" data-act="newer" ${state.night === 0 ? 'disabled' : ''}>›</button>`;
+}
+
+// ---------- variant A: score rings + grouped list ----------
+function VariantA(list, n) {
+  const r = (key, v, max, color, label, txt) => `<button class="a-ring tap" data-act="sheet:${key}">
+      ${ring(v, max, color, 108, 10)}<div class="in"><div class="v" style="color:${v == null ? 'var(--s-sub)' : 'inherit'}">${txt ?? v}</div></div>
+      <div class="lbl">${label}</div></button>`;
+  return `
+  <div class="a-head">
+    <button class="navbtn tap" data-act="older" ${state.night >= list.length - 1 ? 'disabled' : ''}>‹</button>
+    <div style="text-align:center"><div style="font-size:17px;font-weight:700">${n.today ? 'Today' : dlabel(n.date)}</div><div class="muted" style="font-size:12px">${n.today ? dlabel(n.date) : 'Night'}</div></div>
+    <button class="navbtn tap" data-act="newer" ${state.night === 0 ? 'disabled' : ''}>›</button>
+  </div>
+  <div style="text-align:center">${syncStatus('pill')}</div>
+  <div class="a-rings">
+    ${r('sleep', n.sleepScore, 100, 'var(--sleep)', 'Sleep Score')}
+    ${r('readiness', n.readiness, 100, band(n.readiness), 'Readiness', n.readiness == null ? `<span style="font-size:13px">${n.nightsSoFar}/4</span>` : null)}
+    ${r('load', n.load, 100, 'var(--load)', 'Load')}
+  </div>
+  ${n.readiness == null ? `<div class="card" style="padding:12px 14px;font-size:13px;margin-top:10px"><b>Calibrating.</b> <span class="muted">Readiness starts once 4 Nights form your Baseline. ${4 - n.nightsSoFar} to go.</span></div>` : ''}
+  <div class="a-sec">${nightName(n)}</div>
+  <div class="card a-list">
+    <button class="item tap" data-act="sheet:sleep"><span>Asleep</span><b>${dur(n.asleep)}</b></button>
+    <button class="item tap" data-act="sheet:sleep"><span>Sleep Onset → Final Wake</span><span>${clock(n.onset)} → ${clock(n.wake)}</span></button>
+    <button class="item tap" data-act="sheet:sleep"><span>Time in Bed</span><span>${dur(n.bedEnd - n.bedStart)}</span></button>
+  </div>
+  <div class="a-sec">Nightly Metrics</div>
+  <div class="card a-list">
+    ${METRICS.map(m => `<button class="item tap" data-act="sheet:m-${m.key}"><span>${m.name}</span>
+      <span>${m.better ? `<span style="font-size:12px;margin-right:8px">${delta(n, m.key)}</span>` : ''}<b>${m.fmt(n[m.key])}</b> <span class="muted">${m.unit}</span></span></button>`).join('')}
+  </div>`;
+}
+
+// ---------- variant B: briefing, one dominant score, text first ----------
+function VariantB(list, n) {
+  const contrib = (label, value, frac, good) => `<div style="margin-bottom:14px"><div class="row"><span>${label}</span><b>${value}</b></div>
+    <div class="b-bar"><span class="mid"></span><i style="background:${good ? 'var(--good)' : 'var(--low)'};${frac >= 0 ? `left:50%;width:${Math.min(50, frac * 50)}%` : `right:50%;width:${Math.min(50, -frac * 50)}%`}"></i></div></div>`;
+  let hero, lede;
+  if (n.readiness == null) {
+    hero = `<div class="b-word muted">Calibrating</div><div style="display:flex;gap:6px;margin-top:14px">${[0, 1, 2, 3].map(k => `<span style="flex:1;height:6px;border-radius:3px;background:${k < n.nightsSoFar ? 'var(--s-ink)' : 'var(--track)'}"></span>`).join('')}</div>`;
+    lede = `Serenix needs <b>4 Nights</b> to learn your Baseline before it can rate Readiness. ${n.nightsSoFar} down, ${4 - n.nightsSoFar} to go. You slept <b>${dur(n.asleep)}</b> ${n.today ? 'last night' : ''}.`;
+  } else {
+    const hd = Math.round((n.hrv - n.base.hrv) / n.base.hrv * 100), rd = Math.round(n.rhr - n.base.rhr);
+    hero = `<button class="tap" data-act="sheet:readiness" style="display:block"><div class="b-word" style="color:${band(n.readiness)}">${bandWord(n.readiness)}</div><div class="b-num">${n.readiness}<span style="font-size:20px;font-weight:600" class="muted"> Readiness</span></div></button>`;
+    lede = `You slept <b>${dur(n.asleep)}</b>, from ${clock(n.onset)} to ${clock(n.wake)}. HRV was <b>${Math.abs(hd)}% ${hd >= 0 ? 'above' : 'below'}</b> your Baseline and Resting HR <b>${rd === 0 ? 'right on' : `${Math.abs(rd)} bpm ${rd > 0 ? 'above' : 'below'}`}</b> it.`;
+  }
+  const others = list.slice(0, 7).map((m, k) => k === state.night ? '' : `<button class="item tap" data-act="night:${k}"><span>${m.today ? 'Today' : dlabel(m.date)}</span>
+    <span><span style="color:${band(m.readiness)}">${m.readiness ?? '—'}</span> <span class="muted">·</span> <span style="color:var(--sleep)">${m.sleepScore}</span></span></button>`).join('');
+  return `
+  <div class="b-date"><span>${n.today ? `Good morning · ${dlabel(n.date)}` : dlabel(n.date)}</span>${syncStatus('pill')}</div>
+  <div class="b-hero">${hero}</div>
+  <div class="b-lede">${lede}</div>
+  ${n.base ? `<div class="b-why">
+    ${contrib('HRV vs Baseline', `${n.hrv} ms`, (n.hrv - n.base.hrv) / n.base.hrv * 4, n.hrv >= n.base.hrv)}
+    ${contrib('Resting HR vs Baseline', `${n.rhr} bpm`, (n.base.rhr - n.rhr) / 6, n.rhr <= n.base.rhr)}
+    ${contrib('Sleep Score', n.sleepScore, (n.sleepScore - 75) / 25, n.sleepScore >= 75)}
+  </div>` : ''}
+  <div class="row card tap" data-act="sheet:sleep" style="padding:14px;margin-bottom:8px"><span>Sleep Score</span><b style="color:var(--sleep);font-size:20px">${n.sleepScore}</b></div>
+  <div class="card tap" data-act="sheet:load" style="padding:14px"><div class="row"><span>Load ${loadLabel(n)}</span><b style="color:var(--load);font-size:20px">${n.load}</b></div>
+    <div class="b-bar"><i style="left:0;width:${n.load}%;background:var(--load)"></i></div></div>
+  <div class="muted" style="font-size:13px;margin:22px 0 4px">${METRICS.map(m => `<button class="tap" data-act="sheet:m-${m.key}" style="text-decoration:underline dotted">${m.name} ${m.fmt(n[m.key])} ${m.unit}</button>`).join(' · ')}</div>
+  <div style="font-size:13px;margin:26px 0 2px" class="muted">Recent Nights · <span style="color:var(--good)">Readiness</span> · <span style="color:var(--sleep)">Sleep Score</span></div>
+  <div class="b-hist">${others}</div>`;
+}
+
+// ---------- variant C: the Night itself is the hero ----------
+function VariantC(list, n) {
+  const week = list.slice(0, 7).map((m, k) => ({ m, k })).reverse();
+  return `
+  <div class="row" style="margin-top:6px"><div style="font-size:28px;font-weight:800">${n.today ? 'Last night' : dlabel(n.date)}</div>${syncStatus('pill')}</div>
+  <div class="c-week" style="margin-top:12px">${week.map(({ m, k }) => `<button class="c-day tap ${k === state.night ? 'sel' : ''}" data-act="night:${k}">
+    ${DOW[m.date.getDay()].slice(0, 1)}<b>${m.date.getDate()}</b><span class="dot" style="background:${band(m.readiness)}"></span></button>`).join('')}</div>
+  <button class="card tap" data-act="sheet:sleep" style="display:block;width:100%;padding:14px 14px 6px">
+    <div class="row" style="margin-bottom:6px"><span><b style="font-size:20px">${dur(n.asleep)}</b> <span class="muted">asleep</span></span><span class="muted" style="font-size:12px">Heart rate</span></div>
+    ${nightChart(n, 326, 150)}
+    <div class="row muted" style="font-size:12px;padding:2px 0 6px"><span>In bed ${clock(n.bedStart)}</span><span>Up ${clock(n.bedEnd)}</span></div>
+  </button>
+  <div class="c-chips">
+    <button class="card c-chip tap" data-act="sheet:sleep"><div class="muted" style="font-size:12px">Sleep Score</div><div class="v" style="color:var(--sleep)">${n.sleepScore}</div></button>
+    <button class="card c-chip tap" data-act="sheet:readiness"><div class="muted" style="font-size:12px">Readiness</div><div class="v" style="color:${band(n.readiness)}">${n.readiness ?? `<span style="font-size:15px">${n.nightsSoFar}/4</span>`}</div></button>
+    <button class="card c-chip tap" data-act="sheet:load"><div class="muted" style="font-size:12px">Load</div><div class="v" style="color:var(--load)">${n.load}</div></button>
+  </div>
+  <div class="c-grid">${METRICS.map(m => {
+    const hist = list.slice(state.night, state.night + 7).map(x => x[m.key]).reverse();
+    return `<button class="card c-tile tap" data-act="sheet:m-${m.key}"><div class="muted" style="font-size:12px">${m.name}</div>
+      <div class="v">${m.fmt(n[m.key])} <span class="muted" style="font-size:12px;font-weight:400">${m.unit}</span></div>
+      <div class="row"><span style="font-size:11px">${m.better ? delta(n, m.key) : ''}</span>${spark(hist, 70, 22, 'var(--s-sub)')}</div></button>`;
+  }).join('')}</div>`;
+}
+
+// ---------- variant D: trends first, no single Night focus ----------
+function VariantD(list) {
+  const n = list[0], span = list.slice(0, state.range).reverse();
+  const row = (key, name, val, unit, vals, color, bandRange, sub) => `<button class="d-row tap" data-act="sheet:${key}">
+    <span><div style="font-weight:600">${name}</div><div class="muted" style="font-size:12px">${sub || unit}</div></span>
+    ${spark(vals, 120, 34, color, bandRange)}<span class="v" style="color:${color}">${val}</span></button>`;
+  const bandOf = k => n.base ? [n.base[k] * 0.93, n.base[k] * 1.07] : null;
+  return `
+  <div class="row" style="margin-top:6px"><span class="muted" style="font-size:13px">${dlabel(n.date)}</span>${syncStatus('pill')}</div>
+  <div class="d-title">Trends</div>
+  <div class="seg">${[7, 14, 30].map(r => `<button class="tap ${state.range === r ? 'on' : ''}" data-act="range:${r}">${r} Nights</button>`).join('')}</div>
+  <div class="card">
+    ${row('readiness', 'Readiness', n.readiness ?? '—', '', span.map(x => x.readiness), band(n.readiness), null, n.readiness == null ? `Calibrating · ${n.nightsSoFar}/4 Nights` : bandWord(n.readiness))}
+    ${row('sleep', 'Sleep Score', n.sleepScore, '', span.map(x => x.sleepScore), 'var(--sleep)', null, `${dur(n.asleep)} asleep`)}
+    ${row('load', 'Load', n.load, '', span.map(x => x.load), 'var(--load)', null, n.today ? 'so far today' : '')}
+  </div>
+  <div style="font-size:13px;margin:20px 4px 6px" class="muted">Nightly Metrics · shaded band is your Baseline</div>
+  <div class="card">${METRICS.map(m => row(`m-${m.key}`, m.name, m.fmt(n[m.key]), m.unit, span.map(x => x[m.key]), 'var(--s-ink)', m.better ? bandOf(m.key) : null)).join('')}</div>`;
+}
+
+// ---------- detail sheets (shared by every variant) ----------
+function sheet(key, list, n) {
+  if (key === 'sleep') return `<h2>Sleep</h2><div class="muted" style="margin-bottom:14px">${nightName(n)} · Sleep Score <b style="color:var(--sleep)">${n.sleepScore}</b></div>
+    ${nightChart(n, 350, 160)}
+    <div style="margin-top:10px">
+      <div class="kv"><span>Time in Bed</span><span>${clock(n.bedStart)} – ${clock(n.bedEnd)} · ${dur(n.bedEnd - n.bedStart)}</span></div>
+      <div class="kv"><span>Sleep Onset</span><span>${clock(n.onset)}</span></div>
+      <div class="kv"><span>Final Wake</span><span>${clock(n.wake)}</span></div>
+      <div class="kv"><span>Asleep</span><span>${dur(n.asleep)}</span></div>
+      <div class="kv"><span>Awake during the Sleep Period</span><span>${n.wakeMins} min</span></div></div>`;
+  if (key === 'readiness') {
+    if (n.readiness == null) return `<h2>Readiness</h2><div class="muted" style="margin:8px 0 14px">Calibrating · ${n.nightsSoFar} of 4 Nights</div>
+      <p>Readiness compares your Nightly Metrics with your own Baseline: your typical HRV and Resting HR. Serenix needs 4 Nights before that Baseline means anything.</p>`;
+    return `<h2>Readiness <span style="color:${band(n.readiness)}">${n.readiness}</span></h2><div class="muted" style="margin-bottom:14px">${bandWord(n.readiness)} · ${nightName(n)}</div>
+      <div class="kv"><span>HRV</span><span>${n.hrv} ms · Baseline ${Math.round(n.base.hrv)} · ${delta(n, 'hrv')}</span></div>
+      <div class="kv"><span>Resting HR</span><span>${n.rhr} bpm · Baseline ${Math.round(n.base.rhr)} · ${delta(n, 'rhr')}</span></div>
+      <div class="kv"><span>Sleep Score</span><span>${n.sleepScore}</span></div>
+      <p class="muted" style="font-size:13px">Baseline: your last ${Math.min(14, n.nightsSoFar - 1)} Nights.</p>
+      ${spark(list.slice(state.night, state.night + 14).map(x => x.readiness).reverse(), 350, 70, band(n.readiness))}`;
+  }
+  if (key === 'load') return `<h2>Load <span style="color:var(--load)">${n.load}</span></h2><div class="muted" style="margin-bottom:18px">${dlabel(n.date)} · ${n.today ? `so far, as of ${clock(NOW_MIN)}` : 'whole Day'}</div>
+    ${loadBars(n, 350, 120)}<p class="muted" style="font-size:13px">Cardiovascular exertion per hour across the Day.</p>`;
+  const m = METRICS.find(x => `m-${x.key}` === key);
+  const hist = list.slice(state.night, state.night + 14);
+  const bandRange = m.better && n.base ? [n.base[m.key] * 0.93, n.base[m.key] * 1.07] : null;
+  return `<h2>${m.name}</h2><div class="muted" style="margin-bottom:14px">${nightName(n)} · <b style="color:var(--s-ink)">${m.fmt(n[m.key])} ${m.unit}</b> ${m.better ? delta(n, m.key) : ''}</div>
+    ${spark(hist.map(x => x[m.key]).reverse(), 350, 110, 'var(--s-ink)', bandRange)}
+    <p class="muted" style="font-size:13px">Last ${hist.length} Nights${bandRange ? ' · shaded band is your Baseline' : ''}</p>
+    ${hist.slice(0, 5).map(x => `<div class="kv"><span>${x.today ? 'Last night' : dlabel(x.date)}</span><span>${m.fmt(x[m.key])} ${m.unit}</span></div>`).join('')}`;
+}
+
+// ---------- render ----------
+function render() {
+  const list = nights();
+  state.night = clamp(state.night, 0, Math.max(0, list.length - 1));
+  const n = list[state.night];
+  const V = { A: VariantA, B: VariantB, C: VariantC, D: VariantD }[state.variant];
+  document.getElementById('screen').innerHTML = n ? V(list, n) : empty();
+  document.getElementById('sheet').innerHTML = n && state.sheet
+    ? `<div class="backdrop" data-act="close"></div><div class="sheet"><div class="grab"></div>${sheet(state.sheet, list, state.variant === 'D' ? list[0] : n)}</div>` : '';
+  document.getElementById('vlabel').textContent = `${state.variant} · ${VARIANTS[state.variant]}`;
+
+  const shown = state.variant === 'D' ? list[0] : n;
+  document.getElementById('panel').innerHTML = `
+    <h3>Scenario</h3>
+    <div class="opts">${Object.entries(SCENARIOS).map(([k, v]) => `<button data-act="scenario:${k}" class="${state.scenario === k ? 'on' : ''}">${v}</button>`).join('')}</div>
+    <h3>Variant</h3>
+    <div class="opts">${Object.entries(VARIANTS).map(([k, v]) => `<button data-act="variant:${k}" class="${state.variant === k ? 'on' : ''}">${k} ${v}</button>`).join('')}</div>
+    <p>Tap anything on the phone: rings, chips, rows and the chart open detail sheets; arrows, the week strip and recent Nights change the Night shown.</p>
+    <h3>State</h3>
+    <pre>${JSON.stringify({
+      variant: `${state.variant} (${VARIANTS[state.variant]})`,
+      scenario: state.scenario,
+      nightsOnPhone: list.length,
+      sheet: state.sheet,
+      ...(state.scenario === 'syncing' ? { syncProgress: `${state.syncProgress}%` } : {}),
+      night: shown ? {
+        date: dlabel(shown.date), sleepOnset: clock(shown.onset), finalWake: clock(shown.wake),
+        timeInBed: dur(shown.bedEnd - shown.bedStart), asleep: dur(shown.asleep),
+        sleepScore: shown.sleepScore, readiness: shown.readiness ?? `Calibrating (${shown.nightsSoFar}/4)`,
+        load: shown.load, restingHR: shown.rhr, hrv: shown.hrv, resp: shown.resp, skinTemp: shown.skin, spo2: shown.spo2,
+        baseline: shown.base ? { hrv: +shown.base.hrv.toFixed(1), restingHR: +shown.base.rhr.toFixed(1) } : null,
+      } : null,
+    }, null, 2)}</pre>`;
+  const url = new URL(location.href);
+  url.searchParams.set('variant', state.variant); url.searchParams.set('scenario', state.scenario);
+  try { history.replaceState(null, '', url); } catch (e) { /* file:// in some browsers */ }
+}
+
+function startSync() {
+  clearInterval(timer);
+  state.scenario = 'syncing'; state.syncProgress = 0; state.sheet = null;
+  timer = setInterval(() => {
+    state.syncProgress = Math.min(100, state.syncProgress + 3);
+    if (state.syncProgress >= 100) { clearInterval(timer); state.scenario = 'normal'; state.night = 0; }
+    render();
+  }, 90);
+  render();
+}
+
+function cycle(dir) {
+  const keys = Object.keys(VARIANTS);
+  state.variant = keys[(keys.indexOf(state.variant) + dir + keys.length) % keys.length];
+  state.sheet = null; render();
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const [act, arg] = el.dataset.act.split(':');
+  if (act === 'prev-variant') return cycle(-1);
+  if (act === 'next-variant') return cycle(1);
+  if (act === 'variant') { state.variant = arg; state.sheet = null; }
+  if (act === 'scenario') {
+    clearInterval(timer); state.sheet = null; state.night = 0;
+    if (arg === 'syncing') return startSync();
+    state.scenario = arg;
+  }
+  if (act === 'sync') return startSync();
+  if (act === 'older') state.night++;
+  if (act === 'newer') state.night--;
+  if (act === 'night') state.night = +arg;
+  if (act === 'sheet') state.sheet = el.dataset.act.slice(6);
+  if (act === 'close') state.sheet = null;
+  if (act === 'range') state.range = +arg;
+  render();
+});
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea, [contenteditable]')) return;
+  if (e.key === 'ArrowLeft') cycle(-1);
+  if (e.key === 'ArrowRight') cycle(1);
+  if (e.key === 'Escape' && state.sheet) { state.sheet = null; render(); }
+});
+
+if (state.scenario === 'syncing') startSync(); else render();
+</script>
+</body>
+</html>
