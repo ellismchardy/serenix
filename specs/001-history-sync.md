@@ -29,11 +29,13 @@ yet ends up stored on the phone, with a debug screen that shows exactly what hap
    long is left, so that I know whether to wait.
 
 ## Behavior
-**Connecting the Strap.** On first run there is a "Connect Strap" step. Serenix scans for a Strap
-and connects. If the iPhone is already paired with the Strap (pairings belong to the phone, not
-to an app), it works straight away. Otherwise the step tells the user to put the Strap in pairing
-mode (it times out after 1–2 minutes) and iOS shows its pairing prompt. Serenix then remembers
-that Strap and reconnects to it automatically. One Strap only.
+**Connecting the Strap.** The main screen has a "Connect Strap" button; until it has been used
+once, Serenix doesn't sync on its own. Serenix scans for a Strap and connects. If the iPhone is
+already paired with the Strap (pairings belong to the phone, not to an app), it works straight
+away. Otherwise iOS shows its pairing prompt, and if subscribing fails Serenix tells the user to
+put the Strap in pairing mode (it times out after 1–2 minutes) and try again. Serenix gives up on
+finding or connecting to the Strap after 30 seconds, and the user can cancel sooner. It then
+remembers that Strap and reconnects to it automatically. One Strap only.
 
 **When a History Sync runs.** Each time Serenix comes to the foreground, and when the user taps
 "Sync now". A sync already running is not started twice.
@@ -71,11 +73,14 @@ sync (console logs, events, optical bursts, live HR) are logged and otherwise ig
 `ff`. Serenix acknowledges it, the sync completes, and the status says "Up to date".
 
 **Failures.** The sync stops and reports a reason, keeping every History Record already stored,
-when: the Strap can't be found or connected, pairing is refused, a Frame fails its CRC check,
-a per-second `0x2f` Frame can't be decoded as a History Record (for example, a firmware update
-changed its length), the Strap replies with an error status, or the Strap sends nothing for
-**10 seconds**. A Batch containing a Frame that failed its CRC check or couldn't be decoded is
-**not** acknowledged, so the Strap keeps it and re-sends it next time. Disconnecting mid-sync is the same: the unacknowledged Batch comes again.
+when: the Strap can't be found or connected, pairing is refused, a Frame fails its CRC check or
+its length doesn't match its size (a Frame cut short), a per-second `0x2f` Frame can't be
+decoded as a History Record (for example, a firmware update changed its length), the Strap
+replies with an error status, a write to the Strap fails, the Strap disconnects or Bluetooth
+turns off, the user taps Cancel, or the Strap sends nothing for **10 seconds**. A Batch
+containing a Frame that failed one of those checks or couldn't be decoded is **not**
+acknowledged, so the Strap keeps it and re-sends it next time. Disconnecting mid-sync is the
+same: the unacknowledged Batch comes again.
 The 10 seconds apply in the background too: a sync whose Strap went silent while Serenix was in
 the background shows as failed ("stopped responding") by the time the user looks.
 
@@ -90,7 +95,8 @@ N min left" rounded up to whole minutes, or "less than a minute left". Gaps in t
 Records (the Strap off the wrist) make the estimate rough, not wrong for long.
 
 **Status and debug screen.** The main screen shows the sync state (connecting / syncing with its
-progress / up to date / failed with reason) and when the last sync finished. A debug screen,
+progress / up to date / failed with reason) and when the last sync completed, with the History
+Records it received. A debug screen,
 reached from settings, shows:
 - the sync state and failure reason
 - History Records stored: count, first and last Record Counter and time, and the number of gaps
@@ -98,11 +104,14 @@ reached from settings, shows:
 - History Records received in the last sync
 - the data range the Strap last reported (`0x22`)
 - the Strap's battery level and model/firmware
-- the Sync Log: every Frame in order, with time, direction, type and hex bytes
-- a **Share log** button that hands the Sync Log to the iOS share sheet
+- the Sync Log of the current or last sync, newest 200 Frames, each with time, direction, type
+  and hex bytes
+- a **Share log** button that hands every Frame of the last 5 syncs' Sync Logs to the iOS share
+  sheet
 
-The Sync Log keeps the most recent syncs on the phone and is only ever sent when the user shares
-it.
+The phone keeps the Sync Logs of the last 5 syncs, and they are only ever sent when the user
+shares them. A sync ended outright (Serenix closed, or ended by iOS) keeps no Sync Log; its
+History Records are stored as usual.
 
 ## Design decisions
 - **`SerenixCore` — Frame codec.** Builds command Frames (header, sequence number, CRC32) and
@@ -216,16 +225,15 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - **How much history the Strap holds** before it overwrites the oldest. Not a success criterion:
   the user measures it by not syncing for several days, then checking the data range and the
   first Record Counter on the debug screen.
-- **Whether the iPhone's existing pairing works** for Serenix, or the Strap must go into pairing
-  mode. Found out the first time "Connect Strap" runs.
 - **What `0x61`, `0x45` and `0x22`'s first value mean**, and whether they're needed. Sent as
   captured; trimming them is a later experiment.
 - **Assumption:** the 10-second "Strap stopped responding" timeout. The capture shows replies
   within milliseconds; adjust if real syncs need longer.
-- **For `/plan`:** whether commands are written with or without response (read it from the
-  capture), and how many syncs the Sync Log keeps.
 
 ## Notes
+- **Settled while building:** the iPhone's existing pairing works for Serenix ("Connect Strap"
+  connected in about a second, no prompt); commands are written with response (the capture has
+  write requests and responses, no write commands); the phone keeps the last 5 syncs' Sync Logs.
 - Protocol reference: `hr-tracker/docs/protocol.md`. The sync loop (Batch start/end frames,
   where the Sync Cursor comes from, the "complete" frame, empty Batches) was worked out from
   `hr-tracker/captures/sixteen_session_2026-10-27.txt` and isn't yet in `protocol.md`.

@@ -315,8 +315,8 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         lastHeardFromStrap = nil
         syncTimer?.invalidate()
         syncTimer = nil
-        // Records received after the last acknowledgement were never acknowledged, so the Strap
-        // sends them again; drop them rather than carry them into the next sync.
+        // Anything still unsaved was never acknowledged, so the Strap sends it again; drop it
+        // rather than carry it into the next sync.
         if case .success(let store) = self.store { store.discardUnsaved() }
         refreshStoreStats()
         objectWillChange.send()
@@ -342,7 +342,7 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         }
         if let peripheral, let commandCharacteristic {
             for frame in output.framesToSend {
-                // With response, as the captured app writes (plan 001).
+                // With response, as the captured app writes (spec 001, Notes).
                 peripheral.writeValue(Data(frame), for: commandCharacteristic, type: .withResponse)
             }
         }

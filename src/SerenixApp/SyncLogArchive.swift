@@ -54,5 +54,5 @@ struct SyncLogArchive: Sendable {
     }
 }
 
-/// How many syncs' Sync Logs the phone keeps (plan 001, settled for the spec's open question).
+/// How many syncs' Sync Logs the phone keeps (spec 001).
 private let keptSyncs = 5
