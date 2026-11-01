@@ -126,7 +126,7 @@ ignored, and nothing holds a connection between syncs.
        capture.
      - `setLiveHR(false)` sends `0x03 00`.
      - The existing History Sync tests stay green.
-9. [ ] **Slice:** Live HR pill.
+9. [x] **Slice:** Live HR pill.
    - Blocked by: 6
    - Seam: Live HR pill · Files: `src/SerenixCore/LiveHRPill.swift` (new), `tests/SerenixCoreTests/LiveHRPillTests.swift` (new)
    - Done when the pill criterion passes:
