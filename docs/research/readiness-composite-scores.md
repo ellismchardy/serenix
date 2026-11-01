@@ -1,8 +1,8 @@
 # How do readiness-style composite scores combine HRV, resting HR, sleep and prior-day load relative to a personal baseline?
 
-**Date:** 2026-11-01 · **Unblocks:** the Readiness v1 formula ticket (issue #17): how Serenix
-turns HRV, Resting HR, the previous Day's Load and Time Asleep into a 0–100 Readiness, with
-Calibrating and missing-input rules
+**Date:** 2026-11-01 · **Unblocks:** the Readiness v1 formula: how HRV, Resting HR, the previous
+Day's Load and Time Asleep become a 0–100 Readiness, with Calibrating and missing-input rules
+(issue #18)
 
 ## Answer
 - **The shared method is "today against your own Baseline, per input, then combine".** The
@@ -18,15 +18,19 @@ Calibrating and missing-input rules
   Strain as a Recovery input. Polar's ANS charge weights heart rate most and breathing rate
   least, and its sleep enters as a separate "sleep charge". Oura (previous day activity,
   activity balance) and Garmin (acute load, recovery time) are the only vendors that put
-  training load directly into the score. For Serenix this points to HRV with the largest
-  weight, Resting HR and Time Asleep next, and the previous Day's Load as a small penalty term.
-- **Normalise each input as a deviation from Baseline in SD units, with the sign pointing the
-  right way.** Use ln(RMSSD) for HRV (higher is better), Resting HR inverted (lower is better)
-  and Time Asleep against the user's usual amount. For Load, the published comparison is acute
-  against chronic, from the acute:chronic workload ratio (ACWR). Use it only as a soft
-  "yesterday versus usual" signal. The ACWR literature has strong methodological critiques, and
-  its 0.8–1.3 "sweet spot" and ≥1.5 "danger zone" come from team-sport injury studies, not
-  from readiness scoring.
+  training load directly into the score. The evidence is consistent with weighting HRV most,
+  Resting HR and Time Asleep less, and the previous Day's Load least or not at all; no source
+  publishes numeric weights.
+- **The published normalisations are deviations from a personal reference, signed so that
+  "better" points one way.** The research compares HRV with the person's own mean and SD or
+  CV, usually on ln(RMSSD) (Vesterinen 2016 used raw RMSSD); higher HRV reads as better.
+  Resting HR reads the other way (lower is better). Sleep is compared with the person's own
+  usual amount (Oura, Polar); Serenix's term for how much Time Asleep the user needs is Sleep
+  Need (GLOSSARY). For Load,
+  the published comparison is acute against chronic, from the acute:chronic workload ratio
+  (ACWR). The ACWR literature has strong methodological critiques, and its 0.8–1.3 "sweet spot"
+  and ≥1.5 "danger zone" come from team-sport injury studies, not from readiness scoring, so the
+  evidence supports at most a soft "yesterday versus usual" use of Load.
 - **Warm-up: vendors either hide the score or fall back to population norms.** WHOOP falls back
   to population norms (adjusted for age, sex and fitness) until 4 consecutive Recoveries.
   Polar needs 3 nights before showing a status. Oura says it can take up to two weeks to learn
@@ -35,8 +39,8 @@ Calibrating and missing-input rules
 - **Missing inputs and bands are mostly undocumented.** WHOOP marks a day `UNSCORABLE` when
   there isn't enough data. Polar shows no status after fewer than 4 h of sleep or with gaps in
   wear. Oura and Garmin say nothing official. Published bands differ: WHOOP 67/34 (three
-  colours); Oura 85/70/60; Garmin 95/75/50/25; Polar has six verbal categories. Serenix has to
-  choose its own cut-offs (ADR 0005) and state them in the spec as literals.
+  colours); Oura 85/70/60; Garmin 95/75/50/25; Polar has six verbal categories. There is no shared
+  standard to borrow, and ADR 0005 keeps Serenix on its own scales.
 
 ## Findings
 
@@ -49,16 +53,20 @@ Calibrating and missing-input rules
   athlete trained easy or rested. ([Kiviniemi et al., Eur J Appl Physiol 2007;101(6):743–51,
   PMID 17849143](https://pubmed.ncbi.nlm.nih.gov/17849143/))
 - Later trials used the same structure with an individually set "smallest worthwhile change"
-  (SWC) band. Moderate or high-intensity sessions were done only when morning HRV sat inside the
-  SWC band. ([Vesterinen et al., Med Sci Sports Exerc 2016;48(7):1347–54, PMID
+  (SWC) band. Moderate or high-intensity sessions were done only when HRV sat inside the SWC
+  band. In Vesterinen 2016 the band was a **7-day rolling average of raw RMSSD** against
+  **mean ± 0.5 × SD** of 4 weeks of daily values, refreshed after 4 weeks; values above the band
+  were treated as abnormal as well as values below (accepted manuscript read; details in
+  [nightly-metric-deviation.md](nightly-metric-deviation.md)).
+  ([Vesterinen et al., Med Sci Sports Exerc 2016;48(7):1347–54, PMID
   26909534](https://pubmed.ncbi.nlm.nih.gov/26909534/);
   [Javaloyes et al., Int J Sports Physiol Perform 2019;14(1):23–32, PMID
-  29809080](https://pubmed.ncbi.nlm.nih.gov/29809080/)). The abstracts don't state the SWC
-  formula; see Open.
+  29809080](https://pubmed.ncbi.nlm.nih.gov/29809080/)). Javaloyes's SWC formula was not
+  confirmed; see Open.
 
 **ln(RMSSD) and rolling averages**
 - In a 77-day case comparison of two elite triathletes, the 7-day rolling average of ln(RMSSD)
-  fell steadily in the athlete who became non-functionally over-reached. The weekly coefficient
+  fell steadily in the athlete who became non-functionally overreached. The weekly coefficient
   of variation (CV) of ln(RMSSD) also fell steadily. Both measures stayed stable in the control
   athlete. ([Plews et al., Eur J Appl Physiol 2012;112(11):3729–41, PMID
   22367011](https://pubmed.ncbi.nlm.nih.gov/22367011/))
@@ -66,8 +74,8 @@ Calibrating and missing-input rules
   better than single-day values (r = .72 against r = −.06). ([Plews et al., IJSPP
   2013;8(6):688–91, doi 10.1123/ijspp.8.6.688](https://doi.org/10.1123/ijspp.8.6.688))
 - At least **3 valid measurements per week** are needed for a weekly ln(RMSSD) average to be
-  valid. ([Plews et al., IJSPP 2014;9(5):784–91, doi
-  10.1123/ijspp.2013-0455](https://doi.org/10.1123/ijspp.2013-0455))
+  valid. ([Plews et al., IJSPP 2014;9(5):783–90, PMID
+  24334285](https://pubmed.ncbi.nlm.nih.gov/24334285/))
 - Review ([Plews et al., Sports Med 2013;43(9):773–81, PMID
   23852425](https://pubmed.ncbi.nlm.nih.gov/23852425/)): HRV should be read through
   "appropriate averaging techniques" and long-term individual monitoring (an athlete's HRV
@@ -213,7 +221,7 @@ Calibrating and missing-input rules
 |---|---|---|
 | HRV | ln(RMSSD) against Baseline mean and SD (Kiviniemi: mean − 1 SD; SWC 0.5× CV) | higher = better |
 | Resting HR | against long-term average (Oura, Polar); SWC about −2% (Buchheit) | lower = better |
-| Time Asleep | against personal baseline (Oura Sleep, Polar sleep charge) | more = better, capped |
+| Time Asleep | against personal baseline (Oura Sleep, Polar sleep charge); Serenix's term for the amount needed is Sleep Need | more = better, capped |
 | previous Day's Load | acute against chronic (ACWR; Oura previous day activity; Garmin acute load) | above usual = small penalty |
 
 ## Open / uncertain
@@ -225,14 +233,15 @@ Calibrating and missing-input rules
   HRV-dominance statement and the 4-Recovery calibration come from search excerpts of
   whoop.com and support.whoop.com, so their exact current wording is unverified. The HRV
   dominance claim predates the 2020 respiratory-rate update.
-- **Exact SWC formulas** in Vesterinen 2016 and Javaloyes 2019 (commonly reported as a 7-day
-  rolling average of ln(RMSSD) against baseline mean ± 0.5 SD) were not confirmed from full
-  text. Only the abstracts were read.
+- **Javaloyes 2019's exact SWC formula** (commonly reported as a 7-day rolling average of
+  ln(RMSSD) against baseline mean ± 0.5 SD) was not confirmed; only the abstract was read.
+  Vesterinen 2016's was confirmed from the accepted manuscript (raw RMSSD, not ln; see
+  [nightly-metric-deviation.md](nightly-metric-deviation.md)).
 - **Why HRV is log-transformed** is the convention across Plews, Buchheit and Javaloyes. The
   usual reason (RMSSD is right-skewed) wasn't stated in the sections read.
 - **Missing-input handling** is undocumented for Oura and Garmin. Whether a vendor drops a
-  missing input and re-weights the rest, or refuses to score, is unknown. Serenix has to
-  decide; one option is to require HRV and re-weight the others.
+  missing input and re-weights the rest, or refuses to score, is unknown. Options include
+  requiring HRV and re-weighting the others, or not scoring the Night.
 - **Baseline windows differ widely:** 10 days (Kiviniemi), 14 days against 2–3 months (Oura),
   3 weeks (Garmin), 28 days (Polar). There is no evidence that any one window is best for
   readiness. Serenix's 14-Night Baseline is within the range in use.
@@ -240,8 +249,7 @@ Calibrating and missing-input rules
   composite against an outcome was found. The HRV-guided-training trials validate a
   single-input HRV rule, not a weighted composite.
 - **The ACWR's predictive validity is disputed** (Impellizzeri 2020). Its 0.8–1.3 and ≥1.5
-  thresholds come from team-sport injury studies and should not be carried over as Readiness
-  thresholds.
+  thresholds come from team-sport injury studies and were not derived for readiness scoring.
 - **HRV saturation:** in very fit users, low HR together with lower RMSSD can be misread as
   poor Readiness. A simple formula would not handle this.
 - **Bands are vendor-specific.** WHOOP 67/34, Oura 85/70/60, Garmin 95/75/50/25. There is no

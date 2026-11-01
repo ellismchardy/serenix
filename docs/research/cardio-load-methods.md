@@ -1,7 +1,7 @@
 # Which established methods measure cardiovascular load over a Day from heart rate alone, what inputs do they need, how do they handle all-day 1 Hz wrist HR, and how can the result map onto a 0–100 scale?
 
-**Date:** 2026-11-01 · **Unblocks:** the Load-method ticket (issue #15): which method, which 0–100
-scaling, and which Profile fields Load needs
+**Date:** 2026-11-01 · **Unblocks:** the Load method: which method, which 0–100 scaling, and which
+Profile fields Load needs (issue #16)
 
 ## Answer
 - **Banister TRIMP, summed per second, is the best-documented fit.** It is published, needs only
@@ -9,20 +9,23 @@ scaling, and which Profile fields Load needs
   (Banister, computed each second, then summed). Edwards (5 zones of %HRmax) is a simpler
   alternative. Lucia needs lab ventilatory thresholds, and Firstbeat EPOC needs proprietary
   models, so neither is usable here.
-- **Profile fields needed:** age (for an estimated max HR) and sex (Banister's weighting
-  differs by sex). Allow an optional max HR override. Resting HR does not need a Profile field:
-  Serenix already measures it nightly (Resting HR / Baseline). Use Tanaka (208 − 0.7·age) or
-  Gellish (207 − 0.7·age) for the estimate, not 220 − age. Every age-only formula is about
-  ±10 bpm (1 SD) for an individual.
-- **All-day wear needs a floor, and sleep must be excluded or clamped.** Banister's HRR
+- **Inputs beyond heart rate:** Banister needs max HR and sex (its weighting differs by sex);
+  an estimated max HR needs age. Resting HR is already measured nightly (Resting HR /
+  Baseline), so it need not come from the Profile. Polar takes max HR from user settings, so a
+  user-entered max HR is one option alongside an age estimate. Of the age formulas, 220 − age
+  has no original study behind it, while Tanaka (208 − 0.7·age) and Gellish (207 − 0.7·age) come
+  from a large meta-analysis and a longitudinal study. Every age-only formula carries roughly
+  7–12 bpm of individual error.
+- **Unfloored all-day Banister over-counts everyday HR.** Banister's HRR
   fraction goes negative below resting HR and is small but non-zero just above it. Summed over
   16 waking hours, that low-level HR can match a hard workout (worked example below). Published
   methods handle this with a cutoff: Edwards ignores HR below 50% HRmax, EPOC decays during
-  rest, and Garmin needs 10 continuous minutes at moderate intensity or above. Serenix will
-  need its own named floor constant, for example %HRR at ACSM's "moderate" lower bound.
+  rest, and Garmin needs 10 continuous minutes at moderate intensity or above. No source sets
+  a floor for all-day Banister, so any floor would be Serenix's own constant; the published
+  candidates are listed under Open.
 - **0–100 mapping:** no vendor publishes its curve. The one concrete published design is
   WHOOP's description: load accumulates linearly, the displayed number is log-scaled, and the
-  ceiling is set by "max HR for 24 hours". Serenix can build its own 0–100 the same way (for
+  ceiling is set by "max HR for 24 hours". One option is a 0–100 built the same way (for
   example `100 · ln(1 + L) / ln(1 + L_max)`, with `L_max` = TRIMP for 24 h at HRmax) without
   using WHOOP's 0–21 range or name. The other published approach is a relative scale (Polar,
   Firstbeat): today's load is shown against the user's own history.
@@ -72,9 +75,6 @@ scaling, and which Profile fields Load needs
   intensity or above, and vigorous minutes count double ([Garmin vívoactive HR manual, "Earning Intensity Minutes"](https://www8.garmin.com/manuals/webhelp/vivoactivehr/EN-US/GUID-02D2D4E7-4CEE-44C7-831C-2E5F58613B60.html)).
   This is the clearest published rule for 24-hour wrist HR: a minimum intensity plus a minimum
   duration, so everyday HR doesn't add up into load.
-- Standard intensity bands: moderate is 40–59% HRR and vigorous is 60–89% HRR (ACSM position
-  stand, [Garber et al., Med Sci Sports Exerc 43(7):1334–59, 2011](https://pubmed.ncbi.nlm.nih.gov/21694556/),
-  from memory: the abstract was not re-checked in this session).
 
 ### EPOC / Firstbeat training load (Garmin)
 - Firstbeat models EPOC from momentary intensity (%VO2max) estimated from heartbeat data:
@@ -102,30 +102,33 @@ scaling, and which Profile fields Load needs
   zone weights and whether WHOOP uses %HRR are not public. WHOOP's developer API exposes only
   the number ([cycle docs](https://developer.whoop.com/docs/developing/user-data/cycle/)).
 - WHOOP's Day Strain accumulates across the whole day, and its pages say commuting and work
-  stress raise it. **Do not copy the 0–21 range or the name** (ADR 0005).
+  stress raise it. ADR 0005 rules out WHOOP's 0–21 range and the name Strain for Serenix.
 
 ### Oura
 - Oura has no HR-based load score. Its Activity Score contributor "Training Volume" sums
   medium/high-intensity MET-minutes over 7 days, from the accelerometer. It reaches 100% at
-  2,000 MET-min/week and the score may fall below 750 ([Oura support](https://support.ouraring.com/hc/en-us/articles/360055901214)).
+  2,000 MET-min/week, and the Activity Score may start to decline below 750 MET-min/week
+  ([Oura, Activity Contributors, updated 2026-10-01](https://support.ouraring.com/hc/en-us/articles/360055901214)).
   This is a published saturating 0–100 mapping, but over a week and on MET input.
 
 ### Max-HR estimation
 | Formula | Source | Error |
 |---|---|---|
-| 220 − age | No original study. [Robergs & Landwehr, JEPonline 5(2):1–10, 2002](https://scinapse.io/papers/2526013837) trace it to about 11 compiled observations | SEE about 10–12 bpm (secondary sources). Under-predicts in older adults |
+| 220 − age | No original study. [Robergs & Landwehr, JEPonline 5(2):1–10, 2002](https://www.asep.org/asep/asep/Robergs2.pdf) trace it to observation of about 11 references | Error 7–11 bpm (Robergs & Landwehr abstract). Under-predicts in older adults (secondary sources) |
 | 208 − 0.7·age | [Tanaka, Monahan & Seals, J Am Coll Cardiol 37(1):153–6, 2001](https://pubmed.ncbi.nlm.nih.gov/11153730/). Meta-analysis of 18,712 subjects plus a lab check in 514 (209 − 0.7·age) | Same line for men and women and for all activity levels. SEE not given in the abstract (about 10 bpm in secondary reviews) |
 | 207 − 0.7·age | [Gellish et al., Med Sci Sports Exerc 39(5):822–9, 2007](https://pubmed.ncbi.nlm.nih.gov/17468581/). Longitudinal, 132 people, 908 tests | Prediction error not given in the abstract |
 | 211 − 0.64·age | [Nes et al. (HUNT), Scand J Med Sci Sports 23(6):697–704, 2013](https://pubmed.ncbi.nlm.nih.gov/22376273/). 3,320 healthy adults | SEE 10.8 bpm. Earlier equations under-predicted above age 30 |
 
-All age-only formulas have about ±10 bpm (1 SD) individual error. That error goes straight into
-%HRR and the exponential weight, so a max-HR override, or the highest observed HR, matters more
-than which formula is chosen.
+All age-only formulas have roughly 7–12 bpm individual error (Robergs & Landwehr: most age-based
+equations >10 bpm; Nes: SEE 10.8 bpm). That error goes straight into
+%HRR and the exponential weight. The formulas differ from each other by less than that error, so
+a measured max HR (user-entered, or the highest HR observed) would reduce error more than the
+choice of formula (derived from the figures above, not stated by a source).
 
 ### Wrist HR quality
 - Optical wrist sensors are "reasonably accurate at resting and prolonged elevated heart rate".
   Absolute error during activity averaged about 30% higher than at rest, and devices differed in
-  how they tracked changes in activity ([Bent et al., npj Digit Med 3:18, 2020](https://doaj.org/article/80ba2cc27bce46bf8b4662d44edc2cff)).
+  how they tracked changes in activity ([Bent et al., npj Digit Med 3:18, 2020, PMC7010823](https://pmc.ncbi.nlm.nih.gov/articles/PMC7010823/)).
   Short spikes during movement are the least reliable input, which argues for a
   minimum-duration rule.
 
@@ -134,12 +137,13 @@ For a man at 20% HRR (ordinary daytime activity), Banister gives
 0.2 · 0.64 · e^(1.92·0.2) ≈ 0.188 per minute. Over 16 waking hours that is about 180. One hour at
 80% HRR gives 0.8 · 0.64 · e^(1.536) ≈ 2.38 per minute, about 143. So without a floor, an
 ordinary day scores higher than a hard hour of exercise. Below resting HR (during sleep) the
-ratio is negative and must be clamped to zero.
+ratio is negative, so it would need clamping to zero or excluding.
 
 ## Open / uncertain
 - **Which floor to use.** No source sets a floor for continuous 24-hour Banister TRIMP. The
-  candidates are Edwards' 50% HRmax, ACSM's 40% HRR "moderate" bound, Garmin's 10-minute rule,
-  or EPOC-style decay. Choosing one needs testing against the fixture Days.
+  candidates are Edwards' 50% HRmax, Garmin's 10-minute rule, EPOC-style decay, or the lower
+  bound of a standard "moderate" intensity band. Comparing them would need testing against the
+  fixture Days.
 - **Banister's original text was not read.** The constants (0.64/1.92 and 0.86/1.67) come from
   secondary reproductions that agree with each other. Banister 1991 is a book chapter that isn't
   online.
@@ -155,5 +159,7 @@ ratio is negative and must be clamped to zero.
 - **Sex as an input.** Banister's weighting needs binary sex. Edwards and Tanaka do not. The
   Profile currently holds only a name, so adding sex and age (or date of birth) is a Profile
   decision with privacy implications to settle in the spec.
-- **Garber 2011 bands** were cited from memory, not re-checked against the abstract in this
-  session.
+- **ACSM %HRR intensity bands not verified.** The ACSM position stand ([Garber et al., Med Sci
+  Sports Exerc 43(7):1334–59, 2011, PMID 21694556](https://pubmed.ncbi.nlm.nih.gov/21694556/))
+  is often quoted as defining moderate and vigorous by %HRR, but its abstract gives no
+  percentages and the full text was paywalled (HTTP 402), so no %HRR bounds are cited here.

@@ -81,12 +81,13 @@ inside it.
 _Avoid_: sleep duration, total sleep
 
 **Sleep Need**:
-How much Time Asleep the user needs on a given night: their usual need plus extra to repay
-Sleep Debt, and possibly more after a high-Load Day.
+How much Time Asleep the user needs on a given night: the Time Asleep they typically need, plus
+extra to repay Sleep Debt.
 _Avoid_: sleep goal, sleep target
 
 **Sleep Debt**:
-How far the user's Time Asleep has fallen short of their Sleep Need over recent Nights, added up.
+How far the user's Time Asleep has fallen short of the Time Asleep they typically need over
+recent Nights, added up.
 _Avoid_: sleep deficit, sleep owed
 
 **Night**:

@@ -1,5 +1,7 @@
 # How do trackers and the literature decide a Nightly Metric is unusual *for this person*?
-**Date:** 2026-11-01 · **Unblocks:** the Zone-rule ticket (per-metric rule type, direction, warm-up length) — issue #13
+
+**Date:** 2026-11-01 · **Unblocks:** the Zone rule: per-metric rule type, direction and warm-up length
+(issue #14)
 
 ## Answer
 - **HRV: spread-scaled, both directions, on a smoothed value.** The HRV-guided training literature compares a
@@ -27,8 +29,10 @@
 - **High HRV / low Resting HR as a warning:** contested. Functional overreaching can *raise*
   weekly-averaged HRV and lower Resting HR (Le Meur 2013; meta-analysis SMD 0.81 for weekly HRV). So
   Vesterinen, Garmin and Oura treat "above range" as abnormal. Buchheit says that HRV saturation on its
-  own is not a sign of fatigue. A **two-sided HRV band with a softer label for the high side** and an
-  **upward-only Resting HR warning** match the evidence best.
+  own is not a sign of fatigue. The evidence is stronger for a low HRV than a high one, and stronger for
+  a raised Resting HR than a lowered one (only Oura flags a large drop). Options the evidence supports
+  include a two-sided HRV band, with or without a softer label for the high side, and a Resting HR rule
+  that warns upward only or in both directions.
 
 ## Findings
 
@@ -42,8 +46,10 @@
   a possible sign of overreaching. Their reasoning: "it is unknown whether HRV should be expected to
   increase or decrease" in overreaching, so the rule needs upper and lower limits. They also warn that
   the baseline should not be recorded during illness or heavy stress.
-  ([MSSE 48(7):1347–54, accepted manuscript](https://jyx.jyu.fi/bitstream/handle/123456789/50625/vesterinenetalindividualendurancemsse.pdf?sequence=1);
-  [PMID 26909534](https://pubmed.ncbi.nlm.nih.gov/?term=Vesterinen+2016+individual+endurance+training+prescription+heart+rate+variability))
+  Read in the authors' accepted manuscript, Methods and Discussion; the HRV variable is **raw RMSSD**,
+  not ln.
+  ([MSSE 48(7):1347–54, PMID 26909534](https://pubmed.ncbi.nlm.nih.gov/26909534/);
+  [accepted manuscript, Univ. of Jyväskylä repository](https://jyx.jyu.fi/bitstream/handle/123456789/50625/vesterinenetalindividualendurancemsse.pdf?sequence=1))
 - Plews et al. 2014: averaging lnRMSSD over a week stops improving after **3–4 days**. They recommend at
   least 3 valid data points per week.
   ([IJSPP 9(5):783–90, PMID 24334285](https://pubmed.ncbi.nlm.nih.gov/24334285/))
@@ -55,7 +61,7 @@
   [Plews PhD thesis, AUT 2014](https://openrepository.aut.ac.nz/items/d7b41d29-e92e-4acf-90ea-ed68d84d6c73/full))
 - Plews et al. 2013 review: "HRV saturation" in elite athletes means HRV falls *despite* a lower
   Resting HR. They also argue for averaging techniques and for long-term monitoring of each person.
-  ([Sports Med 43(9):773–81, PMID 23852425](https://pubmed.ncbi.nlm.nih.gov/?term=Plews+Laursen+Stanley+Kilding+Buchheit+2013+training+adaptation+heart+rate+variability+opening+the+door))
+  ([Sports Med 43(9):773–81, PMID 23852425](https://pubmed.ncbi.nlm.nih.gov/23852425/))
 - Buchheit 2014 review:
   - Authors set the SWC at 0.5 × or 1 × the individual CV. He prefers the individual's own CV.
   - Typical error is about **10% for resting HR** and **~12% for lnRMSSD**. Day-to-day CV of lnRMSSD is
@@ -76,7 +82,7 @@
   - **Weekly-averaged** HRV rose meaningfully (SMD 0.81). Isolated values did not (SMD −0.45, not
     significant).
 
-  ([Scand J Med Sci Sports 31(6):1164–82, doi 10.1111/sms.13932](https://lida.sport-iat.de/ta/Record/4070230))
+  ([Scand J Med Sci Sports 31(6):1164–82, PMID 33533045](https://pubmed.ncbi.nlm.nih.gov/33533045/))
 
 ### Research literature: Resting HR, respiratory rate, temperature (illness detection)
 - Alavi et al. 2022, the NightSignal method:
@@ -88,9 +94,12 @@
     the 95th-percentile alarm threshold. CuSum caught fewer cases (54% vs 78% in the preprint).
 
   ([Nat Med 28:175–84, PMC8799466](https://pmc.ncbi.nlm.nih.gov/articles/PMC8799466/))
-- Mishra et al. 2020: the RHR-Diff method flags elevated Resting HR against a baseline built from a
-  **28-day sliding window**. ([Nat Biomed Eng, doi 10.1038/s41551-020-00640-6](https://communities.springernature.com/posts/early-detection-of-covid-19-at-scale-using-wearables)
-  — authors' summary; full methods not read)
+- Mishra et al. 2020: the RHR-Diff method standardizes resting HR, hour by hour, against the average
+  daily curve from a **28-day sliding window**, then flags elevated intervals on the standardized
+  residuals at a 0.05 significance level, dropping intervals shorter than 24 h. So it is spread-scaled,
+  not a fixed bpm offset.
+  ([Nat Biomed Eng 4(12):1208–20, PMID 33208926](https://pubmed.ncbi.nlm.nih.gov/33208926/);
+  methods read in the [author manuscript, PMC9020268](https://pmc.ncbi.nlm.nih.gov/articles/PMC9020268/))
 - Miller et al. 2020 (WHOOP authors):
   - Respiratory rate during sleep was compared with the **median of a 14-night window lagged 7 nights**.
     The lag stops an illness from raising its own baseline.
@@ -100,7 +109,7 @@
   ([PLOS ONE 15(12):e0243693, PMC7728254](https://pmc.ncbi.nlm.nih.gov/articles/PMC7728254/))
 - Smarr et al. 2020 / Mason et al. 2022 (Oura, TemPredict): illness-linked rises in temperature measured
   at the finger can be seen as deviations from each person's own baseline. The abstracts give no
-  threshold. ([Sci Rep 10, doi 10.1038/s41598-020-78355-6](https://doaj.org/article/c15911431d0a4bc197481bc689891c60);
+  threshold. ([Sci Rep 10:21640, PMID 33318528](https://pubmed.ncbi.nlm.nih.gov/33318528/);
   [Sci Rep 12:3463, PMC8891385](https://pmc.ncbi.nlm.nih.gov/articles/PMC8891385))
 
 ### Vendors (public docs; formulas are not published)
@@ -164,5 +173,4 @@
   None reports the error of the spread estimate at shorter warm-ups.
 - **Skin-temperature threshold:** none published (Oura, WHOOP, TemPredict abstracts). The full TemPredict
   methods were not read.
-- Mishra 2020 and Plews 2012/2013 full texts were not read directly. Their claims come from abstracts and
-  author summaries.
+- Plews 2012/2013 full texts were not read directly. Their claims come from the abstracts.
