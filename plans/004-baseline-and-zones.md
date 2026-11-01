@@ -57,7 +57,7 @@ gives the typical Spread the spec's examples assume.
      `restingHRZoneAgainstABaselineOf52`)
    - Done when: criterion "Resting HR against Baseline 52: 54.9 … 40 is In range"; skin
      temperature and SpO2 Zone tests still pass unchanged.
-5. [ ] **Slice:** Scaled MAD Spread — with ≥ 7 earlier Nights (all with a value, not only the 14
+5. [x] **Slice:** Scaled MAD Spread — with ≥ 7 earlier Nights (all with a value, not only the 14
    used), Spread = 1.4826 × median |x − median| over the same up-to-14 Nights, HRV on ln, floored
    (HRV 0.10, respiratory rate 0.3); 3–6 Nights keep the typical value.
    - Seam: Today view · Files: `Baseline.swift`, `TodayViewTests.swift` (new tests)
@@ -71,13 +71,15 @@ gives the typical Spread the spec's examples assume.
    - Seam: Today view · Files: `Zone.swift`, `MetricTile.swift` (only if `statusWord` needs a
      change), `TodayViewTests.swift` (rewrite `tileStatusWordAgainstExactBaselines` and the gauge
      test)
-   - Done when: the status-word and gauge-position criteria pass.
+   - Done when: the status-word and gauge-position criteria pass, and the 14-Night window test
+     (`respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights`) also checks the gauge.
 7. [ ] **Slice:** Popup In range band — HRV exp(ln B − 1.5S)…exp(ln B + 2.5S); respiratory rate
    B ± 1.5S; Resting HR none…B + 3; skin temperature B ± 0.3; SpO2 none.
    - Seam: Today view · Files: `Zone.swift`, `TodayViewTests.swift` (rewrite
      `metricPopupShowsTheBaselineAndItsInRangeLimits`; add the MAD band 13.11–14.89 and the HRV
      ln band 40.00–117.93 checks)
-   - Done when: the band criterion and the band parts of the MAD and ln-Spread criteria pass.
+   - Done when: the band criterion and the band parts of the MAD, ln-Spread and 14-Night window
+     criteria pass.
 8. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build` green, and the CI macOS job builds; every automated criterion in 004 ticked;
    the manual phone step (tile Zone, status word and gauge match the Today view on real Nights)

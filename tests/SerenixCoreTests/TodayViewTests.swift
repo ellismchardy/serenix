@@ -659,6 +659,107 @@ func spo2ZoneIsSetByFixedLevelsFromTheFirstNight(spo2: Double, zone: Zone) {
     #expect(outOfRange?.baseline == 60)
 }
 
+// MARK: Spread (through the Zone)
+
+/// The Zone of 1 Nov's respiratory rate against the given earlier Nights (newest first).
+private func respiratoryRateZone(_ value: Double, after earlier: [Double?]) -> Zone? {
+    todayView(
+        nights: nightsBeforeNov1(respiratoryRate: earlier)
+            + [Night(day: nov1, respiratoryRate: value)],
+        showing: nov1
+    ).tile(.respiratoryRate)?.zone
+}
+
+/// The Zone of 1 Nov's HRV against the given earlier Nights (newest first).
+private func hrvZone(_ value: Double, after earlier: [Double?]) -> Zone? {
+    todayView(
+        nights: nightsBeforeNov1(hrv: earlier) + [Night(day: nov1, hrv: value)],
+        showing: nov1
+    ).tile(.hrv)?.zone
+}
+
+// Values from spec 004. Six earlier Nights of 14.0: the typical Spread 0.5 applies, so
+// z = 0.8 / 0.5 = 1.6, Watch. Seven: the scaled MAD is 0, floored to 0.3, so z = 0.8 / 0.3 = 2.67,
+// Out of range.
+@Test func respiratoryRateUsesTheTypicalSpreadUntilSevenEarlierNightsThenItsFloor() {
+    #expect(respiratoryRateZone(14.8, after: Array(repeating: 14.0, count: 6)) == .watch)
+    #expect(respiratoryRateZone(14.8, after: Array(repeating: 14.0, count: 7)) == .outOfRange)
+}
+
+// Values from spec 004. Earlier Nights 14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0: median 14.0;
+// |value − 14.0| sorted is 0, 0, 0, 0.4, 0.4, 0.8, 0.8, median 0.4, so Spread = 1.4826 × 0.4 =
+// 0.59304. In range while |d| ≤ 1.5 × 0.59304 = 0.88956 (13.11044 to 14.88956), Watch while
+// |d| ≤ 2.5 × 0.59304 = 1.4826 (12.5174 to 15.4826), Out of range beyond.
+@Test(
+    arguments: [
+        (14.88, .inRange), (13.12, .inRange), (14.9, .watch), (13.11, .watch),
+        (15.48, .watch), (15.49, .outOfRange), (12.5, .outOfRange),
+    ] as [(Double, Zone)]
+)
+func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
+    respiratoryRate: Double,
+    zone: Zone
+) {
+    let earlier: [Double?] = [14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0]
+    let tile = todayView(
+        nights: nightsBeforeNov1(respiratoryRate: earlier)
+            + [Night(day: nov1, respiratoryRate: respiratoryRate)],
+        showing: nov1
+    ).tile(.respiratoryRate)
+
+    #expect(tile?.baseline == 14.0)
+    #expect(tile?.zone == zone)
+}
+
+// Values from spec 004. ln(50 / 60) = −0.18232. Seven earlier Nights of 60: the MAD is 0, floored
+// to 0.10, so z = −1.82, Watch. Three: the typical 0.15 applies, so z = −1.22, In range.
+// 54 against seven: ln(54 / 60) / 0.10 = −1.05, In range.
+@Test func hrvSpreadIsFlooredAt010OnceSevenEarlierNightsHaveIt() {
+    #expect(hrvZone(50, after: Array(repeating: 60, count: 7)) == .watch)
+    #expect(hrvZone(50, after: Array(repeating: 60, count: 3)) == .inRange)
+    #expect(hrvZone(54, after: Array(repeating: 60, count: 7)) == .inRange)
+}
+
+// Values from spec 004. Earlier Nights 40, 50, 60, 60, 60, 72, 90: median 60; |ln(v / 60)| sorted
+// is 0, 0, 0, ln 1.2, ln 1.2, ln 1.5, ln 1.5, median ln 1.2 = 0.18232, so Spread = 1.4826 × ln 1.2 =
+// 0.27031. The low In range edge is exp(ln 60 − 1.5 × 0.27031) ≈ 40.00 ms: 40.1 gives z = −1.49,
+// In range; 39.9 gives z = −1.51, Watch. (On raw ms, or with the typical 0.15, both would be
+// Out of range.)
+@Test func hrvSpreadIsTheScaledMADOfLnRMSSD() {
+    let earlier: [Double?] = [40, 50, 60, 60, 60, 72, 90]
+    let tile = { (hrv: Double) in
+        todayView(
+            nights: nightsBeforeNov1(hrv: earlier) + [Night(day: nov1, hrv: hrv)],
+            showing: nov1
+        ).tile(.hrv)
+    }
+
+    #expect(tile(40.1)?.baseline == 60)
+    #expect(tile(40.1)?.zone == .inRange)
+    #expect(tile(39.9)?.zone == .watch)
+}
+
+// Spec 004: the Spread uses the same up-to-14 Nights as the median. The 14 newest earlier Nights
+// are eight of 14.0, three of 13.0 and three of 15.0: median 14.0; deviations eight 0 and six 1.0,
+// median 0, so the Spread is floored to 0.3. 14.2 gives z = 0.67 (In range), 14.5 gives 1.67
+// (Watch), 14.8 gives 2.67 (Out of range).
+// The six oldest are three of 12.0 and three of 16.0. Over all 20 the median is still 14.0 but the
+// deviations become eight 0, six 1.0, six 2.0, median 1.0, so the Spread would be 1.4826 and all
+// three values would be In range. Adding them must change no Zone.
+@Test(arguments: [(14.2, .inRange), (14.5, .watch), (14.8, .outOfRange)] as [(Double, Zone)])
+func respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights(
+    respiratoryRate: Double,
+    zone: Zone
+) {
+    let fourteenNewest: [Double?] = [
+        14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 14.0, 14.0, 14.0, 14.0,
+    ]
+    let sixOldest: [Double?] = [12.0, 16.0, 12.0, 16.0, 12.0, 16.0]
+
+    #expect(respiratoryRateZone(respiratoryRate, after: fourteenNewest) == zone)
+    #expect(respiratoryRateZone(respiratoryRate, after: fourteenNewest + sixOldest) == zone)
+}
+
 // MARK: Tile text
 
 @Test func restingHRDifferenceIsInWholeSignedBpm() {
