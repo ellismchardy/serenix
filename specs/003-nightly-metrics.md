@@ -1,6 +1,6 @@
 # 003 — Nightly Metrics
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-01 (Night rebuilds added during the build)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
@@ -126,33 +126,33 @@ pruning, and the Today screen showing them, which are checked by hand on the pho
 ## Success criteria (must be checkable)
 Expected values are hr-tracker's output on the same records, committed as literals.
 
-- [ ] The 29–30 Oct 2026 fixture night (Europe/London) makes exactly one Night, dated 30 Oct,
+- [x] The 29–30 Oct 2026 fixture night (Europe/London) makes exactly one Night, dated 30 Oct,
       with Sleep Onset 21:05, Final Wake 03:42, Time in Bed 20:57–04:00 and Time Asleep 5h52.
-- [ ] On that Night: Resting HR 48.1 bpm, HRV 85.4 ms, respiratory rate 12.2 br/min, skin
+- [x] On that Night: Resting HR 48.1 bpm, HRV 85.4 ms, respiratory rate 12.2 br/min, skin
       temperature 32.59 °C and SpO2 98.6%, each within ±0.05 of hr-tracker's unrounded value.
-- [ ] The same records in a different order, or with duplicate History Records, give the same
+- [x] The same records in a different order, or with duplicate History Records, give the same
       Night.
-- [ ] Records split across two night windows give one Night per window that has a Sleep Period,
+- [x] Records split across two night windows give one Night per window that has a Sleep Period,
       each dated by its Final Wake's local date.
-- [ ] Two windows whose Nights share a date give one Night: the one with more Time Asleep.
-- [ ] A window whose longest run of sleep minutes is 6 makes no Night; 7 makes one.
-- [ ] A window with no records, or only minutes with fewer than 30 records, makes no Night.
-- [ ] The fixture night with every SpO2 Window removed has SpO2 missing and the other four
+- [x] Two windows whose Nights share a date give one Night: the one with more Time Asleep.
+- [x] A window whose longest run of sleep minutes is 6 makes no Night; 7 makes one.
+- [x] A window with no records, or only minutes with fewer than 30 records, makes no Night.
+- [x] The fixture night with every SpO2 Window removed has SpO2 missing and the other four
       Nightly Metrics unchanged.
-- [ ] The fixture night with every RR interval removed has HRV and respiratory rate missing and
+- [x] The fixture night with every RR interval removed has HRV and respiratory rate missing and
       Resting HR, skin temperature and SpO2 unchanged.
-- [ ] Two sleep runs 59 minutes of wake apart make one Sleep Period; 60 minutes apart make two,
+- [x] Two sleep runs 59 minutes of wake apart make one Sleep Period; 60 minutes apart make two,
       and the one with more sleep minutes is the Night's.
-- [ ] Night rebuilds: History Records at 01:00 and 07:00 on 15 Nov 2026 (Europe/London) queue
+- [x] Night rebuilds: History Records at 01:00 and 07:00 on 15 Nov 2026 (Europe/London) queue
       14 Nov (reading 13 Nov 12:00 to 15 Nov 12:00) and 15 Nov (14 Nov 12:00 to 16 Nov 12:00);
       adding one at 14:00 also queues 16 Nov; repeats and order change nothing; no times queue
       nothing.
-- [ ] Night rebuilds: with now 30 Nov 2026 12:00, a record at 31 Oct 13:00 queues only 1 Nov
+- [x] Night rebuilds: with now 30 Nov 2026 12:00, a record at 31 Oct 13:00 queues only 1 Nov
       (its History Records start exactly 30 days earlier); 31 Oct and a 1970 time are skipped. A
       queued 1 Nov is no longer due one minute after 30 Nov 12:00.
-- [ ] Night rebuilds: with now 15 Nov 2026 11:00, a record at 16 Nov 01:00 queues 15 Nov but not
+- [x] Night rebuilds: with now 15 Nov 2026 11:00, a record at 16 Nov 01:00 queues 15 Nov but not
       16 Nov (its History Records start after now).
-- [ ] Night rebuilds: a record at 28 Mar 2027 03:00 UTC (the morning the clocks go forward)
+- [x] Night rebuilds: a record at 28 Mar 2027 03:00 UTC (the morning the clocks go forward)
       queues 28 Mar reading 27 Mar 12:00 UTC to 29 Mar 11:00 UTC.
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.

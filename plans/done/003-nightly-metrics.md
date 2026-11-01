@@ -109,7 +109,7 @@ Assumptions (consistent with the spec, stated for review):
      `src/SerenixApp/SampleNights.swift` (removed)
    - Done when: the Night rebuilds tests pass; macOS CI builds the app; the PR lists the phone
      steps for the three by-hand criteria, including syncing twice in one morning.
-8. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+8. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build` green; CI green; every spec success criterion checked, the by-hand ones on the
    phone.
 
