@@ -102,10 +102,49 @@ Assumptions (consistent with the spec, stated so review can check them):
    - Done when: `swift build` and the CI macOS job are green. The manual steps are in the PR
      checklist: turn the switch on, step through the sample Days, open each popup and check
      the spec's manual criteria, then turn it off and see "No Night yet" again.
-9. [ ] **Verify:** full suite + lint + typecheck green, CI macOS build green; every automated
+9. [x] **Verify:** full suite + lint + typecheck green, CI macOS build green; every automated
    success criterion in the spec ticked; the manual phone steps (including 001's and the sample
    Nights walk-through) listed for the PR.
    - Blocked by: 8
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
+
+## Manual phone steps (for the PR checklist)
+On the iPhone with the sideloaded CI build. Spec 002's manual criteria, then 001's, now reached
+from the Today screen and the profile menu.
+
+**Sample Nights walk-through** (Profile → Debug → "Show sample Nights" on):
+- [ ] Today shows Readiness 82 "Ready" in green, Sleep Score and Load rings, vs your Baseline with
+      HRV and Resting HR bars both green, and six tiles all green under "Last night".
+- [ ] ‹ steps back a Day at a time: yesterday is "Steady" with every tile amber; the Day before
+      is "Take it easy" with every tile red; 3 Days back has SpO2 "—" with no colour; 4 Days back
+      has Load "—"; 5 Days back says "No Night recorded" with its Load; the oldest three Nights
+      show Readiness "n/4" and the Calibrating line. ‹ is disabled on the oldest Night, › on
+      today.
+- [ ] Tapping the Readiness ring, the Sleep Score ring, the Time Asleep tile and each metric
+      tile opens the right popup; a tap outside or a swipe down closes it; the Load ring does
+      nothing. On a Calibrating Night the Readiness popup shows only the explanation.
+- [ ] The Readiness ring and its word share the band colour; tile values and lines are green,
+      amber or red by Zone; a Calibrating metric is white with "Calibrating".
+- [ ] Turning the switch off goes back to today with "No Night yet". It is off again after
+      relaunching Serenix.
+- [ ] Check the app's accent colour (Sleep Score and Load rings) isn't green, amber or red, and
+      that "Resting HR" fits in vs your Baseline at a large text size.
+
+**Sync pill and profile menu:**
+- [ ] On first launch the pill reads "Not synced"; tapping it connects to the Strap and syncs
+      (this replaces 001's "Connect Strap").
+- [ ] During a sync the pill reads "Syncing" with 001's progress bar and time left under it, and
+      Cancel stops it; afterwards it reads "Synced HH:mm".
+- [ ] A failed sync's pill reads "Sync failed"; tapping it shows the reason and Retry restarts it.
+- [ ] The profile icon opens the menu with the Strap's model (note what it reports; the spec
+      expects "Whoop 5.0"), "Connected" once paired, battery and last sync in 24-hour time;
+      Sync now starts a sync and reads "Retry sync" after a failure; Debug opens 001's debug
+      screen; the footer shows version, "MIT licensed" and "Not affiliated with WHOOP, Inc.";
+      Done closes it.
+- [ ] Leaving Serenix in the background overnight and reopening it shows today.
+
+**001's manual checks**, with the Today screen in place of the main screen: run every manual
+criterion in `specs/001-history-sync.md` again, using the sync pill for "Connect Strap" / "Sync
+now" and Profile → Debug for the debug screen (History Records received is now only there).

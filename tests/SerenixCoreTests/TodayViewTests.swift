@@ -66,12 +66,14 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
 // MARK: Which Day is shown
 
 @Test func arrowsStepByDayFromTodayBackToTheEarliestNight() {
-    let nights = [Night(day: oct30), Night(day: nov1)]
+    // A distinct Sleep Score on each Night, so showing the wrong one would fail.
+    let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
 
     let today = todayView(nights: nights, showing: nov1)
     #expect(today.title == "Today")
     #expect(today.subtitle == "Sun 1 Nov")
     #expect(today.noNightMessage == nil)
+    #expect(today.sleepScoreText == "84")
     #expect(today.earlierDay == oct31)
     #expect(today.laterDay == nil)
 
@@ -87,13 +89,26 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     let twoEarlier = todayView(nights: nights, showing: oct30)
     #expect(twoEarlier.title == "Fri 30 Oct")
     #expect(twoEarlier.noNightMessage == nil)
+    #expect(twoEarlier.sleepScoreText == "71")
     #expect(twoEarlier.loadText == "9")
     #expect(twoEarlier.earlierDay == nil)
     #expect(twoEarlier.laterDay == oct31)
 }
 
 @Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoadSoFar() {
-    let view = todayView(nights: [Night(day: oct31)], showing: nov1)
+    // Yesterday's Night has every value, so any of them leaking onto today would show.
+    let yesterday = Night(
+        day: oct31,
+        sleepScore: 84,
+        readiness: 80,
+        restingHR: 50,
+        hrv: 62,
+        respiratoryRate: 14.1,
+        skinTemperature: 34.0,
+        spo2: 97,
+        timeAsleep: 27_600
+    )
+    let view = todayView(nights: [yesterday], showing: nov1)
 
     #expect(view.title == "Today")
     #expect(view.noNightMessage == "No Night yet")
@@ -101,6 +116,12 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     #expect(view.loadText == "5")
     #expect(view.earlierDay == oct31)
     #expect(view.laterDay == nil)
+    #expect(view.sleepScoreText == "—")
+    #expect(view.readinessText == "—")
+    #expect(view.readinessBand == nil)
+    #expect(view.tiles.isEmpty)
+    #expect(view.timeAsleepTile == nil)
+    #expect(view.vsBaseline == nil)
 }
 
 @Test func withNoNightsBothArrowsAreDisabledOnToday() {

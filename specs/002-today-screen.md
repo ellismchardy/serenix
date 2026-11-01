@@ -1,6 +1,6 @@
 # 002 — Today screen
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-01
 
 ## Problem
@@ -183,46 +183,46 @@ other metrics are whole numbers.
 
 ## Success criteria (must be checkable)
 Automated (`swift test`, on Windows and in CI). Expected values are literals worked out by hand:
-- [ ] With Nights dated 30 Oct and 1 Nov and the current time 1 Nov 08:12, the view shows the
+- [x] With Nights dated 30 Oct and 1 Nov and the current time 1 Nov 08:12, the view shows the
       1 Nov Night under "Today" with › disabled; one step earlier shows 31 Oct as "No Night
       recorded" with that Day's Load; one more shows 30 Oct's Night with ‹ disabled.
-- [ ] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
+- [x] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
       Day's values.
-- [ ] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
-- [ ] Baseline for HRV over earlier values 50, 70, 60, 58 is 59 (even-count median); over 50,
+- [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
+- [x] Baseline for HRV over earlier values 50, 70, 60, 58 is 59 (even-count median); over 50,
       70, 60 it is 60.
-- [ ] Baseline uses at most the 14 most recent earlier Nights: with 20 earlier Nights, the 6
+- [x] Baseline uses at most the 14 most recent earlier Nights: with 20 earlier Nights, the 6
       oldest change nothing.
-- [ ] The Night shown is not in its own Baseline: changing its HRV changes its Zone but not its
+- [x] The Night shown is not in its own Baseline: changing its HRV changes its Zone but not its
       Baseline.
-- [ ] An earlier Night's Baseline comes from Nights before it only: adding a newer Night leaves
+- [x] An earlier Night's Baseline comes from Nights before it only: adding a newer Night leaves
       it unchanged.
-- [ ] A metric with 2 earlier Nights is Calibrating ("Calibrating", no Zone); with 3, it has a
+- [x] A metric with 2 earlier Nights is Calibrating ("Calibrating", no Zone); with 3, it has a
       Baseline.
-- [ ] Earlier Nights missing a metric are skipped for that metric's Baseline and trend line, and
+- [x] Earlier Nights missing a metric are skipped for that metric's Baseline and trend line, and
       don't count towards its 3.
-- [ ] HRV against Baseline 60: 57 (−5%) is In range, 56.9 is Watch, 51 (−15%) is Watch, 50.9 is
+- [x] HRV against Baseline 60: 57 (−5%) is In range, 56.9 is Watch, 51 (−15%) is Watch, 50.9 is
       Out of range, 90 is In range.
-- [ ] Resting HR against Baseline 52: 53 is In range, 53.1 is Watch, 56 is Watch, 56.1 is Out of
+- [x] Resting HR against Baseline 52: 53 is In range, 53.1 is Watch, 56 is Watch, 56.1 is Out of
       range, 45 is In range.
-- [ ] Respiratory rate against Baseline 14.0: 14.5 and 13.5 are In range, 15.0 is Watch, 15.1
+- [x] Respiratory rate against Baseline 14.0: 14.5 and 13.5 are In range, 15.0 is Watch, 15.1
       and 12.9 are Out of range.
-- [ ] Skin temperature against Baseline 34.0: 34.3 is In range, 33.6 is Watch, 34.7 is Out of
+- [x] Skin temperature against Baseline 34.0: 34.3 is In range, 33.6 is Watch, 34.7 is Out of
       range.
-- [ ] SpO2: 95 is In range, 94 and 92 are Watch, 91 is Out of range, including on a Night with
+- [x] SpO2: 95 is In range, 94 and 92 are Watch, 91 is Out of range, including on a Night with
       no earlier Nights.
-- [ ] Differences format as "+14%" for HRV, "−3 bpm" for Resting HR, and "+0.4" for respiratory
+- [x] Differences format as "+14%" for HRV, "−3 bpm" for Resting HR, and "+0.4" for respiratory
       rate and skin temperature; the SpO2 tile reads "95% or above", "Below 95%" or "Below 92%".
-- [ ] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.
-- [ ] Load on today is labelled "Load so far"; on an earlier Day, "Load".
-- [ ] When either Baseline is Calibrating, vs your Baseline is the single Calibrating line with
+- [x] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.
+- [x] Load on today is labelled "Load so far"; on an earlier Day, "Load".
+- [x] When either Baseline is Calibrating, vs your Baseline is the single Calibrating line with
       the right "N to go".
-- [ ] Each tile's trend line holds the 7 most recent Nights up to the Night shown, oldest first,
+- [x] Each tile's trend line holds the 7 most recent Nights up to the Night shown, oldest first,
       without missing values.
-- [ ] The Sleep popup's minutes awake equal Final Wake − Sleep Onset − Time Asleep.
-- [ ] The Nightly Metric popup holds the Night shown and up to 13 earlier Nights, plus the
+- [x] The Sleep popup's minutes awake equal Final Wake − Sleep Onset − Time Asleep.
+- [x] The Nightly Metric popup holds the Night shown and up to 13 earlier Nights, plus the
       Baseline and In range limits (none for SpO2).
-- [ ] The sync pill reads "Connecting…", "Syncing", "Synced 08:10" or "Sync failed" for each
+- [x] The sync pill reads "Connecting…", "Syncing", "Synced 08:10" or "Sync failed" for each
       History Sync state, and carries the failure reason.
 
 Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
