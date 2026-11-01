@@ -135,3 +135,128 @@ public struct MetricPopupEntry: Equatable, Sendable {
     /// As on the tile, e.g. "62 ms".
     public let valueText: String
 }
+
+/// The Load popup (spec 006): the Day's Load against typical Load, its time in each HR Zone, hour
+/// by hour, its Highest HR and the Max HR used, and on today the Live HR pill.
+public struct LoadPopup: Equatable, Sendable {
+    /// e.g. "Sun 1 Nov".
+    public let dateText: String
+    /// As on the ring.
+    public let loadText: String
+    /// "As of your last sync at 08:12" on today; nil on an earlier Day or before any sync.
+    public let lastSyncText: String?
+    /// e.g. "Typical: 45 · today +12", or "Typical Load after 4 Days (3 so far)".
+    public let typicalText: String
+    /// Today only.
+    public let showsLiveHR: Bool
+    /// Why there are no HR Zones, Highest HR or Max HR used; nil when they're there.
+    public let note: String?
+    /// HR Zone 1 to 5; none when there's a note.
+    public let zoneRows: [LoadPopupZoneRow]
+    /// The Day's seconds in each HR Zone, hour by hour from local midnight; none when there's a
+    /// note.
+    public let hourlyZoneSeconds: [[HRZone: Int]]
+    /// e.g. "Highest HR 172 bpm at 18:40"; nil when there's a note.
+    public let highestHRText: String?
+    /// e.g. "Using Max HR 190 (entered)"; nil when there's a note.
+    public let maxHRText: String?
+
+    init(
+        _ dayLoad: DayLoad?,
+        loadText: String,
+        for day: Day,
+        isToday: Bool,
+        among dayLoads: [DayLoad],
+        lastSyncEnded: Date?,
+        timeZone: TimeZone
+    ) {
+        let load = dayLoad?.load
+        dateText = day.text
+        self.loadText = loadText
+        lastSyncText =
+            isToday
+            ? lastSyncEnded.map { "As of your last sync at \(clockText($0, in: timeZone))" } : nil
+        typicalText = Self.typicalText(
+            typicalLoad(for: day, among: dayLoads),
+            load: load,
+            dayWord: isToday ? "today" : "that Day"
+        )
+        showsLiveHR = isToday
+        let heartRate = dayLoad?.heartRate
+        note =
+            if dayLoad == nil || dayLoad?.missingReason == .noRecords {
+                "No heart rate recorded this Day"
+            } else if heartRate == nil {
+                "Heart rate zones aren't available for this Day"
+            } else {
+                nil
+            }
+        let zoneTotal = heartRate.map { $0.zoneSeconds.values.reduce(0, +) } ?? 0
+        zoneRows =
+            heartRate.map { heartRate in
+                HRZone.allCases.map { zone in
+                    LoadPopupZoneRow(zone, seconds: heartRate.zoneSeconds[zone] ?? 0, of: zoneTotal)
+                }
+            } ?? []
+        hourlyZoneSeconds = heartRate?.hourlyZoneSeconds ?? []
+        highestHRText = heartRate.map { heartRate in
+            let highest = heartRate.highestHR.map {
+                "\($0.bpm) bpm at \(clockText($0.time, in: timeZone))"
+            }
+            return "Highest HR \(highest ?? missingText)"
+        }
+        maxHRText = heartRate.map { heartRate in
+            let used = heartRate.maxHRUsed
+            let source =
+                switch used.source {
+                case .entered: "entered"
+                case .estimated: "estimated from your age"
+                }
+            return "Using Max HR \(Int(used.bpm.rounded())) (\(source))"
+        }
+    }
+
+    /// "Typical: 45 · today +12" ("−" below, "±0" equal), just "Typical: 45" with the Day's Load
+    /// missing, or how many Days there are so far while typical Load is calibrating.
+    private static func typicalText(_ typical: TypicalLoad, load: Int?, dayWord: String) -> String {
+        switch typical {
+        case .calibrating(let soFar):
+            return "Typical Load after \(TypicalLoad.minimumDays) Days (\(soFar) so far)"
+        case .value(let typical):
+            guard let load else { return "Typical: \(typical)" }
+            let difference = load - typical
+            let signed =
+                switch difference {
+                case 1...: "+\(difference)"
+                case 0: "\u{00B1}0"
+                default: "\u{2212}\(-difference)"
+                }
+            return "Typical: \(typical) \u{00B7} \(dayWord) \(signed)"
+        }
+    }
+}
+
+/// One HR Zone in the Load popup.
+public struct LoadPopupZoneRow: Equatable, Sendable {
+    public let zone: HRZone
+    /// e.g. "Zone 1 · 50–60%" (the popup heads these "Heart rate zones", so "Zone" alone is
+    /// clear there).
+    public let label: String
+    /// Whole minutes: "42m" under an hour, "1h 05m" from an hour.
+    public let timeText: String
+    /// This HR Zone's share of the Day's time in HR Zones, 0 to 1; 0 with none.
+    public let share: Double
+
+    init(_ zone: HRZone, seconds: Int, of total: Int) {
+        self.zone = zone
+        let percent = { (share: Double) in Int((share * 100).rounded()) }
+        let edges = zone.shareRange
+        label =
+            "Zone \(zone.rawValue) \u{00B7} \(percent(edges.lower))\u{2013}\(percent(edges.upper))%"
+        let minutes = Int((Double(seconds) / 60).rounded())
+        timeText =
+            minutes < 60
+            ? "\(minutes)m" : "\(minutes / 60)h " + String(format: "%02ldm", minutes % 60)
+        share = total > 0 ? Double(seconds) / Double(total) : 0
+    }
+}

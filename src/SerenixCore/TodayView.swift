@@ -51,6 +51,8 @@ public struct TodayView: Equatable, Sendable {
     public let readinessPopup: ReadinessPopup?
     /// Nil on a Day without a Night.
     public let sleepPopup: SleepPopup?
+    /// The Load popup (spec 006); nil when the Load ring opens the profile menu instead.
+    public let loadPopup: LoadPopup?
     private let metricPopups: [MetricPopup]
     /// "Last night" on today, else the Day's date.
     public let tilesHeading: String
@@ -66,7 +68,8 @@ public struct TodayView: Equatable, Sendable {
         now: Date,
         timeZone: TimeZone,
         sync: SyncStatus,
-        profileName: String? = nil
+        profileName: String? = nil,
+        lastSyncEnded: Date? = nil
     ) {
         let today = Day(containing: now, in: timeZone)
         let isToday = day == today
@@ -122,6 +125,18 @@ public struct TodayView: Equatable, Sendable {
         loadLabel = loadOpensProfileMenu ? "Add your age" : "Load"
         loadText = scoreText(dayLoad?.load)
         loadFill = ringFill(dayLoad?.load)
+        loadPopup =
+            loadOpensProfileMenu
+            ? nil
+            : LoadPopup(
+                dayLoad,
+                loadText: loadText,
+                for: day,
+                isToday: isToday,
+                among: dayLoads,
+                lastSyncEnded: lastSyncEnded,
+                timeZone: timeZone
+            )
 
         let syncPill = SyncPill(sync)
         self.syncPill = syncPill

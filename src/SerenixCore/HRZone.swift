@@ -14,6 +14,13 @@ public enum HRZone: Int, CaseIterable, Codable, CodingKeyRepresentable, Sendable
         (.one, LoadMethod.floorFractionOfMaxHR),
     ]
 
+    /// This HR Zone's band as shares of Max HR: its lower edge, and the next HR Zone's (Max HR
+    /// for HR Zone 5).
+    var shareRange: (lower: Double, upper: Double) {
+        let edge = { (zone: HRZone) in Self.lowerEdges.first { $0.zone == zone }?.share }
+        return (edge(self) ?? 0, HRZone(rawValue: rawValue + 1).flatMap(edge) ?? 1)
+    }
+
     /// The HR Zone `heartRate` falls in for `maxHR`, by its exact share (each band includes its
     /// lower edge; over Max HR is still HR Zone 5), or nil under HR Zone 1 or at 0.
     public static func zone(forHeartRate heartRate: Int, maxHR: Double) -> HRZone? {

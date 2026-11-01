@@ -127,9 +127,9 @@ ignored, and nothing holds a connection between syncs.
      - "…" while connecting.
      - 72 at 4.9 s.
      - "—" at 5.0 s, for a 0 reading, and for no Strap, Bluetooth off or a failed connection.
-10. [ ] **Slice:** Today view: the Load popup.
+10. [x] **Slice:** Today view: the Load popup.
     - Blocked by: 4, 5
-    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`, `src/SerenixCore/Popups.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`
+    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`, `src/SerenixCore/Popups.swift`, `src/SerenixCore/HRZone.swift` (`shareRange` for the labels), `tests/SerenixCoreTests/LoadPopupTests.swift` (new; TodayViewTests.swift is already ~1900 lines)
     - Done when:
       - The ring opens the popup for Load 57 and for no records, and opens the profile menu for
         `.noMaxHR`.
