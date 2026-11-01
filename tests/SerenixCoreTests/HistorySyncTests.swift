@@ -496,17 +496,46 @@ private let handshakeOps: [UInt8] = [0x91, 0x0a, 0x0a, 0x0b, 0x61, 0x45, 0x1a, 0
     #expect(replay.last?.stateAfter == .completed)
 }
 
-@Test func aReportedTimeoutFailsTheSyncAndLaterFramesAreOnlyLogged() throws {
+@Test func silenceFromTheStartForJustUnder10SecondsLeavesTheSyncRunning() {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+
+    session.timeOutIfSilent(at: capturedPhoneTime.addingTimeInterval(9.999))
+    #expect(session.state == .running)
+}
+
+@Test func silenceFor10SecondsFromTheStartFailsTheSyncAsTimedOut() {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+
+    session.timeOutIfSilent(at: capturedPhoneTime.addingTimeInterval(10))
+    #expect(session.state == .failed(.timedOut))
+}
+
+@Test func silenceIsMeasuredFromTheLastMessageTheStrapSent() {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+    let heard = capturedPhoneTime.addingTimeInterval(5)
+    _ = session.receive(strapMessages[0].bytes, at: heard)
+
+    session.timeOutIfSilent(at: heard.addingTimeInterval(9.999))
+    #expect(session.state == .running)
+    session.timeOutIfSilent(at: heard.addingTimeInterval(10))
+    #expect(session.state == .failed(.timedOut))
+}
+
+@Test func aTimeoutFailsTheSyncAndLaterFramesAreOnlyLogged() throws {
     try #require(isMetadataFrame(strapMessages[firstBatchStartIndex].bytes, kind: batchStartKind))
     var session = HistorySync()
     _ = session.start(at: capturedPhoneTime)
+    var lastHeard = capturedPhoneTime
     for (index, message) in strapMessages[...firstBatchStartIndex].enumerated() {
-        let time = capturedPhoneTime.addingTimeInterval(Double(index + 1))
-        _ = session.receive(message.bytes, at: time)
+        lastHeard = capturedPhoneTime.addingTimeInterval(Double(index + 1))
+        _ = session.receive(message.bytes, at: lastHeard)
     }
     #expect(session.state == .running)
 
-    session.reportTimeout()
+    session.timeOutIfSilent(at: lastHeard.addingTimeInterval(10))
     #expect(session.state == .failed(.timedOut))
 
     var steps: [Step] = []
@@ -522,16 +551,17 @@ private let handshakeOps: [UInt8] = [0x91, 0x0a, 0x0a, 0x0b, 0x61, 0x45, 0x1a, 0
     expectFailedThroughout(steps[...], with: .timedOut)
 }
 
-@Test func aReportedTimeoutAfterTheSyncCompletesLeavesItCompleted() {
+@Test func silenceAfterTheSyncCompletesLeavesItCompleted() {
     var session = HistorySync()
     _ = session.start(at: capturedPhoneTime)
+    var lastHeard = capturedPhoneTime
     for (index, message) in strapMessages.enumerated() {
-        let time = capturedPhoneTime.addingTimeInterval(Double(index + 1))
-        _ = session.receive(message.bytes, at: time)
+        lastHeard = capturedPhoneTime.addingTimeInterval(Double(index + 1))
+        _ = session.receive(message.bytes, at: lastHeard)
     }
     #expect(session.state == .completed)
 
-    session.reportTimeout()
+    session.timeOutIfSilent(at: lastHeard.addingTimeInterval(10))
     #expect(session.state == .completed)
 }
 

@@ -78,8 +78,6 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     private var syncStartedAt: Date?
     /// The store, or why it couldn't be opened; a sync then fails with that reason.
     private let store: Result<HistoryRecordStore, Error>
-    /// When the Strap last sent anything in the current sync, for the 10-second timeout.
-    private var lastHeardFromStrap: Date?
     /// Gives up on finding or connecting to the Strap after `connectTimeout`.
     private var connectTimer: Timer?
     /// Whether Serenix has already synced on open since launch.
@@ -91,8 +89,8 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     private var wantsConnection = false
     /// Asked to sync before the Strap was connected and subscribed.
     private var wantsSync = false
-    /// Fires every `syncTimerInterval` while a sync runs: redraws the screen and checks the
-    /// 10-second timeout.
+    /// Fires every `syncTimerInterval` while a sync runs: redraws the screen and checks whether
+    /// the Strap went silent.
     private var syncTimer: Timer?
 
     override init() {
@@ -273,7 +271,6 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         let output = session.start(at: now)
         self.session = session
         syncStartedAt = now
-        lastHeardFromStrap = now
         phase = .syncing
         syncTimer?.invalidate()
         let timer = Timer(timeInterval: syncTimerInterval, repeats: true) { [weak self] _ in
@@ -290,20 +287,17 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         failIfStrapWentSilent(at: Date())
     }
 
-    /// Fails the sync if the Strap has sent nothing for `strapSilenceTimeout`. The sync timer
-    /// checks this, and so do the next Frame and Serenix returning to the foreground, because
-    /// timers don't run while iOS keeps Serenix suspended in the background (ADR 0006).
-    /// Returns whether it failed the sync.
+    /// Fails the sync if the session says the Strap went silent. The sync timer checks this,
+    /// and so do the next Frame and Serenix returning to the foreground, because timers don't
+    /// run while iOS keeps Serenix suspended in the background (ADR 0006). Returns whether it
+    /// failed the sync.
     @discardableResult
     private func failIfStrapWentSilent(at now: Date) -> Bool {
-        guard var session, let lastHeardFromStrap,
-            now.timeIntervalSince(lastHeardFromStrap) >= strapSilenceTimeout
-        else { return false }
-        session.reportTimeout()
+        guard var session else { return false }
+        session.timeOutIfSilent(at: now)
         self.session = session
-        if case .failed(let failure) = session.state {
-            finish(as: .failed(failure.reason))
-        }
+        guard case .failed(let failure) = session.state else { return false }
+        finish(as: .failed(failure.reason))
         return true
     }
 
@@ -312,7 +306,6 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         if let session { keepSyncResults(of: session) }
         session = nil
         syncStartedAt = nil
-        lastHeardFromStrap = nil
         syncTimer?.invalidate()
         syncTimer = nil
         // Anything still unsaved was never acknowledged, so the Strap sends it again; drop it
@@ -554,8 +547,8 @@ extension StrapConnection: CBPeripheralDelegate {
     ) {
         if keepDeviceInfo(from: characteristic, error: error) { return }
         let now = Date()
-        // A gap this long means nothing arrived for 10 s, whether the Strap went silent or iOS
-        // held Serenix up; either way it counts as the Strap not responding (spec 001).
+        // A long gap means nothing arrived, whether the Strap went silent or iOS held Serenix
+        // up; either way it counts as the Strap not responding (spec 001).
         if failIfStrapWentSilent(at: now) { return }
         guard phase == .syncing, var session else { return }
         if let error {
@@ -563,7 +556,6 @@ extension StrapConnection: CBPeripheralDelegate {
             return
         }
         guard let value = characteristic.value else { return }
-        lastHeardFromStrap = now
         let output = session.receive(Array(value), at: now)
         self.session = session
         handle(output, state: session.state)
@@ -633,10 +625,6 @@ private enum StrapGATT {
 /// Seconds between screen redraws (and timeout checks) during a sync: often enough to watch the
 /// counts move, rare enough that drawing never competes with Bluetooth on the main thread.
 private let syncTimerInterval: TimeInterval = 0.5
-
-/// Seconds without a Frame from the Strap before a sync fails as "stopped responding" (spec 001,
-/// an assumption: the capture shows replies within milliseconds).
-private let strapSilenceTimeout: TimeInterval = 10
 
 /// UserDefaults keys. The remembered Strap is its CoreBluetooth identifier, which is specific to
 /// this iPhone.

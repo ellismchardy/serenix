@@ -27,7 +27,7 @@ jobs (store-stats refresh, Sync Log save) are chained so each waits for the one 
      `src/SerenixApp/StrapConnection.swift`
    - Done when: a test pins each case's text to today's wording; the shell's `reason(for:)` is
      gone and it shows `failure.reason`.
-2. [ ] **Slice:** a History Sync times itself out after 10 s without hearing from the Strap
+2. [x] **Slice:** a History Sync times itself out after 10 s without hearing from the Strap
    - Seam: `HistorySync.timeOutIfSilent(at:)` · Files: `src/SerenixCore/HistorySync.swift`,
      `tests/SerenixCoreTests/HistorySyncTests.swift`, `src/SerenixApp/StrapConnection.swift`
    - Done when: tests show silence of 10 s since `start` or the last `receive` fails the sync
