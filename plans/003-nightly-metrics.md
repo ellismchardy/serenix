@@ -81,7 +81,7 @@ Assumptions (consistent with the spec, stated for review):
    - Seam: Nights from History Records · Files: `src/SerenixCore/NightlyMetrics.swift`,
      `src/SerenixCore/Nights.swift`, `tests/SerenixCoreTests/NightsTests.swift`
    - Done when: criterion 2 fully, and the SpO2-removed and RR-removed criteria pass.
-6. [ ] **Slice:** windows and edge cases with hand-built records (a small test helper that makes
+6. [x] **Slice:** windows and edge cases with hand-built records (a small test helper that makes
    still or moving minutes): shuffled and duplicated records give the same Night; two windows give
    one Night each; two windows with one date keep the one with more Time Asleep; longest run 6 →
    no Night, 7 → Night; empty or sparse window → no Night; 59 vs 60 minutes of wake → one vs two
