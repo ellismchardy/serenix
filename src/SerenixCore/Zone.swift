@@ -19,7 +19,12 @@ public enum Zone: Equatable, Sendable {
     /// Superseded by spec 004: the gauge and band move to Spreads in later tasks of its plan.
     private static let hrvInRangeFrom = -0.05
     private static let hrvWatchFrom = -0.15
-    /// Resting HR above Baseline, bpm: In range up to +1, Watch up to +4.
+    /// Resting HR above Baseline, bpm, up only (spec 004): Watch from +3, Out of range from +5.
+    /// A lower Resting HR is never a warning.
+    private static let restingHRWatchFrom = 3.0
+    private static let restingHROutOfRangeFrom = 5.0
+    /// Resting HR above Baseline, bpm, for the gauge and the popup's band only. Superseded by
+    /// spec 004: the gauge and band move to its limits in later tasks of its plan.
     private static let restingHRInRangeUpTo = 1.0
     private static let restingHRWatchUpTo = 4.0
     /// Respiratory rate's |z|, its distance from Baseline in Spreads, either side (spec 004): In
@@ -56,10 +61,10 @@ public enum Zone: Equatable, Sendable {
                 ? .watch
                 : Self.atLeast(z, inRange: Self.hrvZInRangeFrom, watch: Self.hrvZWatchFrom)
         case (.restingHR, let median?):
-            self = Self.atMost(
+            self = Self.risingFrom(
                 value - median,
-                inRange: Self.restingHRInRangeUpTo,
-                watch: Self.restingHRWatchUpTo
+                watch: Self.restingHRWatchFrom,
+                outOfRange: Self.restingHROutOfRangeFrom
             )
         case (.respiratoryRate, let median?):
             guard let spread = baseline?.spread else { return nil }
@@ -147,5 +152,13 @@ public enum Zone: Equatable, Sendable {
         let tolerance = boundaryTolerance
         return measure <= inRange + tolerance
             ? .inRange : measure <= watch + tolerance ? .watch : .outOfRange
+    }
+
+    /// For measures where only a rise is a warning, and a value on a cut-off already counts as
+    /// the Zone above it (spec 004, Zones).
+    private static func risingFrom(_ measure: Double, watch: Double, outOfRange: Double) -> Zone {
+        let tolerance = boundaryTolerance
+        return measure >= outOfRange - tolerance
+            ? .outOfRange : measure >= watch - tolerance ? .watch : .inRange
     }
 }

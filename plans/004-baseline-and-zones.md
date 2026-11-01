@@ -52,7 +52,7 @@ gives the typical Spread the spec's examples assume.
    - Seam: Today view · Files: `Baseline.swift`, `Zone.swift`, `TodayViewTests.swift` (rewrite
      `respiratoryRateZoneAgainstABaselineOf14`)
    - Done when: criterion "Respiratory rate against Baseline 14.0 with the typical Spread …".
-4. [ ] **Slice:** Resting HR fixed gap, up only — d < 3 In range, 3 ≤ d < 5 Watch, d ≥ 5 Out.
+4. [x] **Slice:** Resting HR fixed gap, up only — d < 3 In range, 3 ≤ d < 5 Watch, d ≥ 5 Out.
    - Seam: Today view · Files: `Zone.swift`, `TodayViewTests.swift` (rewrite
      `restingHRZoneAgainstABaselineOf52`)
    - Done when: criterion "Resting HR against Baseline 52: 54.9 … 40 is In range"; skin

@@ -591,9 +591,14 @@ func hrvZoneAgainstABaselineOf60(hrv: Double, zone: Zone) {
     #expect(tile?.zone == zone)
 }
 
+// Values from spec 004. Resting HR uses a fixed gap, not a Spread, and only upward: with
+// d = v − 52, In range while d < 3, Watch while 3 ≤ d < 5, Out of range from d ≥ 5. So 54.9 is
+// In range, 55 and 56.9 are Watch, and 57 is Out of range. A lower Resting HR is never a warning,
+// however low (40).
 @Test(
-    arguments: [(53, .inRange), (53.1, .watch), (56, .watch), (56.1, .outOfRange), (45, .inRange)]
-        as [(Double, Zone)]
+    arguments: [
+        (54.9, .inRange), (55, .watch), (56.9, .watch), (57, .outOfRange), (40, .inRange),
+    ] as [(Double, Zone)]
 )
 func restingHRZoneAgainstABaselineOf52(restingHR: Double, zone: Zone) {
     let tile = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: restingHR))
