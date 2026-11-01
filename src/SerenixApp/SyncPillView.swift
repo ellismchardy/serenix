@@ -17,7 +17,8 @@ struct SyncPillView: View {
                 icon
                 Text(pill.text).font(.subheadline.weight(.semibold))
             }
-            if pill.showsProgress {
+            // Nothing until the sync reports progress: "Syncing" with its spinner says enough.
+            if pill.showsProgress, let progress {
                 SyncProgressView(progress: progress, timeLeft: timeLeft)
             }
         }
@@ -49,26 +50,19 @@ struct SyncPillView: View {
     }
 }
 
-/// A running sync's progress bar and time left (spec 001, Sync progress): "Starting…" until the
-/// session reports progress.
+/// A running sync's progress bar and time left (spec 001, Sync progress).
 private struct SyncProgressView: View {
-    let progress: Double?
+    let progress: Double
     let timeLeft: TimeInterval?
 
     var body: some View {
-        if let progress {
-            VStack(spacing: 4) {
-                ProgressView(value: progress).frame(width: 180)
-                if let timeLeft {
-                    Text(HistorySync.timeLeftText(timeLeft))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(spacing: 4) {
+            ProgressView(value: progress).frame(width: 180)
+            if let timeLeft {
+                Text(HistorySync.timeLeftText(timeLeft))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
-        } else {
-            Text("Starting…")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
     }
 }

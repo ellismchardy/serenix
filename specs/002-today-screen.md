@@ -59,7 +59,7 @@ still show that Day's Load. Serenix never shows another Day's Night in its place
 **Sync pill.** History Sync (spec 001) shows as a pill that slides down over the top of the
 screen only when there's something to say:
 - **Syncing:** grey, with a spinner, while connecting or syncing; 001's progress bar and time
-  left show under it ("Starting…" until there's progress). It stays up until the sync ends.
+  left show under it once there's progress (until then, just "Syncing"). It stays up until the sync ends.
   Tapping it offers Cancel (001's Cancel).
 - **Sync successful:** green, with a ✓, when a sync finishes. It slides away after 3 seconds.
 - **Sync paused:** amber, with a ⚠, when the Strap couldn't be reached: not found, Bluetooth
