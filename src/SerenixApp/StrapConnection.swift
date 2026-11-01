@@ -70,6 +70,17 @@ final class StrapConnection: NSObject, ObservableObject {
     /// they're known. `syncTimer` redraws the screen to show them.
     var syncProgress: Double? { session?.progress }
     var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
+    /// The phase as the Today view's sync pill reads it (spec 002): looking for the Strap counts
+    /// as connecting, Bluetooth being unavailable as a failed sync, and otherwise it's the last
+    /// finished sync.
+    var syncStatus: SyncStatus {
+        switch phase {
+        case .searching, .connecting: .connecting
+        case .syncing: .syncing
+        case .failed(let reason), .bluetoothUnavailable(let reason): .failed(reason: reason)
+        case .idle, .connected, .synced: .upToDate(lastSync: lastSyncCompleted)
+        }
+    }
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?

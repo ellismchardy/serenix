@@ -36,7 +36,7 @@ Assumptions (consistent with the spec, stated so review can check them):
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice (tracer):** Which Day is shown, the header and arrows, "No Night yet / recorded",
+1. [x] **Slice (tracer):** Which Day is shown, the header and arrows, "No Night yet / recorded",
    Load and its label, and the sync pill; the shell's Today screen replaces `MainView`.
    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`, `src/SerenixCore/Night.swift`,
      `src/SerenixCore/SyncStatus.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`,

@@ -7,7 +7,7 @@ struct SerenixApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainView(connection: connection)
+            TodayScreen(connection: connection)
                 // A History Sync runs each time Serenix comes to the foreground (spec 001).
                 .onChange(of: scenePhase, initial: true) { oldPhase, newPhase in
                     switch newPhase {
