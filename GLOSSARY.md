@@ -105,9 +105,14 @@ _Avoid_: cycle
 ## Metrics and scores
 
 **Baseline**:
-The user's typical Resting HR, HRV, respiratory rate and skin temperature, each taken over their
-most recent Nights. SpO2 has no Baseline.
+The user's typical Resting HR, HRV, respiratory rate and skin temperature, and the Spread of
+each, taken over their most recent Nights. SpO2 has no Baseline.
 _Avoid_: norm, average, usual (when the personal reference is meant)
+
+**Spread**:
+How much one Nightly Metric usually varies from Night to Night for the user; part of its
+Baseline.
+_Avoid_: variability (clashes with HRV), SD, deviation
 
 **Zone**:
 Where one Nightly Metric sits against its Baseline (or, for SpO2, against fixed levels): In
