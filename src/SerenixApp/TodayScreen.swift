@@ -106,6 +106,7 @@ struct TodayScreen: View {
                     avatarLetter: today.avatarLetter,
                     menuName: today.menuName,
                     syncOffersRetry: today.syncOffersRetry,
+                    showsSyncProgress: today.syncPill?.showsProgress ?? false,
                     showsSampleNights: $showsSampleNights
                 )
             }
@@ -169,31 +170,27 @@ struct TodayScreen: View {
     @ViewBuilder
     private func syncPill(_ today: TodayView) -> some View {
         if let pill = visiblePill(today) {
-            SyncPillView(
-                pill: pill,
-                progress: connection.syncProgress,
-                timeLeft: connection.syncTimeLeft
-            )
-            .padding(.top, 4)
-            .transition(.move(edge: .top).combined(with: .opacity))
-            .onTapGesture {
-                if pill.kind == .successful {
-                    dismissedPill = pill
-                } else {
-                    detailPill = pill
-                    showsPillDetail = true
+            SyncPillView(pill: pill)
+                .padding(.top, 4)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .onTapGesture {
+                    if pill.kind == .successful {
+                        dismissedPill = pill
+                    } else {
+                        detailPill = pill
+                        showsPillDetail = true
+                    }
                 }
-            }
-            // Syncing stays up until the sync ends, keeping Cancel in reach.
-            .gesture(
-                DragGesture(minimumDistance: 10).onEnded { drag in
-                    if drag.translation.height < 0, pill.canBeDismissed { dismissedPill = pill }
+                // Syncing stays up until the sync ends, keeping Cancel in reach.
+                .gesture(
+                    DragGesture(minimumDistance: 10).onEnded { drag in
+                        if drag.translation.height < 0, pill.canBeDismissed { dismissedPill = pill }
+                    }
+                )
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction(named: "Dismiss") {
+                    if pill.canBeDismissed { dismissedPill = pill }
                 }
-            )
-            .accessibilityAddTraits(.isButton)
-            .accessibilityAction(named: "Dismiss") {
-                if pill.canBeDismissed { dismissedPill = pill }
-            }
         }
     }
 

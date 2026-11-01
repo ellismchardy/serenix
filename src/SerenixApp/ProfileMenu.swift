@@ -13,6 +13,8 @@ struct ProfileMenu: View {
     let menuName: String
     /// The Today view's say on whether Sync now reads Retry sync.
     let syncOffersRetry: Bool
+    /// The Today view's say on whether a sync is running, so 001's progress shows here.
+    let showsSyncProgress: Bool
     @Binding var showsSampleNights: Bool
     @EnvironmentObject private var appearanceStore: AppearanceStore
     @Environment(\.dismiss) private var dismiss
@@ -53,6 +55,10 @@ struct ProfileMenu: View {
                         Text(lastSyncText)
                     } label: {
                         Label("Last sync", systemImage: "clock")
+                    }
+                    // 001's progress bar and time left, once the running sync reports progress.
+                    if showsSyncProgress, let progress = connection.syncProgress {
+                        SyncProgressView(progress: progress, timeLeft: connection.syncTimeLeft)
                     }
                     // 001's Sync now; after a failed or paused sync it's a retry.
                     Button {
@@ -140,5 +146,22 @@ struct ProfileMenu: View {
             calendar: Calendar(identifier: .gregorian)
         )
         return completed.formatted(style)
+    }
+}
+
+/// A running sync's progress bar and time left (spec 001, Sync progress).
+private struct SyncProgressView: View {
+    let progress: Double
+    let timeLeft: TimeInterval?
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ProgressView(value: progress)
+            if let timeLeft {
+                Text(HistorySync.timeLeftText(timeLeft))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
