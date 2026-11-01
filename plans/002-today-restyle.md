@@ -24,7 +24,7 @@ reference.
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice:** Week strip — `TodayView` gains a week strip: title (month and year of its last
+1. [x] **Slice:** Week strip — `TodayView` gains a week strip: title (month and year of its last
    Day), seven Days (weekday letter, date number, shown / without a Night / out of range), and
    where ‹ and › go (a week, clamped to the earliest Night's Day and today; nil when disabled).
    `title` and `showsTodayPill` go. Shell: a `WeekStripView` card under the top bar; the large

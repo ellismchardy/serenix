@@ -2,8 +2,8 @@ import Foundation
 
 /// Everything the Today screen shows for one Day (spec 002). It decides; the shell draws.
 public struct TodayView: Equatable, Sendable {
-    /// The Day's date, e.g. "Sun 1 Nov".
-    public let title: String
+    /// The week strip holding the Day shown.
+    public let weekStrip: WeekStrip
     /// The Days the date picker offers: from the Day of the earliest Night to today, or just
     /// today with no Nights.
     public let pickerRange: ClosedRange<Day>
@@ -11,8 +11,6 @@ public struct TodayView: Equatable, Sendable {
     /// date picker.
     public let pickerDates: ClosedRange<Date>
     public let shownDate: Date
-    /// Whether the Today pill shows: on any Day other than today.
-    public let showsTodayPill: Bool
     /// e.g. "Good morning, Ellis", on today only.
     public let greeting: String?
     /// The first letter of the Profile name, upper-cased; nil with no name.
@@ -64,7 +62,6 @@ public struct TodayView: Equatable, Sendable {
     ) {
         let today = Day(containing: now, in: timeZone)
         let isToday = day == today
-        title = day.text
         let earliestNight = nights.map(\.day).min()
         pickerRange = min(earliestNight ?? today, today)...today
         pickerDates =
@@ -72,7 +69,12 @@ public struct TodayView: Equatable, Sendable {
                 in: timeZone
             )...pickerRange.upperBound.midday(in: timeZone)
         shownDate = day.midday(in: timeZone)
-        showsTodayPill = !isToday
+        weekStrip = WeekStrip(
+            showing: day,
+            today: today,
+            earliest: pickerRange.lowerBound,
+            nights: Set(nights.map(\.day))
+        )
         let profile = Profile(name: profileName)
         greeting = isToday ? profile.greeting(at: now, in: timeZone) : nil
         avatarLetter = profile.avatarLetter

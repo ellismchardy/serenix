@@ -48,6 +48,7 @@ struct TodayScreen: View {
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    WeekStripView(strip: today.weekStrip) { show($0) }
                     if let message = today.noNightMessage {
                         Text(message)
                             .font(.title3)
@@ -93,9 +94,7 @@ struct TodayScreen: View {
             }
             .sheet(isPresented: $showsDatePicker) {
                 DayPicker(range: today.pickerDates, shown: today.shownDate) { picked in
-                    let day = Day(containing: picked, in: .current)
-                    // Picking today means today, so it moves on at midnight like opening does.
-                    pickedDay = day == Day(containing: Date(), in: .current) ? nil : day
+                    show(Day(containing: picked, in: .current))
                     showsDatePicker = false
                 }
             }
@@ -118,32 +117,17 @@ struct TodayScreen: View {
         }
     }
 
-    /// The Day's date as a large title with ▾ opening the date picker, the Today pill on other
-    /// Days, and the profile avatar (spec 002, Top bar).
+    /// The calendar button opening the date picker, and the profile avatar (spec 002, Top bar).
     private func topBar(_ today: TodayView) -> some View {
         HStack(spacing: 12) {
+            Spacer()
             Button {
                 showsDatePicker = true
             } label: {
-                HStack(spacing: 6) {
-                    Text(today.title)
-                        .font(.largeTitle.bold())
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    Image(systemName: "chevron.down")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
+                Image(systemName: "calendar")
+                    .font(.title3)
             }
-            .buttonStyle(.plain)
-            .accessibilityHint("Pick a Day")
-            if today.showsTodayPill {
-                Button("Today") { showToday() }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-            }
-            Spacer()
+            .accessibilityLabel("Pick a Day")
             Button {
                 showsProfileMenu = true
             } label: {
@@ -298,6 +282,12 @@ struct TodayScreen: View {
             case .metric(let metric): today.metricPopup(metric) != nil
             }
         if hasContent { openPopup = popup }
+    }
+
+    /// Shows `day`, from the week strip or the date picker. Today means today, so the screen moves
+    /// on at midnight like opening does.
+    private func show(_ day: Day) {
+        pickedDay = day == Day(containing: Date(), in: .current) ? nil : day
     }
 
     /// Back to today, closing any popup, which described the Day being left.

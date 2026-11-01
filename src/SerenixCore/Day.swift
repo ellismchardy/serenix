@@ -40,18 +40,52 @@ public struct Day: Hashable, Comparable, Sendable {
         return calendar.date(from: components) ?? .distantPast
     }
 
-    /// How the Day reads in the Today screen's title, e.g. "Sun 1 Nov".
-    var text: String {
+    /// The Day `count` Days later (earlier when negative).
+    func adding(days count: Int) -> Day {
         let calendar = Self.utcCalendar
-        let midnight = calendar.date(
-            from: DateComponents(year: year, month: month, day: dayOfMonth)
-        )!
-        let weekday = calendar.component(.weekday, from: midnight)
-        // The init keeps month and weekday in range; the guards make that hold here too.
-        guard Self.weekdayNames.indices.contains(weekday - 1),
-            Self.monthNames.indices.contains(month - 1)
-        else { return missingText }
-        return "\(Self.weekdayNames[weekday - 1]) \(dayOfMonth) \(Self.monthNames[month - 1])"
+        guard let midnight = calendar.date(from: components),
+            let moved = calendar.date(byAdding: .day, value: count, to: midnight)
+        else { return self }
+        return Day(containing: moved, in: .gmt)
+    }
+
+    /// How many Days from this Day to `other`; negative when `other` is earlier.
+    func days(until other: Day) -> Int {
+        let calendar = Self.utcCalendar
+        guard let from = calendar.date(from: components),
+            let to = calendar.date(from: other.components)
+        else { return 0 }
+        return calendar.dateComponents([.day], from: from, to: to).day ?? 0
+    }
+
+    /// The weekday's letter for the week strip, e.g. "M".
+    var weekdayLetter: String {
+        weekdayIndex.map { Self.weekdayLetters[$0] } ?? missingText
+    }
+
+    /// The month and year, e.g. "November 2026".
+    var monthTitle: String {
+        Self.monthTitles.indices.contains(month - 1)
+            ? "\(Self.monthTitles[month - 1]) \(year)" : missingText
+    }
+
+    private var components: DateComponents {
+        DateComponents(year: year, month: month, day: dayOfMonth)
+    }
+
+    /// How the Day reads, e.g. "Sun 1 Nov".
+    var text: String {
+        guard let weekday = weekdayIndex, Self.monthNames.indices.contains(month - 1) else {
+            return missingText
+        }
+        return "\(Self.weekdayNames[weekday]) \(dayOfMonth) \(Self.monthNames[month - 1])"
+    }
+
+    /// The weekday, 0 for Sunday to 6 for Saturday; nil for a Day with no real date.
+    private var weekdayIndex: Int? {
+        guard let midnight = Self.utcCalendar.date(from: components) else { return nil }
+        let index = Self.utcCalendar.component(.weekday, from: midnight) - 1
+        return Self.weekdayNames.indices.contains(index) ? index : nil
     }
 
     /// Day arithmetic needs no time zone: a Day is only a date.
@@ -61,6 +95,11 @@ public struct Day: Hashable, Comparable, Sendable {
         return calendar
     }()
     private static let weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    private static let weekdayLetters = ["S", "M", "T", "W", "T", "F", "S"]
+    private static let monthTitles = [
+        "January", "February", "March", "April", "May", "June", "July", "August", "September",
+        "October", "November", "December",
+    ]
     private static let monthNames = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ]
