@@ -54,6 +54,8 @@ final class StrapConnection: NSObject, ObservableObject {
     private(set) var historyRecordsReceived = 0
     @Published private(set) var storeStats = HistoryRecordStats()
     var historyRecordsStored: Int { storeStats.count }
+    /// Every stored Night, oldest first, for the Today screen (spec 003).
+    @Published private(set) var nights: [Night] = []
     /// From the Strap's Device Info service, kept across launches.
     @Published private(set) var strapModel: String?
     @Published private(set) var strapFirmware: String?
@@ -111,6 +113,14 @@ final class StrapConnection: NSObject, ObservableObject {
     /// so stats never land out of order and two saves never prune the same old Sync Log.
     private var storeStatsRefresh: Task<Void, Never>?
     private var syncLogSave: Task<Void, Never>?
+    /// The latest Night rebuild. Each new one waits for the one before, so two never replace
+    /// the same Nights at once.
+    private var nightsRebuild: Task<Void, Never>?
+    /// The queued rebuild being worked out right now, if any.
+    private var rebuildInProgress: NightRebuild?
+    /// When each History Record inserted since the last save was taken. Just before the save,
+    /// the dates they touch are queued to be worked out again (`NightStore.pendingRebuilds`).
+    private var unsavedRecordTimes: [Date] = []
     /// Fires every `syncTimerInterval` while a sync runs: redraws the screen and checks whether
     /// the Strap went silent.
     private var syncTimer: Timer?
@@ -132,6 +142,7 @@ final class StrapConnection: NSObject, ObservableObject {
             lastDataRange = HistoryDataRange(oldest: oldest, newest: newest)
         }
         refreshStoreStats()
+        rebuildNights()
     }
 
     /// Syncs when Serenix launches or comes back from the background, once a Strap has been
@@ -256,6 +267,71 @@ final class StrapConnection: NSObject, ObservableObject {
         }
     }
 
+    /// Queues the dates that History Records about to be saved at `recordTimes` touch, so
+    /// they're worked out again even if iOS ends Serenix before the sync does (spec 003, When).
+    private func queueNightRebuilds(after recordTimes: [Date]) {
+        let added = nightRebuilds(after: recordTimes, now: Date(), in: .current)
+        var pending = NightStore.pendingRebuilds
+        for rebuild in added {
+            // A date being worked out right now may be reading History Records from before this
+            // save, so it's queued once more to be worked out again afterwards.
+            let copiesWanted = rebuild == rebuildInProgress ? 2 : 1
+            if pending.filter({ $0 == rebuild }).count < copiesWanted { pending.append(rebuild) }
+        }
+        NightStore.pendingRebuilds = pending
+    }
+
+    /// Takes away one queued copy of `rebuild`, leaving any copy queued while it was worked out.
+    private static func removeOnePending(_ rebuild: NightRebuild) {
+        var pending = NightStore.pendingRebuilds
+        if let index = pending.firstIndex(of: rebuild) { pending.remove(at: index) }
+        NightStore.pendingRebuilds = pending
+    }
+
+    /// Works out, off the main thread and one date at a time, every queued rebuild still due,
+    /// then shows every stored Night. A rebuild that fails goes to the back of the queue, to be
+    /// tried after the next sync or launch; it never stops the stored Nights from showing.
+    private func rebuildNights() {
+        guard case .success(let store) = self.store else { return }
+        let container = store.container
+        let timeZone = TimeZone.current
+        let previous = nightsRebuild
+        nightsRebuild = Task.detached(priority: .utility) { [self] in
+            await previous?.value
+            let now = Date()
+            let queued = await MainActor.run { NightStore.pendingRebuilds }
+            for rebuild in queued {
+                await MainActor.run { self.rebuildInProgress = rebuild }
+                do {
+                    if rebuild.isDue(at: now) {
+                        try NightStore.apply(rebuild, in: container, timeZone: timeZone)
+                    }
+                    await MainActor.run {
+                        Self.removeOnePending(rebuild)
+                        self.rebuildInProgress = nil
+                    }
+                } catch {
+                    storeLog.error(
+                        "Couldn't work out a Night: \(error.localizedDescription, privacy: .public)"
+                    )
+                    await MainActor.run {
+                        Self.removeOnePending(rebuild)
+                        NightStore.pendingRebuilds.append(rebuild)
+                        self.rebuildInProgress = nil
+                    }
+                }
+            }
+            do {
+                let nights = try NightStore.nights(in: container)
+                await MainActor.run { self.nights = nights }
+            } catch {
+                storeLog.error(
+                    "Couldn't read stored Nights: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+        }
+    }
+
     /// Keeps what the finished sync learnt about the Strap, and its Sync Log.
     private func keepSyncResults(of session: HistorySync) {
         let defaults = UserDefaults.standard
@@ -301,6 +377,7 @@ final class StrapConnection: NSObject, ObservableObject {
         }
         syncLog = []
         historyRecordsReceived = 0
+        unsavedRecordTimes = []
         var session = HistorySync()
         let now = Date()
         let output = session.start(at: now)
@@ -348,6 +425,9 @@ final class StrapConnection: NSObject, ObservableObject {
         // rather than carry it into the next sync.
         if case .success(let store) = self.store { store.discardUnsaved() }
         refreshStoreStats()
+        unsavedRecordTimes = []
+        // Whatever the sync saved was queued as it went, also if it ended early (spec 003, When).
+        rebuildNights()
         objectWillChange.send()
     }
 
@@ -356,9 +436,15 @@ final class StrapConnection: NSObject, ObservableObject {
     private func handle(_ output: HistorySyncOutput, state: HistorySyncState) {
         syncLog += output.syncLog
         historyRecordsReceived += output.historyRecords.count
+        unsavedRecordTimes += output.historyRecords.map(\.timestamp)
         guard case .success(let store) = self.store else { return }
         store.insert(output.historyRecords)
         if !output.framesToSend.isEmpty || state != .running {
+            // The dates these History Records touch are queued before they're saved, so no kill
+            // in between can lose them; if the save fails, a queued date is just worked out from
+            // what is stored.
+            queueNightRebuilds(after: unsavedRecordTimes)
+            unsavedRecordTimes = []
             // Save before writing: once the Strap has an acknowledgement it never sends those
             // History Records again, so they must be on the phone first.
             do {
