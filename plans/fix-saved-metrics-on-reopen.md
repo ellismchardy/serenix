@@ -39,7 +39,7 @@ listed in the PR's manual steps.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Fix:** show the stored Nights and Day Loads before working the leftover queues.
+1. [x] **Fix:** show the stored Nights and Day Loads before working the leftover queues.
    - Seam: shell, checked by hand (ADR 0002) · Files: `src/SerenixApp/StrapConnection.swift`
      (`rebuildNights()` and its doc comment only).
    - In the detached task, right after `await previous?.value`, fetch

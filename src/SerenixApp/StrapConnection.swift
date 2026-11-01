@@ -317,11 +317,11 @@ final class StrapConnection: NSObject, ObservableObject {
         DayLoadStore.pendingRebuilds = pending
     }
 
-    /// Works out, off the main thread and one date at a time, every queued Night rebuild still
-    /// due, then every queued Day rebuild still due (so a Day's Load sees that morning's Night),
-    /// then shows every stored Night and Day Load. A rebuild that fails goes to the back of its
-    /// queue, to be tried after the next sync or launch; it never stops what's stored from
-    /// showing.
+    /// Shows every stored Night and Day Load, then works out, off the main thread and one date at
+    /// a time, every queued Night rebuild still due, then every queued Day rebuild still due (so
+    /// a Day's Load sees that morning's Night), then shows them again. A rebuild that fails goes
+    /// to the back of its queue, to be tried after the next sync or launch; it never stops what's
+    /// stored from showing.
     private func rebuildNights() {
         guard case .success(let store) = self.store else { return }
         let container = store.container
@@ -329,6 +329,24 @@ final class StrapConnection: NSObject, ObservableObject {
         let previous = nightsRebuild
         nightsRebuild = Task.detached(priority: .utility) { [self] in
             await previous?.value
+            // What's stored shows first: a queue left by a run that was swiped away or ended by
+            // iOS takes minutes to work out at launch, and the screen would be blank until then.
+            do {
+                let storedNights = try NightStore.nights(in: container)
+                await MainActor.run { self.nights = storedNights }
+            } catch {
+                storeLog.error(
+                    "Couldn't read stored Nights: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+            do {
+                let storedLoads = try DayLoadStore.dayLoads(in: container)
+                await MainActor.run { self.dayLoads = storedLoads }
+            } catch {
+                storeLog.error(
+                    "Couldn't read stored Day Loads: \(error.localizedDescription, privacy: .public)"
+                )
+            }
             let now = Date()
             let queued = await MainActor.run { NightStore.pendingRebuilds }
             for rebuild in queued {
