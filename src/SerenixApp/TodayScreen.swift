@@ -192,7 +192,7 @@ struct TodayScreen: View {
         }
     }
 
-    /// Sleep Score, Readiness in the middle and largest with its band word, and Load.
+    /// Sleep Score, Readiness in the middle with its band word, and Load, all the same size.
     private func rings(_ today: TodayView) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Button {
@@ -202,7 +202,7 @@ struct TodayScreen: View {
                     text: today.sleepScoreText,
                     fill: today.sleepScoreFill,
                     label: "Sleep Score",
-                    diameter: 84
+                    diameter: ringDiameter
                 )
                 .contentShape(Rectangle())
             }
@@ -215,9 +215,8 @@ struct TodayScreen: View {
                         text: today.readinessText,
                         fill: today.readinessFill,
                         label: "Readiness",
-                        diameter: 170,
-                        colour: today.readinessBand?.colour ?? .secondary,
-                        labelInside: true
+                        diameter: ringDiameter,
+                        colour: today.readinessBand?.colour ?? .secondary
                     )
                     .contentShape(Rectangle())
                 }
@@ -232,7 +231,7 @@ struct TodayScreen: View {
                 text: today.loadText,
                 fill: today.loadFill,
                 label: today.loadLabel,
-                diameter: 84
+                diameter: ringDiameter
             )
             // Tapping the Load ring does nothing in spec 002.
         }
@@ -336,3 +335,6 @@ private struct DayPicker: View {
 
 /// How long "Sync successful" stays up (spec 002, Sync pill).
 private let successfulPillSeconds = 3
+
+/// All three rings' size, points (spec 002, Rings: the same size).
+private let ringDiameter: CGFloat = 84

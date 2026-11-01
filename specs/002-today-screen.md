@@ -76,8 +76,9 @@ is the shell's. Pulling down on the Today screen starts a sync (001's Sync now) 
 running.
 
 **Rings.** Three rings, all 0–100 (ADR 0005):
-- **Readiness**, in the middle and largest. It shows the number with "Readiness" under it, and
-  the band word below the ring: **Ready** (67–100), **Steady** (34–66), **Take it easy** (0–33).
+- **Readiness**, in the middle, the same size as the other two. It shows the number, with
+  "Readiness" and then the band word below the ring: **Ready** (67–100), **Steady** (34–66),
+  **Take it easy** (0–33).
   The ring and word take the band's colour: green, amber, red. When Readiness is Calibrating,
   the ring is empty and shows "n/4", the Nights so far.
 - **Sleep Score** on the left.
