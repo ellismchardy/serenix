@@ -92,7 +92,11 @@ ignored, and nothing holds a connection between syncs.
    - Seam: Today view's input; Typical Load is a pure function, tested directly · Files: `src/SerenixCore/TypicalLoad.swift` (new), `tests/SerenixCoreTests/TypicalLoadTests.swift` (new)
    - Done when: the numeric part of the Typical Load criterion passes: 45; 46 with a half;
      missing skipped and 0 counted; 29 Days back not counted; 3 Days gives calibrating(3).
-6. [ ] **Slice:** Protocol: decode `0x28` into a Live HR reading, and build Live HR on/off.
+6. [x] **Slice:** Protocol: decode `0x28` into a Live HR reading, and build Live HR on/off.
+   - **Fixture (user, 2026-11-01):** no new capture. The 667 real `0x28` Frames already in
+     `Fixtures/HistorySync-2026-10-27.txt` (the third-party app had Live HR on during that sync),
+     plus one real Frame edited to HR 0 with its CRC recomputed. The command is
+     `Command.liveHR(on:)`; a too-short `0x28` Frame throws `LiveHRReadingError.unexpectedLength`.
    - Blocked by: 1. **Needs the owner's real `0x28` capture first** (spec open question). Trim it
      into `tests/SerenixCoreTests/Fixtures/LiveHR-<date>.txt` in the existing capture format
      (`SyncCapture.swift`), with serial and device ID removed.
