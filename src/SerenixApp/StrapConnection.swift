@@ -78,7 +78,11 @@ final class StrapConnection: NSObject, ObservableObject {
         case .searching, .connecting, .syncing: .syncing
         case .synced: .justFinished
         case .idle, .connected: .idle
-        case .bluetoothUnavailable(let reason): .failed(reason: reason, cause: .strapUnreachable)
+        // Bluetooth being off only pauses a sync that was wanted; otherwise there's nothing
+        // to say (spec 002, Sync pill).
+        case .bluetoothUnavailable(let reason):
+            wantsSync || wantsConnection
+                ? .failed(reason: reason, cause: .strapUnreachable) : .idle
         case .failed(let reason, let cause): .failed(reason: reason, cause: cause)
         }
     }
@@ -131,7 +135,7 @@ final class StrapConnection: NSObject, ObservableObject {
     }
 
     /// Syncs when Serenix launches or comes back from the background, once a Strap has been
-    /// connected (before that, the user starts with "Connect Strap"). Not on returning from
+    /// connected (before that, tapping the sync pill or pulling down starts one). Not on returning from
     /// Control Center or a notification, which is the app staying open (spec 001 non-goals).
     func sceneBecameActive(fromBackground: Bool) {
         // A sync that went silent while Serenix was in the background shows as failed now.

@@ -105,7 +105,8 @@ public enum Zone: Equatable, Sendable {
         default:
             return nil
         }
-        return min(max(position, 0), 1)
+        // A value that gives no real position (e.g. NaN) shows an empty gauge.
+        return position.isFinite ? min(max(position, 0), 1) : nil
     }
 
     /// The Baseline at 0.5, `limit` either side at 0 and 1.

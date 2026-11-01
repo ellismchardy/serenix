@@ -35,8 +35,9 @@ public struct Day: Hashable, Comparable, Sendable {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let components = DateComponents(year: year, month: month, day: dayOfMonth, hour: 12)
-        // The init keeps a Day a real date, so the calendar always has one for it.
-        return calendar.date(from: components)!
+        // Only a Day far outside any real date has none; it falls back to the start of time
+        // rather than crashing (docs/architecture.md, Errors).
+        return calendar.date(from: components) ?? .distantPast
     }
 
     /// How the Day reads in the Today screen's title, e.g. "Sun 1 Nov".

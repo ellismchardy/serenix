@@ -113,7 +113,7 @@ public struct TodayView: Equatable, Sendable {
 
         let syncPill = SyncPill(sync)
         self.syncPill = syncPill
-        syncOffersRetry = syncPill?.kind == .paused || syncPill?.kind == .failed
+        syncOffersRetry = syncPill?.canBeDismissed ?? false
 
         tilesHeading = isToday ? "Last night" : day.text
         timeAsleepTile = night.map { TimeAsleepTile(for: $0, timeZone: timeZone) }

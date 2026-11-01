@@ -153,11 +153,6 @@ struct TodayScreen: View {
         }
     }
 
-    /// Paused and failed pills can be swiped away; syncing can't, and successful goes by itself.
-    private func isSwipeable(_ pill: SyncPill) -> Bool {
-        pill.kind == .paused || pill.kind == .failed
-    }
-
     /// The Today view's sync pill, unless it was swiped away or has timed out.
     private func visiblePill(_ today: TodayView) -> SyncPill? {
         guard let pill = today.syncPill, pill != dismissedPill else { return nil }
@@ -187,12 +182,12 @@ struct TodayScreen: View {
             // Syncing stays up until the sync ends, keeping Cancel in reach.
             .gesture(
                 DragGesture(minimumDistance: 10).onEnded { drag in
-                    if drag.translation.height < 0, isSwipeable(pill) { dismissedPill = pill }
+                    if drag.translation.height < 0, pill.canBeDismissed { dismissedPill = pill }
                 }
             )
             .accessibilityAddTraits(.isButton)
             .accessibilityAction(named: "Dismiss") {
-                if isSwipeable(pill) { dismissedPill = pill }
+                if pill.canBeDismissed { dismissedPill = pill }
             }
         }
     }

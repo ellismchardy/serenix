@@ -1444,3 +1444,14 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     #expect(!offersRetry(.syncing))
     #expect(!offersRetry(.justFinished))
 }
+
+@Test func onlyPausedAndFailedSyncPillsCanBeSwipedAway() {
+    func canBeDismissed(_ sync: SyncStatus) -> Bool? {
+        todayView(nights: [], showing: nov1, sync: sync).syncPill?.canBeDismissed
+    }
+
+    #expect(canBeDismissed(.failed(reason: "Not found.", cause: .strapUnreachable)) == true)
+    #expect(canBeDismissed(.failed(reason: "Bad Frame.", cause: .other)) == true)
+    #expect(canBeDismissed(.syncing) == false)
+    #expect(canBeDismissed(.justFinished) == false)
+}

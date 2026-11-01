@@ -4,7 +4,7 @@ import Foundation
 /// anywhere, and never written to the Sync Log or any shared log or report (spec 002).
 @MainActor
 final class ProfileStore: ObservableObject {
-    /// The name as the user typed it; the Today view trims it and treats a blank one as none.
+    /// Stored trimmed, nil when blank, by `rename(to:)`; the Today view trims again on read.
     @Published var name: String? {
         didSet { defaults.set(name, forKey: nameKey) }
     }

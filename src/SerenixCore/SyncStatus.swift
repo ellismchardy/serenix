@@ -37,6 +37,10 @@ public struct SyncPill: Equatable, Sendable {
     /// Whether 001's progress bar and time left show under the pill.
     public let showsProgress: Bool
 
+    /// Paused and failed pills stay until put away; syncing stays until the sync ends, and
+    /// successful goes by itself (spec 002, Sync pill).
+    public var canBeDismissed: Bool { kind == .paused || kind == .failed }
+
     /// The pill for `status`; nil when there's nothing to say.
     init?(_ status: SyncStatus) {
         switch status {
