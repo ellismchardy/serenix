@@ -41,7 +41,7 @@ gives the typical Spread the spec's examples assume.
    - Files: `Zone.swift`, `MetricTile.swift`, `Popups.swift`, `Baseline.swift` (if an init for
      the no-Baseline SpO2 case is needed)
    - Done when: existing suite green, unchanged.
-2. [ ] **Slice (tracer):** HRV Spread-scaled Zone — `Baseline.spread` = typical value (HRV 0.15
+2. [x] **Slice (tracer):** HRV Spread-scaled Zone — `Baseline.spread` = typical value (HRV 0.15
    ln) once not Calibrating; HRV Zone on z = (ln value − ln median) / Spread, In range −1.5…+2.5,
    Watch down to −2.5 and anything above +2.5, never Out of range high.
    - Seam: Today view · Files: `Baseline.swift`, `Zone.swift`, `TodayViewTests.swift` (rewrite

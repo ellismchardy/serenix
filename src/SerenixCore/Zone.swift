@@ -1,15 +1,22 @@
 import Foundation
 
 /// Where one Nightly Metric sits against its Baseline, or for SpO2 against fixed levels
-/// (GLOSSARY, spec 002, Zones). Worked out on unrounded values.
+/// (GLOSSARY, specs 002 and 004, Zones). Worked out on unrounded values.
 ///
-/// Every cut-off is an assumption: from the 002 prototype, tune with real Nights.
+/// Every cut-off is an assumption: from the 002 prototype or, where spec 004 says so, issue #14
+/// and docs/research/nightly-metric-deviation.md. Tune with real Nights.
 public enum Zone: Equatable, Sendable {
     case inRange
     case watch
     case outOfRange
 
-    /// HRV's change from Baseline as a fraction of it: In range from −5%, Watch from −15%.
+    /// HRV's z, its change from Baseline on ln(RMSSD) in Spreads (spec 004): In range from −1.5
+    /// up to +2.5, Watch down to −2.5 and anywhere above +2.5. High HRV is never Out of range.
+    private static let hrvZInRangeFrom = -1.5
+    private static let hrvZInRangeUpTo = 2.5
+    private static let hrvZWatchFrom = -2.5
+    /// HRV's change from Baseline as a fraction of it, for the gauge and the popup's band only.
+    /// Superseded by spec 004: the gauge and band move to Spreads in later tasks of its plan.
     private static let hrvInRangeFrom = -0.05
     private static let hrvWatchFrom = -0.15
     /// Resting HR above Baseline, bpm: In range up to +1, Watch up to +4.
@@ -29,18 +36,20 @@ public enum Zone: Equatable, Sendable {
     /// 0.6000000000000014). Far below any reading's precision.
     private static let boundaryTolerance = 1e-9
 
-    /// The Zone of `value`; nil when the metric needs a Baseline and has none (Calibrating), or
-    /// HRV's Baseline is 0 or less, which gives no meaningful change.
+    /// The Zone of `value`; nil when the metric needs a Baseline and has none (Calibrating), when
+    /// HRV's Baseline is 0 or less, which gives no meaningful change, or when HRV's Baseline has
+    /// no Spread.
     init?(_ metric: NightlyMetric, value: Double, baseline: Baseline?) {
         switch (metric, baseline?.median) {
         case (.spo2, _):
             self = Self.atLeast(value, inRange: Self.spo2InRangeFrom, watch: Self.spo2WatchFrom)
         case (.hrv, let median?) where median > 0:
-            self = Self.atLeast(
-                (value - median) / median,
-                inRange: Self.hrvInRangeFrom,
-                watch: Self.hrvWatchFrom
-            )
+            guard let spread = baseline?.spread else { return nil }
+            let z = (log(value) - log(median)) / spread
+            self =
+                z > Self.hrvZInRangeUpTo + Self.boundaryTolerance
+                ? .watch
+                : Self.atLeast(z, inRange: Self.hrvZInRangeFrom, watch: Self.hrvZWatchFrom)
         case (.restingHR, let median?):
             self = Self.atMost(
                 value - median,

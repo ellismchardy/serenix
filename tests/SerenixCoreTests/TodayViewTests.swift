@@ -574,10 +574,15 @@ private func nov1Tile(_ metric: NightlyMetric, of night: Night) -> MetricTile? {
     todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1).tile(metric)
 }
 
-// 57 is −5% and 51 is −15% of 60, the boundaries themselves.
+// Values from spec 004. With fewer Nights than a Spread needs, the typical HRV Spread applies, so
+// z = (ln v − ln 60) / 0.15: z = −1.5 at ≈47.91 and −2.5 at ≈41.24, so 48/47.9 and 41.3/41.2
+// sit either side of the Watch and Out of range edges; z = +2.5 at ≈87.30, so 87.2 is In range
+// and 87.4 is Watch. A high HRV is never Out of range, however high (200).
 @Test(
-    arguments: [(57, .inRange), (56.9, .watch), (51, .watch), (50.9, .outOfRange), (90, .inRange)]
-        as [(Double, Zone)]
+    arguments: [
+        (48, .inRange), (47.9, .watch), (41.3, .watch), (41.2, .outOfRange),
+        (87.2, .inRange), (87.4, .watch), (200, .watch),
+    ] as [(Double, Zone)]
 )
 func hrvZoneAgainstABaselineOf60(hrv: Double, zone: Zone) {
     let tile = nov1Tile(.hrv, of: Night(day: nov1, hrv: hrv))
@@ -807,7 +812,7 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 @Test(
     arguments: [
         (.hrv, Night(day: nov1, hrv: 57), "Normal"),
-        (.hrv, Night(day: nov1, hrv: 54), "Low"),
+        (.hrv, Night(day: nov1, hrv: 41), "Low"),
         (.restingHR, Night(day: nov1, restingHR: 53), "Normal"),
         (.restingHR, Night(day: nov1, restingHR: 55), "High"),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), "High"),
