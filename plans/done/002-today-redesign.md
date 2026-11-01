@@ -77,7 +77,7 @@ its change — an approved clarification of desired behaviour, not a plan decisi
    Debug; footer.
    - Seam: none (manual) · Files: `src/SerenixApp/ProfileMenu.swift`
    - Done when: `swift build` and the CI macOS job are green; manual steps in the PR checklist.
-6. [ ] **Verify:** full suite + lint + build green, CI macOS green; every unticked automated
+6. [x] **Verify:** full suite + lint + build green, CI macOS green; every unticked automated
    criterion ticked; manual phone steps (incl. the sample-Nights walk-through and "name not in
    the shared Sync Log") listed for the PR.
    - Blocked by: 5
@@ -92,3 +92,52 @@ its change — an approved clarification of desired behaviour, not a plan decisi
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
+
+## Manual phone steps (for the PR checklist)
+On the iPhone with the sideloaded CI build. Delete Serenix first (or reset its data) to see
+first launch.
+
+**First launch and Profile:**
+- [ ] Serenix asks "What should we call you?" before the Today screen. Continue with a name →
+      the Today screen greets "Good morning/afternoon/evening, <name>" and the avatar shows its
+      letter. On a second fresh install, Skip → "Good morning" with no name and a person icon.
+      Relaunching never asks again. (Note whether iOS's Bluetooth alert appears over the
+      prompt.)
+- [ ] The avatar opens the menu: large letter (or person icon) with the name (or "Add your
+      name"); tapping it edits the name, and the greeting and avatar update. ✕ closes the menu.
+- [ ] After a sync with a name set, the Sync Log shared from Profile → Debug doesn't contain
+      the name.
+
+**Top bar** (Profile → Debug → Show sample Nights on):
+- [ ] The title is today's date with ▾; the picker offers the earliest sample Night through
+      today only; picking a Day shows it at once; the Today pill shows on that Day and returns
+      to today. Picking today shows no pill.
+
+**Tiles:**
+- [ ] Each metric tile shows its icon, value, ✓ and status word ("Normal", "Low", "High", SpO2's
+      level) and a vertical gauge, in green, amber or red by Zone; no trend lines. Calibrating
+      tiles read "Calibrating" with an empty gauge; a missing SpO2 reads "—". Time Asleep shows
+      its duration and span with no gauge. Tapping each tile still opens its popup with the
+      14-Night chart.
+
+**Sync pill:**
+- [ ] Opening Serenix: the pill slides down as "Syncing" with 001's progress and time left;
+      tapping it offers Cancel; it can't be swiped away. When the sync ends, "Sync successful"
+      shows green with a ✓ and slides away after 3 seconds.
+- [ ] Each of these shows "Sync paused" (the shell decides the cause, so only the phone checks
+      it): the Strap out of range when Serenix opens, Bluetooth off, and the Strap taken out of
+      range mid-sync. A sync that fails another way (e.g. the Strap going silent) shows "Sync
+      failed" in red.
+- [ ] On a paused sync, the pill is amber with a ⚠;
+      tapping shows the reason, "Serenix will try again next time you open it." and Retry;
+      swiping up puts it away. Profile's button reads "Retry sync".
+- [ ] Cancelling a sync shows no pill, and Profile's button reads "Sync now".
+- [ ] Pulling down on the Today screen starts a sync.
+
+**Profile menu:**
+- [ ] Rounded, grouped rows: Connected with the model (Not found before pairing), battery, last
+      sync in 24-hour time, Sync now / Retry sync; Debug opens 001's debug screen; footer shows
+      the version, "MIT licensed", "Not affiliated with WHOOP, Inc."
+
+**001 and the rest of 002:** every manual check in `specs/001-history-sync.md` and the
+remaining ones in spec 002 still pass (rings, popups, vs your Baseline, sample Nights).

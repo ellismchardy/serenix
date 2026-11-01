@@ -1,6 +1,6 @@
 # 002 — Today screen
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-01
 
 ## Problem
@@ -233,7 +233,7 @@ other metrics are whole numbers.
 
 ## Success criteria (must be checkable)
 Automated (`swift test`, on Windows and in CI). Expected values are literals worked out by hand:
-- [ ] With Nights dated 30 Oct and 1 Nov and the current time 1 Nov 08:12, the view on 1 Nov
+- [x] With Nights dated 30 Oct and 1 Nov and the current time 1 Nov 08:12, the view on 1 Nov
       is titled "Sun 1 Nov" with no Today pill and shows the 1 Nov Night; the date picker runs
       from 30 Oct to 1 Nov. On 31 Oct it is titled "Sat 31 Oct", shows the Today pill and "No
       Night recorded" with that Day's Load. With no Nights, the picker runs from today to today.
@@ -268,28 +268,28 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] Load on today is labelled "Load so far"; on an earlier Day, "Load".
 - [x] When either Baseline is Calibrating, vs your Baseline is the single Calibrating line with
       the right "N to go".
-- [ ] Tile status words against exact Baselines (HRV 60, Resting HR 52, respiratory rate 14.0,
+- [x] Tile status words against exact Baselines (HRV 60, Resting HR 52, respiratory rate 14.0,
       skin temperature 34.0): HRV 57 "Normal", 54 "Low"; Resting HR 53 "Normal", 55 "High";
       respiratory rate 15.0 "High", 13.0 "Low"; skin temperature 34.5 "High", 33.5 "Low"; SpO2
       97 "95% or above", 93 "Below 95%", 90 "Below 92%"; a Calibrating metric "Calibrating".
-- [ ] Gauge positions against the same Baselines: HRV 60 → 0.5, 55.5 → 0.25, 51 → 0, 75 → 1
+- [x] Gauge positions against the same Baselines: HRV 60 → 0.5, 55.5 → 0.25, 51 → 0, 75 → 1
       (clamped); Resting HR 54 → 0.75, 48 → 0; respiratory rate 14.5 → 0.75; skin temperature
       33.7 → 0.25; SpO2 97 → 0.75, 85 → 0 (clamped); a Calibrating or missing metric has no
       position.
-- [ ] Tiles carry no trend line; the Time Asleep tile has no Zone, status word or gauge.
+- [x] Tiles carry no trend line; the Time Asleep tile has no Zone, status word or gauge.
 - [x] The Sleep popup's minutes awake equal Final Wake − Sleep Onset − Time Asleep.
 - [x] The Nightly Metric popup holds the Night shown and up to 13 earlier Nights, plus the
       Baseline and In range limits (none for SpO2).
-- [ ] Which sync pill shows: connecting and syncing → "Syncing"; a sync just finished → "Sync
+- [x] Which sync pill shows: connecting and syncing → "Syncing"; a sync just finished → "Sync
       successful"; Strap not found, Bluetooth unavailable or the Strap disconnecting → "Sync
       paused", carrying its reason and "Serenix will try again next time you open it."; any
       other failure → "Sync failed" carrying its reason; idle with no sync just finished, or a
       sync the user cancelled → no pill.
-- [ ] The greeting on today with the name "Ellis" is "Good morning, Ellis" at 05:00 and 08:12,
+- [x] The greeting on today with the name "Ellis" is "Good morning, Ellis" at 05:00 and 08:12,
       "Good afternoon, Ellis" at 12:00, and "Good evening, Ellis" at 18:00 and 04:59; with no
       name, or a name of only spaces, it is "Good morning" at 08:12; an earlier Day has no
       greeting.
-- [ ] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
+- [x] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
       "Ellis"; with no name there is no letter and the menu name is "Add your name".
 
 Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
