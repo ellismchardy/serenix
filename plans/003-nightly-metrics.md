@@ -57,7 +57,7 @@ Assumptions (consistent with the spec, stated for review):
 1. [x] **Prefactor:** public memberwise `HistoryRecord` init; no behaviour change.
    - Files: `src/SerenixCore/HistoryRecord.swift`
    - Done when: existing suite still green.
-2. [ ] **Slice (tracer):** fixture + Sleep Period: the 29–30 Oct night gives one Night dated
+2. [x] **Slice (tracer):** fixture + Sleep Period: the 29–30 Oct night gives one Night dated
    30 Oct with Sleep Onset 21:05, Final Wake 03:42, Time in Bed 20:57–04:00, Time Asleep 5h52.
    Per-minute table, wake rule with HR cross-check, runs ≥ 7, merge < 60 min across recorded wake
    only, most-sleep period wins, Time in Bed widening, noon-to-noon windows, dating by Final Wake.
