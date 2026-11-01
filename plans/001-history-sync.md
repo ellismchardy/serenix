@@ -146,14 +146,18 @@ background checks, so they can be watched during those.
      Records, 2 min 23 s) showed "Starting…", then the bar and "about 5 min left" falling as it
      filled, and ended "Up to date". The first estimate was high (the start of a sync is slower)
      and settled as it ran.
-11. [ ] **Slice:** finish a started sync in the background
+11. [x] **Slice:** finish a started sync in the background
    - Blocked by: 9 (needs its 10-second timer and the "not started twice" rule)
    - Built and committed (104ea06); waiting only on its phone checks, which need a real
      backlog (a night's wear), so it's ticked after them.
    - **Lock and switch apps passed (1 Nov 2026):** the same sync, with the phone locked and
      then another app in front, kept receiving Frames throughout (longest gap 0.2 s, ~194
-     History Records/s, one handshake, 0 Record Counter gaps) and ended "Up to date". The
-     out-of-range check is still to do.
+     History Records/s, one handshake, 0 Record Counter gaps) and ended "Up to date".
+   - **Out of range passed (1 Nov 2026):** a sync started with the phone locked, then carried
+     away, stopped mid-Batch (45 Batches acknowledged, last acknowledged Record Counter
+     3,185,603) and showed "The Strap disconnected mid-sync". The next sync near the Strap
+     started at Record Counter 3,185,604, re-received the unacknowledged Batch without storing
+     it twice, completed, and left 0 Record Counter gaps across both.
    - Declare iOS's Bluetooth background mode (central role, `UIBackgroundModes:
      bluetooth-central`) in `project.yml`; no state restoration. Timers don't run while iOS
      keeps Serenix suspended between Bluetooth events, so the shell measures the 10 seconds
@@ -166,7 +170,7 @@ background checks, so they can be watched during those.
      the lock; switching apps for a minute mid-sync logs Frames from that minute with no
      second handshake; taking the Strap out of range mid-sync while locked shows the failure
      with a reason, and the next sync leaves 0 Record Counter gaps.
-12. [ ] **Slice:** full debug screen and Share log
+12. [x] **Slice:** full debug screen and Share log
    - Blocked by: 7, 9
    - Session reports the `0x22` data range and `0x1a` battery level (test-first, at the
      session seam); the shell reads model/firmware from Device Info. Debug screen shows the
@@ -184,6 +188,11 @@ background checks, so they can be watched during those.
      shows range, battery and firmware, and Share log opens the share sheet; closing Serenix
      mid-sync then syncing again leaves 0 gaps between the first and last Record Counter of the
      interrupted and resumed syncs (moved from task 9).
+   - **Result on the phone (1 Nov 2026), for the PR:** Settings → Debug shows the Strap's
+     name, model, firmware, battery and 0x22 data range, and the stored History Records' count,
+     first and last Record Counter and time, and gaps. Share log opened the share sheet with
+     both syncs since the new build, each headed `# sync …`. The 0-gaps check across an
+     interrupted and resumed sync passed with task 11's out-of-range test.
 13. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
     criterion checked, with the manual steps and their results written in the PR.
     - Blocked by: 10, 11, 12
