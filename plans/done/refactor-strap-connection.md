@@ -42,8 +42,11 @@ jobs (store-stats refresh, Sync Log save) are chained so each waits for the one 
    - Done when: no `@unchecked Sendable` remains; the delegate conformances are
      `@preconcurrency`; timers hop with `MainActor.assumeIsolated`; only the background jobs
      hop back with `MainActor.run`; CI builds the app under Swift 6 strict concurrency.
-5. [ ] **Verify:** `swift test`, lint and `swift build` green; CI green; the phone steps in
+5. [x] **Verify:** `swift test`, lint and `swift build` green; CI green; the phone steps in
    `plans/done/001-history-sync.md` behave as before (by hand, sideloaded).
+   - **Result (1 Nov 2026):** 58 tests, lint and build green locally and in CI (both jobs).
+     On the phone, the sideloaded build synced on open and read "Up to date", and the owner
+     reported every phone step behaving as before.
 
 ## Done when
 - All tasks checked, suite green, CI builds the app, a sync on the phone behaves as before.
