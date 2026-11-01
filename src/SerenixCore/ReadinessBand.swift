@@ -22,7 +22,7 @@ public enum ReadinessBand: Equatable, Sendable {
         }
     }
 
-    /// The word under the Readiness ring.
+    /// The word on the Readiness message card.
     public var word: String {
         switch self {
         case .ready: "Ready"

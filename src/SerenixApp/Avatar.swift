@@ -9,7 +9,7 @@ struct Avatar: View {
 
     var body: some View {
         ZStack {
-            Circle().fill(Color.accentColor)
+            Circle().fill(Theme.accent)
             if let letter {
                 Text(letter)
                     .font(.system(size: diameter * 0.45, weight: .semibold, design: .rounded))

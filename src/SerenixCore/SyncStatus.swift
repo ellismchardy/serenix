@@ -34,7 +34,7 @@ public struct SyncPill: Equatable, Sendable {
     public let text: String
     /// Why it paused or failed, shown with Retry; nil otherwise.
     public let detail: String?
-    /// Whether 001's progress bar and time left show under the pill.
+    /// Whether a sync is running, so the profile menu shows 001's time left and progress.
     public let showsProgress: Bool
 
     /// Paused and failed pills stay until put away; syncing stays until the sync ends, and

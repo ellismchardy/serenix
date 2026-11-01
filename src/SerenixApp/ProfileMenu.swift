@@ -3,8 +3,8 @@ import SwiftUI
 
 /// The profile menu (spec 002), opened from the Today screen's avatar: the Profile's avatar and
 /// name, which can be edited; the Strap's connection and model, battery and last sync, with Sync
-/// now; Debug; and a footer with the version, licence and disclaimer. Rounded, grouped rows,
-/// closed with an ✕.
+/// now; the Appearance; Debug; and a footer with the version, licence and disclaimer. Rounded,
+/// grouped rows on the Look's background, closed with an ✕.
 struct ProfileMenu: View {
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
@@ -13,7 +13,10 @@ struct ProfileMenu: View {
     let menuName: String
     /// The Today view's say on whether Sync now reads Retry sync.
     let syncOffersRetry: Bool
+    /// The Today view's say on whether a sync is running, so 001's progress shows here.
+    let showsSyncProgress: Bool
     @Binding var showsSampleNights: Bool
+    @EnvironmentObject private var appearanceStore: AppearanceStore
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
     @State private var draftName = ""
@@ -53,17 +56,32 @@ struct ProfileMenu: View {
                     } label: {
                         Label("Last sync", systemImage: "clock")
                     }
-                    // 001's Sync now; after a failed or paused sync it's a retry.
-                    Button {
-                        connection.syncNow()
-                    } label: {
-                        Label(
-                            syncOffersRetry ? "Retry sync" : "Sync now",
-                            systemImage: "arrow.triangle.2.circlepath"
-                        )
+                    HStack(spacing: 10) {
+                        // 001's Sync now; after a failed or paused sync it's a retry.
+                        Button {
+                            connection.syncNow()
+                        } label: {
+                            Label(
+                                syncOffersRetry ? "Retry sync" : "Sync now",
+                                systemImage: "arrow.triangle.2.circlepath"
+                            )
+                        }
+                        .disabled(connection.phase.isBusy)
+                        Spacer(minLength: 0)
+                        // 001's time left and progress, once the running sync reports progress.
+                        if showsSyncProgress, let progress = connection.syncProgress {
+                            SyncProgressView(progress: progress, timeLeft: connection.syncTimeLeft)
+                        }
                     }
-                    .disabled(connection.phase.isBusy)
                 }
+                .listRowBackground(Theme.card)
+                Section("Appearance") {
+                    Picker("Appearance", selection: $appearanceStore.selected) {
+                        ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .listRowBackground(Theme.card)
                 Section {
                     NavigationLink {
                         DebugView(connection: connection, showsSampleNights: $showsSampleNights)
@@ -80,8 +98,11 @@ struct ProfileMenu: View {
                     }
                     .padding(.top, 8)
                 }
+                .listRowBackground(Theme.card)
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Theme.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -128,5 +149,33 @@ struct ProfileMenu: View {
             calendar: Calendar(identifier: .gregorian)
         )
         return completed.formatted(style)
+    }
+}
+
+/// A running sync's time left, then its progress as a small circle filling clockwise (spec 001,
+/// Sync progress; spec 002, Profile menu).
+private struct SyncProgressView: View {
+    let progress: Double
+    let timeLeft: TimeInterval?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let timeLeft {
+                Text(HistorySync.timeLeftText(timeLeft))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            ZStack {
+                Circle().stroke(Theme.accentSoft, lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .frame(width: 22, height: 22)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue("\(Int((progress * 100).rounded())) percent synced")
     }
 }

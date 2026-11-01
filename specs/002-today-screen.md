@@ -10,7 +10,8 @@ glance how they slept, how ready they are, and whether anything is off against t
 normal, then dig into one number when it looks wrong.
 
 ## Goal
-Opening Serenix shows the Today screen: a greeting by name, then last night's Readiness, Sleep
+Opening Serenix shows the Today screen, in a light (or dark) card style with a purple accent: a
+greeting by name, then last night's Readiness, Sleep
 Score, Load, Time Asleep and Nightly Metrics, each compared against the user's Baseline. The
 user can pick an earlier Day, open a detail popup for any number, and reach their Profile,
 Strap status and Debug from a profile menu. Sync shows itself only when there's something to
@@ -42,25 +43,37 @@ say.
 **Which Day is shown.** Serenix opens on today: the local calendar Day of the current time. The
 Night shown is the one dated that Day (GLOSSARY: dated by the local date of its Final Wake).
 
-**Top bar.** On the left, the Day's date as a large title (e.g. "Sun 1 Nov") with a ▾. Tapping
-it opens a date picker running from the Day of the earliest Night to today (just today when
-there are no Nights); picking a Day shows it. Next to the title, a **Today** pill shows on any
-Day other than today, and tapping it goes back to today. On the right, the profile avatar (see
-Profile) opens the profile menu. There are no ‹ › arrows.
+**Top bar.** On the left, the profile avatar (see Profile), which opens the profile menu. Next
+to it, the greeting in small text, with the Profile name in bold under it. On the right, two
+round buttons:
+- **Calendar:** opens a date picker running from the Day of the earliest Night to today (just
+  today when there are no Nights); picking a Day shows it.
+- **Bell:** shows "No notifications yet." Notifications are a later spec (see Non-goals).
 
-**Greeting.** On today, under the top bar: "Good morning", "Good afternoon" or "Good evening",
-followed by ", " and the Profile name when there is one (e.g. "Good morning, Ellis"). Morning is
-05:00–11:59, afternoon 12:00–17:59 and evening 18:00–04:59, local time. Earlier Days have no
-greeting.
+**Greeting.** "Good morning!", "Good afternoon!" or "Good evening!" by the local time now, on
+every Day shown: morning is 05:00–11:59, afternoon 12:00–17:59 and evening 18:00–04:59. The
+Profile name shows under it in bold; with no name, the greeting stands alone.
+
+**Week strip.** A card under the top bar showing seven Days, each as its weekday letter (S M T
+W T F S) over its date number, with the Day shown highlighted in the accent colour. The seven
+Days are the week holding the Day shown, counted back from today in sevens: today and the six
+Days before it, then the seven before those, and so on. Its title is the month and year of the
+Day shown, e.g. "October 2026" with 28 Oct shown, even when the strip runs into November.
+Tapping a Day shows it; a Day with no Night is dimmed but can still be shown ("No Night recorded"
+with its Load). A Day before the earliest Night's
+Day is greyed out and can't be tapped. ‹ shows the Day a week earlier, but never before the
+earliest Night's Day; it is disabled on that Day. › shows the Day a week later, but never after
+today; it is disabled on today. There is no Today pill and no large date
+title.
 
 **No Night for the Day.** On today, "No Night yet". On an earlier Day, "No Night recorded". Both
 still show that Day's Load. Serenix never shows another Day's Night in its place.
 
 **Sync pill.** History Sync (spec 001) shows as a pill that slides down over the top of the
 screen only when there's something to say:
-- **Syncing:** grey, with a spinner, while connecting or syncing; 001's progress bar and time
-  left show under it once there's progress (until then, just "Syncing"). It stays up until the sync ends.
-  Tapping it offers Cancel (001's Cancel).
+- **Syncing:** "Syncing" with a spinner and a purple outline, while connecting or syncing, and
+  nothing more: 001's progress and time left are in the profile menu. It stays up until the
+  sync ends. Tapping it offers Cancel (001's Cancel).
 - **Sync successful:** green, with a ✓, when a sync finishes. It slides away after 3 seconds.
 - **Sync paused:** amber, with a ⚠, when the Strap couldn't be reached: not found, Bluetooth
   off or not allowed, or the Strap disconnected mid-sync. Its detail adds "Serenix will try
@@ -77,12 +90,33 @@ running.
 
 **Rings.** Three rings, all 0–100 (ADR 0005):
 - **Readiness**, in the middle, the same size as the other two. It shows the number, with
-  "Readiness" and then the band word below the ring: **Ready** (67–100), **Steady** (34–66),
-  **Take it easy** (0–33).
-  The ring and word take the band's colour: green, amber, red. When Readiness is Calibrating,
-  the ring is empty and shows "n/4", the Nights so far.
+  "Readiness" below the ring, which takes the band's colour: green, amber, red. Its band is
+  **Ready** (67–100), **Steady** (34–66) or **Take it easy** (0–33). When Readiness is
+  Calibrating, the ring is empty and shows "n/4", the Nights so far.
 - **Sleep Score** on the left.
 - **Load** on the right, labelled "Load so far" on today and "Load" on earlier Days.
+
+The three rings line up level, with nothing under the Readiness ring that the others don't
+have.
+
+**Readiness message.** A card under the rings with the band word in the band's colour (e.g.
+"Ready"), a short piece of advice under it, and an ✕. The advice is the band's sentence:
+- **Ready:** "You've recovered well. A good day to push: go for a harder session if you feel
+  like it."
+- **Steady:** "You're part-way recovered. Train at a moderate pace and keep your Load under 60
+  today."
+- **Take it easy:** "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and
+  keep your Load under 30 today."
+
+For Steady and Take it easy, it starts with why, from the Night's own numbers, naming only what
+applies: "Yesterday's Load was high (82)" when the Day before the Day shown had a Load of 70 or
+more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Resting HR is up 4 bpm" when
+Resting HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
+or "A, B and C." before the band's sentence. The Load caps (60, 30) and the high-Load mark (70)
+are named constants and assumptions, to tune once the Load spec ships. Closing it hides it for that
+Night, remembered on the phone across
+relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
+missing.
 
 **vs your Baseline.** HRV and Resting HR, each with its value, its difference from Baseline,
 and a bar showing which way it moved from Baseline:
@@ -170,6 +204,12 @@ appears in the Sync Log, a shared log or any report.
 The **avatar** is a circle with the first letter of the name, upper-cased; with no name it
 shows a person icon. It appears in the top bar and, larger, at the top of the profile menu.
 
+**Look.** A light grey background with white, rounded cards and soft shadows, and purple as
+the app's accent: the avatar, the Day shown in the week strip, buttons, the sync pill's outline
+and the Sleep Score ring. Band and Zone colours stay green, amber and red. **Appearance** is
+System (the default, following iOS), Light or Dark, chosen in the profile menu and kept on the
+phone; Dark uses a dark version of the same palette with the same accent.
+
 **Profile menu.** It slides up nearly full height, with an ✕ to close it, and contains, as
 rounded, grouped rows:
 - **Header:** the large avatar and the name under it, or "Add your name" with no name. Tapping
@@ -178,7 +218,9 @@ rounded, grouped rows:
   is paired), battery level, and when the last sync finished ("Sun 1 Nov 08:10", 24-hour).
   "Connected" means a Strap is paired with Serenix; each sync connects to it. Battery and model
   come from 001's handshake. Then **Sync now**, labelled **Retry sync** after a failed or paused
-  sync; it does the same as 001's Sync now.
+  sync; it does the same as 001's Sync now. While a sync runs and has progress, the same row
+  shows 001's time left and, at its right-hand end, the progress as a small filling circle.
+- **Appearance:** System, Light or Dark (see Look).
 - **Debug:** opens 001's debug screen.
 - **Footer:** app version, "MIT licensed", "Not affiliated with WHOOP, Inc."
 
@@ -206,14 +248,17 @@ other metrics are whole numbers.
     another reason) and its reason
   - the Profile name, if any
 
-  It returns a value describing everything above: the title, the date picker's range and whether
-  the Today pill shows, the greeting, the avatar's letter and the menu header's name, the sync
-  pill, the rings, vs your Baseline, the tiles with their status words, gauge positions and
-  Zones, and the content of each popup. It decides; it doesn't draw. Colours and how long a pill
+  It returns a value describing everything above: the week strip (its title, Days and which are
+  shown, without a Night or out of range, and where ‹ and › go), the date picker's range, the
+  greeting, the avatar's letter and the menu header's name, the sync pill, the rings, the
+  Readiness message's advice, vs your Baseline, the tiles with their status words, gauge
+  positions and Zones, and the content of each popup. It decides; it doesn't draw. Colours and how
+  long a pill
   stays up are not in it, only bands, Zones and which pill.
 - **iOS shell: Today screen, popups, profile menu, name prompt.** SwiftUI. It draws the Today
-  view's output, maps band and Zone to colour, times the sync pill, and sends taps back. It
-  keeps the Profile name in on-device storage and tells the Today view what kind of sync failure
+  view's output, maps band and Zone to colour, applies the Look and the Appearance, times the
+  sync pill, and sends taps back. It keeps the Profile name and the Appearance in on-device
+  storage and tells the Today view what kind of sync failure
   happened. It takes over 001's main screen, and the profile menu takes over 001's settings
   screen. 001's debug screen is reached from the menu.
 - **Scores are inputs.** How Sleep Period, Nightly Metrics, Time Asleep, Sleep Score, Readiness
@@ -224,20 +269,28 @@ other metrics are whole numbers.
 
 ## Seams under test
 - **Today view (`SerenixCore`)**, fed hand-built Nights and Days with known values and a fixed
-  current time. It catches which Day and Night are shown, the date picker's range and the Today
-  pill, "No Night yet / recorded", the greeting, the avatar letter, bands, Calibrating counts,
+  current time. It catches which Day and Night are shown, the week strip, the date picker's range,
+  "No Night yet / recorded", the greeting, the avatar letter, bands, Calibrating counts,
   Baseline (median, earlier Nights only, at least 3, missing values skipped), every Zone
   boundary, status words, gauge positions, difference formats, Load "so far", missing values,
-  popup content and which sync pill shows. It misses layout, colours, taps, animation, pill
-  timing, the name prompt, storage and the Strap facts in the menu, which are checked by hand on
-  the phone (ADR 0002).
+  the Readiness advice, popup content and which sync pill shows. It misses layout, colours, the
+  Look and Appearance, taps, animation, pill timing, closing the Readiness message, the name
+  prompt, storage and the Strap facts in the menu, which are checked by hand on the phone
+  (ADR 0002).
 
 ## Success criteria (must be checkable)
 Automated (`swift test`, on Windows and in CI). Expected values are literals worked out by hand:
 - [x] With Nights dated 30 Oct and 1 Nov and the current time 1 Nov 08:12, the view on 1 Nov
-      is titled "Sun 1 Nov" with no Today pill and shows the 1 Nov Night; the date picker runs
-      from 30 Oct to 1 Nov. On 31 Oct it is titled "Sat 31 Oct", shows the Today pill and "No
-      Night recorded" with that Day's Load. With no Nights, the picker runs from today to today.
+      shows the 1 Nov Night; its week strip is titled "November 2026" and runs Mon 26 Oct to Sun
+      1 Nov with 1 Nov shown, 31 Oct and 26–29 Oct marked as without a Night, 26–29 Oct out of
+      range, ‹ going to 30 Oct and › disabled. The date picker runs from 30 Oct to 1 Nov. On 31
+      Oct the view shows "No Night recorded" with that Day's Load. With no Nights, the picker
+      runs from today to today and ‹ and › are both disabled.
+- [x] With Nights from 1 Oct to 1 Nov, ‹ on 1 Nov goes to 25 Oct and › on 25 Oct to 1 Nov; on
+      25 Oct the strip runs Mon 19 Oct to Sun 25 Oct, titled "October 2026".
+- [x] The week strip is titled with the month of the Day shown: with Nights from 1 Oct to 1 Nov,
+      28 Oct shows the strip 26 Oct to 1 Nov titled "October 2026", and 1 Nov shows the same
+      strip titled "November 2026".
 - [x] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
       Day's values.
 - [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
@@ -286,34 +339,51 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       paused", carrying its reason and "Serenix will try again next time you open it."; any
       other failure → "Sync failed" carrying its reason; idle with no sync just finished, or a
       sync the user cancelled → no pill.
-- [x] The greeting on today with the name "Ellis" is "Good morning, Ellis" at 05:00 and 08:12,
-      "Good afternoon, Ellis" at 12:00, and "Good evening, Ellis" at 18:00 and 04:59; with no
-      name, or a name of only spaces, it is "Good morning" at 08:12; an earlier Day has no
-      greeting.
+- [x] The greeting is "Good morning!" at 05:00 and 08:12, "Good afternoon!" at 12:00, and "Good
+      evening!" at 18:00 and 04:59, on today and on an earlier Day alike; the name under it is
+      "Ellis" for "Ellis" and none for no name or a name of only spaces.
+- [x] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
+      for a harder session if you feel like it."; Steady with nothing off gives "You're
+      part-way recovered. Train at a moderate pace and keep your Load under 60 today."; Take it
+      easy with yesterday's Load 82, HRV 51.6 against Baseline 60 and Resting HR 56 against 52
+      gives "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up
+      4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your
+      Load under 30 today."; a Load of 69 yesterday isn't mentioned; no advice while
+      Calibrating.
 - [x] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
       "Ellis"; with no name there is no letter and the menu name is "Add your name".
 
 Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - [ ] After a sync with real Nights, the Today screen shows the rings, vs your Baseline and six
       tiles, with values matching the Today view's output for that data.
-- [x] Zone colours show green, amber and red as given, and the Readiness ring and word share the
-      band colour.
-- [ ] The date ▾ opens a picker limited to the earliest Night through today; picking a Day shows
-      it; the Today pill shows on other Days and returns to today.
+- [ ] Zone colours show green, amber and red as given; the three rings line up level; the
+      Readiness message card under them shows the band word in the ring's band colour, its ✕
+      hides it for that Night (still hidden after relaunching), and another Night shows its own.
+- [ ] The top bar shows the avatar, the greeting over the name, and the calendar and bell
+      buttons; the calendar opens a picker limited to the earliest Night through today and
+      picking a Day shows it; the bell shows "No notifications yet.".
+- [ ] The week strip shows seven Days with the Day shown in purple; tapping a Day shows it, ‹ and
+      › move a week and are disabled at the earliest Night and at today.
+- [ ] The screen has a light grey background, white rounded cards and a purple accent; band and
+      Zone colours are unchanged. Appearance in the profile menu switches between System, Light
+      and Dark at once, Dark keeps the purple accent, and the choice survives relaunching.
 - [x] Tapping the Readiness ring, the Sleep Score ring, the Time Asleep tile and each metric tile
       opens the right popup; a tap outside or a swipe down closes it; the Load ring does
       nothing.
 - [ ] Each metric tile shows its icon, value, ✓ status word and a gauge in the Zone colour, with
       no trend line.
-- [ ] The sync pill slides down while syncing with 001's progress bar and time left, and tapping
-      it offers Cancel; "Sync successful" shows green with a ✓ and slides away after 3 seconds;
+- [ ] The sync pill slides down while syncing, showing just "Syncing" and a spinner, and tapping
+      it offers Cancel; opening the profile menu meanwhile shows the time left and a filling
+      progress circle at the right of the Sync now row; "Sync successful" shows green with a ✓ and
+      slides away after 3 seconds;
       with the Strap out of range, "Sync paused" shows amber with a ⚠; tapping a paused or
       failed pill shows the reason and Retry restarts the sync; with nothing to say, no pill
       shows. Pulling down on the Today screen starts a sync.
 - [ ] On first launch Serenix asks "What should we call you?"; after Continue the Today screen
       greets by name, after Skip it greets without one, and the prompt never shows again.
 - [ ] The avatar opens the menu with the name (or "Add your name") under a large letter (or
-      person icon); editing the name there updates the greeting and avatar; the Strap rows
+      person icon); editing the name there updates the greeting's name and the avatar; the Strap
+      rows
       show Connected and the model, battery, last sync, and Sync now / Retry sync; Debug opens
       001's debug screen; ✕ closes the menu.
 - [ ] After a sync with a name set, the Sync Log shared from Debug doesn't contain the name.
@@ -332,13 +402,12 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
   messages using the name. Each would be its own spec.
 - Streaks and a "Health KPI" summary from the reference designs.
 - Editing, deleting or hiding a Night; Naps; Stress.
-- Notifications, widgets, or a Watch app.
+- Notifications, widgets, or a Watch app. The bell is only a placeholder until a notifications
+  spec gives it something to show.
 
 ## Open questions
 - **Zone cut-offs** are the prototype's placeholders. Tune them once there are a few weeks of
   real Nights, and change the constants and their tests together.
-- **Light mode.** The prototype is dark only. Assumption: the screen follows iOS light/dark,
-  with the same band and Zone colours in both.
 - **Write a review.** It needs the App Store, which needs the Apple Developer Program (ADR 0003).
   When its spec comes, it may link to GitHub instead.
 - **SpO2 rounding.** Zones use unrounded values, so SpO2 94.6 shows "95%" with "Below 95%".
@@ -355,6 +424,9 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
   Readiness hero and Baseline bars, C for the tiles and the Sleep screen, D for Trends.
 - Glossary changes in this spec: Baseline now covers respiratory rate and skin temperature, not
   SpO2. New terms: Time Asleep, Zone and Profile.
+- Restyle (2026-11-01): the light card look, purple accent, greeting top bar, week strip and
+  Appearance setting follow prototype variant F (`?variant=F`, branch `prototype/homescreen`),
+  itself from a second set of reference screenshots.
 - Redesign (2026-11-01): the top bar, sync pill, tiles and profile menu follow reference
   screenshots the owner shared in conversation. Their layout is taken, not their names or
   features (ADR 0005).

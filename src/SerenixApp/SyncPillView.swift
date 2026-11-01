@@ -2,29 +2,21 @@ import SerenixCore
 import SwiftUI
 
 /// The sync pill that slides down over the top of the Today screen (spec 002, Sync pill):
-/// grey with a spinner and 001's progress while syncing, green ✓ when a sync finishes, amber ⚠
-/// when it's paused and red ✕ when it failed. The Today view decides which; the screen decides
+/// "Syncing" with a spinner and a purple outline while syncing, green ✓ when a sync finishes,
+/// amber ⚠ when it's paused and red ✕ when it failed. 001's progress shows in the profile menu,
+/// not here. The Today view decides which; the screen decides
 /// how long it stays up.
 struct SyncPillView: View {
     let pill: SyncPill
-    /// 001's progress and time left, shown under a syncing pill.
-    let progress: Double?
-    let timeLeft: TimeInterval?
 
     var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 8) {
-                icon
-                Text(pill.text).font(.subheadline.weight(.semibold))
-            }
-            // Nothing until the sync reports progress: "Syncing" with its spinner says enough.
-            if pill.showsProgress, let progress {
-                SyncProgressView(progress: progress, timeLeft: timeLeft)
-            }
+        HStack(spacing: 8) {
+            icon
+            Text(pill.text).font(.subheadline.weight(.semibold))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
+        .background(Theme.card, in: Capsule())
         .overlay(Capsule().strokeBorder(colour.opacity(0.6)))
         .shadow(radius: 6, y: 2)
         .accessibilityElement(children: .combine)
@@ -42,27 +34,10 @@ struct SyncPillView: View {
 
     private var colour: Color {
         switch pill.kind {
-        case .syncing: .secondary
+        case .syncing: Theme.accent
         case .successful: .green
         case .paused: .orange
         case .failed: .red
-        }
-    }
-}
-
-/// A running sync's progress bar and time left (spec 001, Sync progress).
-private struct SyncProgressView: View {
-    let progress: Double
-    let timeLeft: TimeInterval?
-
-    var body: some View {
-        VStack(spacing: 4) {
-            ProgressView(value: progress).frame(width: 180)
-            if let timeLeft {
-                Text(HistorySync.timeLeftText(timeLeft))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
         }
     }
 }

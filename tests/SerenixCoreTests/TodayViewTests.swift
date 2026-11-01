@@ -66,37 +66,79 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     restingHR: [50, 50, 50]
 )
 
-// MARK: Which Day is shown and the top bar
+// MARK: Which Day is shown and the week strip
 
-@Test func todayIsTitledByItsDateWithoutTheTodayPillAndPicksFromTheEarliestNight() {
+private let oct26 = Day(year: 2026, month: 10, day: 26)
+private let oct27 = Day(year: 2026, month: 10, day: 27)
+private let oct28 = Day(year: 2026, month: 10, day: 28)
+private let oct29 = Day(year: 2026, month: 10, day: 29)
+
+@Test func todayShowsItsNightInAWeekStripEndingOnToday() {
     // A distinct Sleep Score on each Night, so showing the wrong one would fail.
     let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
     let view = todayView(nights: nights, showing: nov1)
 
-    #expect(view.title == "Sun 1 Nov")
-    #expect(!view.showsTodayPill)
     #expect(view.noNightMessage == nil)
     #expect(view.sleepScoreText == "84")
     #expect(view.pickerRange == oct30...nov1)
+
+    let strip = view.weekStrip
+    #expect(strip.title == "November 2026")
+    #expect(strip.days.map(\.day) == [oct26, oct27, oct28, oct29, oct30, oct31, nov1])
+    #expect(strip.days.map(\.letter) == ["M", "T", "W", "T", "F", "S", "S"])
+    #expect(strip.days.map(\.number) == [26, 27, 28, 29, 30, 31, 1])
+    #expect(strip.days.map(\.isShown) == [false, false, false, false, false, false, true])
+    #expect(strip.days.map(\.hasNight) == [false, false, false, false, true, false, true])
+    #expect(strip.days.map(\.isInRange) == [false, false, false, false, true, true, true])
+    #expect(strip.earlierDay == oct30)
+    #expect(strip.laterDay == nil)
 }
 
-@Test func anEarlierDayIsTitledByItsDateAndShowsTheTodayPill() {
+@Test func anEarlierDayWithoutANightSaysNoNightRecordedWithItsLoad() {
     let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
 
     let oneEarlier = todayView(nights: nights, showing: oct31)
-    #expect(oneEarlier.title == "Sat 31 Oct")
-    #expect(oneEarlier.showsTodayPill)
     #expect(oneEarlier.noNightMessage == "No Night recorded")
     #expect(oneEarlier.loadLabel == "Load")
     #expect(oneEarlier.loadText == "12")
     #expect(oneEarlier.pickerRange == oct30...nov1)
+    #expect(
+        oneEarlier.weekStrip.days.map(\.isShown) == [
+            false, false, false, false, false, true, false,
+        ]
+    )
 
     let twoEarlier = todayView(nights: nights, showing: oct30)
-    #expect(twoEarlier.title == "Fri 30 Oct")
-    #expect(twoEarlier.showsTodayPill)
     #expect(twoEarlier.noNightMessage == nil)
     #expect(twoEarlier.sleepScoreText == "71")
     #expect(twoEarlier.loadText == "9")
+}
+
+/// A Night on every Day from 1 Oct to 1 Nov.
+private let nightsOct1ToNov1 =
+    (1...31).map { Night(day: Day(year: 2026, month: 10, day: $0)) } + [Night(day: nov1)]
+
+@Test func theWeekStripArrowsMoveAWeekAtATime() {
+    let oct19 = Day(year: 2026, month: 10, day: 19)
+    let oct20 = Day(year: 2026, month: 10, day: 20)
+    let oct21 = Day(year: 2026, month: 10, day: 21)
+    let oct22 = Day(year: 2026, month: 10, day: 22)
+    let oct23 = Day(year: 2026, month: 10, day: 23)
+    let oct24 = Day(year: 2026, month: 10, day: 24)
+    let oct25 = Day(year: 2026, month: 10, day: 25)
+
+    let onNov1 = todayView(nights: nightsOct1ToNov1, showing: nov1)
+    #expect(onNov1.weekStrip.earlierDay == oct25)
+
+    let onOct25 = todayView(nights: nightsOct1ToNov1, showing: oct25)
+    #expect(onOct25.weekStrip.laterDay == nov1)
+    #expect(onOct25.weekStrip.title == "October 2026")
+    #expect(
+        onOct25.weekStrip.days.map(\.day) == [oct19, oct20, oct21, oct22, oct23, oct24, oct25]
+    )
+    #expect(
+        onOct25.weekStrip.days.map(\.isShown) == [false, false, false, false, false, false, true]
+    )
 }
 
 @Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoadSoFar() {
@@ -114,8 +156,6 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     )
     let view = todayView(nights: [yesterday], showing: nov1)
 
-    #expect(view.title == "Sun 1 Nov")
-    #expect(!view.showsTodayPill)
     #expect(view.noNightMessage == "No Night yet")
     #expect(view.loadLabel == "Load so far")
     #expect(view.loadText == "5")
@@ -128,12 +168,13 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     #expect(view.vsBaseline == nil)
 }
 
-@Test func withNoNightsTheDatePickerRunsFromTodayToToday() {
+@Test func withNoNightsTheDatePickerRunsFromTodayToTodayAndBothArrowsAreDisabled() {
     let view = todayView(nights: [], showing: nov1)
 
     #expect(view.noNightMessage == "No Night yet")
     #expect(view.pickerRange == nov1...nov1)
-    #expect(!view.showsTodayPill)
+    #expect(view.weekStrip.earlierDay == nil)
+    #expect(view.weekStrip.laterDay == nil)
 }
 
 @Test func aMissingLoadShowsADash() {
@@ -164,8 +205,9 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         timeZone: newYork,
         sync: .idle
     )
-    #expect(newYorkToday.title == "Sat 31 Oct")
-    #expect(!newYorkToday.showsTodayPill)
+    #expect(newYorkToday.noNightMessage == "No Night yet")
+    #expect(newYorkToday.weekStrip.days.last?.day == oct31)
+    #expect(newYorkToday.weekStrip.laterDay == nil)
     #expect(newYorkToday.pickerRange == oct31...oct31)
 
     // 2026-10-24T23:30Z is 00:30 BST on 25 Oct in London.
@@ -179,12 +221,13 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         timeZone: london,
         sync: .idle
     )
-    #expect(londonToday.title == "Sun 25 Oct")
-    #expect(!londonToday.showsTodayPill)
+    #expect(londonToday.noNightMessage == "No Night yet")
+    #expect(londonToday.weekStrip.days.last?.day == oct25)
+    #expect(londonToday.weekStrip.laterDay == nil)
     #expect(londonToday.pickerRange == oct25...oct25)
 }
 
-@Test func theDatePickerRunsBackAcrossTheNewYear() {
+@Test func theDatePickerAndWeekStripRunBackAcrossTheNewYear() {
     let dec31 = Day(year: 2026, month: 12, day: 31)
     let jan1 = Day(year: 2027, month: 1, day: 1)
     // 2027-01-01T12:00Z, midday in London (GMT).
@@ -198,9 +241,10 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         timeZone: london,
         sync: .idle
     )
-    #expect(view.title == "Fri 1 Jan")
-    #expect(!view.showsTodayPill)
+    #expect(view.noNightMessage == "No Night yet")
     #expect(view.pickerRange == dec31...jan1)
+    #expect(view.weekStrip.title == "January 2027")
+    #expect(view.weekStrip.days.map(\.number) == [26, 27, 28, 29, 30, 31, 1])
 }
 
 // MARK: Sync pill
@@ -1344,7 +1388,7 @@ private func isClose(_ value: Double?, to expected: Double) -> Bool {
     // Month 13 of 2026 rolls over to January 2027; 1 Jan 2027 is a Friday.
     let view = todayView(nights: [], showing: Day(year: 2026, month: 13, day: 1))
 
-    #expect(view.title == "Fri 1 Jan")
+    #expect(view.tilesHeading == "Fri 1 Jan")
 }
 
 @Test func theDatePickerGetsMiddayOfItsEndsAndOfTheDayShown() {
@@ -1375,15 +1419,15 @@ private func onNov1(_ hour: Int, _ minute: Int) -> Date {
 }
 
 @Test(arguments: [
-    (5, 0, "Good morning, Ellis"),
-    (8, 12, "Good morning, Ellis"),
-    (11, 59, "Good morning, Ellis"),
-    (12, 0, "Good afternoon, Ellis"),
-    (17, 59, "Good afternoon, Ellis"),
-    (18, 0, "Good evening, Ellis"),
-    (4, 59, "Good evening, Ellis"),
+    (5, 0, "Good morning!"),
+    (8, 12, "Good morning!"),
+    (11, 59, "Good morning!"),
+    (12, 0, "Good afternoon!"),
+    (17, 59, "Good afternoon!"),
+    (18, 0, "Good evening!"),
+    (4, 59, "Good evening!"),
 ])
-func theGreetingOnTodayFitsTheLocalTimeOfDayAndNamesTheProfile(
+func theGreetingFitsTheLocalTimeOfDayWithTheProfileNameUnderIt(
     hour: Int,
     minute: Int,
     greeting: String
@@ -1396,19 +1440,22 @@ func theGreetingOnTodayFitsTheLocalTimeOfDayAndNamesTheProfile(
     )
 
     #expect(view.greeting == greeting)
+    #expect(view.greetingName == "Ellis")
+}
+
+@Test func anEarlierDayHasTheSameGreetingAndName() {
+    let view = todayView(nights: [], showing: oct31, at: onNov1(8, 12), profileName: "Ellis")
+
+    #expect(view.greeting == "Good morning!")
+    #expect(view.greetingName == "Ellis")
 }
 
 @Test(arguments: [nil, "   "] as [String?])
-func withoutAProfileNameTheGreetingHasNoName(profileName: String?) {
-    let view = todayView(nights: [], showing: nov1, profileName: profileName)
+func withoutAProfileNameTheGreetingStandsAlone(profileName: String?) {
+    let view = todayView(nights: [], showing: nov1, at: onNov1(8, 12), profileName: profileName)
 
-    #expect(view.greeting == "Good morning")
-}
-
-@Test func anEarlierDayHasNoGreeting() {
-    let view = todayView(nights: [], showing: oct31, profileName: "Ellis")
-
-    #expect(view.greeting == nil)
+    #expect(view.greeting == "Good morning!")
+    #expect(view.greetingName == nil)
 }
 
 @Test func theAvatarLetterIsTheProfileNamesFirstLetterUpperCased() {
@@ -1454,4 +1501,112 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     #expect(canBeDismissed(.failed(reason: "Bad Frame.", cause: .other)) == true)
     #expect(canBeDismissed(.syncing) == false)
     #expect(canBeDismissed(.justFinished) == false)
+}
+
+@Test func theWeekStripIsTitledWithTheMonthOfTheDayShown() {
+    let oct28 = Day(year: 2026, month: 10, day: 28)
+    let onOct28 = todayView(nights: nightsOct1ToNov1, showing: oct28)
+    let onNov1 = todayView(nights: nightsOct1ToNov1, showing: nov1)
+
+    // Both show the strip 26 Oct to 1 Nov; its title follows the Day shown, not the last Day.
+    #expect(onOct28.weekStrip.days.map(\.number) == [26, 27, 28, 29, 30, 31, 1])
+    #expect(onOct28.weekStrip.title == "October 2026")
+    #expect(onNov1.weekStrip.days.map(\.number) == [26, 27, 28, 29, 30, 31, 1])
+    #expect(onNov1.weekStrip.title == "November 2026")
+}
+
+@Test func theLaterWeekArrowStopsAtToday() {
+    let view = todayView(nights: nightsOct1ToNov1, showing: Day(year: 2026, month: 10, day: 28))
+
+    #expect(view.weekStrip.laterDay == nov1)
+}
+
+@Test func theEarlierWeekArrowIsDisabledOnTheEarliestNightsDay() {
+    let nights = [Night(day: oct30), Night(day: nov1)]
+
+    #expect(todayView(nights: nights, showing: oct30).weekStrip.earlierDay == nil)
+}
+
+// MARK: Readiness advice
+
+@Test func readyAdviceSaysItsAGoodDayToPush() {
+    let night = Night(day: nov1, readiness: 80, restingHR: 52, hrv: 60)
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(
+        view.readinessAdvice
+            == "You've recovered well. A good day to push: go for a harder session if you feel like it."
+    )
+}
+
+@Test func steadyAdviceWithNothingOffIsJustTheBandSentence() {
+    let night = Night(day: nov1, readiness: 50, restingHR: 52, hrv: 60)
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(
+        view.readinessAdvice
+            == "You're part-way recovered. Train at a moderate pace and keep your Load under 60 today."
+    )
+}
+
+@Test func takeItEasyAdviceSaysWhyFromTheNightsNumbers() {
+    let night = Night(day: nov1, readiness: 25, restingHR: 56, hrv: 51.6)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 82)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up "
+            + "4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep "
+            + "your Load under 30 today."
+    )
+}
+
+@Test func aLoadBelowTheHighMarkYesterdayIsNotMentioned() {
+    let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 69)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your "
+            + "Load under 30 today."
+    )
+}
+
+@Test func thereIsNoAdviceWhileReadinessIsCalibrating() {
+    let view = todayView(nights: [Night(day: nov1, readiness: 80)], showing: nov1)
+
+    #expect(view.readinessAdvice == nil)
+}
+
+@Test func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff() {
+    let night = Night(day: nov1, readiness: 80, restingHR: 56, hrv: 51.6)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 82)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "You've recovered well. A good day to push: go for a harder session if you feel like it."
+    )
+}
+
+@Test func twoReasonsAreJoinedWithAnd() {
+    let night = Night(day: nov1, readiness: 50, restingHR: 56, hrv: 51.6)
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(
+        view.readinessAdvice
+            == "HRV is 14% below your Baseline and Resting HR is up 4 bpm. You're part-way "
+            + "recovered. Train at a moderate pace and keep your Load under 60 today."
+    )
 }

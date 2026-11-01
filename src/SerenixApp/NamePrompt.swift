@@ -20,7 +20,7 @@ struct NamePrompt: View {
                 .focused($nameFieldIsFocused)
                 .onSubmit { profile.answerNamePrompt(with: name) }
                 .padding()
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+                .themeCard(RoundedRectangle(cornerRadius: 12))
             Text("Your name stays on this phone.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)

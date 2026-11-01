@@ -52,10 +52,13 @@ private struct TileCard: View {
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             VStack(alignment: .leading, spacing: 6) {
-                Label(name, systemImage: icon)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                Label {
+                    Text(name).foregroundStyle(.secondary)
+                } icon: {
+                    Image(systemName: icon).foregroundStyle(Theme.accent)
+                }
+                .font(.footnote)
+                .lineLimit(1)
                 Text(valueText)
                     .font(.title2.bold())
                     .monospacedDigit()
@@ -82,8 +85,8 @@ private struct TileCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
+        .padding(14)
+        .themeCard()
         .accessibilityElement(children: .combine)
     }
 }
@@ -99,7 +102,7 @@ private struct VerticalGauge: View {
             let height = geometry.size.height
             let width = geometry.size.width
             ZStack(alignment: .bottom) {
-                Capsule().fill(.quaternary)
+                Capsule().fill(Theme.accentSoft)
                 if let position {
                     let filled = max(width, height * position)
                     Capsule()

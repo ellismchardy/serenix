@@ -11,13 +11,13 @@ struct ScoreRing: View {
     let fill: Double
     let label: String
     let diameter: CGFloat
-    var colour: Color = .accentColor
+    var colour: Color = Theme.accent
 
     var body: some View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
-                    .stroke(.quaternary, lineWidth: lineWidth)
+                    .stroke(Theme.accentSoft, lineWidth: lineWidth)
                 Circle()
                     .trim(from: 0, to: fill)
                     .stroke(colour, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
