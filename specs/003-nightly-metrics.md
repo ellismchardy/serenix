@@ -154,16 +154,16 @@ Expected values are hr-tracker's output on the same records, committed as litera
       16 Nov (its History Records start after now).
 - [x] Night rebuilds: a record at 28 Mar 2027 03:00 UTC (the morning the clocks go forward)
       queues 28 Mar reading 27 Mar 12:00 UTC to 29 Mar 11:00 UTC.
-- [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
+- [x] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
-- [ ] On the phone (by hand): after a morning sync the Today screen shows last night's Time
+- [x] On the phone (by hand): after a morning sync the Today screen shows last night's Time
       Asleep, Sleep Onset → Final Wake and all five Nightly Metrics; they match hr-tracker run on
       the same night's Sync Log within the tolerance above.
-- [ ] On the phone (by hand): syncing again later the same morning leaves the Night the same;
+- [x] On the phone (by hand): syncing again later the same morning leaves the Night the same;
       a sync at 3am shows a partial Night that the morning sync replaces.
-- [ ] On the phone (by hand): closing Serenix from the app switcher in the middle of a morning
+- [x] On the phone (by hand): closing Serenix from the app switcher in the middle of a morning
       sync, then opening it again, still shows last night's Night once that sync finishes.
-- [ ] On the phone (by hand): Debug has no "Show sample Nights" switch, and a Day without a
+- [x] On the phone (by hand): Debug has no "Show sample Nights" switch, and a Day without a
       Night shows "No Night recorded".
 
 ## Non-goals (explicitly out of scope)
