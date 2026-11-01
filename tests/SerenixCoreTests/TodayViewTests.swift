@@ -1746,7 +1746,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 
     #expect(
         view.readinessAdvice
-            == "You're part-way recovered. Train at a moderate pace and keep your Load under 60 today."
+            == "You're part-way recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }
 
@@ -1762,7 +1762,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
         view.readinessAdvice
             == "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up "
             + "4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep "
-            + "your Load under 30 today."
+            + "your Load under 33 today."
     )
 }
 
@@ -1770,14 +1770,29 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
-        dayLoads: [DayLoad(day: oct31, load: 69)],
+        dayLoads: [DayLoad(day: oct31, load: 54)],
         showing: nov1
     )
 
     #expect(
         view.readinessAdvice
             == "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your "
-            + "Load under 30 today."
+            + "Load under 33 today."
+    )
+}
+
+@Test func aLoadAtTheHighMarkYesterdayIsMentioned() {
+    let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 55)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "Yesterday's Load was high (55). Your body hasn't recovered yet. Rest, hydrate and get "
+            + "to bed early, and keep your Load under 33 today."
     )
 }
 
@@ -1808,6 +1823,6 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     #expect(
         view.readinessAdvice
             == "HRV is 14% below your Baseline and Resting HR is up 4 bpm. You're part-way "
-            + "recovered. Train at a moderate pace and keep your Load under 60 today."
+            + "recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }

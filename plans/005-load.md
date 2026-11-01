@@ -78,7 +78,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Seam: Day rebuilds · Files: `src/SerenixCore/DayRebuild.swift` (new), `src/SerenixCore/NightRebuild.swift` (retention constant visibility only), `tests/SerenixCoreTests/DayRebuildTests.swift` (new)
    - Move `LoadMethod.span(of:in:)` (Load.swift, task 3) to `Day.span(in:)` in `Day.swift` and use it from both Load and Day rebuilds, so the local-midnight logic lives once (standards review, task 3). Files also: `src/SerenixCore/Load.swift`, `src/SerenixCore/Day.swift`.
    - Done when: both Day rebuild criteria pass.
-7. [ ] **Slice:** Readiness advice Load constants become 55/50/33.
+7. [x] **Slice:** Readiness advice Load constants become 55/50/33.
    - Blocked by: (none)
    - Seam: Today view · Files: `src/SerenixCore/ReadinessAdvice.swift`, `tests/SerenixCoreTests/TodayViewTests.swift` (rewrite the 002 advice test's 60/30/69 expectations to the new values; that follows the changed spec 002 criterion)
    - Done when: the spec 005 advice criterion and spec 002's unticked advice criterion pass.

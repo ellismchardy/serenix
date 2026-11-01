@@ -3,13 +3,15 @@ import Foundation
 /// The advice under the Readiness message's band word (spec 002, Readiness message): the band's
 /// sentence, led for Steady and Take it easy by why, from the Night's own numbers.
 enum ReadinessAdvice {
-    /// A Load at or above this, the Day before, counts as high. Load points, 0–100 (ADR 0005).
-    /// Assumption: tune once the Load spec ships.
-    static let highLoad = 70
-    /// The Load to stay under today when Steady, and when Take it easy. Load points, 0–100 (ADR
-    /// 0005). Assumptions: tune once the Load spec ships.
-    static let steadyLoadCap = 60
-    static let takeItEasyLoadCap = 30
+    /// A Load at or above this, the Day before, counts as high: about a hard hour. Load points,
+    /// 0–100 (ADR 0005; spec 005, Readiness advice). Assumption: tune with real Days.
+    static let highLoad = 55
+    /// The Load to stay under today when Steady: about an hour of moderate exercise. Load points,
+    /// 0–100 (ADR 0005; spec 005, Readiness advice). Assumption: tune with real Days.
+    static let steadyLoadCap = 50
+    /// The Load to stay under today when Take it easy: about a 30-minute brisk walk. Load points,
+    /// 0–100 (ADR 0005; spec 005, Readiness advice). Assumption: tune with real Days.
+    static let takeItEasyLoadCap = 33
 
     /// `yesterdayLoad` is the Load of the Day before the Day shown; `hrv` and `restingHR` are the
     /// Night's tiles.

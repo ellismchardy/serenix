@@ -295,7 +295,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] The greeting is "Good morning!" at 05:00 and 08:12, "Good afternoon!" at 12:00, and "Good
       evening!" at 18:00 and 04:59, on today and on an earlier Day alike; the name under it is
       "Ellis" for "Ellis" and none for no name or a name of only spaces.
-- [ ] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
+- [x] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
       for a harder session if you feel like it."; Steady with nothing off gives "You're
       part-way recovered. Train at a moderate pace and keep your Load under 50 today."; Take it
       easy with yesterday's Load 82, HRV 51.6 against Baseline 60 and Resting HR 56 against 52
