@@ -23,15 +23,18 @@ private func todayView(
     nights: [Night],
     dayLoads: [DayLoad] = dayLoads,
     showing day: Day,
-    sync: SyncStatus = .connecting
+    at time: Date = now,
+    sync: SyncStatus = .connecting,
+    profileName: String? = nil
 ) -> TodayView {
     TodayView(
         nights: nights,
         dayLoads: dayLoads,
         showing: day,
-        now: now,
+        now: time,
         timeZone: london,
-        sync: sync
+        sync: sync,
+        profileName: profileName
     )
 }
 
@@ -1326,4 +1329,70 @@ private func isClose(_ value: Double?, to expected: Double) -> Bool {
     let view = todayView(nights: [Night(day: Day(year: 2026, month: 11, day: 2))], showing: nov1)
 
     #expect(view.pickerRange == nov1...nov1)
+}
+
+// MARK: Greeting and Profile
+
+/// A time on 1 Nov 2026, London, where local time equals UTC.
+private func onNov1(_ hour: Int, _ minute: Int) -> Date {
+    // 2026-11-01T00:00:00Z.
+    Date(timeIntervalSince1970: 1_793_491_200 + Double(hour * 3600 + minute * 60))
+}
+
+@Test(arguments: [
+    (5, 0, "Good morning, Ellis"),
+    (8, 12, "Good morning, Ellis"),
+    (11, 59, "Good morning, Ellis"),
+    (12, 0, "Good afternoon, Ellis"),
+    (17, 59, "Good afternoon, Ellis"),
+    (18, 0, "Good evening, Ellis"),
+    (4, 59, "Good evening, Ellis"),
+])
+func theGreetingOnTodayFitsTheLocalTimeOfDayAndNamesTheProfile(
+    hour: Int,
+    minute: Int,
+    greeting: String
+) {
+    let view = todayView(
+        nights: [],
+        showing: nov1,
+        at: onNov1(hour, minute),
+        profileName: "Ellis"
+    )
+
+    #expect(view.greeting == greeting)
+}
+
+@Test(arguments: [nil, "   "] as [String?])
+func withoutAProfileNameTheGreetingHasNoName(profileName: String?) {
+    let view = todayView(nights: [], showing: nov1, profileName: profileName)
+
+    #expect(view.greeting == "Good morning")
+}
+
+@Test func anEarlierDayHasNoGreeting() {
+    let view = todayView(nights: [], showing: oct31, profileName: "Ellis")
+
+    #expect(view.greeting == nil)
+}
+
+@Test func theAvatarLetterIsTheProfileNamesFirstLetterUpperCased() {
+    let view = todayView(nights: [], showing: nov1, profileName: "ellis")
+
+    #expect(view.avatarLetter == "E")
+}
+
+@Test func theProfileNameIsTrimmedForTheAvatarLetterAndMenuName() {
+    let view = todayView(nights: [], showing: nov1, profileName: "  Ellis ")
+
+    #expect(view.avatarLetter == "E")
+    #expect(view.menuName == "Ellis")
+}
+
+@Test(arguments: [nil, "   "] as [String?])
+func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: String?) {
+    let view = todayView(nights: [], showing: nov1, profileName: profileName)
+
+    #expect(view.avatarLetter == nil)
+    #expect(view.menuName == "Add your name")
 }

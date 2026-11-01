@@ -13,6 +13,12 @@ public struct TodayView: Equatable, Sendable {
     public let shownDate: Date
     /// Whether the Today pill shows: on any Day other than today.
     public let showsTodayPill: Bool
+    /// e.g. "Good morning, Ellis", on today only.
+    public let greeting: String?
+    /// The first letter of the Profile name, upper-cased; nil with no name.
+    public let avatarLetter: String?
+    /// The profile menu header's name: the Profile name, or "Add your name".
+    public let menuName: String
     /// "No Night yet" on today or "No Night recorded" on an earlier Day; nil when the Day has a
     /// Night. Another Day's Night is never shown in its place.
     public let noNightMessage: String?
@@ -50,7 +56,8 @@ public struct TodayView: Equatable, Sendable {
         showing day: Day,
         now: Date,
         timeZone: TimeZone,
-        sync: SyncStatus
+        sync: SyncStatus,
+        profileName: String? = nil
     ) {
         let today = Day(containing: now, in: timeZone)
         let isToday = day == today
@@ -63,6 +70,10 @@ public struct TodayView: Equatable, Sendable {
             )...pickerRange.upperBound.midday(in: timeZone)
         shownDate = day.midday(in: timeZone)
         showsTodayPill = !isToday
+        let profile = Profile(name: profileName)
+        greeting = isToday ? profile.greeting(at: now, in: timeZone) : nil
+        avatarLetter = profile.avatarLetter
+        menuName = profile.menuName
 
         let night = nights.first { $0.day == day }
         noNightMessage = night != nil ? nil : isToday ? "No Night yet" : "No Night recorded"

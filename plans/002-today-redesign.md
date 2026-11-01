@@ -37,7 +37,7 @@ its change — an approved clarification of desired behaviour, not a plan decisi
      `tests/SerenixCoreTests/TodayViewTests.swift` (rewrite the arrows tests),
      `src/SerenixApp/TodayScreen.swift`
    - Done when: the date picker / Today pill criterion passes.
-2. [ ] **Slice:** Profile and greeting — `TodayView` takes the Profile name; outputs the
+2. [x] **Slice:** Profile and greeting — `TodayView` takes the Profile name; outputs the
    greeting (on today only, by local hour bands; trimmed name, blank = none), the avatar letter
    and the menu header's name ("Add your name"). Shell: `ProfileStore` (name in UserDefaults,
    on device only), first-launch "What should we call you?" prompt with Continue / Skip shown

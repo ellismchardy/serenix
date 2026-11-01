@@ -4,6 +4,7 @@ import SwiftUI
 /// The Today screen (spec 002): draws the Today view for the Day shown and sends taps back.
 struct TodayScreen: View {
     @ObservedObject var connection: StrapConnection
+    @ObservedObject var profile: ProfileStore
     /// The Day picked in the date picker; nil is today, whatever today is when the screen draws.
     @State private var pickedDay: Day?
     @State private var showsDatePicker = false
@@ -29,12 +30,19 @@ struct TodayScreen: View {
             showing: shownDay,
             now: now,
             timeZone: .current,
-            sync: connection.syncStatus
+            sync: connection.syncStatus,
+            profileName: profile.name
         )
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     topBar(today)
+                    if let greeting = today.greeting {
+                        Text(greeting)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     syncRow(today)
                     if let message = today.noNightMessage {
                         Text(message)
@@ -105,10 +113,9 @@ struct TodayScreen: View {
             Button {
                 showsProfileMenu = true
             } label: {
-                Label("Profile", systemImage: "person.crop.circle")
-                    .labelStyle(.iconOnly)
-                    .font(.largeTitle)
+                Avatar(letter: today.avatarLetter, diameter: 40)
             }
+            .accessibilityLabel("Profile")
         }
     }
 
