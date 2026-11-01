@@ -188,3 +188,74 @@ private func loadOfFourthOfNovember(
 
     #expect(result.day == fourthOfNovember)
 }
+
+// Which records (spec 005): a Day's Load uses only the History Records in that Day, local
+// midnight to local midnight. An hour at 164 bpm split 30 minutes per Day gives 49 to each Day.
+
+/// The Load of `day` in London from `records`, with no Nights, for a man with Max HR 190.
+private func loadOf(_ day: Day, _ records: [HistoryRecord]) -> DayLoad {
+    load(of: day, records: records, nights: [], profile: man, in: london)
+}
+
+@Test func anHourAcrossMidnightCountsHalfTowardEachDay() {
+    // 2026-10-31 23:30:00 UTC; London is on GMT, so local midnight is 1 Nov 00:00 UTC.
+    let halfPastElevenOn31Oct = Date(timeIntervalSince1970: 1_793_489_400)
+    let acrossMidnight = records(at: 164, for: oneHour, from: halfPastElevenOn31Oct)
+
+    let thirtyFirst = loadOf(Day(year: 2026, month: 10, day: 31), acrossMidnight)
+    let first = loadOf(Day(year: 2026, month: 11, day: 1), acrossMidnight)
+
+    #expect(thirtyFirst.load == 49)
+    #expect(first.load == 49)
+}
+
+@Test func theDayClocksGoForwardRunsFromMidnightGMTTo2300UTC() {
+    // On 29 Mar 2026 London goes from GMT to BST at 01:00 GMT, so the Day runs 29 Mar 00:00 UTC
+    // to 29 Mar 23:00 UTC.
+    let twentyNinthOfMarch = Day(year: 2026, month: 3, day: 29)
+    // 2026-03-28 23:30:00 UTC.
+    let halfPastElevenOn28Mar = Date(timeIntervalSince1970: 1_774_740_600)
+    // 2026-03-29 22:30:00 UTC.
+    let halfPastTenOn29Mar = Date(timeIntervalSince1970: 1_774_823_400)
+    let intoTheDay = records(at: 164, for: oneHour, from: halfPastElevenOn28Mar)
+    let outOfTheDay = records(at: 164, for: oneHour, from: halfPastTenOn29Mar)
+
+    let start = loadOf(twentyNinthOfMarch, intoTheDay)
+    let end = loadOf(twentyNinthOfMarch, outOfTheDay)
+    let thirtiethOfMarch = loadOf(Day(year: 2026, month: 3, day: 30), outOfTheDay)
+
+    #expect(start.load == 49)
+    #expect(end.load == 49)
+    #expect(thirtiethOfMarch.load == 49)
+}
+
+@Test func aDayGivenOnlyOtherDaysRecordsHasLoadMissingForNoRecords() {
+    let secondOfNovember = Day(year: 2026, month: 11, day: 2)
+
+    let result = loadOf(secondOfNovember, records(at: 164, for: oneHour, from: tenAM))
+
+    #expect(result.load == nil)
+    #expect(result.missingReason == .noRecords)
+}
+
+@Test func aRecordAtMidnightCountsTowardTheDayItStartsNotTheDayBefore() {
+    // 1 Nov 2026 00:00 UTC, which is local midnight in London (GMT).
+    let midnightStarting1Nov = Date(timeIntervalSince1970: 1_793_491_200)
+    let atMidnight = records(at: 190, for: 1, from: midnightStarting1Nov)
+
+    #expect(loadOf(Day(year: 2026, month: 10, day: 31), atMidnight).missingReason == .noRecords)
+    #expect(loadOf(Day(year: 2026, month: 11, day: 1), atMidnight).missingReason == nil)
+}
+
+@Test func theDayClocksGoBackRunsFrom2300UTCTo2400UTC() {
+    // 25 Oct 2026: 02:00 BST becomes 01:00 GMT, so the Day is 24 Oct 23:00 UTC to 26 Oct 00:00
+    // UTC, 25 hours.
+    let halfPastTenOn24Oct = Date(timeIntervalSince1970: 1_792_881_000)
+    let halfPastElevenOn25Oct = Date(timeIntervalSince1970: 1_792_971_000)
+    let start = records(at: 164, for: oneHour, from: halfPastTenOn24Oct)
+    let end = records(at: 164, for: oneHour, from: halfPastElevenOn25Oct)
+    let twentyFifthOfOctober = Day(year: 2026, month: 10, day: 25)
+
+    #expect(loadOf(twentyFifthOfOctober, start).load == 49)
+    #expect(loadOf(twentyFifthOfOctober, end).load == 49)
+}

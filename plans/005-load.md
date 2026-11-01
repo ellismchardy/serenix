@@ -57,7 +57,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Done when: these criteria pass: 164 bpm gives 57/58/57 by sex; 33 and 43; 0 and 33 at the
      floor; 200 = 190 = 64; 24 h = 100; HR 0, repeats and order give 57; no records means missing,
      and records under the floor give 0.
-3. [ ] **Slice:** Day boundaries: only records in the Day's local midnight-to-midnight count,
+3. [x] **Slice:** Day boundaries: only records in the Day's local midnight-to-midnight count,
    including across a clock change.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift`, `tests/SerenixCoreTests/LoadTests.swift`
    - Done when: 23:30–00:30 gives 49 for each Day; 29 Mar 2026 runs 00:00 to 23:00 UTC.
@@ -74,6 +74,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
 6. [ ] **Slice:** Day rebuilds after a sync, and every Day still due for a Profile change.
    - Blocked by: (none; it's independent of 1–5)
    - Seam: Day rebuilds · Files: `src/SerenixCore/DayRebuild.swift` (new), `src/SerenixCore/NightRebuild.swift` (retention constant visibility only), `tests/SerenixCoreTests/DayRebuildTests.swift` (new)
+   - Move `LoadMethod.span(of:in:)` (Load.swift, task 3) to `Day.span(in:)` in `Day.swift` and use it from both Load and Day rebuilds, so the local-midnight logic lives once (standards review, task 3). Files also: `src/SerenixCore/Load.swift`, `src/SerenixCore/Day.swift`.
    - Done when: both Day rebuild criteria pass.
 7. [ ] **Slice:** Readiness advice Load constants become 55/50/33.
    - Blocked by: (none)
