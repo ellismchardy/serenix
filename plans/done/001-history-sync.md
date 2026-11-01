@@ -143,8 +143,9 @@ background checks, so they can be watched during those.
      known times, an empty sync with no progress); on the phone, a sync of at least an hour's
      backlog shows "Starting…", a filling bar and a falling time left, and ends "Up to date".
    - **Result on the phone (1 Nov 2026), for the PR:** a night's backlog (27,793 History
-     Records, 2 min 23 s) showed "Starting…", then the bar and "about 5 min left" falling as it
-     filled, and ended "Up to date". The first estimate was high (the start of a sync is slower)
+     Records, 2 min 23 s) showed "Starting…", then the bar and "about 5 min left" falling to
+     "less than a minute left" as it filled, and ended "Up to date"; the screen stayed
+     responsive. The first estimate was high (the start of a sync is slower)
      and settled as it ran.
 11. [x] **Slice:** finish a started sync in the background
    - Blocked by: 9 (needs its 10-second timer and the "not started twice" rule)
