@@ -39,7 +39,7 @@ ignored, and nothing holds a connection between syncs.
   `Command.liveHR(on: Bool)` builds `0x03 01/00`. `Frame(bytes:)` already gives `.badCRC`.
 - **Live HR session** (new `src/SerenixCore/LiveHRSession.swift`):
   - `start(at:)` sends hello (`0x91 01`, as `HistorySync` does).
-  - The hello reply triggers `0x03 01`.
+  - Then `0x03 01` straight away, without waiting for hello's reply (see task 7).
   - `receive(_:at:)` returns readings and Sync Log entries, and skips a bad-CRC Frame.
   - `stop(at:)` sends `0x03 00`.
   - It reuses `Command.frame(sequence:)` and `SyncLogEntry`.
@@ -104,12 +104,14 @@ ignored, and nothing holds a connection between syncs.
    - Done when: the Protocol criterion passes. Fixture Frames decode to HR and Strap time, and
      the acquiring ones to 0. A changed byte with the old CRC gives `.badCRC`. On and off match
      `whoop5.py`'s `frame(2, 0x03, 01)` and `frame(3, 0x03, 00)` bytes, committed as literals.
-7. [ ] **Slice:** Live HR session, used when no sync is running.
+7. [x] **Slice:** Live HR session, used when no sync is running.
    - Blocked by: 6
    - Seam: Live HR session (agreed with the user, not in the spec's list) · Files: `src/SerenixCore/LiveHRSession.swift` (new), `tests/SerenixCoreTests/LiveHRSessionTests.swift` (new)
    - Done when:
      - Start sends hello (bytes equal `whoop5.py`'s asserted hello).
-     - The hello reply sends `0x03 01`.
+     - ~~The hello reply sends `0x03 01`.~~ Changed while executing: start sends hello and
+       `0x03 01` back to back (seq 1 and 2, as whoop5.py), because in the capture the Strap left
+       the first hello unanswered and Live HR came anyway.
      - Fixture `0x28` Frames come out as readings.
      - A bad-CRC Frame is skipped and logged.
      - Stop sends `0x03 00`.

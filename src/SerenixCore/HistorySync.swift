@@ -117,7 +117,7 @@ public struct HistorySync: Sendable {
         lastHeardFromStrap = time
         let clock = littleEndianBytes(UInt32(time.timeIntervalSince1970))
         pendingSteps = [
-            [Command(op: helloOp, arguments: [0x01])],
+            [.hello],
             // The captured app sends both forms back to back; the Strap replies to the second.
             [
                 Command(op: setClockOp, arguments: clock + [0x00, 0x00, 0x00, 0x00]),
@@ -305,7 +305,6 @@ public struct HistorySync: Sendable {
 }
 
 // Command ops, from hr-tracker `docs/protocol.md` and the 27 Oct 2026 capture.
-private let helloOp: UInt8 = 0x91
 private let setClockOp: UInt8 = 0x0a
 private let getClockOp: UInt8 = 0x0b
 private let batteryOp: UInt8 = 0x1a
