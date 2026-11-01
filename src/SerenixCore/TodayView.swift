@@ -2,14 +2,23 @@ import Foundation
 
 /// Everything the Today screen shows for one Day (spec 002). It decides; the shell draws.
 public struct TodayView: Equatable, Sendable {
-    /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
+    /// The Day's date, e.g. "Sun 1 Nov".
     public let title: String
-    /// The date on today, else "Night".
-    public let subtitle: String
-    /// Where ‹ goes; nil when it's disabled, on the Day of the earliest Night.
-    public let earlierDay: Day?
-    /// Where › goes; nil when it's disabled, on today.
-    public let laterDay: Day?
+    /// The Days the date picker offers: from the Day of the earliest Night to today, or just
+    /// today with no Nights.
+    public let pickerRange: ClosedRange<Day>
+    /// Midday on the first and last Days of `pickerRange`, and on the Day shown, for the shell's
+    /// date picker.
+    public let pickerDates: ClosedRange<Date>
+    public let shownDate: Date
+    /// Whether the Today pill shows: on any Day other than today.
+    public let showsTodayPill: Bool
+    /// e.g. "Good morning, Ellis", on today only.
+    public let greeting: String?
+    /// The first letter of the Profile name, upper-cased; nil with no name.
+    public let avatarLetter: String?
+    /// The profile menu header's name: the Profile name, or "Add your name".
+    public let menuName: String
     /// "No Night yet" on today or "No Night recorded" on an earlier Day; nil when the Day has a
     /// Night. Another Day's Night is never shown in its place.
     public let noNightMessage: String?
@@ -26,7 +35,10 @@ public struct TodayView: Equatable, Sendable {
     public let readinessFill: Double
     public let sleepScoreFill: Double
     public let loadFill: Double
-    public let syncPill: SyncPill
+    /// Nil when there is nothing to say.
+    public let syncPill: SyncPill?
+    /// Whether the profile menu's Sync now reads Retry sync: after a paused or failed sync.
+    public let syncOffersRetry: Bool
     /// Nil on a Day without a Night.
     public let vsBaseline: VsBaseline?
     /// Nil on a Day without a Night.
@@ -47,16 +59,24 @@ public struct TodayView: Equatable, Sendable {
         showing day: Day,
         now: Date,
         timeZone: TimeZone,
-        sync: SyncStatus
+        sync: SyncStatus,
+        profileName: String? = nil
     ) {
         let today = Day(containing: now, in: timeZone)
         let isToday = day == today
-        title = isToday ? "Today" : day.text
-        subtitle = isToday ? day.text : "Night"
-
+        title = day.text
         let earliestNight = nights.map(\.day).min()
-        earlierDay = earliestNight.flatMap { $0 < day ? day.adding(days: -1) : nil }
-        laterDay = day < today ? day.adding(days: 1) : nil
+        pickerRange = min(earliestNight ?? today, today)...today
+        pickerDates =
+            pickerRange.lowerBound.midday(
+                in: timeZone
+            )...pickerRange.upperBound.midday(in: timeZone)
+        shownDate = day.midday(in: timeZone)
+        showsTodayPill = !isToday
+        let profile = Profile(name: profileName)
+        greeting = isToday ? profile.greeting(at: now, in: timeZone) : nil
+        avatarLetter = profile.avatarLetter
+        menuName = profile.menuName
 
         let night = nights.first { $0.day == day }
         noNightMessage = night != nil ? nil : isToday ? "No Night yet" : "No Night recorded"
@@ -91,10 +111,12 @@ public struct TodayView: Equatable, Sendable {
         loadText = scoreText(load)
         loadFill = ringFill(load)
 
-        syncPill = SyncPill(sync, timeZone: timeZone)
+        let syncPill = SyncPill(sync)
+        self.syncPill = syncPill
+        syncOffersRetry = syncPill?.canBeDismissed ?? false
 
         tilesHeading = isToday ? "Last night" : day.text
-        timeAsleepTile = night.map { TimeAsleepTile(for: $0, among: nights, timeZone: timeZone) }
+        timeAsleepTile = night.map { TimeAsleepTile(for: $0, timeZone: timeZone) }
         let tiles =
             night.map { night in
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }

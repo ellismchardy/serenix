@@ -4,9 +4,16 @@ import SwiftUI
 /// The Today screen (spec 002): draws the Today view for the Day shown and sends taps back.
 struct TodayScreen: View {
     @ObservedObject var connection: StrapConnection
-    /// The Day stepped to with the arrows; nil is today, whatever today is when the screen draws.
-    @State private var steppedToDay: Day?
-    @State private var showsSyncFailure = false
+    @ObservedObject var profile: ProfileStore
+    /// The Day picked in the date picker; nil is today, whatever today is when the screen draws.
+    @State private var pickedDay: Day?
+    @State private var showsDatePicker = false
+    /// The pill the user swiped away, or "Sync successful" once its 3 seconds are up; it shows
+    /// again as soon as the Today view gives a different pill.
+    @State private var dismissedPill: SyncPill?
+    /// The paused, failed or syncing pill whose detail is open, kept as tapped while it's open.
+    @State private var detailPill: SyncPill?
+    @State private var showsPillDetail = false
     @State private var openPopup: TodayPopup?
     @State private var showsProfileMenu = false
     /// Debug's "Show sample Nights" (plan 002, task 8): off at launch and never saved.
@@ -21,19 +28,26 @@ struct TodayScreen: View {
             showsSampleNights
             ? SampleNights.make(now: now, calendar: .current)
             : (nights: [Night](), dayLoads: [DayLoad]())
+        let shownDay = pickedDay ?? Day(containing: now, in: .current)
         let today = TodayView(
             nights: samples.nights,
             dayLoads: samples.dayLoads,
-            showing: steppedToDay ?? Day(containing: now, in: .current),
+            showing: shownDay,
             now: now,
             timeZone: .current,
-            sync: connection.syncStatus
+            sync: connection.syncStatus,
+            profileName: profile.name
         )
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    topRow(today)
-                    header(today)
+                    topBar(today)
+                    if let greeting = today.greeting {
+                        Text(greeting)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     if let message = today.noNightMessage {
                         Text(message)
                             .font(.title3)
@@ -45,17 +59,55 @@ struct TodayScreen: View {
                 }
                 .padding()
             }
-            .alert("Sync failed", isPresented: $showsSyncFailure) {
-                Button("Retry") { connection.syncNow() }
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(today.syncPill.failureReason ?? "")
+            // Pulling down starts a sync (001's Sync now) unless one is running.
+            .refreshable { @MainActor in
+                if !connection.phase.isBusy { connection.syncNow() }
+            }
+            .overlay(alignment: .top) {
+                syncPill(today).animation(.spring, value: visiblePill(today))
+            }
+            .onChange(of: today.syncPill) { dismissedPill = nil }
+            // "Sync successful" slides away after 3 seconds.
+            .task(id: today.syncPill) {
+                guard let pill = today.syncPill, pill.kind == .successful else { return }
+                try? await Task.sleep(for: .seconds(successfulPillSeconds))
+                if !Task.isCancelled { dismissedPill = pill }
+            }
+            .alert(
+                detailPill?.text ?? "",
+                isPresented: $showsPillDetail,
+                presenting: detailPill
+            ) { pill in
+                if pill.kind == .syncing {
+                    Button("Cancel sync", role: .destructive) { connection.cancel() }
+                    Button("Keep syncing", role: .cancel) {}
+                } else {
+                    Button("Retry") { connection.syncNow() }
+                    Button("OK", role: .cancel) { dismissedPill = pill }
+                }
+            } message: { pill in
+                Text(pill.detail ?? "")
             }
             .sheet(item: $openPopup) { popup in
                 TodayPopupView(popup: popup, today: today)
             }
+            .sheet(isPresented: $showsDatePicker) {
+                DayPicker(range: today.pickerDates, shown: today.shownDate) { picked in
+                    let day = Day(containing: picked, in: .current)
+                    // Picking today means today, so it moves on at midnight like opening does.
+                    pickedDay = day == Day(containing: Date(), in: .current) ? nil : day
+                    showsDatePicker = false
+                }
+            }
             .sheet(isPresented: $showsProfileMenu) {
-                ProfileMenu(connection: connection, showsSampleNights: $showsSampleNights)
+                ProfileMenu(
+                    connection: connection,
+                    profile: profile,
+                    avatarLetter: today.avatarLetter,
+                    menuName: today.menuName,
+                    syncOffersRetry: today.syncOffersRetry,
+                    showsSampleNights: $showsSampleNights
+                )
             }
             // Switching the sample Nights on or off starts again from today.
             .onChange(of: showsSampleNights) { showToday() }
@@ -66,36 +118,81 @@ struct TodayScreen: View {
         }
     }
 
-    private func topRow(_ today: TodayView) -> some View {
-        VStack(spacing: 6) {
-            HStack {
-                Button(today.syncPill.text) { tapSyncPill(today.syncPill) }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                Spacer()
-                Button {
-                    showsProfileMenu = true
-                } label: {
-                    Label("Profile", systemImage: "person.crop.circle")
-                        .labelStyle(.iconOnly)
-                        .font(.title2)
+    /// The Day's date as a large title with ▾ opening the date picker, the Today pill on other
+    /// Days, and the profile avatar (spec 002, Top bar).
+    private func topBar(_ today: TodayView) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                showsDatePicker = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text(today.title)
+                        .font(.largeTitle.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Image(systemName: "chevron.down")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                 }
             }
-            if today.syncPill.showsProgress {
-                SyncProgressView(
-                    progress: connection.syncProgress,
-                    timeLeft: connection.syncTimeLeft
-                )
+            .buttonStyle(.plain)
+            .accessibilityHint("Pick a Day")
+            if today.showsTodayPill {
+                Button("Today") { showToday() }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
             }
-            // 001's Cancel, kept while connecting or syncing.
-            if connection.phase.isBusy {
-                Button("Cancel", role: .cancel) { connection.cancel() }
-                    .font(.footnote)
+            Spacer()
+            Button {
+                showsProfileMenu = true
+            } label: {
+                Avatar(letter: today.avatarLetter, diameter: 40)
+            }
+            .accessibilityLabel("Profile")
+        }
+    }
+
+    /// The Today view's sync pill, unless it was swiped away or has timed out.
+    private func visiblePill(_ today: TodayView) -> SyncPill? {
+        guard let pill = today.syncPill, pill != dismissedPill else { return nil }
+        return pill
+    }
+
+    /// The pill sliding down over the top: tap a syncing pill to cancel, a paused or failed one
+    /// for its reason and Retry; swipe up to put it away.
+    @ViewBuilder
+    private func syncPill(_ today: TodayView) -> some View {
+        if let pill = visiblePill(today) {
+            SyncPillView(
+                pill: pill,
+                progress: connection.syncProgress,
+                timeLeft: connection.syncTimeLeft
+            )
+            .padding(.top, 4)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .onTapGesture {
+                if pill.kind == .successful {
+                    dismissedPill = pill
+                } else {
+                    detailPill = pill
+                    showsPillDetail = true
+                }
+            }
+            // Syncing stays up until the sync ends, keeping Cancel in reach.
+            .gesture(
+                DragGesture(minimumDistance: 10).onEnded { drag in
+                    if drag.translation.height < 0, pill.canBeDismissed { dismissedPill = pill }
+                }
+            )
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(named: "Dismiss") {
+                if pill.canBeDismissed { dismissedPill = pill }
             }
         }
     }
 
-    /// Sleep Score, Readiness in the middle and largest with its band word, and Load.
+    /// Sleep Score, Readiness in the middle with its band word, and Load, all the same size.
     private func rings(_ today: TodayView) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Button {
@@ -105,7 +202,7 @@ struct TodayScreen: View {
                     text: today.sleepScoreText,
                     fill: today.sleepScoreFill,
                     label: "Sleep Score",
-                    diameter: 84
+                    diameter: ringDiameter
                 )
                 .contentShape(Rectangle())
             }
@@ -118,9 +215,8 @@ struct TodayScreen: View {
                         text: today.readinessText,
                         fill: today.readinessFill,
                         label: "Readiness",
-                        diameter: 170,
-                        colour: today.readinessBand?.colour ?? .secondary,
-                        labelInside: true
+                        diameter: ringDiameter,
+                        colour: today.readinessBand?.colour ?? .secondary
                     )
                     .contentShape(Rectangle())
                 }
@@ -135,7 +231,7 @@ struct TodayScreen: View {
                 text: today.loadText,
                 fill: today.loadFill,
                 label: today.loadLabel,
-                diameter: 84
+                diameter: ringDiameter
             )
             // Tapping the Load ring does nothing in spec 002.
         }
@@ -207,64 +303,38 @@ struct TodayScreen: View {
     /// Back to today, closing any popup, which described the Day being left.
     private func showToday() {
         openPopup = nil
-        steppedToDay = nil
-    }
-
-    private func header(_ today: TodayView) -> some View {
-        HStack {
-            Button {
-                if let earlier = today.earlierDay { steppedToDay = earlier }
-            } label: {
-                Label("Earlier Day", systemImage: "chevron.left").labelStyle(.iconOnly)
-            }
-            .disabled(today.earlierDay == nil)
-            Spacer()
-            VStack(spacing: 2) {
-                Text(today.title).font(.title2.bold())
-                Text(today.subtitle).font(.subheadline).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button {
-                if let later = today.laterDay { steppedToDay = later }
-            } label: {
-                Label("Later Day", systemImage: "chevron.right").labelStyle(.iconOnly)
-            }
-            .disabled(today.laterDay == nil)
-        }
-    }
-
-    /// A failed sync shows its reason and Retry; otherwise a tap starts a sync unless one is
-    /// already running.
-    private func tapSyncPill(_ pill: SyncPill) {
-        if pill.failureReason != nil {
-            showsSyncFailure = true
-        } else if !connection.phase.isBusy {
-            connection.syncNow()
-        }
+        pickedDay = nil
     }
 }
 
-/// A running sync's progress bar and time left (spec 001, Sync progress): "Starting…" until the
-/// session reports progress.
-private struct SyncProgressView: View {
-    let progress: Double?
-    let timeLeft: TimeInterval?
+/// The date picker the title's ▾ opens: a graphical calendar limited to the Today view's range,
+/// from the Day of the earliest Night to today. Picking a date shows it.
+private struct DayPicker: View {
+    let range: ClosedRange<Date>
+    let pick: (Date) -> Void
+    @State private var selection: Date
+
+    init(range: ClosedRange<Date>, shown: Date, pick: @escaping (Date) -> Void) {
+        self.range = range
+        self.pick = pick
+        _selection = State(initialValue: shown)
+    }
 
     var body: some View {
-        if let progress {
-            VStack(spacing: 4) {
-                ProgressView(value: progress)
-                if let timeLeft {
-                    Text(HistorySync.timeLeftText(timeLeft))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal)
-        } else {
-            Text("Starting…")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+        NavigationStack {
+            DatePicker("Day", selection: $selection, in: range, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .padding()
+                .navigationTitle("Pick a Day")
+                .navigationBarTitleDisplayMode(.inline)
         }
+        .presentationDetents([.medium, .large])
+        .onChange(of: selection) { _, picked in pick(picked) }
     }
 }
+
+/// How long "Sync successful" stays up (spec 002, Sync pill).
+private let successfulPillSeconds = 3
+
+/// All three rings' size, points (spec 002, Rings: the same size).
+private let ringDiameter: CGFloat = 84

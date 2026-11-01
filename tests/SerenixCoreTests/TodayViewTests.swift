@@ -23,15 +23,18 @@ private func todayView(
     nights: [Night],
     dayLoads: [DayLoad] = dayLoads,
     showing day: Day,
-    sync: SyncStatus = .connecting
+    at time: Date = now,
+    sync: SyncStatus = .idle,
+    profileName: String? = nil
 ) -> TodayView {
     TodayView(
         nights: nights,
         dayLoads: dayLoads,
         showing: day,
-        now: now,
+        now: time,
         timeZone: london,
-        sync: sync
+        sync: sync,
+        profileName: profileName
     )
 }
 
@@ -63,36 +66,37 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     restingHR: [50, 50, 50]
 )
 
-// MARK: Which Day is shown
+// MARK: Which Day is shown and the top bar
 
-@Test func arrowsStepByDayFromTodayBackToTheEarliestNight() {
+@Test func todayIsTitledByItsDateWithoutTheTodayPillAndPicksFromTheEarliestNight() {
     // A distinct Sleep Score on each Night, so showing the wrong one would fail.
     let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
+    let view = todayView(nights: nights, showing: nov1)
 
-    let today = todayView(nights: nights, showing: nov1)
-    #expect(today.title == "Today")
-    #expect(today.subtitle == "Sun 1 Nov")
-    #expect(today.noNightMessage == nil)
-    #expect(today.sleepScoreText == "84")
-    #expect(today.earlierDay == oct31)
-    #expect(today.laterDay == nil)
+    #expect(view.title == "Sun 1 Nov")
+    #expect(!view.showsTodayPill)
+    #expect(view.noNightMessage == nil)
+    #expect(view.sleepScoreText == "84")
+    #expect(view.pickerRange == oct30...nov1)
+}
+
+@Test func anEarlierDayIsTitledByItsDateAndShowsTheTodayPill() {
+    let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
 
     let oneEarlier = todayView(nights: nights, showing: oct31)
     #expect(oneEarlier.title == "Sat 31 Oct")
-    #expect(oneEarlier.subtitle == "Night")
+    #expect(oneEarlier.showsTodayPill)
     #expect(oneEarlier.noNightMessage == "No Night recorded")
     #expect(oneEarlier.loadLabel == "Load")
     #expect(oneEarlier.loadText == "12")
-    #expect(oneEarlier.earlierDay == oct30)
-    #expect(oneEarlier.laterDay == nov1)
+    #expect(oneEarlier.pickerRange == oct30...nov1)
 
     let twoEarlier = todayView(nights: nights, showing: oct30)
     #expect(twoEarlier.title == "Fri 30 Oct")
+    #expect(twoEarlier.showsTodayPill)
     #expect(twoEarlier.noNightMessage == nil)
     #expect(twoEarlier.sleepScoreText == "71")
     #expect(twoEarlier.loadText == "9")
-    #expect(twoEarlier.earlierDay == nil)
-    #expect(twoEarlier.laterDay == oct31)
 }
 
 @Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoadSoFar() {
@@ -110,12 +114,12 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     )
     let view = todayView(nights: [yesterday], showing: nov1)
 
-    #expect(view.title == "Today")
+    #expect(view.title == "Sun 1 Nov")
+    #expect(!view.showsTodayPill)
     #expect(view.noNightMessage == "No Night yet")
     #expect(view.loadLabel == "Load so far")
     #expect(view.loadText == "5")
-    #expect(view.earlierDay == oct31)
-    #expect(view.laterDay == nil)
+    #expect(view.pickerRange == oct31...nov1)
     #expect(view.sleepScoreText == "—")
     #expect(view.readinessText == "—")
     #expect(view.readinessBand == nil)
@@ -124,12 +128,12 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     #expect(view.vsBaseline == nil)
 }
 
-@Test func withNoNightsBothArrowsAreDisabledOnToday() {
+@Test func withNoNightsTheDatePickerRunsFromTodayToToday() {
     let view = todayView(nights: [], showing: nov1)
 
     #expect(view.noNightMessage == "No Night yet")
-    #expect(view.earlierDay == nil)
-    #expect(view.laterDay == nil)
+    #expect(view.pickerRange == nov1...nov1)
+    #expect(!view.showsTodayPill)
 }
 
 @Test func aMissingLoadShowsADash() {
@@ -158,26 +162,29 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         showing: oct31,
         now: lateOnOct31InNewYork,
         timeZone: newYork,
-        sync: .connecting
+        sync: .idle
     )
-    #expect(newYorkToday.title == "Today")
-    #expect(newYorkToday.subtitle == "Sat 31 Oct")
+    #expect(newYorkToday.title == "Sat 31 Oct")
+    #expect(!newYorkToday.showsTodayPill)
+    #expect(newYorkToday.pickerRange == oct31...oct31)
 
     // 2026-10-24T23:30Z is 00:30 BST on 25 Oct in London.
+    let oct25 = Day(year: 2026, month: 10, day: 25)
     let justAfterMidnightOct25InLondon = Date(timeIntervalSince1970: 1_792_884_600)
     let londonToday = TodayView(
         nights: [],
         dayLoads: [],
-        showing: Day(year: 2026, month: 10, day: 25),
+        showing: oct25,
         now: justAfterMidnightOct25InLondon,
         timeZone: london,
-        sync: .connecting
+        sync: .idle
     )
-    #expect(londonToday.title == "Today")
-    #expect(londonToday.subtitle == "Sun 25 Oct")
+    #expect(londonToday.title == "Sun 25 Oct")
+    #expect(!londonToday.showsTodayPill)
+    #expect(londonToday.pickerRange == oct25...oct25)
 }
 
-@Test func theEarlierArrowStepsBackAcrossTheNewYear() {
+@Test func theDatePickerRunsBackAcrossTheNewYear() {
     let dec31 = Day(year: 2026, month: 12, day: 31)
     let jan1 = Day(year: 2027, month: 1, day: 1)
     // 2027-01-01T12:00Z, midday in London (GMT).
@@ -189,48 +196,59 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         showing: jan1,
         now: middayJan1,
         timeZone: london,
-        sync: .connecting
+        sync: .idle
     )
-    #expect(view.title == "Today")
-    #expect(view.subtitle == "Fri 1 Jan")
-    #expect(view.earlierDay == dec31)
-    #expect(view.laterDay == nil)
+    #expect(view.title == "Fri 1 Jan")
+    #expect(!view.showsTodayPill)
+    #expect(view.pickerRange == dec31...jan1)
 }
 
 // MARK: Sync pill
 
-@Test func syncPillNamesTheHistorySyncState() {
-    let connecting = todayView(nights: [], showing: nov1, sync: .connecting).syncPill
-    #expect(connecting.text == "Connecting…")
-    #expect(connecting.failureReason == nil)
-    #expect(!connecting.showsProgress)
+private let strapNotFound =
+    "Couldn't find the Strap. Check it's nearby and charged, then try again."
+private let badFrame = "A Frame from the Strap failed its CRC check."
 
-    let syncing = todayView(nights: [], showing: nov1, sync: .syncing).syncPill
-    #expect(syncing.text == "Syncing")
-    #expect(syncing.failureReason == nil)
-    #expect(syncing.showsProgress)
+@Test(
+    arguments: [
+        (.syncing, .syncing, "Syncing", nil, true),
+        (.justFinished, .successful, "Sync successful", nil, false),
+        (
+            .failed(reason: strapNotFound, cause: .strapUnreachable), .paused, "Sync paused",
+            strapNotFound + " Serenix will try again next time you open it.", false
+        ),
+        (.failed(reason: badFrame, cause: .other), .failed, "Sync failed", badFrame, false),
+    ] as [(SyncStatus, SyncPillKind, String, String?, Bool)]
+)
+func syncPillShowsWhereTheHistorySyncHasGot(
+    sync: SyncStatus,
+    kind: SyncPillKind,
+    text: String,
+    detail: String?,
+    showsProgress: Bool
+) {
+    let pill = todayView(nights: [], showing: nov1, sync: sync).syncPill
 
-    // 2026-11-01T08:10:00Z, 08:10 local in London.
-    let lastSync = Date(timeIntervalSince1970: 1_793_520_600)
-    let upToDate = todayView(nights: [], showing: nov1, sync: .upToDate(lastSync: lastSync))
-        .syncPill
-    #expect(upToDate.text == "Synced 08:10")
-    #expect(upToDate.failureReason == nil)
-    #expect(!upToDate.showsProgress)
+    #expect(pill?.kind == kind)
+    #expect(pill?.text == text)
+    #expect(pill != nil && pill?.detail == detail)
+    #expect(pill?.showsProgress == showsProgress)
+}
 
-    let neverSynced = todayView(nights: [], showing: nov1, sync: .upToDate(lastSync: nil))
-        .syncPill
-    #expect(neverSynced.text == "Not synced")
-    #expect(!neverSynced.showsProgress)
+@Test func withNothingToSayNoSyncPillShows() {
+    let view = todayView(nights: [], showing: nov1, sync: .idle)
 
-    let failed = todayView(
+    #expect(view.syncPill == nil)
+}
+
+@Test func aSyncTheUserCancelledShowsNoSyncPill() {
+    let view = todayView(
         nights: [],
         showing: nov1,
-        sync: .failed(reason: "The Strap stopped responding.")
-    ).syncPill
-    #expect(failed.text == "Sync failed")
-    #expect(failed.failureReason == "The Strap stopped responding.")
-    #expect(!failed.showsProgress)
+        sync: .failed(reason: "Cancelled mid-sync.", cause: .cancelled)
+    )
+
+    #expect(view.syncPill == nil)
 }
 
 // MARK: Rings
@@ -740,64 +758,90 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
     )
 }
 
-// MARK: Trend lines
+// MARK: Status words and gauges
 
-/// Nights from 23 Oct to 31 Oct, one per Day, with a distinct value for every metric.
-private func nightsOct23ToOct31(hrvOnOct27: Double? = 44) -> [Night] {
-    let restingHR: [Double] = [60, 59, 58, 57, 56, 55, 54, 53, 52.5]
-    let hrv: [Double?] = [40, 41, 42, 43, hrvOnOct27, 45, 46, 47, 48.4]
-    let respiratoryRate: [Double] = [13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9]
-    let skinTemperature: [Double] = [33.1, 33.2, 33.3, 33.4, 33.5, 33.6, 33.7, 33.8, 33.9]
-    let spo2: [Double] = [90, 91, 92, 93, 94, 95, 96, 97, 98]
-    let timeAsleep: [TimeInterval] = [
-        25_000, 25_100, 25_200, 25_300, 25_400, 25_500, 25_600, 25_700, 25_800,
-    ]
-    return (0..<9).map { index in
-        Night(
-            day: Day(year: 2026, month: 10, day: 23 + index),
-            restingHR: restingHR[index],
-            hrv: hrv[index],
-            respiratoryRate: respiratoryRate[index],
-            skinTemperature: skinTemperature[index],
-            spo2: spo2[index],
-            timeAsleep: timeAsleep[index]
-        )
-    }
-}
-
-/// A Night after 31 Oct, which must never appear in 31 Oct's trend lines.
-private let laterNightOnNov1 = Night(
-    day: nov1,
-    restingHR: 99,
-    hrv: 99,
-    respiratoryRate: 19.9,
-    skinTemperature: 39.9,
-    spo2: 80,
-    timeAsleep: 99_999
+@Test(
+    arguments: [
+        (.hrv, Night(day: nov1, hrv: 57), "Normal"),
+        (.hrv, Night(day: nov1, hrv: 54), "Low"),
+        (.restingHR, Night(day: nov1, restingHR: 53), "Normal"),
+        (.restingHR, Night(day: nov1, restingHR: 55), "High"),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), "High"),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.0), "Low"),
+        (.skinTemperature, Night(day: nov1, skinTemperature: 34.5), "High"),
+        (.skinTemperature, Night(day: nov1, skinTemperature: 33.5), "Low"),
+        (.spo2, Night(day: nov1, spo2: 97), "95% or above"),
+        (.spo2, Night(day: nov1, spo2: 93), "Below 95%"),
+        (.spo2, Night(day: nov1, spo2: 90), "Below 92%"),
+    ] as [(NightlyMetric, Night, String)]
 )
-
-@Test func eachTrendLineHoldsTheSevenMostRecentNightsUpToTheNightShownOldestFirst() {
-    // Given newest first, so the order of the input can't stand in for sorting.
-    let nights = [laterNightOnNov1] + nightsOct23ToOct31().reversed()
-    let view = todayView(nights: nights, showing: oct31)
-
-    #expect(view.tile(.restingHR)?.trend == [58, 57, 56, 55, 54, 53, 52.5])
-    #expect(view.tile(.hrv)?.trend == [42, 43, 44, 45, 46, 47, 48.4])
-    #expect(view.tile(.respiratoryRate)?.trend == [13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9])
-    #expect(view.tile(.skinTemperature)?.trend == [33.3, 33.4, 33.5, 33.6, 33.7, 33.8, 33.9])
-    #expect(view.tile(.spo2)?.trend == [92, 93, 94, 95, 96, 97, 98])
-    #expect(
-        view.timeAsleepTile?.trend == [25_200, 25_300, 25_400, 25_500, 25_600, 25_700, 25_800]
-    )
+func tileStatusWordAgainstExactBaselines(metric: NightlyMetric, night: Night, word: String) {
+    #expect(nov1Tile(metric, of: night)?.statusText == word)
 }
 
-@Test func aNightMissingTheValueIsLeftOutOfTheTrendLine() {
-    let nights = nightsOct23ToOct31(hrvOnOct27: nil) + [laterNightOnNov1]
-    let view = todayView(nights: nights, showing: oct31)
+@Test(
+    arguments: [
+        (.hrv, Night(day: nov1, hrv: 60), 0.5),
+        (.hrv, Night(day: nov1, hrv: 55.5), 0.25),
+        (.hrv, Night(day: nov1, hrv: 51), 0),
+        (.hrv, Night(day: nov1, hrv: 75), 1),
+        (.restingHR, Night(day: nov1, restingHR: 54), 0.75),
+        (.restingHR, Night(day: nov1, restingHR: 48), 0),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 14.5), 0.75),
+        (.skinTemperature, Night(day: nov1, skinTemperature: 33.7), 0.25),
+        (.spo2, Night(day: nov1, spo2: 97), 0.75),
+        (.spo2, Night(day: nov1, spo2: 85), 0),
+    ] as [(NightlyMetric, Night, Double)]
+)
+func tileGaugePositionAgainstExactBaselines(metric: NightlyMetric, night: Night, gauge: Double) {
+    let tile = nov1Tile(metric, of: night)
 
-    // 27 Oct's Night is one of the 7 but has no HRV; 24 Oct's Night doesn't take its place.
-    #expect(view.tile(.hrv)?.trend == [42, 43, 45, 46, 47, 48.4])
-    #expect(view.tile(.restingHR)?.trend == [58, 57, 56, 55, 54, 53, 52.5])
+    #expect(isClose(tile?.gauge, to: gauge), "gauge \(String(describing: tile?.gauge))")
+}
+
+@Test func aCalibratingMetricSaysCalibratingAndHasNoGaugeButSpO2Has() throws {
+    let earlier = nightsBeforeNov1(
+        hrv: [60, 60],
+        restingHR: [52, 52],
+        respiratoryRate: [14.0, 14.0],
+        skinTemperature: [34.0, 34.0],
+        spo2: [97, 97]
+    )
+    let night = Night(
+        day: nov1,
+        restingHR: 55,
+        hrv: 54,
+        respiratoryRate: 15.0,
+        skinTemperature: 34.5,
+        spo2: 97
+    )
+    let view = todayView(nights: earlier + [night], showing: nov1)
+
+    for metric in [NightlyMetric.restingHR, .hrv, .respiratoryRate, .skinTemperature] {
+        let tile = try #require(view.tile(metric), "\(metric)")
+        #expect(tile.statusText == "Calibrating", "\(metric)")
+        #expect(tile.gauge == nil, "\(metric)")
+    }
+    let spo2 = try #require(view.tile(.spo2))
+    #expect(spo2.statusText == "95% or above")
+    #expect(isClose(spo2.gauge, to: 0.75))
+}
+
+@Test func aMissingNightlyMetricHasADashForItsStatusWordAndNoGauge() {
+    let earlier = nightsBeforeNov1(
+        hrv: [60, 60, 60],
+        restingHR: [52, 52, 52],
+        respiratoryRate: [14.0, 14.0, 14.0],
+        skinTemperature: [34.0, 34.0, 34.0],
+        spo2: [97, 97, 97]
+    )
+    let view = todayView(nights: earlier + [Night(day: nov1)], showing: nov1)
+
+    #expect(view.tiles.count == 5)
+    for tile in view.tiles {
+        #expect(tile.statusText == "—", "\(tile.metric)")
+        #expect(tile.gauge == nil, "\(tile.metric)")
+    }
 }
 
 // MARK: Time Asleep tile
@@ -818,7 +862,6 @@ private let finalWakeNov1At0657 = Date(timeIntervalSince1970: 1_793_516_220)
 
     #expect(tile?.valueText == "7h 40m")
     #expect(tile?.spanText == "22:45 → 06:57")
-    #expect(tile?.trend == [27_600])
 }
 
 @Test(
@@ -841,7 +884,7 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
         showing: nov1,
         now: now,
         timeZone: newYork,
-        sync: .connecting
+        sync: .idle
     )
 
     #expect(view.timeAsleepTile?.spanText == "18:45 → 01:57")
@@ -853,7 +896,6 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
 
     #expect(tile?.valueText == "—")
     #expect(tile?.spanText == "22:45 → 06:57")
-    #expect(tile?.trend == [])
 }
 
 @Test func theSpanIsADashWithoutSleepOnsetOrFinalWake() {
@@ -900,7 +942,6 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
     let view = todayView(nights: [Night(day: nov1, timeAsleep: -300)], showing: nov1)
 
     #expect(view.timeAsleepTile?.valueText == "—")
-    #expect(view.timeAsleepTile?.trend == [])
 }
 
 // MARK: vs your Baseline
@@ -1304,4 +1345,113 @@ private func isClose(_ value: Double?, to expected: Double) -> Bool {
     let view = todayView(nights: [], showing: Day(year: 2026, month: 13, day: 1))
 
     #expect(view.title == "Fri 1 Jan")
+}
+
+@Test func theDatePickerGetsMiddayOfItsEndsAndOfTheDayShown() {
+    let view = todayView(nights: [Night(day: oct30), Night(day: nov1)], showing: oct31)
+
+    // Midday in London, which is GMT after 25 Oct: 30 Oct and 1 Nov 12:00Z, and 31 Oct 12:00Z.
+    #expect(
+        view.pickerDates
+            == Date(
+                timeIntervalSince1970: 1_793_361_600
+            )...Date(timeIntervalSince1970: 1_793_534_400)
+    )
+    #expect(view.shownDate == Date(timeIntervalSince1970: 1_793_448_000))
+}
+
+@Test func aNightDatedAfterTodayDoesNotStretchTheDatePickerPastToday() {
+    let view = todayView(nights: [Night(day: Day(year: 2026, month: 11, day: 2))], showing: nov1)
+
+    #expect(view.pickerRange == nov1...nov1)
+}
+
+// MARK: Greeting and Profile
+
+/// A time on 1 Nov 2026, London, where local time equals UTC.
+private func onNov1(_ hour: Int, _ minute: Int) -> Date {
+    // 2026-11-01T00:00:00Z.
+    Date(timeIntervalSince1970: 1_793_491_200 + Double(hour * 3600 + minute * 60))
+}
+
+@Test(arguments: [
+    (5, 0, "Good morning, Ellis"),
+    (8, 12, "Good morning, Ellis"),
+    (11, 59, "Good morning, Ellis"),
+    (12, 0, "Good afternoon, Ellis"),
+    (17, 59, "Good afternoon, Ellis"),
+    (18, 0, "Good evening, Ellis"),
+    (4, 59, "Good evening, Ellis"),
+])
+func theGreetingOnTodayFitsTheLocalTimeOfDayAndNamesTheProfile(
+    hour: Int,
+    minute: Int,
+    greeting: String
+) {
+    let view = todayView(
+        nights: [],
+        showing: nov1,
+        at: onNov1(hour, minute),
+        profileName: "Ellis"
+    )
+
+    #expect(view.greeting == greeting)
+}
+
+@Test(arguments: [nil, "   "] as [String?])
+func withoutAProfileNameTheGreetingHasNoName(profileName: String?) {
+    let view = todayView(nights: [], showing: nov1, profileName: profileName)
+
+    #expect(view.greeting == "Good morning")
+}
+
+@Test func anEarlierDayHasNoGreeting() {
+    let view = todayView(nights: [], showing: oct31, profileName: "Ellis")
+
+    #expect(view.greeting == nil)
+}
+
+@Test func theAvatarLetterIsTheProfileNamesFirstLetterUpperCased() {
+    let view = todayView(nights: [], showing: nov1, profileName: "ellis")
+
+    #expect(view.avatarLetter == "E")
+}
+
+@Test func theProfileNameIsTrimmedForTheAvatarLetterAndMenuName() {
+    let view = todayView(nights: [], showing: nov1, profileName: "  Ellis ")
+
+    #expect(view.avatarLetter == "E")
+    #expect(view.menuName == "Ellis")
+}
+
+@Test(arguments: [nil, "   "] as [String?])
+func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: String?) {
+    let view = todayView(nights: [], showing: nov1, profileName: profileName)
+
+    #expect(view.avatarLetter == nil)
+    #expect(view.menuName == "Add your name")
+}
+
+@Test func syncNowOffersARetryOnlyAfterAPausedOrFailedSync() {
+    func offersRetry(_ sync: SyncStatus) -> Bool {
+        todayView(nights: [], showing: nov1, sync: sync).syncOffersRetry
+    }
+
+    #expect(offersRetry(.failed(reason: "Not found.", cause: .strapUnreachable)))
+    #expect(offersRetry(.failed(reason: "Bad Frame.", cause: .other)))
+    #expect(!offersRetry(.failed(reason: "Cancelled mid-sync.", cause: .cancelled)))
+    #expect(!offersRetry(.idle))
+    #expect(!offersRetry(.syncing))
+    #expect(!offersRetry(.justFinished))
+}
+
+@Test func onlyPausedAndFailedSyncPillsCanBeSwipedAway() {
+    func canBeDismissed(_ sync: SyncStatus) -> Bool? {
+        todayView(nights: [], showing: nov1, sync: sync).syncPill?.canBeDismissed
+    }
+
+    #expect(canBeDismissed(.failed(reason: "Not found.", cause: .strapUnreachable)) == true)
+    #expect(canBeDismissed(.failed(reason: "Bad Frame.", cause: .other)) == true)
+    #expect(canBeDismissed(.syncing) == false)
+    #expect(canBeDismissed(.justFinished) == false)
 }

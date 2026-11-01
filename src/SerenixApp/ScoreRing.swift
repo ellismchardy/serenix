@@ -12,8 +12,6 @@ struct ScoreRing: View {
     let label: String
     let diameter: CGFloat
     var colour: Color = .accentColor
-    /// The Readiness ring has its name inside, under the number; the others have it below.
-    var labelInside = false
 
     var body: some View {
         VStack(spacing: 6) {
@@ -24,22 +22,15 @@ struct ScoreRing: View {
                     .trim(from: 0, to: fill)
                     .stroke(colour, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                VStack(spacing: 2) {
-                    Text(text)
-                        .font(.system(size: diameter * 0.3, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                    if labelInside { labelText }
-                }
+                Text(text)
+                    .font(.system(size: diameter * 0.3, weight: .bold, design: .rounded))
+                    .monospacedDigit()
             }
             .frame(width: diameter, height: diameter)
-            if !labelInside { labelText }
+            Text(label)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
-    }
-
-    private var labelText: some View {
-        Text(label)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
     }
 
     private var lineWidth: CGFloat { diameter * 0.08 }

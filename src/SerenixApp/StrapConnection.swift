@@ -12,7 +12,7 @@ enum StrapPhase: Equatable {
     case connected
     case syncing
     case synced
-    case failed(String)
+    case failed(String, SyncFailureCause)
 
     var isBusy: Bool {
         switch self {
@@ -30,7 +30,7 @@ enum StrapPhase: Equatable {
         case .connected: "Connected"
         case .syncing: "Syncing…"
         case .synced: "Up to date"
-        case .failed(let reason): "Failed: \(reason)"
+        case .failed(let reason, _): "Failed: \(reason)"
         }
     }
 }
@@ -70,15 +70,20 @@ final class StrapConnection: NSObject, ObservableObject {
     /// they're known. `syncTimer` redraws the screen to show them.
     var syncProgress: Double? { session?.progress }
     var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
-    /// The phase as the Today view's sync pill reads it (spec 002): looking for the Strap counts
-    /// as connecting, Bluetooth being unavailable as a failed sync, and otherwise it's the last
-    /// finished sync.
+    /// The phase as the Today view's sync pill reads it (spec 002): looking for or connecting
+    /// to the Strap counts as syncing, and Bluetooth being unavailable as the Strap being
+    /// unreachable.
     var syncStatus: SyncStatus {
         switch phase {
-        case .searching, .connecting: .connecting
-        case .syncing: .syncing
-        case .failed(let reason), .bluetoothUnavailable(let reason): .failed(reason: reason)
-        case .idle, .connected, .synced: .upToDate(lastSync: lastSyncCompleted)
+        case .searching, .connecting, .syncing: .syncing
+        case .synced: .justFinished
+        case .idle, .connected: .idle
+        // Bluetooth being off only pauses a sync that was wanted; otherwise there's nothing
+        // to say (spec 002, Sync pill).
+        case .bluetoothUnavailable(let reason):
+            wantsSync || wantsConnection
+                ? .failed(reason: reason, cause: .strapUnreachable) : .idle
+        case .failed(let reason, let cause): .failed(reason: reason, cause: cause)
         }
     }
 
@@ -130,8 +135,9 @@ final class StrapConnection: NSObject, ObservableObject {
     }
 
     /// Syncs when Serenix launches or comes back from the background, once a Strap has been
-    /// connected (before that, the user starts with "Connect Strap"). Not on returning from
-    /// Control Center or a notification, which is the app staying open (spec 001 non-goals).
+    /// connected (before that, pulling down or Sync now in the profile menu starts one). Not on
+    /// returning from Control Center or a notification, which is the app staying open (spec 001
+    /// non-goals).
     func sceneBecameActive(fromBackground: Bool) {
         // A sync that went silent while Serenix was in the background shows as failed now.
         failIfStrapWentSilent(at: Date())
@@ -175,7 +181,7 @@ final class StrapConnection: NSObject, ObservableObject {
     func cancel() {
         guard phase.isBusy else { return }
         central.stopScan()
-        finish(as: phase == .syncing ? .failed("Cancelled mid-sync.") : .idle)
+        finish(as: phase == .syncing ? .failed("Cancelled mid-sync.", .cancelled) : .idle)
     }
 
     private var isReady: Bool {
@@ -225,7 +231,10 @@ final class StrapConnection: NSObject, ObservableObject {
     private func connectTimedOut() {
         guard phase == .searching || phase == .connecting else { return }
         central.stopScan()
-        fail("Couldn't find the Strap. Check it's nearby and charged, then try again.")
+        fail(
+            "Couldn't find the Strap. Check it's nearby and charged, then try again.",
+            .strapUnreachable
+        )
     }
 
     /// Reads the store stats off the main thread (a month is ~2.6 million History Records),
@@ -287,7 +296,7 @@ final class StrapConnection: NSObject, ObservableObject {
     private func startSync() {
         wantsSync = false
         if case .failure(let error) = store {
-            fail("Couldn't open the History Record store: \(error.localizedDescription)")
+            fail("Couldn't open the History Record store: \(error.localizedDescription)", .other)
             return
         }
         syncLog = []
@@ -324,7 +333,7 @@ final class StrapConnection: NSObject, ObservableObject {
         session.timeOutIfSilent(at: now)
         self.session = session
         guard case .failed(let failure) = session.state else { return false }
-        finish(as: .failed(failure.reason))
+        finish(as: .failed(failure.reason, .other))
         return true
     }
 
@@ -356,7 +365,7 @@ final class StrapConnection: NSObject, ObservableObject {
                 try store.save()
             } catch {
                 store.discardUnsaved()
-                fail("Couldn't store History Records: \(error.localizedDescription)")
+                fail("Couldn't store History Records: \(error.localizedDescription)", .other)
                 return
             }
         }
@@ -377,7 +386,7 @@ final class StrapConnection: NSObject, ObservableObject {
             UserDefaults.standard.set(historyRecordsReceived, forKey: lastSyncRecordCountKey)
             finish(as: .synced)
         case .failed(let failure):
-            finish(as: .failed(failure.reason))
+            finish(as: .failed(failure.reason, .other))
         }
     }
 
@@ -398,8 +407,8 @@ final class StrapConnection: NSObject, ObservableObject {
         }
     }
 
-    private func fail(_ reason: String) {
-        finish(as: .failed(reason))
+    private func fail(_ reason: String, _ cause: SyncFailureCause) {
+        finish(as: .failed(reason, cause))
     }
 }
 
@@ -421,7 +430,7 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
             peripheral = nil
             phase =
                 wasSyncing
-                ? .failed("Bluetooth turned off mid-sync.")
+                ? .failed("Bluetooth turned off mid-sync.", .strapUnreachable)
                 : .bluetoothUnavailable("Bluetooth is off.")
         case .unauthorized:
             phase = .bluetoothUnavailable(
@@ -458,7 +467,10 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
         didFailToConnect peripheral: CBPeripheral,
         error: Error?
     ) {
-        fail("Couldn't connect to the Strap: \(error?.localizedDescription ?? "no reason given").")
+        fail(
+            "Couldn't connect to the Strap: \(error?.localizedDescription ?? "no reason given").",
+            .strapUnreachable
+        )
     }
 
     func centralManager(
@@ -472,9 +484,16 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
         case .syncing:
             endSession()
             let reason = error.map { ": \($0.localizedDescription)" } ?? ""
-            phase = .failed("The Strap disconnected mid-sync\(reason).")
+            phase = .failed("The Strap disconnected mid-sync\(reason).", .strapUnreachable)
         case .connecting, .connected:
-            phase = .idle
+            // Dropping before a sync that was asked for has started is the Strap being out of
+            // reach (spec 002, Sync pill); otherwise there's nothing to say.
+            if wantsSync {
+                wantsSync = false
+                fail("The Strap disconnected before the sync started.", .strapUnreachable)
+            } else {
+                phase = .idle
+            }
         default:
             break
         }
@@ -484,7 +503,7 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
 extension StrapConnection: @preconcurrency CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error {
-            fail("Couldn't read the Strap's services: \(error.localizedDescription)")
+            fail("Couldn't read the Strap's services: \(error.localizedDescription)", .other)
             return
         }
         if let deviceInfo = peripheral.services?.first(where: {
@@ -497,7 +516,10 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
         }
         guard let service = peripheral.services?.first(where: { $0.uuid == StrapGATT.service })
         else {
-            fail("This doesn't look like a Whoop 5.0 Strap: its command service is missing.")
+            fail(
+                "This doesn't look like a Whoop 5.0 Strap: its command service is missing.",
+                .other
+            )
             return
         }
         peripheral.discoverCharacteristics(
@@ -525,7 +547,7 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
             return
         }
         if let error {
-            fail("Couldn't read the Strap's characteristics: \(error.localizedDescription)")
+            fail("Couldn't read the Strap's characteristics: \(error.localizedDescription)", .other)
             return
         }
         let characteristics = service.characteristics ?? []
@@ -537,7 +559,7 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
         }
         guard commandCharacteristic != nil, notifying.count == StrapGATT.notifyCharacteristics.count
         else {
-            fail("The Strap is missing a characteristic Serenix needs.")
+            fail("The Strap is missing a characteristic Serenix needs.", .other)
             return
         }
         // The Strap refuses these until the link is encrypted, so subscribing is what makes
@@ -555,7 +577,8 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
         if let error {
             fail(
                 "Couldn't subscribe to the Strap (\(error.localizedDescription)). If it isn't "
-                    + "paired yet, put it in pairing mode and try again."
+                    + "paired yet, put it in pairing mode and try again.",
+                .other
             )
             return
         }
@@ -579,7 +602,7 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
         if failIfStrapWentSilent(at: now) { return }
         guard phase == .syncing, var session else { return }
         if let error {
-            fail("Couldn't read from the Strap: \(error.localizedDescription)")
+            fail("Couldn't read from the Strap: \(error.localizedDescription)", .other)
             return
         }
         guard let value = characteristic.value else { return }
@@ -619,7 +642,7 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
         error: Error?
     ) {
         if let error, phase == .syncing {
-            fail("Couldn't write to the Strap: \(error.localizedDescription)")
+            fail("Couldn't write to the Strap: \(error.localizedDescription)", .other)
         }
     }
 }

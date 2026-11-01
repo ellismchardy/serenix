@@ -6,10 +6,8 @@ public struct TimeAsleepTile: Equatable, Sendable {
     public let valueText: String
     /// Sleep Onset → Final Wake in local time, e.g. "22:45 → 06:57"; "—" if either is missing.
     public let spanText: String
-    /// Time Asleep in seconds, oldest first.
-    public let trend: [Double]
 
-    init(for night: Night, among nights: [Night], timeZone: TimeZone) {
+    init(for night: Night, timeZone: TimeZone) {
         valueText = night.plausibleTimeAsleep.map(durationText) ?? missingText
         spanText =
             if let onset = night.sleepOnset, let wake = night.finalWake {
@@ -17,7 +15,6 @@ public struct TimeAsleepTile: Equatable, Sendable {
             } else {
                 missingText
             }
-        trend = trendValues(of: \.plausibleTimeAsleep, upTo: night, among: nights)
     }
 }
 

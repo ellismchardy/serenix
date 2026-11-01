@@ -88,7 +88,7 @@ the background shows as failed ("stopped responding") by the time the user looks
 Progress is how far the History Records have come in time: from the first History Record of
 this sync to the moment the sync started, measured by the newest History Record received so far.
 It runs from 0 to 1 and never goes backwards. Before the first History Record arrives (and for
-an empty sync, which has none) there is no progress yet and the screen says "Starting…". The
+an empty sync, which has none) there is no progress yet and no progress bar shows. The
 time left is the time since the first History Record arrived, scaled by the progress still to
 go; it is shown once at least 2 seconds have passed since that first History Record, as "about
 N min left" rounded up to whole minutes, or "less than a minute left". Gaps in the History
@@ -201,9 +201,9 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - [x] Taking the Strap out of range mid-sync while the phone is locked: on unlocking, Serenix
       shows the sync failed with a reason, and the next sync leaves 0 gaps in Record Counters
       across the period synced.
-- [x] A sync of at least an hour's backlog shows "Starting…", then a progress bar that fills and
-      a time left that falls to "less than a minute left", and ends "Up to date"; the screen
-      stays responsive throughout.
+- [x] A sync of at least an hour's backlog shows no progress at first, then a progress bar that
+      fills and a time left that falls to "less than a minute left", and ends "Up to date"; the
+      screen stays responsive throughout.
 
 ## Non-goals (explicitly out of scope)
 - Pruning History Records after 30 days — its own spec.
