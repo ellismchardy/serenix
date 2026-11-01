@@ -1,19 +1,19 @@
 # 004 — Baseline and Zones
 
 **Status:** built
-**Last updated:** 2026-11-01
+**Last updated:** 2026-11-01 (spec 007: Resting HR renamed Sleeping HR; behavior unchanged)
 **Issue:** https://github.com/ellismchardy/serenix/issues/14 (map: https://github.com/ellismchardy/serenix/issues/12)
 
 ## Problem
 The Today screen (spec 002) colours each Nightly Metric by its Zone, but the cut-offs are the
 prototype's placeholders: HRV is judged by a fixed percentage and only on the low side, and
-Resting HR goes amber at just +1 bpm. Someone whose HRV naturally swings a lot sees false alarms,
+Sleeping HR goes amber at just +1 bpm. Someone whose HRV naturally swings a lot sees false alarms,
 and someone whose HRV barely moves sees none. A Zone should answer "is tonight off *for you*?",
 which means comparing each metric against how much it usually varies for the user.
 
 ## Goal
 Each Night's Baseline also gives each metric's Spread. Zones use rules from the research in
-issue #14: Spread-scaled for HRV and respiratory rate, and fixed gaps or levels for Resting HR,
+issue #14: Spread-scaled for HRV and respiratory rate, and fixed gaps or levels for Sleeping HR,
 skin temperature and SpO2.
 
 ## User stories
@@ -22,15 +22,15 @@ skin temperature and SpO2.
 2. As a Strap owner whose HRV is very steady, I want a small but unusual drop to show as Watch.
 3. As a Strap owner, I want an unusually high HRV to show as Watch (never Out of range), because
    it can be a sign of overreaching, but the evidence for that is weaker.
-4. As a Strap owner, I want Resting HR to warn me only when it rises (+3 bpm Watch, +5 bpm Out of
-   range), since a lower Resting HR is not a warning sign.
+4. As a Strap owner, I want Sleeping HR to warn me only when it rises (+3 bpm Watch, +5 bpm Out of
+   range), since a lower Sleeping HR is not a warning sign.
 5. As a new Strap owner with only a few Nights, I want Zones from my 4th Night, using a typical
    Spread until Serenix has enough Nights to measure mine.
 6. As a Strap owner whose respiratory rate barely changes, I don't want a 0.2 br/min wobble to
    count as Out of range, so the Spread has a floor.
 
 ## Behavior
-**Baseline.** Unchanged from spec 002. For a given Night and metric (Resting HR, HRV,
+**Baseline.** Unchanged from spec 002. For a given Night and metric (Sleeping HR, HRV,
 respiratory rate, skin temperature), the Baseline is the **median** of that metric over the
 up-to-14 most recent *earlier* Nights that have a value for it. With an even count it is the
 mean of the two middle values. The Night itself is never part of its own Baseline, and an
@@ -52,7 +52,7 @@ same Nights as the median:
 | HRV (ln RMSSD) | 0.10 | 0.15 |
 | Respiratory rate (br/min) | 0.3 | 0.5 |
 
-Resting HR and skin temperature have no Spread yet: their Zones use fixed gaps. Resting HR's
+Sleeping HR and skin temperature have no Spread yet: their Zones use fixed gaps. Sleeping HR's
 Spread comes with the Readiness spec, which is the first to use it. The Spread is never shown in
 the app.
 
@@ -65,7 +65,7 @@ respiratory rate, z = (value − Baseline) / Spread.
 |---|---|---|---|---|
 | HRV | Spread-scaled, both ways; the high side never goes past Watch | −1.5 ≤ z ≤ +2.5 | −2.5 ≤ z < −1.5, or z > +2.5 | z < −2.5 |
 | Respiratory rate | Spread-scaled, both ways | \|z\| ≤ 1.5 | 1.5 < \|z\| ≤ 2.5 | \|z\| > 2.5 |
-| Resting HR, d = value − Baseline (bpm) | Fixed gap, up only | d < 3 | 3 ≤ d < 5 | d ≥ 5 |
+| Sleeping HR, d = value − Baseline (bpm) | Fixed gap, up only | d < 3 | 3 ≤ d < 5 | d ≥ 5 |
 | Skin temperature, \|value − Baseline\| (°C) | Fixed gap, both ways | ≤ 0.3 | ≤ 0.6 | > 0.6 |
 | SpO2 (%) | Fixed levels, low only, no Baseline | ≥ 95 | 92 ≤ value < 95 | < 92 |
 
@@ -73,13 +73,13 @@ A value exactly on a cut-off falls on the side the table gives it, even after fl
 rounding. A metric that is Calibrating or missing has no Zone (spec 002).
 
 **Status words** (on the tile, spec 002): "Normal" when In range. Otherwise "Low" or "High",
-by which side of the Baseline the value is on. HRV can now be "High". Resting HR below its
+by which side of the Baseline the value is on. HRV can now be "High". Sleeping HR below its
 Baseline is always In range, so it reads "Normal". SpO2 keeps its level words.
 
 **Gauge** (on the tile): Baseline at 0.5, clamped to 0–1, with the end of each side where Watch
 turns into Out of range:
 - HRV and respiratory rate: 0.5 + z / (2 × 2.5).
-- Resting HR: 0.5 + d / (2 × 5), symmetric even though only the upper side changes the Zone.
+- Sleeping HR: 0.5 + d / (2 × 5), symmetric even though only the upper side changes the Zone.
 - Skin temperature: 0.5 + d / (2 × 0.6), unchanged.
 - SpO2: unchanged, a fixed scale from 88% to 100%.
 
@@ -87,12 +87,12 @@ turns into Out of range:
 on a side that has none:
 - HRV: exp(ln Baseline − 1.5 × Spread) to exp(ln Baseline + 2.5 × Spread), in ms.
 - Respiratory rate: Baseline ± 1.5 × Spread.
-- Resting HR: no lower limit, upper limit Baseline + 3.
+- Sleeping HR: no lower limit, upper limit Baseline + 3.
 - Skin temperature: Baseline ± 0.3.
 - SpO2: no band.
 
-**Unchanged.** "vs your Baseline" still shows HRV as a percentage and Resting HR in bpm. The
-Readiness advice still names HRV and Resting HR when they moved the bad way. The Baseline the
+**Unchanged.** "vs your Baseline" still shows HRV as a percentage and Sleeping HR in bpm. The
+Readiness advice still names HRV and Sleeping HR when they moved the bad way. The Baseline the
 app shows is still the median in the metric's unit (e.g. "60 ms").
 
 ## Design decisions
@@ -156,7 +156,7 @@ Zones (replacing spec 002's Zone criteria):
 - [x] HRV against Baseline 60 with the typical Spread: 48 is In range, 47.9 is Watch, 41.3 is
       Watch, 41.2 is Out of range; 87.2 is In range, 87.4 is Watch, and 200 is Watch (never Out
       of range).
-- [x] Resting HR against Baseline 52: 54.9 is In range, 55 is Watch, 56.9 is Watch, 57 is Out of
+- [x] Sleeping HR against Baseline 52: 54.9 is In range, 55 is Watch, 56.9 is Watch, 57 is Out of
       range, and 40 is In range.
 - [x] Respiratory rate against Baseline 14.0 with the typical Spread: 14.7 and 13.3 are In range,
       14.8 and 15.25 are Watch, 15.3 and 12.7 are Out of range.
@@ -166,17 +166,17 @@ Zones (replacing spec 002's Zone criteria):
       no earlier Nights (unchanged).
 
 Status words, gauge and band (replacing spec 002's criteria for these):
-- [x] Status words against Baselines HRV 60, Resting HR 52, respiratory rate 14.0 and skin
-      temperature 34.0, with typical Spreads: HRV 70 "Normal", 90 "High", 41 "Low"; Resting HR
+- [x] Status words against Baselines HRV 60, Sleeping HR 52, respiratory rate 14.0 and skin
+      temperature 34.0, with typical Spreads: HRV 70 "Normal", 90 "High", 41 "Low"; Sleeping HR
       45 "Normal", 55 "High"; respiratory rate 15.0 "High", 13.0 "Low"; skin temperature 34.5
       "High", 33.5 "Low"; SpO2 97 "95% or above", 93 "Below 95%", 90 "Below 92%"; a Calibrating
       metric "Calibrating".
 - [x] Gauge positions against the same Baselines: HRV 60 → 0.5, 30 → 0 and 120 → 1 (clamped);
-      respiratory rate 15.0 → 0.9, 13.5 → 0.3, 16 → 1 (clamped); Resting HR 54.5 → 0.75, 47 →
+      respiratory rate 15.0 → 0.9, 13.5 → 0.3, 16 → 1 (clamped); Sleeping HR 54.5 → 0.75, 47 →
       0; skin temperature 33.7 → 0.25; SpO2 97 → 0.75, 85 → 0 (clamped); a Calibrating or
       missing metric has no position.
 - [x] Popup In range band with typical Spreads: HRV against 60 runs 47.91 to 87.30 ms;
-      respiratory rate against 14.0 runs 13.25 to 14.75; Resting HR against 52 has no lower
+      respiratory rate against 14.0 runs 13.25 to 14.75; Sleeping HR against 52 has no lower
       limit and an upper limit of 55; skin temperature against 34.0 runs 33.7 to 34.3; SpO2 has
       none.
 
@@ -196,7 +196,7 @@ Manual, on the iPhone with the sideloaded CI build:
 - **Every number is an assumption** (cut-offs, floors, typical values, the 7-Night switch).
   Tune them once there are a few weeks of real Nights, changing the constants and their tests
   together.
-- **Resting HR's Spread** (its floor and typical value) is left to the Readiness spec, which
+- **Sleeping HR's Spread** (its floor and typical value) is left to the Readiness spec, which
   can test it through Readiness. Skin temperature's has no use yet.
 
 ## Notes

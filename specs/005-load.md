@@ -1,7 +1,7 @@
 # 005 — Load
 
-**Status:** built
-**Last updated:** 2026-11-01 (built; CI and the phone checks open in the PR)
+**Status:** approved
+**Last updated:** 2026-11-01 (spec 007: Resting HR comes from Days, not Nights)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map); decisions in
 https://github.com/ellismchardy/serenix/issues/16 and
 https://github.com/ellismchardy/serenix/issues/18
@@ -41,10 +41,10 @@ once.
 age = the Day's year − birth year. With neither, Load is missing. Max HR is never raised
 automatically from heart rates the Strap sees.
 
-**Resting HR.** The median Resting HR of up to 14 of the most recent Nights dated on or before the
-Day (so the Night that ended that morning counts). Nights without a Resting HR are skipped. With
-fewer than 14 such Nights, the median of those that exist; with none, a typical 60 bpm (named
-assumption).
+**Resting HR.** The median Resting HR (spec 007: awake and still, not Sleeping HR) of up to 14 of
+the most recent Days on or before the Day (so the Day's own Resting HR so far counts). Days
+without a Resting HR are skipped. With fewer than 14 such Days, the median of those that exist;
+with none, a typical 60 bpm (named assumption).
 
 **Sum (Banister TRIMP, per second).** Each History Record with a heart rate HR counts as one
 second:
@@ -75,10 +75,10 @@ for any other reason keeps the normal label.
 
 **When.** Load is worked out Day by Day, in the same pass as spec 003's Night rebuilds: each sync
 queues every Day its History Records fall on, kept on the phone, and after that sync's Nights are
-rebuilt (so the morning's Night is there), each queued Day's Load is worked out and stored,
-replacing the old one. The same rules as Night rebuilds apply: a Day whose records start more
-than 30 days ago, or in the future, is skipped, checked when queued and when worked out. A
-rebuilt Night doesn't redo later Days' Load. Load is kept forever.
+rebuilt (so the morning's Night is there), each queued Day's Resting HR (spec 007) and then its Load
+are worked out and stored, replacing the old ones. The same rules as Night rebuilds apply: a Day
+whose records start more than 30 days ago, or in the future, is skipped, checked when queued and
+when worked out. A rebuilt Night doesn't redo later Days' Load. Load is kept forever.
 
 **Profile changes.** Adding, changing or clearing birth year, sex or Max HR queues every Day whose
 History Records are still on the phone (the last 30 days), and their Load is worked out again.
@@ -100,8 +100,8 @@ hour); Steady says "keep your Load under **50** today" (about an hour of moderat
 it easy says "under **33**" (about a 30-minute brisk walk).
 
 ## Design decisions
-- **`SerenixCore`: Load of a Day.** Given a Day, its History Records, the Nights, the Profile's
-  birth year, sex and Max HR, and a time zone, it returns the Load (0–100, whole number) or why
+- **`SerenixCore`: Load of a Day.** Given a Day, its History Records, the Days' Resting HRs, the
+  Profile's birth year, sex and Max HR, and a time zone, it returns the Load (0–100, whole number) or why
   it's missing: no History Records, or no Max HR (which drives "Add your age"). Inside it, the
   Resting HR median, the Max HR, the sum and the scale are separate pure functions. It never
   reads the clock.
@@ -124,7 +124,7 @@ it easy says "under **33**" (about a 30-minute brisk walk).
   method and constants are easy to change later.
 
 ## Seams under test
-- **Load of a Day (`SerenixCore`)**, fed hand-built History Records, Nights and Profile fields
+- **Load of a Day (`SerenixCore`)**, fed hand-built History Records, Days' Resting HRs and Profile fields
   with a fixed time zone. It catches the floor, the cap at Max HR, the clamp at Resting HR, the
   sex constants, Tanaka and its age, the Resting HR median and its 60 bpm fallback, the scale,
   rounding, Day boundaries, repeats, and every missing reason. Expected values are worked by
@@ -140,8 +140,8 @@ They miss the queue and storage, the order of Nights then Load, the profile menu
 the ring, and keeping the fields out of logs, which are checked by hand on the phone (ADR 0002).
 
 ## Success criteria (must be checkable)
-Unless a criterion says otherwise: Europe/London, sex Male, Max HR 190 entered, no Nights (Resting
-HR 60), and one History Record per second.
+Unless a criterion says otherwise: Europe/London, sex Male, Max HR 190 entered, no Days with a
+Resting HR (Resting HR 60), and one History Record per second.
 
 - [x] An hour of records at 164 bpm gives Load 57; with sex Female 58; with Prefer not to say, or
       sex not set, 57.
@@ -151,20 +151,22 @@ HR 60), and one History Record per second.
 - [x] 24 hours at 190 bpm gives 100.
 - [x] An hour at 164 bpm plus an hour of records with heart rate 0 gives 57; the same hour with
       every record repeated, or in a different order, gives 57.
-- [x] With Resting HR 100 entered through Nights, an hour at 96 bpm (over the floor, under Resting
+- [ ] With Resting HR 100 entered through Days, an hour at 96 bpm (over the floor, under Resting
       HR) gives 0.
 - [x] No Max HR, birth year 1986, sex Male: an hour at 154 bpm on a Day in 2026 (Max HR 180) gives
       56; with no birth year either, Load is missing because there's no Max HR.
 - [x] An entered Max HR wins over birth year: Max HR 190 with birth year 1986 gives 57 for an hour
       at 164 bpm.
-- [x] Resting HR: with Nights whose Resting HR are 50, 52 and 54, all dated on or before the Day,
-      an hour at 120 bpm gives 45; adding a Night dated the Day after, at 90, changes nothing;
-      with a Night of Resting HR 70 dated the Day itself and no others, it gives 41.
-- [x] Resting HR: with 15 Nights on or before the Day, the oldest at Resting HR 20, then 7 at 50
-      and the 7 most recent at 70, an hour at 120 bpm gives 43 (median 60 of the 14 most recent;
-      counting the oldest would give 45); a Night without a Resting HR is skipped, not counted.
-- [x] Max HR at or below Resting HR gives missing Load (Max HR 100 entered, Resting HR 100 from a
-      Night).
+- [ ] Resting HR: with Days whose Resting HR are 50, 52 and 54, all on or before the Day, an hour
+      at 120 bpm gives 45; adding the Day after, at 90, changes nothing; with only the Day itself,
+      at Resting HR 70, it gives 41.
+- [ ] Resting HR: with 15 Days on or before the Day, the oldest at Resting HR 20, then 7 at 50 and
+      the 7 most recent at 70, an hour at 120 bpm gives 43 (median 60 of the 14 most recent;
+      counting the oldest would give 45); a Day without a Resting HR is skipped, not counted.
+- [ ] Resting HR comes only from Days: Nights with a Sleeping HR of 40 and no Days with a Resting
+      HR give the 60 bpm fallback (an hour at 120 bpm gives 43).
+- [ ] Max HR at or below Resting HR gives missing Load (Max HR 100 entered, Resting HR 100 from a
+      Day).
 - [x] A Day with no History Records has missing Load; one with records but none over the floor
       has 0.
 - [x] Only the Day's records count: an hour at 164 bpm from 23:30 to 00:30 on the night 31 Oct to
@@ -206,7 +208,7 @@ HR 60), and one History Record per second.
 - Writing Load to Apple Health, Stress, muscular load, and workouts.
 
 ## Open questions
-- **A typical 60 bpm.** The Resting HR fallback with no Nights is a named assumption, not
+- **A typical 60 bpm.** The Resting HR fallback with no Days is a named assumption, not
   measured.
 - **Day vs Night window.** Load uses midnight to midnight, so sleep after midnight falls in the
   next Day. It counts nothing (it's under the floor), so this doesn't matter in practice.

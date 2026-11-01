@@ -111,7 +111,7 @@ _Avoid_: cycle
 ## Metrics and scores
 
 **Baseline**:
-The user's typical Resting HR, HRV, respiratory rate and skin temperature, and the Spread of
+The user's typical Sleeping HR, HRV, respiratory rate and skin temperature, and the Spread of
 each, taken over their most recent Nights. It also holds their typical Load, taken over their
 most recent Days. SpO2 has no Baseline.
 _Avoid_: norm, average, usual (when the personal reference is meant)
@@ -127,13 +127,19 @@ range, Watch or Out of range.
 _Avoid_: status, colour, traffic light
 
 **Nightly Metrics**:
-The physiological measures taken over one Sleep Period: Resting HR, HRV, respiratory rate, skin
+The physiological measures taken over one Sleep Period: Sleeping HR, HRV, respiratory rate, skin
 temperature, and SpO2.
 _Avoid_: vitals, biometrics
 
+**Sleeping HR**:
+The user's lowest sustained heart rate during a Sleep Period. Abbreviated SHR in code and where
+space is tight.
+_Avoid_: overnight HR, sleep HR, nocturnal HR, Resting HR (when sleep is meant)
+
 **Resting HR**:
-The user's lowest sustained heart rate during a Sleep Period.
-_Avoid_: RHR (in prose; fine as an abbreviation in code)
+The user's lowest sustained heart rate on a Day while awake and still, outside the Sleep Period.
+Abbreviated RHR in code and where space is tight.
+_Avoid_: awake HR, daytime HR
 
 **Max HR**:
 The highest heart rate the user can reach: estimated from their age unless they enter it.
@@ -147,10 +153,10 @@ Serenix's rating of how well the user slept in one Sleep Period.
 _Avoid_: sleep performance, sleep quality
 
 **Calibrating**:
-The state of Readiness while too few Nights exist to form an HRV or Resting HR Baseline.
+The state of Readiness while too few Nights exist to form an HRV or Sleeping HR Baseline.
 
 **Readiness**:
-Serenix's rating of how prepared the user's body is for exertion, from their HRV and Resting HR
+Serenix's rating of how prepared the user's body is for exertion, from their HRV and Sleeping HR
 against Baseline, their Time Asleep, and the previous Day's Load.
 _Avoid_: recovery (WHOOP's term)
 

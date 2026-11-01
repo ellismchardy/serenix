@@ -1,7 +1,7 @@
 # 003 — Nightly Metrics
 
 **Status:** built
-**Last updated:** 2026-11-01 (Night rebuilds added during the build)
+**Last updated:** 2026-11-01 (spec 007: Resting HR renamed Sleeping HR; behavior unchanged)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -12,7 +12,7 @@ owner's real nights in `hr-tracker`; they just aren't in the app.
 
 ## Goal
 After a History Sync, each night the user slept with the Strap on becomes a Night with its Sleep
-Period (Sleep Onset, Final Wake, Time in Bed, Time Asleep) and its Nightly Metrics (Resting HR,
+Period (Sleep Onset, Final Wake, Time in Bed, Time Asleep) and its Nightly Metrics (Sleeping HR,
 HRV, respiratory rate, skin temperature, SpO2), worked out on the phone with hr-tracker's methods,
 unchanged.
 
@@ -52,7 +52,7 @@ local noon (e.g. a night shift) is not handled.
 
 **Nightly Metrics.** Exactly `hr-tracker/tools/metrics.py`, over the records from Sleep Onset to
 Final Wake whose heart rate is above 0:
-- **Resting HR:** the lowest 30-minute mean of heart rate, trying a start every 60th record.
+- **Sleeping HR:** the lowest 30-minute mean of heart rate, trying a start every 60th record.
 - **HRV:** RMSSD over every RR interval in order, keeping 600–1,600 ms and successive
   differences under 200 ms.
 - **Respiratory rate:** per 5-minute window with ≥ 200 kept RR intervals, the spectral peak at
@@ -64,11 +64,11 @@ Final Wake whose heart rate is above 0:
   is the mean of the windows that have one.
 
 The port keeps hr-tracker's quirks so the numbers match: minute means include heart rate 0,
-the Resting HR search steps by records rather than seconds, and skin temperature includes the
+the Sleeping HR search steps by records rather than seconds, and skin temperature includes the
 first minutes while the Strap warms up. Changing any of them is a later change to both repos.
 
 **Missing values.** A Nightly Metric is missing, and shows "—" (spec 002), when its method has
-nothing to work on: Resting HR when the Sleep Period has under 30 minutes of records, HRV when
+nothing to work on: Sleeping HR when the Sleep Period has under 30 minutes of records, HRV when
 no RR pair survives the filter, respiratory rate when no 5-minute window has 200 beats, skin
 temperature when no record has one, SpO2 when no SpO2 Window has a reading from 85 to 100. One
 missing metric never stops the others or the Night.
@@ -128,7 +128,7 @@ Expected values are hr-tracker's output on the same records, committed as litera
 
 - [x] The 29–30 Oct 2026 fixture night (Europe/London) makes exactly one Night, dated 30 Oct,
       with Sleep Onset 21:05, Final Wake 03:42, Time in Bed 20:57–04:00 and Time Asleep 5h52.
-- [x] On that Night: Resting HR 48.1 bpm, HRV 85.4 ms, respiratory rate 12.2 br/min, skin
+- [x] On that Night: Sleeping HR 48.1 bpm, HRV 85.4 ms, respiratory rate 12.2 br/min, skin
       temperature 32.59 °C and SpO2 98.6%, each within ±0.05 of hr-tracker's unrounded value.
 - [x] The same records in a different order, or with duplicate History Records, give the same
       Night.
@@ -140,7 +140,7 @@ Expected values are hr-tracker's output on the same records, committed as litera
 - [x] The fixture night with every SpO2 Window removed has SpO2 missing and the other four
       Nightly Metrics unchanged.
 - [x] The fixture night with every RR interval removed has HRV and respiratory rate missing and
-      Resting HR, skin temperature and SpO2 unchanged.
+      Sleeping HR, skin temperature and SpO2 unchanged.
 - [x] Two sleep runs 59 minutes of wake apart make one Sleep Period; 60 minutes apart make two,
       and the one with more sleep minutes is the Night's.
 - [x] Night rebuilds: History Records at 01:00 and 07:00 on 15 Nov 2026 (Europe/London) queue
@@ -190,7 +190,7 @@ Expected values are hr-tracker's output on the same records, committed as litera
 - Fixture: the owner's 29–30 Oct 2026 night, decoded from the iPhone Bluetooth captures in that
   morning's sysdiagnose with `hr-tracker/tools/history.py`. Only the History Records go in the
   repo (serial and device ID removed), never the `.pklg` or sysdiagnose (docs/conventions.md).
-  hr-tracker on it gives exactly the protocol doc's numbers. The 28–29 Oct night (Resting HR
+  hr-tracker on it gives exactly the protocol doc's numbers. The 28–29 Oct night (Sleeping HR
   54.9, HRV 68.8) is a second option if one more is wanted.
 - Wayfinder map "Real metrics, Zones, Load and Readiness" (issue 12) holds the decisions that
   follow from real Nights.
