@@ -123,10 +123,9 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
 - The shell's new `Profile` fields go through the `Profile` value. `ProfileStore` stays the
   only place they're kept.
 
-- **Open (ask the user):** `estimatedMaxHR(in:)` refuses a birth year outside the picker's range
-  for that year, so birth year 2013 picked in January 2026 gives no Max HR for a Day in December
-  2025 ("Add your age" though an age is set). Options: accept any set birth year in Load, or keep
-  the range check only in the shell's picker (spec review, task 4).
+- **Decided (user, after the branch review):** `estimatedMaxHR(in:)` accepts any set birth
+  year; only the picker limits the range (so birth year 2013 picked in January 2026 still gives
+  Days in December 2025 a Max HR).
 
 - **Manual check for the PR (task 9):** with a birth year set (or, before task 10, via Debug or a
   test build), sync in the morning, then confirm the Load ring shows yesterday's Load on

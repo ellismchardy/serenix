@@ -13,8 +13,8 @@ public enum Sex: String, CaseIterable, Sendable {
 public struct Profile: Equatable, Sendable {
     /// Trimmed of spaces; nil when there's no name or only spaces.
     public let name: String?
-    /// Nil when not set. Kept as given: the allowed range depends on the year, so the picker
-    /// limits it and `estimatedMaxHR(in:)` ignores one outside it.
+    /// Nil when not set. Kept as given: the allowed range depends on the year, so only the picker
+    /// limits it, and any set birth year counts.
     public let birthYear: Int?
     /// Prefer not to say when not set.
     public let sex: Sex
@@ -45,12 +45,10 @@ public struct Profile: Equatable, Sendable {
 
     /// Max HR estimated from age with Tanaka's 208 − 0.7 × age, in bpm and unrounded, age being
     /// `year` − birth year (spec 005, Max HR; docs/research/cardio-load-methods.md); nil with no
-    /// birth year, or one outside `allowedBirthYears(in: year)`.
+    /// birth year. Any set birth year counts, even one outside `allowedBirthYears(in: year)`, so a
+    /// Day from late last year still gets a Max HR from a birth year picked this January.
     public func estimatedMaxHR(in year: Int) -> Double? {
-        guard let birthYear, Self.allowedBirthYears(in: year).contains(birthYear) else {
-            return nil
-        }
-        return Self.tanakaIntercept - Self.tanakaSlope * Double(year - birthYear)
+        birthYear.map { Self.tanakaIntercept - Self.tanakaSlope * Double(year - $0) }
     }
 
     /// The avatar's letter: the name's first letter, upper-cased.

@@ -41,7 +41,13 @@ func maxHROutsideTheAllowedRangeIsRefused(maxHR: Int) {
     #expect(Profile(name: nil).estimatedMaxHR(in: 2026) == nil)
 }
 
-@Test(arguments: [1925, 2014])
-func aBirthYearOutsideTheAllowedRangeGivesNoMaxHREstimate(birthYear: Int) {
-    #expect(Profile(name: nil, birthYear: birthYear).estimatedMaxHR(in: 2026) == nil)
+/// Any birth year that's set is used: only the picker limits the range. Birth year 2013 picked
+/// in January 2026 still gives Days in December 2025 a Max HR (age 12).
+@Test(arguments: [(2013, 2025, 199.6), (1925, 2026, 137.3)])
+func aBirthYearOutsideThePickersRangeStillGivesAnEstimate(birthYear: Int, year: Int, maxHR: Double)
+    throws
+{
+    let estimate = try #require(Profile(name: nil, birthYear: birthYear).estimatedMaxHR(in: year))
+
+    #expect(abs(estimate - maxHR) < 1e-9)
 }
