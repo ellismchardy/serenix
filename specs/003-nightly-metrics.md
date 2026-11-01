@@ -1,6 +1,6 @@
 # 003 — Nightly Metrics
 
-**Status:** draft
+**Status:** approved
 **Last updated:** 2026-11-01
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
