@@ -161,7 +161,7 @@ ignored, and nothing holds a connection between syncs.
     - Blocked by: 11
     - Seam: shell (by hand) · Files: `src/SerenixApp/TodayPopups.swift`, `src/SerenixApp/TodayScreen.swift`
     - Done when: CI builds, and the "tapping the Load ring" manual criterion is listed for the PR.
-13. [ ] **Slice (shell):** the Live HR connection and pill.
+13. [x] **Slice (shell):** the Live HR connection and pill.
     - Starting and stopping:
       - `StrapConnection` gains `startLiveHR()` and `stopLiveHR()`.
       - With no sync running, `startLiveHR()` connects (via `rememberedStrap`) and runs a
@@ -204,6 +204,18 @@ ignored, and nothing holds a connection between syncs.
   hourly bars, Highest HR and Max HR used; a tap outside or a swipe down closes it. With no birth
   year or Max HR, the ring still opens the profile menu. On a Day with no History Records it says
   "No heart rate recorded this Day".
+
+- **Manual check for the PR (task 13):** with no sync running, open today's Load popup: the pill
+  shows "…", then a heart rate within a few seconds that follows a few squats. Take the Strap off
+  or out of range: "—" within about 5 s, and back when it's back. Open it during a sync: Live HR
+  shows and the sync still completes; closing it mid-sync leaves the sync running. Leave Serenix
+  with the popup open and come back: it reconnects. A "Sync paused/failed" pill stays while the
+  popup is open. Share log: the `0x03` and `0x28` Frames are in the sync's log during a sync and
+  under "# Live HR" otherwise, and the last 5 syncs' logs are all there.
+- **Known limit (task 13 review):** if the old link's disconnect callback arrives after a new
+  Live HR connect has started, a saved "Sync paused/failed" pill can be lost; Live HR recovers on
+  the next retry. A `LiveHRLink` helper pulling Live HR out of `StrapConnection` would make this
+  simpler; left for later (shell code only CI can compile).
 
 ## Done when
 - All tasks checked, every success criterion in spec 006 met, suite green.

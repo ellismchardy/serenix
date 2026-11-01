@@ -86,7 +86,7 @@ struct TodayScreen: View {
                 Text(pill.detail ?? "")
             }
             .sheet(item: $openPopup) { popup in
-                TodayPopupView(popup: popup, today: today)
+                TodayPopupView(popup: popup, today: today, connection: connection)
             }
             .alert("No notifications yet.", isPresented: $showsNotifications) {
                 Button("OK", role: .cancel) {}
