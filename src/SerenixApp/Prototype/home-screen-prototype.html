@@ -110,6 +110,20 @@
   .tabbar button b { display: block; font-size: 20px; line-height: 1.3; }
   .tabbar button.on { color: var(--s-ink); }
 
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--s-card2); display: grid; place-items: center; }
+  .sheet.tall { max-height: 92%; min-height: 92%; }
+  .m-sec { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--s-sub); margin: 20px 4px 6px; }
+  .m-list { background: var(--s-card2); border-radius: 12px; }
+  .m-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-bottom: 1px solid var(--sep); }
+  .m-item:last-child { border-bottom: 0; }
+  .m-item .ic { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; font-size: 15px; flex: none; }
+  .m-item .tx { flex: 1; min-width: 0; }
+  .m-item .tx small { display: block; color: var(--s-sub); font-size: 12px; }
+  .switch { width: 44px; height: 26px; border-radius: 13px; background: var(--good); position: relative; flex: none; }
+  .switch::after { content: ""; position: absolute; right: 2px; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; }
+  .switch.off { background: var(--track); } .switch.off::after { right: auto; left: 2px; }
+  .toast { position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); background: var(--s-ink); color: #000; font-size: 13px; padding: 8px 14px; border-radius: 10px; z-index: 20; white-space: nowrap; }
+
   /* empty */
   .empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 14px; padding: 0 20px; }
   .bigbtn { background: var(--s-ink); color: #000; font-weight: 600; padding: 13px 28px; border-radius: 14px; text-align: center; }
@@ -230,7 +244,7 @@ const qs = new URLSearchParams(location.search);
 const state = {
   variant: VARIANTS[qs.get('variant')] ? qs.get('variant') : 'A',
   scenario: SCENARIOS[qs.get('scenario')] ? qs.get('scenario') : 'normal',
-  night: 0, sheet: null, range: 14, syncProgress: 0, tab: 'today',
+  night: 0, sheet: null, range: 14, syncProgress: 0, tab: 'today', page: null, toast: null,
 };
 const combined = () => state.variant === 'E';
 const latestOnly = () => state.variant === 'D' || (combined() && state.tab === 'trends');
@@ -470,11 +484,13 @@ function Combined(list, n) {
   const small = (key, v, color, label) => `<button class="e-ring tap" data-act="sheet:${key}">
     ${ring(v, 100, color, 84, 8)}<div class="in" style="height:84px"><b style="font-size:24px">${v}</b></div><div class="lbl">${label}</div></button>`;
   const r = n.readiness;
-  const header = `<div class="a-head">
+  const header = `<div class="row" style="margin-top:2px">${syncStatus('pill')}
+        <button class="avatar tap" data-act="sheet:profile" title="Profile"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--s-ink)"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c.8-4.4 4.3-7 8.5-7s7.7 2.6 8.5 7z"/></svg></button></div>
+      <div class="a-head">
         <button class="navbtn tap" data-act="older" ${state.night >= list.length - 1 ? 'disabled' : ''}>‹</button>
         <div style="text-align:center"><div style="font-size:17px;font-weight:700">${n.today ? 'Today' : dlabel(n.date)}</div><div class="muted" style="font-size:12px">${n.today ? dlabel(n.date) : 'Night'}</div></div>
         <button class="navbtn tap" data-act="newer" ${state.night === 0 ? 'disabled' : ''}>›</button>
-      </div><div style="text-align:center">${syncStatus('pill')}</div>`;
+      </div>`;
   const hero = `<button class="e-ring tap" data-act="sheet:readiness">
       ${ring(r, 100, band(r), 170, 14)}
       <div class="in" style="height:170px">${r == null
@@ -509,8 +525,60 @@ function tabScreen(list, n) {
   return Combined(list, n);
 }
 
+// ---------- profile menu (variant E, top-right icon) ----------
+function profileSheet(list) {
+  const item = (icon, bg, label, sub, act, right = '›') => `<button class="m-item tap" data-act="${act}">
+    <span class="ic" style="background:${bg}">${icon}</span><span class="tx">${label}${sub ? `<small>${sub}</small>` : ''}</span><span class="muted">${right}</span></button>`;
+  if (state.page === 'debug') return `
+    <button class="tap" data-act="page:main" style="color:var(--sleep);margin-bottom:10px">‹ Back</button><h2>Debug</h2>
+    <div class="m-sec">Strap</div><div class="m-list" style="padding:0 12px">
+      <div class="kv"><span>Model</span><span>Whoop 5.0</span></div>
+      <div class="kv"><span>Firmware</span><span>50.38.2</span></div>
+      <div class="kv"><span>Bluetooth</span><span>${state.scenario === 'failed' ? 'Not found' : 'Paired · encrypted'}</span></div></div>
+    <div class="m-sec">History Sync</div><div class="m-list" style="padding:0 12px">
+      <div class="kv"><span>Sync Cursor</span><span>record 2,591,204</span></div>
+      <div class="kv"><span>Last History Sync</span><span>${state.scenario === 'failed' ? 'Sat 07:12' : '08:10'} · 28,640 records · 41 s</span></div>
+      <div class="kv"><span>History Records on phone</span><span>${(list.length * 86400 > 2592000 ? 2592000 : list.length * 86400).toLocaleString()} (30 days)</span></div>
+      <div class="kv"><span>Nights stored</span><span>${list.length}</span></div>
+      <div class="kv"><span>Frames with bad CRC (skipped)</span><span>3</span></div></div>
+    <div class="m-sec">Logs</div><div class="m-list">
+      ${item('⧉', '#3a3a3c', 'Copy sync log', 'Last 500 lines from this device', 'toast:Sync log copied')}
+      ${item('↗', '#3a3a3c', 'Send debug report', 'You see everything before it is sent', 'toast:Opens a pre-filled email you can review')}</div>`;
+  const s = state.scenario;
+  const strapSub = s === 'failed' ? 'Not found · last synced Sat 07:12' : s === 'syncing' ? `Connected · syncing ${state.syncProgress}%` : 'Connected · synced 08:10';
+  return `
+    <div class="row"><h2>Serenix</h2><button class="tap muted" data-act="close" style="font-size:15px">Done</button></div>
+    <div class="m-sec">Strap</div>
+    <div class="m-list">
+      <div class="m-item"><span class="ic" style="background:${s === 'failed' ? '#7f1d1d' : '#14532d'}">⌚</span>
+        <span class="tx">Whoop 5.0<small>${strapSub}</small></span>
+        ${s === 'failed' ? '' : `<span style="font-size:13px">▮ 72%</span>`}</div>
+      ${item('↻', '#1e3a8a', s === 'failed' ? 'Retry sync' : 'Sync now', 'History Sync also runs when you open the app', 'sync', '')}
+      ${item('⚙', '#3a3a3c', 'Strap settings', 'Re-pair, forget Strap', 'toast:Strap settings')}
+    </div>
+    <div class="m-sec">Integrations</div>
+    <div class="m-list">
+      ${item('♥', '#9f1239', 'Apple Health', 'Writes Resting HR, HRV, SpO2, respiratory rate and sleep', 'toast:Apple Health settings', '<span class="switch"></span>')}
+      ${item('＋', '#3a3a3c', 'More integrations', 'Coming later', 'toast:Nothing here yet', '')}
+    </div>
+    <div class="m-sec">Your data</div>
+    <div class="m-list">
+      ${item('⇩', '#065f46', 'Export data', 'Nights, metrics and scores as CSV', 'toast:Opens the iOS share sheet with a CSV')}
+      ${item('ⓘ', '#3a3a3c', 'Privacy', 'Everything stays on this phone', 'toast:Privacy page')}
+    </div>
+    <div class="m-sec">Support</div>
+    <div class="m-list">
+      ${item('✉', '#1e40af', 'Contact us', '', 'toast:Opens a pre-filled email')}
+      ${item('🐞', '#78350f', 'Report a bug', 'You see what is sent before it goes', 'toast:Opens a bug report you can review')}
+      ${item('★', '#a16207', 'Write a review', '', 'toast:Opens the review page')}
+      ${item('⌘', '#3a3a3c', 'Debug', 'Strap, History Sync and logs', 'page:debug')}
+    </div>
+    <div class="muted" style="font-size:11px;text-align:center;margin-top:22px">Serenix 0.1.0 · MIT licensed · Not affiliated with WHOOP, Inc.</div>`;
+}
+
 // ---------- detail sheets (shared by every variant) ----------
 function sheet(key, list, n) {
+  if (key === 'profile') return profileSheet(list);
   if (key === 'sleep') return `<h2>Sleep</h2><div class="muted" style="margin-bottom:14px">${nightName(n)} · Sleep Score <b style="color:var(--sleep)">${n.sleepScore}</b></div>
     ${nightChart(n, 350, 160)}
     <div style="margin-top:10px">
@@ -551,7 +619,8 @@ function render() {
     `<button class="tap ${state.tab === k ? 'on' : ''}" data-act="tab:${k}"><b>${icon}</b>${label}</button>`).join('')}</div>` : '';
   const shown = latestOnly() ? list[0] : n;
   document.getElementById('sheet').innerHTML = n && state.sheet
-    ? `<div class="backdrop" data-act="close"></div><div class="sheet"><div class="grab"></div>${sheet(state.sheet, list, shown)}</div>` : '';
+    ? `<div class="backdrop" data-act="close"></div><div class="sheet ${state.sheet === 'profile' ? 'tall' : ''}"><div class="grab"></div>${sheet(state.sheet, list, shown)}</div>` : '';
+  if (state.toast) document.getElementById('sheet').innerHTML += `<div class="toast">${state.toast}</div>`;
   document.getElementById('vlabel').textContent = `${state.variant} · ${VARIANTS[state.variant]}`;
 
   document.getElementById('panel').innerHTML = `
@@ -615,7 +684,9 @@ document.addEventListener('click', e => {
   if (act === 'newer') state.night--;
   if (act === 'night') state.night = +arg;
   if (act === 'sheet') state.sheet = el.dataset.act.slice(6);
-  if (act === 'close') state.sheet = null;
+  if (act === 'close') { state.sheet = null; state.page = null; }
+  if (act === 'page') state.page = arg === 'main' ? null : arg;
+  if (act === 'toast') { state.toast = el.dataset.act.slice(6); clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => { state.toast = null; render(); }, 1800); }
   if (act === 'range') state.range = +arg;
   if (act === 'tab') { state.tab = arg; state.sheet = null; document.getElementById('screen').scrollTop = 0; }
   render();
