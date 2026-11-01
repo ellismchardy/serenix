@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 /// newest Sync Log entries and Share log (spec 001, debug screen).
 struct DebugView: View {
     @ObservedObject var connection: StrapConnection
+    @State private var probeLines = ReopenProbe.lines  // [DEBUG-n7r4]
 
     var body: some View {
         List {
@@ -42,6 +43,21 @@ struct DebugView: View {
                 LabeledContent("First", value: endText(stats.oldest))
                 LabeledContent("Last", value: endText(stats.newest))
                 LabeledContent("Gaps in Record Counters", value: "\(stats.gapCount)")
+            }
+            // [DEBUG-n7r4] Reopen probe: events kept across launches.
+            Section("Reopen probe") {
+                let probeText = probeLines.joined(separator: "\n")
+                ShareLink(item: probeText) {
+                    Label("Share probe log", systemImage: "square.and.arrow.up")
+                }
+                Button("Refresh") { probeLines = ReopenProbe.lines }
+                Button("Clear", role: .destructive) {
+                    ReopenProbe.clear()
+                    probeLines = []
+                }
+                ForEach(Array(probeLines.enumerated()), id: \.offset) { _, line in
+                    Text(line).font(.system(.caption2, design: .monospaced))
+                }
             }
             Section("Sync Log, newest \(shownEntryCount)") {
                 ForEach(shownIndices, id: \.self) { index in

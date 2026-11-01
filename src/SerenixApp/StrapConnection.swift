@@ -145,6 +145,9 @@ final class StrapConnection: NSObject, ObservableObject {
             lastDataRange = HistoryDataRange(oldest: oldest, newest: newest)
         }
         refreshStoreStats()
+        ReopenProbe.log(
+            "launch: queued Nights \(NightStore.pendingRebuilds.count), Days \(DayLoadStore.pendingRebuilds.count)"
+        )  // [DEBUG-n7r4]
         rebuildNights()
     }
 
@@ -153,6 +156,7 @@ final class StrapConnection: NSObject, ObservableObject {
     /// returning from Control Center or a notification, which is the app staying open (spec 001
     /// non-goals).
     func sceneBecameActive(fromBackground: Bool) {
+        ReopenProbe.log("active, fromBackground \(fromBackground), phase \(phase)")  // [DEBUG-n7r4]
         // A sync that went silent while Serenix was in the background shows as failed now.
         failIfStrapWentSilent(at: Date())
         let syncWasUnderway = syncWasUnderwayInBackground
@@ -167,6 +171,7 @@ final class StrapConnection: NSObject, ObservableObject {
     /// Notes whether a sync is underway as Serenix goes to the background, where it carries on
     /// (ADR 0006).
     func sceneWentToBackground() {
+        ReopenProbe.log("background, phase \(phase)")  // [DEBUG-n7r4]
         syncWasUnderwayInBackground = phase.isBusy
     }
 
@@ -283,6 +288,7 @@ final class StrapConnection: NSObject, ObservableObject {
     private func queueNightRebuilds(after recordTimes: [Date]) {
         let now = Date()
         var pending = NightStore.pendingRebuilds
+        let countBefore = pending.count  // [DEBUG-n7r4]
         for rebuild in nightRebuilds(after: recordTimes, now: now, in: .current) {
             // A date being worked out right now may be reading History Records from before this
             // save, so it's queued once more to be worked out again afterwards.
@@ -290,6 +296,10 @@ final class StrapConnection: NSObject, ObservableObject {
             if pending.filter({ $0 == rebuild }).count < copiesWanted { pending.append(rebuild) }
         }
         NightStore.pendingRebuilds = pending
+        if pending.count != countBefore {
+            // [DEBUG-n7r4]
+            ReopenProbe.log("sync queued Nights: \(countBefore) -> \(pending.count)")
+        }
         queueDayRebuilds(dayRebuilds(after: recordTimes, now: now, in: .current))
     }
 
@@ -331,11 +341,19 @@ final class StrapConnection: NSObject, ObservableObject {
             await previous?.value
             let now = Date()
             let queued = await MainActor.run { NightStore.pendingRebuilds }
+            // [DEBUG-n7r4]
+            await MainActor.run { ReopenProbe.log("rebuild start: \(queued.count) Nights queued") }
             for rebuild in queued {
                 await MainActor.run { self.rebuildInProgress = rebuild }
                 do {
                     if rebuild.isDue(at: now) {
+                        let started = Date()  // [DEBUG-n7r4]
                         try NightStore.apply(rebuild, in: container, timeZone: timeZone)
+                        // [DEBUG-n7r4]
+                        let took = String(format: "%.1f", Date().timeIntervalSince(started))
+                        await MainActor.run {
+                            ReopenProbe.log("Night \(rebuild.day) worked out in \(took)s")
+                        }  // [DEBUG-n7r4]
                     }
                     await MainActor.run {
                         Self.removeOnePending(rebuild)
@@ -357,6 +375,8 @@ final class StrapConnection: NSObject, ObservableObject {
                 let stored = try NightStore.nights(in: container)
                 nights = stored
                 await MainActor.run { self.nights = stored }
+                // [DEBUG-n7r4]
+                await MainActor.run { ReopenProbe.log("Nights shown: \(stored.count)") }
             } catch {
                 nights = nil
                 storeLog.error(
@@ -376,6 +396,13 @@ final class StrapConnection: NSObject, ObservableObject {
                 let profile = ProfileStore.storedProfile
                 do {
                     if rebuild.isDue(at: now) {
+                        let started = Date()  // [DEBUG-n7r4]
+                        defer {
+                            let took = String(format: "%.1f", Date().timeIntervalSince(started))
+                            Task { @MainActor in
+                                ReopenProbe.log("Day \(rebuild.day) Load worked out in \(took)s")
+                            }
+                        }  // [DEBUG-n7r4]
                         try DayLoadStore.apply(
                             rebuild,
                             nights: nights,
@@ -402,6 +429,8 @@ final class StrapConnection: NSObject, ObservableObject {
             do {
                 let dayLoads = try DayLoadStore.dayLoads(in: container)
                 await MainActor.run { self.dayLoads = dayLoads }
+                // [DEBUG-n7r4]
+                await MainActor.run { ReopenProbe.log("Day Loads shown: \(dayLoads.count)") }
             } catch {
                 storeLog.error(
                     "Couldn't read stored Day Loads: \(error.localizedDescription, privacy: .public)"
@@ -462,6 +491,7 @@ final class StrapConnection: NSObject, ObservableObject {
         self.session = session
         syncStartedAt = now
         phase = .syncing
+        ReopenProbe.log("sync started")  // [DEBUG-n7r4]
         syncTimer?.invalidate()
         let timer = Timer(timeInterval: syncTimerInterval, repeats: true) { [weak self] _ in
             // Added to the main run loop below, so it fires on the main actor.
@@ -494,6 +524,8 @@ final class StrapConnection: NSObject, ObservableObject {
 
     /// Forgets the session and redraws the screen one last time with the final Sync Log.
     private func endSession() {
+        // [DEBUG-n7r4]
+        ReopenProbe.log("sync ended, \(historyRecordsReceived) History Records, phase \(phase)")
         if let session { keepSyncResults(of: session) }
         session = nil
         syncStartedAt = nil
