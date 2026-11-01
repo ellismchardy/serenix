@@ -39,9 +39,9 @@ jobs (store-stats refresh, Sync Log save) are chained so each waits for the one 
      out of order and two saves never prune together; CI builds the app.
 4. [ ] **Prefactor (shell):** `StrapConnection` is `@MainActor`, not `@unchecked Sendable`
    - Files: `src/SerenixApp/StrapConnection.swift` (and its callers only if CI demands it)
-   - Done when: no `@unchecked Sendable` or `MainActor.run` hops on its own state remain;
-     the delegate conformances are `@preconcurrency`; timers hop with
-     `MainActor.assumeIsolated`; CI builds the app under Swift 6 strict concurrency.
+   - Done when: no `@unchecked Sendable` remains; the delegate conformances are
+     `@preconcurrency`; timers hop with `MainActor.assumeIsolated`; only the background jobs
+     hop back with `MainActor.run`; CI builds the app under Swift 6 strict concurrency.
 5. [ ] **Verify:** `swift test`, lint and `swift build` green; CI green; the phone steps in
    `plans/done/001-history-sync.md` behave as before (by hand, sideloaded).
 

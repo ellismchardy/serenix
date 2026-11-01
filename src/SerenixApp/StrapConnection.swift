@@ -38,10 +38,12 @@ enum StrapPhase: Equatable {
 /// Moves bytes between the Strap and a `HistorySync` session over CoreBluetooth.
 ///
 /// Every decision about what to send lives in `SerenixCore`: this class scans, connects,
-/// subscribes, writes what the session asks for and feeds back what the Strap sends. The
-/// central manager delivers its callbacks on the main queue (`queue: nil`) and SwiftUI calls in
-/// on the main thread, so all state is only ever touched there.
-final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
+/// subscribes, writes what the session asks for and feeds back what the Strap sends. All state
+/// lives on the main actor: SwiftUI calls in there, and the central manager delivers its
+/// callbacks on the main queue (`queue: nil`), which the `@preconcurrency` delegate
+/// conformances check at run time.
+@MainActor
+final class StrapConnection: NSObject, ObservableObject {
     @Published private(set) var phase: StrapPhase = .idle
     @Published private(set) var strapName: String?
     /// The current or last sync's Sync Log; `logArchive` keeps the last few on the phone. Not
@@ -179,7 +181,8 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         connectTimer?.invalidate()
         connectTimer = Timer.scheduledTimer(withTimeInterval: connectTimeout, repeats: false) {
             [weak self] _ in
-            self?.connectTimedOut()
+            // Scheduled on the main run loop, so it fires on the main actor.
+            MainActor.assumeIsolated { self?.connectTimedOut() }
         }
         if let peripheral {
             phase = .connecting
@@ -282,7 +285,8 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         phase = .syncing
         syncTimer?.invalidate()
         let timer = Timer(timeInterval: syncTimerInterval, repeats: true) { [weak self] _ in
-            self?.syncTimerFired()
+            // Added to the main run loop below, so it fires on the main actor.
+            MainActor.assumeIsolated { self?.syncTimerFired() }
         }
         // `.common`, so the screen keeps updating while the user scrolls.
         RunLoop.main.add(timer, forMode: .common)
@@ -384,7 +388,7 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     }
 }
 
-extension StrapConnection: CBCentralManagerDelegate {
+extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
@@ -462,7 +466,7 @@ extension StrapConnection: CBCentralManagerDelegate {
     }
 }
 
-extension StrapConnection: CBPeripheralDelegate {
+extension StrapConnection: @preconcurrency CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error {
             fail("Couldn't read the Strap's services: \(error.localizedDescription)")
