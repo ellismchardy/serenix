@@ -61,16 +61,18 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    including across a clock change.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift`, `tests/SerenixCoreTests/LoadTests.swift`
    - Done when: 23:30–00:30 gives 49 for each Day; 29 Mar 2026 runs 00:00 to 23:00 UTC.
-4. [ ] **Slice:** Max HR from age, an entered Max HR winning over it, and the missing reasons
-   `.noMaxHR` and `.maxHRNotAboveRestingHR`.
+4. [x] **Slice:** Max HR from age, an entered Max HR winning over it, and the missing reason
+   `.noMaxHR`.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift`, `tests/SerenixCoreTests/LoadTests.swift`
    - Done when: birth year 1986 at 154 bpm gives 56; no birth year means missing for no Max HR;
-     Max HR 190 with 1986 gives 57; Max HR 100 with Resting HR 100 means missing.
+     Max HR 190 with 1986 gives 57. (`.maxHRNotAboveRestingHR` moved to task 5: it needs Resting
+     HR from Nights, since no allowed Max HR is at or below the 60 bpm fallback.)
 5. [ ] **Slice:** Resting HR as the median of up to 14 Nights dated on or before the Day,
    skipping Nights without one.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift`, `tests/SerenixCoreTests/LoadTests.swift`
    - Done when: both Resting HR criteria pass (45; the later Night is ignored; 41; 43 with 15
-     Nights; a missing Resting HR is skipped); the Resting HR 100 / 96 bpm criterion gives 0.
+     Nights; a missing Resting HR is skipped); the Resting HR 100 / 96 bpm criterion gives 0;
+     Max HR 100 with Resting HR 100 means missing (`.maxHRNotAboveRestingHR`).
 6. [ ] **Slice:** Day rebuilds after a sync, and every Day still due for a Profile change.
    - Blocked by: (none; it's independent of 1–5)
    - Seam: Day rebuilds · Files: `src/SerenixCore/DayRebuild.swift` (new), `src/SerenixCore/NightRebuild.swift` (retention constant visibility only), `tests/SerenixCoreTests/DayRebuildTests.swift` (new)
@@ -116,6 +118,11 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
   rule only limits which Days are queued.
 - The shell's new `Profile` fields go through the `Profile` value. `ProfileStore` stays the
   only place they're kept.
+
+- **Open (ask the user):** `estimatedMaxHR(in:)` refuses a birth year outside the picker's range
+  for that year, so birth year 2013 picked in January 2026 gives no Max HR for a Day in December
+  2025 ("Add your age" though an age is set). Options: accept any set birth year in Load, or keep
+  the range check only in the shell's picker (spec review, task 4).
 
 ## Done when
 - All tasks checked, every success criterion in spec 005 met, suite green.

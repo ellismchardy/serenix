@@ -1,9 +1,10 @@
 import Foundation
 
 /// The Load of `day` (spec 005): per-second Banister TRIMP over the Day's History Records,
-/// counting only heart rates at or over the floor, scaled to 0–100. Missing with no History
-/// Records or no Max HR. Only records from the Day's local midnight to the next count; their order
-/// and any repeats don't matter. For now Resting HR is always the 60 bpm fallback.
+/// counting only heart rates at or over the floor, scaled to 0–100. Max HR is the one entered,
+/// else estimated from age in the Day's year. Missing with no History Records or no Max HR. Only
+/// records from the Day's local midnight to the next local midnight count; their order and any
+/// repeats don't matter. For now Resting HR is always the 60 bpm fallback.
 public func load(
     of day: Day,
     records: [HistoryRecord],
@@ -17,7 +18,7 @@ public func load(
         span.start <= $0.timestamp && $0.timestamp < span.end && seen.insert($0.identity).inserted
     }
     guard !unique.isEmpty else { return DayLoad(day: day, load: nil, missingReason: .noRecords) }
-    guard let maxHR = profile.maxHR.map(Double.init) else {
+    guard let maxHR = profile.maxHR.map(Double.init) ?? profile.estimatedMaxHR(in: day.year) else {
         return DayLoad(day: day, load: nil, missingReason: .noMaxHR)
     }
     let restingHR = LoadMethod.fallbackRestingHR

@@ -259,3 +259,42 @@ private func loadOf(_ day: Day, _ records: [HistoryRecord]) -> DayLoad {
     #expect(loadOf(twentyFifthOfOctober, start).load == 49)
     #expect(loadOf(twentyFifthOfOctober, end).load == 49)
 }
+
+// Max HR (spec 005): the entered Max HR, else Tanaka's 208 − 0.7 × age, with age the Day's year
+// minus the birth year. Birth year 1986 on a Day in 2026 is age 40, so Max HR 180.
+
+@Test func withNoMaxHRTheMaxHREstimatedFromAgeGivesLoad56() {
+    let bornIn1986 = Profile(name: nil, birthYear: 1986, sex: .male)
+
+    let result = loadOfFourthOfNovember(
+        records(at: 154, for: oneHour, from: tenAM),
+        profile: bornIn1986
+    )
+
+    #expect(result.load == 56)
+    #expect(result.missingReason == nil)
+}
+
+@Test func withNoMaxHRAndNoBirthYearLoadIsMissingForNoMaxHR() {
+    let noAge = Profile(name: nil, sex: .male)
+
+    let result = loadOfFourthOfNovember(
+        records(at: 164, for: oneHour, from: tenAM),
+        profile: noAge
+    )
+
+    #expect(result.load == nil)
+    #expect(result.missingReason == .noMaxHR)
+}
+
+@Test func anEnteredMaxHRWinsOverTheEstimateFromBirthYear() {
+    let bornIn1986WithMaxHR190 = Profile(name: nil, birthYear: 1986, sex: .male, maxHR: 190)
+
+    let result = loadOfFourthOfNovember(
+        records(at: 164, for: oneHour, from: tenAM),
+        profile: bornIn1986WithMaxHR190
+    )
+
+    #expect(result.load == 57)
+    #expect(result.missingReason == nil)
+}
