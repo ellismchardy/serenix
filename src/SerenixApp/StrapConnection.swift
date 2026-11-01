@@ -135,8 +135,9 @@ final class StrapConnection: NSObject, ObservableObject {
     }
 
     /// Syncs when Serenix launches or comes back from the background, once a Strap has been
-    /// connected (before that, tapping the sync pill or pulling down starts one). Not on returning from
-    /// Control Center or a notification, which is the app staying open (spec 001 non-goals).
+    /// connected (before that, pulling down or Sync now in the profile menu starts one). Not on
+    /// returning from Control Center or a notification, which is the app staying open (spec 001
+    /// non-goals).
     func sceneBecameActive(fromBackground: Bool) {
         // A sync that went silent while Serenix was in the background shows as failed now.
         failIfStrapWentSilent(at: Date())
