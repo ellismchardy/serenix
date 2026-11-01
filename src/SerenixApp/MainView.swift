@@ -30,14 +30,19 @@ struct MainView: View {
                 if connection.phase.isBusy {
                     Button("Cancel", role: .cancel) { connection.cancel() }
                 }
-                NavigationLink("Debug") { DebugView(connection: connection) }
                 Spacer()
-                Text("Serenix \(BuildInfo.version)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             }
             .padding()
             .navigationTitle("Serenix")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        SettingsView(connection: connection)
+                    } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                }
+            }
         }
     }
 
