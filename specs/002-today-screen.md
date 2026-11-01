@@ -99,7 +99,20 @@ The three rings line up level, with nothing under the Readiness ring that the ot
 have.
 
 **Readiness message.** A card under the rings with the band word in the band's colour (e.g.
-"Ready") and an ✕. Closing it hides it for that Night, remembered on the phone across
+"Ready"), a short piece of advice under it, and an ✕. The advice is the band's sentence:
+- **Ready:** "You've recovered well. A good day to push: go for a harder session if you feel
+  like it."
+- **Steady:** "You're part-way recovered. Train at a moderate pace and keep your Load under 60
+  today."
+- **Take it easy:** "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and
+  keep your Load under 30 today."
+
+For Steady and Take it easy, it starts with why, from the Night's own numbers, naming only what
+applies: "Yesterday's Load was high (82)" when the Day before the Day shown had a Load of 70 or
+more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Resting HR is up 4 bpm" when
+Resting HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
+or "A, B and C." before the band's sentence. The Load caps (60, 30) and the high-Load mark (70)
+are named constants and assumptions, to tune once the Load spec ships. Closing it hides it for that Night, remembered on the phone across
 relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
 missing.
 
@@ -322,6 +335,14 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] The greeting is "Good morning!" at 05:00 and 08:12, "Good afternoon!" at 12:00, and "Good
       evening!" at 18:00 and 04:59, on today and on an earlier Day alike; the name under it is
       "Ellis" for "Ellis" and none for no name or a name of only spaces.
+- [x] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
+      for a harder session if you feel like it."; Steady with nothing off gives "You're
+      part-way recovered. Train at a moderate pace and keep your Load under 60 today."; Take it
+      easy with yesterday's Load 82, HRV 51.6 against Baseline 60 and Resting HR 56 against 52
+      gives "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up
+      4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your
+      Load under 30 today."; a Load of 69 yesterday isn't mentioned; no advice while
+      Calibrating.
 - [x] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
       "Ellis"; with no name there is no letter and the menu name is "Add your name".
 

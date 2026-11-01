@@ -1514,3 +1514,62 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 
     #expect(todayView(nights: nights, showing: oct30).weekStrip.earlierDay == nil)
 }
+
+// MARK: Readiness advice
+
+@Test func readyAdviceSaysItsAGoodDayToPush() {
+    let night = Night(day: nov1, readiness: 80, restingHR: 52, hrv: 60)
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(
+        view.readinessAdvice
+            == "You've recovered well. A good day to push: go for a harder session if you feel like it."
+    )
+}
+
+@Test func steadyAdviceWithNothingOffIsJustTheBandSentence() {
+    let night = Night(day: nov1, readiness: 50, restingHR: 52, hrv: 60)
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(
+        view.readinessAdvice
+            == "You're part-way recovered. Train at a moderate pace and keep your Load under 60 today."
+    )
+}
+
+@Test func takeItEasyAdviceSaysWhyFromTheNightsNumbers() {
+    let night = Night(day: nov1, readiness: 25, restingHR: 56, hrv: 51.6)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 82)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up "
+            + "4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep "
+            + "your Load under 30 today."
+    )
+}
+
+@Test func aLoadBelowTheHighMarkYesterdayIsNotMentioned() {
+    let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 69)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your "
+            + "Load under 30 today."
+    )
+}
+
+@Test func thereIsNoAdviceWhileReadinessIsCalibrating() {
+    let view = todayView(nights: [Night(day: nov1, readiness: 80)], showing: nov1)
+
+    #expect(view.readinessAdvice == nil)
+}

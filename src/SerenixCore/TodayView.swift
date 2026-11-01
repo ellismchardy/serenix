@@ -26,6 +26,8 @@ public struct TodayView: Equatable, Sendable {
     public let readinessText: String
     /// Nil whenever Readiness is missing.
     public let readinessBand: ReadinessBand?
+    /// The advice on the Readiness message card; nil while Calibrating or missing.
+    public let readinessAdvice: String?
     /// The Night's Sleep Score, or "—".
     public let sleepScoreText: String
     public let loadLabel: String
@@ -127,6 +129,15 @@ public struct TodayView: Equatable, Sendable {
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }
             } ?? []
         self.tiles = tiles
+
+        readinessAdvice = readinessBand.map { band in
+            ReadinessAdvice.text(
+                for: band,
+                yesterdayLoad: dayLoads.first { $0.day == day.adding(days: -1) }?.load,
+                hrv: tiles.first { $0.metric == .hrv },
+                restingHR: tiles.first { $0.metric == .restingHR }
+            )
+        }
 
         vsBaseline =
             if night == nil {

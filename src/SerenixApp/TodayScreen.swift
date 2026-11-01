@@ -243,16 +243,25 @@ struct TodayScreen: View {
         .themeCard()
     }
 
-    /// The band word for the Night shown, in its colour, on a card with an ✕ that hides it for
-    /// that Night; none while Readiness is Calibrating or missing.
+    /// The band word for the Night shown, in its colour, with the Today view's advice under it,
+    /// on a card with an ✕ that hides it for that Night; none while Readiness is Calibrating or
+    /// missing.
     @ViewBuilder
     private func readinessMessage(_ today: TodayView, for day: Day) -> some View {
         if let band = today.readinessBand, !closedMessages.contains(day) {
-            HStack {
-                Text(band.word)
-                    .font(.headline)
-                    .foregroundStyle(band.colour)
-                Spacer()
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(band.word)
+                        .font(.headline)
+                        .foregroundStyle(band.colour)
+                    if let advice = today.readinessAdvice {
+                        Text(advice)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
                 Button {
                     withAnimation { closedMessages.close(day) }
                 } label: {
