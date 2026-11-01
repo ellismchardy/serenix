@@ -141,7 +141,7 @@ private let nightsOct1ToNov1 =
     )
 }
 
-@Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoadSoFar() {
+@Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoad() {
     // Yesterday's Night has every value, so any of them leaking onto today would show.
     let yesterday = Night(
         day: oct31,
@@ -157,7 +157,7 @@ private let nightsOct1ToNov1 =
     let view = todayView(nights: [yesterday], showing: nov1)
 
     #expect(view.noNightMessage == "No Night yet")
-    #expect(view.loadLabel == "Load so far")
+    #expect(view.loadLabel == "Load")
     #expect(view.loadText == "5")
     #expect(view.pickerRange == oct31...nov1)
     #expect(view.sleepScoreText == "—")
@@ -1746,7 +1746,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 
     #expect(
         view.readinessAdvice
-            == "You're part-way recovered. Train at a moderate pace and keep your Load under 60 today."
+            == "You're part-way recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }
 
@@ -1762,7 +1762,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
         view.readinessAdvice
             == "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up "
             + "4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep "
-            + "your Load under 30 today."
+            + "your Load under 33 today."
     )
 }
 
@@ -1770,14 +1770,29 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
-        dayLoads: [DayLoad(day: oct31, load: 69)],
+        dayLoads: [DayLoad(day: oct31, load: 54)],
         showing: nov1
     )
 
     #expect(
         view.readinessAdvice
             == "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your "
-            + "Load under 30 today."
+            + "Load under 33 today."
+    )
+}
+
+@Test func aLoadAtTheHighMarkYesterdayIsMentioned() {
+    let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 55)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "Yesterday's Load was high (55). Your body hasn't recovered yet. Rest, hydrate and get "
+            + "to bed early, and keep your Load under 33 today."
     )
 }
 
@@ -1808,6 +1823,50 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     #expect(
         view.readinessAdvice
             == "HRV is 14% below your Baseline and Resting HR is up 4 bpm. You're part-way "
-            + "recovered. Train at a moderate pace and keep your Load under 60 today."
+            + "recovered. Train at a moderate pace and keep your Load under 50 today."
     )
+}
+
+// MARK: Add your age (spec 005)
+
+@Test func aLoadMissingForNoMaxHRAsksForTheAgeAndOpensTheProfileMenu() {
+    let noMaxHR = [
+        DayLoad(day: oct31, load: nil, missingReason: .noMaxHR),
+        DayLoad(day: nov1, load: nil, missingReason: .noMaxHR),
+    ]
+    let today = todayView(nights: [Night(day: nov1)], dayLoads: noMaxHR, showing: nov1)
+    let earlier = todayView(nights: [Night(day: oct31)], dayLoads: noMaxHR, showing: oct31)
+
+    #expect(today.loadLabel == "Add your age")
+    #expect(today.loadText == "—")
+    #expect(today.loadOpensProfileMenu)
+    #expect(earlier.loadLabel == "Add your age")
+    #expect(earlier.loadOpensProfileMenu)
+}
+
+@Test(arguments: [LoadMissing.noRecords, .maxHRNotAboveRestingHR])
+func aLoadMissingForAnotherReasonKeepsTheUsualLabelAndNoTap(reason: LoadMissing) {
+    let missing = [
+        DayLoad(day: oct31, load: nil, missingReason: reason),
+        DayLoad(day: nov1, load: nil, missingReason: reason),
+    ]
+    let today = todayView(nights: [Night(day: nov1)], dayLoads: missing, showing: nov1)
+    let earlier = todayView(nights: [Night(day: oct31)], dayLoads: missing, showing: oct31)
+
+    #expect(today.loadLabel == "Load")
+    #expect(!today.loadOpensProfileMenu)
+    #expect(earlier.loadLabel == "Load")
+    #expect(!earlier.loadOpensProfileMenu)
+}
+
+@Test func aLoadThatIsThereKeepsTheUsualLabelAndNoTap() {
+    let view = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 40)],
+        showing: nov1
+    )
+
+    #expect(view.loadText == "40")
+    #expect(view.loadLabel == "Load")
+    #expect(!view.loadOpensProfileMenu)
 }

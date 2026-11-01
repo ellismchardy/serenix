@@ -1,7 +1,7 @@
 # 002 — Today screen
 
 **Status:** built
-**Last updated:** 2026-11-01
+**Last updated:** 2026-11-01 (spec 005: Readiness advice Load constants, "Load so far" dropped)
 
 ## Problem
 Once History Sync (spec 001) gets History Records onto the phone, the user still has nowhere
@@ -94,7 +94,7 @@ running.
   **Ready** (67–100), **Steady** (34–66) or **Take it easy** (0–33). When Readiness is
   Calibrating, the ring is empty and shows "n/4", the Nights so far.
 - **Sleep Score** on the left.
-- **Load** on the right, labelled "Load so far" on today and "Load" on earlier Days.
+- **Load** on the right, labelled "Load" on every Day (today's covers what has synced so far).
 
 The three rings line up level, with nothing under the Readiness ring that the others don't
 have.
@@ -103,18 +103,18 @@ have.
 "Ready"), a short piece of advice under it, and an ✕. The advice is the band's sentence:
 - **Ready:** "You've recovered well. A good day to push: go for a harder session if you feel
   like it."
-- **Steady:** "You're part-way recovered. Train at a moderate pace and keep your Load under 60
+- **Steady:** "You're part-way recovered. Train at a moderate pace and keep your Load under 50
   today."
 - **Take it easy:** "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and
-  keep your Load under 30 today."
+  keep your Load under 33 today."
 
 For Steady and Take it easy, it starts with why, from the Night's own numbers, naming only what
-applies: "Yesterday's Load was high (82)" when the Day before the Day shown had a Load of 70 or
+applies: "Yesterday's Load was high (82)" when the Day before the Day shown had a Load of 55 or
 more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Resting HR is up 4 bpm" when
 Resting HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
-or "A, B and C." before the band's sentence. The Load caps (60, 30) and the high-Load mark (70)
-are named constants and assumptions, to tune once the Load spec ships. Closing it hides it for that
-Night, remembered on the phone across
+or "A, B and C." before the band's sentence. The Load caps (50, 33) and the high-Load mark (55)
+are named constants and assumptions, set by the Load spec (005) and to tune with real Days.
+Closing it hides it for that Night, remembered on the phone across
 relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
 missing.
 
@@ -253,7 +253,7 @@ other metrics are whole numbers.
   current time. It catches which Day and Night are shown, the week strip, the date picker's range,
   "No Night yet / recorded", the greeting, the avatar letter, bands, Calibrating counts,
   Baseline (median, earlier Nights only, at least 3, missing values skipped), every Zone
-  boundary, status words, gauge positions, difference formats, Load "so far", missing values,
+  boundary, status words, gauge positions, difference formats, the Load label, missing values,
   the Readiness advice, popup content and which sync pill shows. It misses layout, colours, the
   Look and Appearance, taps, animation, pill timing, closing the Readiness message, the name
   prompt, storage and the Strap facts in the menu, which are checked by hand on the phone
@@ -280,7 +280,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] Differences format as "+14%" for HRV, "−3 bpm" for Resting HR, and "+0.4" for respiratory
       rate and skin temperature.
 - [x] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.
-- [x] Load on today is labelled "Load so far"; on an earlier Day, "Load".
+- [x] Load is labelled "Load" on today and on an earlier Day alike.
 - [x] When either Baseline is Calibrating, vs your Baseline is the single Calibrating line with
       the right "N to go".
 - [x] Tiles carry no trend line; the Time Asleep tile has no Zone, status word or gauge.
@@ -297,11 +297,11 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       "Ellis" for "Ellis" and none for no name or a name of only spaces.
 - [x] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
       for a harder session if you feel like it."; Steady with nothing off gives "You're
-      part-way recovered. Train at a moderate pace and keep your Load under 60 today."; Take it
+      part-way recovered. Train at a moderate pace and keep your Load under 50 today."; Take it
       easy with yesterday's Load 82, HRV 51.6 against Baseline 60 and Resting HR 56 against 52
       gives "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up
       4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your
-      Load under 30 today."; a Load of 69 yesterday isn't mentioned; no advice while
+      Load under 33 today."; a Load of 54 yesterday isn't mentioned; no advice while
       Calibrating.
 - [x] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
       "Ellis"; with no name there is no letter and the menu name is "Add your name".
@@ -348,11 +348,11 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - The tab bar. It arrives with the Sleep screen spec.
 - The Sleep screen, with its week strip and heart rate through the night, and the Trends screen.
   Both are later specs, already prototyped (see Notes).
-- A Load popup with hourly Load; it belongs to the Load spec.
+- A Load popup with hourly Load; a later spec (spec 005 leaves it out).
 - Profile menu rows for Apple Health (Integrations), Export data, Contact us, Report a bug and
   Write a review. Each comes with its own spec.
-- Anything else in the Profile (photo, age, units), any account, sign-in or server, and other
-  messages using the name. Each would be its own spec.
+- Anything else in the Profile (photo, units; birth year, sex and Max HR come with spec 005),
+  any account, sign-in or server, and other messages using the name. Each would be its own spec.
 - Streaks and a "Health KPI" summary from the reference designs.
 - Editing, deleting or hiding a Night; Naps; Stress.
 - Notifications, widgets, or a Watch app. The bell is only a placeholder until a notifications

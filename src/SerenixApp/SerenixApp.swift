@@ -17,6 +17,11 @@ struct SerenixApp: App {
                     NamePrompt(profile: profile)
                 }
             }
+            .onAppear {
+                profile.onLoadInputsChange = { [connection] in
+                    connection.redoLoadAfterProfileChange()
+                }
+            }
             // The Look's accent everywhere, and the Appearance setting (spec 002, Look).
             .tint(Theme.accent)
             .environmentObject(appearance)

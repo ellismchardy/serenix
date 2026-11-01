@@ -30,8 +30,12 @@ public struct TodayView: Equatable, Sendable {
     public let readinessAdvice: String?
     /// The Night's Sleep Score, or "—".
     public let sleepScoreText: String
+    /// "Load" on every Day, or "Add your age" when Load is missing for want of a Max HR (spec 005,
+    /// Add your age).
     public let loadLabel: String
     public let loadText: String
+    /// Whether tapping the Load ring opens the profile menu: only while it asks for the age.
+    public let loadOpensProfileMenu: Bool
     /// How far each ring fills, 0 to 1: its 0–100 score out of 100 (ADR 0005), or 0 when the
     /// score is missing.
     public let readinessFill: Double
@@ -113,10 +117,11 @@ public struct TodayView: Equatable, Sendable {
         sleepScoreText = scoreText(night?.sleepScore)
         sleepScoreFill = ringFill(night?.sleepScore)
 
-        loadLabel = isToday ? "Load so far" : "Load"
-        let load = dayLoads.first { $0.day == day }?.load
-        loadText = scoreText(load)
-        loadFill = ringFill(load)
+        let dayLoad = dayLoads.first { $0.day == day }
+        loadOpensProfileMenu = dayLoad?.missingReason == .noMaxHR
+        loadLabel = loadOpensProfileMenu ? "Add your age" : "Load"
+        loadText = scoreText(dayLoad?.load)
+        loadFill = ringFill(dayLoad?.load)
 
         let syncPill = SyncPill(sync)
         self.syncPill = syncPill
