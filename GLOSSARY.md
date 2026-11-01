@@ -10,7 +10,8 @@ daily scores, computed on the user's phone without the wearable vendor's subscri
 ## The user
 
 **Profile**:
-The user's name, kept only on the phone, used to address them in the app.
+The user's name, and optionally their birth year, sex and Max HR, kept only on the phone, used to
+address them and to work out Load.
 _Avoid_: account, user account, login
 
 ## Devices and data
@@ -127,6 +128,10 @@ _Avoid_: vitals, biometrics
 **Resting HR**:
 The user's lowest sustained heart rate during a Sleep Period.
 _Avoid_: RHR (in prose; fine as an abbreviation in code)
+
+**Max HR**:
+The highest heart rate the user can reach: estimated from their age unless they enter it.
+_Avoid_: HRmax (in prose), peak HR
 
 **HRV**:
 Heart-rate variability during a Sleep Period, expressed as RMSSD in milliseconds.
