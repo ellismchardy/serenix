@@ -1,7 +1,7 @@
 import Foundation
 
 /// One date whose Night is worked out again after a sync, and the History Records to read for it.
-public struct NightRebuild: Equatable, Sendable {
+public struct NightRebuild: Equatable, Codable, Sendable {
     public let day: Day
     /// The two night windows that can give a Night dated `day`: local noon the Day before `day`
     /// to local noon the Day after.

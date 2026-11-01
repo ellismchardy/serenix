@@ -1,7 +1,7 @@
 import Foundation
 import SerenixCore
 
-/// A fixture night in `Fixtures/`: trimmed real History Records from the project owner's own
+/// A fixture night in `Fixtures/`: untrimmed real History Records from the project owner's own
 /// nights, one CSV row per second (docs/conventions.md, Testing).
 enum NightFixture {
     /// The night of 29–30 Oct 2026, Europe/London.

@@ -4,8 +4,8 @@ import Foundation
 /// hr-tracker's `tools/sleep.py` finds them (method table: hr-tracker
 /// `docs/protocol.md#sleep-and-wake`). Its quirks are kept so the two give the same numbers
 /// (spec 003). Two differences no real night has shown: motion arrives as `Float` where
-/// hr-tracker reads 4-decimal doubles, and repeats are dropped by identity (Record Counter and
-/// timestamp) where hr-tracker uses the counter alone.
+/// hr-tracker reads 4-decimal doubles, and records are dropped as repeats and ordered by identity
+/// (timestamp, then Record Counter) where hr-tracker uses the counter alone.
 struct SleepPeriod: Equatable, Sendable {
     /// UTC.
     var sleepOnset: Date
@@ -70,6 +70,7 @@ private let upActiveSeconds = 30
 /// Minutes in a row of being up that mean out of bed. sleep.py `UP_RUN`.
 private let upMinutes = 3
 
+/// Seconds in a minute, for minute starts and Time Asleep.
 private let secondsPerMinute = 60.0
 
 /// One UTC minute that has enough records.

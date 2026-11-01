@@ -1,6 +1,7 @@
 import Foundation
 import SerenixCore
 import SwiftData
+import os
 
 /// A Night as stored on the phone (spec 003). Nights are kept forever (docs/architecture.md),
 /// one per date.
@@ -102,27 +103,28 @@ enum NightStore {
     /// sync's Nights are still worked out if iOS ends Serenix before the rebuild finishes.
     static var pendingRebuilds: [NightRebuild] {
         get {
-            let saved = UserDefaults.standard.array(forKey: pendingRebuildsKey) as? [[Double]]
-            return (saved ?? []).compactMap { values in
-                guard values.count == 5 else { return nil }
-                return NightRebuild(
-                    day: Day(year: Int(values[0]), month: Int(values[1]), day: Int(values[2])),
-                    records: DateInterval(
-                        start: Date(timeIntervalSince1970: values[3]),
-                        end: Date(timeIntervalSince1970: values[4])
-                    )
+            guard let data = UserDefaults.standard.data(forKey: pendingRebuildsKey) else {
+                return []
+            }
+            do {
+                return try JSONDecoder().decode([NightRebuild].self, from: data)
+            } catch {
+                // A queue that can't be read is dropped rather than blocking every later one.
+                nightLog.error(
+                    "Couldn't read queued Night rebuilds: \(error.localizedDescription, privacy: .public)"
                 )
+                return []
             }
         }
         set {
-            let values = newValue.map { rebuild in
-                [
-                    Double(rebuild.day.year), Double(rebuild.day.month),
-                    Double(rebuild.day.dayOfMonth), rebuild.records.start.timeIntervalSince1970,
-                    rebuild.records.end.timeIntervalSince1970,
-                ]
+            do {
+                let data = try JSONEncoder().encode(newValue)
+                UserDefaults.standard.set(data, forKey: pendingRebuildsKey)
+            } catch {
+                nightLog.error(
+                    "Couldn't keep queued Night rebuilds: \(error.localizedDescription, privacy: .public)"
+                )
             }
-            UserDefaults.standard.set(values, forKey: pendingRebuildsKey)
         }
     }
 
@@ -166,3 +168,4 @@ enum NightStore {
 /// How many History Records `NightStore` loads from the store at a time.
 private let readBatchSize = 5_000
 private let pendingRebuildsKey = "pendingNightRebuilds"
+private let nightLog = Logger(subsystem: "com.ellismchardy.Serenix", category: "nights")

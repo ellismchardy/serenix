@@ -35,7 +35,8 @@ decoder's `motionOffset` 33 is hr-tracker's `d[41:57]`, and `sleep.py` only uses
 normalised vectors, so the order doesn't matter as long as it's consistent. Tolerances follow
 the repo's `abs(x - expected) < tol` pattern.
 
-**Shell.** Nights are stored in SwiftData (`StoredNight`, keyed by its night window). After a
+**Shell.** (Superseded by task 7, which rebuilds date by date through the Night rebuilds seam;
+kept as first planned.) Nights are stored in SwiftData (`StoredNight`, keyed by its night window). After a
 completed sync the shell takes the night windows the sync's records fall in, **plus each one's
 neighbours**, fetches their records, calls the entry point, and replaces the stored Nights of
 those windows with what comes back. Including neighbours means two windows that give the same
@@ -110,8 +111,8 @@ Assumptions (consistent with the spec, stated for review):
    - Done when: the Night rebuilds tests pass; macOS CI builds the app; the PR lists the phone
      steps for the three by-hand criteria, including syncing twice in one morning.
 8. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
-   `swift build` green; CI green; every spec success criterion checked, the by-hand ones on the
-   phone.
+   `swift build` green; every test-proven spec criterion ticked. CI and the by-hand phone checks
+   are left to `/ship` and the PR (their spec criteria stay unticked until done).
 
 ## Verification
 - Windows: `swift test` (all Nights tests against the fixture literals), lint, build.

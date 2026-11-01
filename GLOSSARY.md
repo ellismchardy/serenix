@@ -96,6 +96,11 @@ The dated record of one night's sleep: a Sleep Period together with the Nightly 
 scores drawn from it, dated by the local calendar date of its Final Wake.
 _Avoid_: sleep, cycle
 
+**Night window**:
+The stretch from local noon on one Day to local noon on the next, in which Serenix looks for one
+Night. Its Night is dated one of those two Days.
+_Avoid_: sleep window, night range
+
 **Nap**:
 A stretch of sleep outside the Sleep Period. A Nap never makes a Night.
 

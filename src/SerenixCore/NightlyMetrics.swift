@@ -14,7 +14,7 @@ enum NightlyMetrics {
     private static let restingHRStep = 60
     /// ms: the shortest and longest RR interval kept for HRV and respiratory rate. metrics.py
     /// `RR_MIN`, `RR_MAX`.
-    static let keptRRIntervals = 600...1600
+    private static let keptRRIntervals = 600...1600
     /// ms: successive RR differences at least this big are dropped from HRV. metrics.py
     /// `RR_DIFF`.
     private static let largestRRDifference = 200

@@ -2,7 +2,7 @@ import Foundation
 import SerenixCore
 import Testing
 
-private let londonTime = TimeZone(identifier: "Europe/London")!
+private let london = TimeZone(identifier: "Europe/London")!
 
 /// A `now` well after every record time in the tests that use it, so neither the 30-day
 /// retention rule nor the future rule skips anything.
@@ -25,7 +25,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
 @Test func timesInOneNightWindowRebuildBothDatesThatWindowCanGive() {
     let times = [utcDate(2026, 11, 15, 1, 0), utcDate(2026, 11, 15, 7, 0)]
 
-    let found = nightRebuilds(after: times, now: afterNovember2026, in: londonTime)
+    let found = nightRebuilds(after: times, now: afterNovember2026, in: london)
 
     #expect(
         found == [
@@ -40,7 +40,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
 @Test func timesInNeighbouringNightWindowsRebuildEachDateOnce() {
     let times = [utcDate(2026, 11, 15, 1, 0), utcDate(2026, 11, 15, 14, 0)]
 
-    let found = nightRebuilds(after: times, now: afterNovember2026, in: londonTime)
+    let found = nightRebuilds(after: times, now: afterNovember2026, in: london)
 
     #expect(
         found == [
@@ -60,7 +60,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
         utcDate(2026, 11, 15, 1, 0),
     ]
 
-    let found = nightRebuilds(after: times, now: afterNovember2026, in: londonTime)
+    let found = nightRebuilds(after: times, now: afterNovember2026, in: london)
 
     #expect(
         found == [
@@ -73,7 +73,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
 
 /// A sync that stored no History Records rebuilds nothing.
 @Test func noTimesRebuildNothing() {
-    let found = nightRebuilds(after: [], now: afterNovember2026, in: londonTime)
+    let found = nightRebuilds(after: [], now: afterNovember2026, in: london)
 
     #expect(found == [])
 }
@@ -86,7 +86,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
 @Test func dateWhoseRecordsStartMoreThanThirtyDaysAgoIsSkipped() {
     let now = utcDate(2026, 11, 30, 12, 0)
 
-    let found = nightRebuilds(after: [utcDate(2026, 10, 31, 13, 0)], now: now, in: londonTime)
+    let found = nightRebuilds(after: [utcDate(2026, 10, 31, 13, 0)], now: now, in: london)
 
     #expect(
         found == [
@@ -107,7 +107,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
     let found = nightRebuilds(
         after: [Date(timeIntervalSince1970: 0)],
         now: afterNovember2026,
-        in: londonTime
+        in: london
     )
 
     #expect(found == [])
@@ -119,7 +119,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
 @Test func dateWhoseRecordsStartAfterNowIsSkipped() {
     let now = utcDate(2026, 11, 15, 11, 0)
 
-    let found = nightRebuilds(after: [utcDate(2026, 11, 16, 1, 0)], now: now, in: londonTime)
+    let found = nightRebuilds(after: [utcDate(2026, 11, 16, 1, 0)], now: now, in: london)
 
     #expect(found == [novemberRebuild(day: 15, from: 14, to: 16)])
 }
@@ -132,7 +132,7 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
 @Test func nightWindowsFollowLocalNoonAcrossTheClockChange() {
     let now = utcDate(2027, 4, 1, 12, 0)
 
-    let found = nightRebuilds(after: [utcDate(2027, 3, 28, 3, 0)], now: now, in: londonTime)
+    let found = nightRebuilds(after: [utcDate(2027, 3, 28, 3, 0)], now: now, in: london)
 
     #expect(
         found == [

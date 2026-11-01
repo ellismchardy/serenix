@@ -118,8 +118,8 @@ final class StrapConnection: NSObject, ObservableObject {
     private var nightsRebuild: Task<Void, Never>?
     /// The queued rebuild being worked out right now, if any.
     private var rebuildInProgress: NightRebuild?
-    /// When each History Record inserted since the last save was taken. Once saved, the dates
-    /// they touch are queued to be worked out again (`NightStore.pendingRebuilds`).
+    /// When each History Record inserted since the last save was taken. Just before the save,
+    /// the dates they touch are queued to be worked out again (`NightStore.pendingRebuilds`).
     private var unsavedRecordTimes: [Date] = []
     /// Fires every `syncTimerInterval` while a sync runs: redraws the screen and checks whether
     /// the Strap went silent.
@@ -267,8 +267,8 @@ final class StrapConnection: NSObject, ObservableObject {
         }
     }
 
-    /// Queues the dates History Records just saved at `recordTimes` touch, so they're worked
-    /// out again even if iOS ends Serenix before the sync does (spec 003, When).
+    /// Queues the dates that History Records about to be saved at `recordTimes` touch, so
+    /// they're worked out again even if iOS ends Serenix before the sync does (spec 003, When).
     private func queueNightRebuilds(after recordTimes: [Date]) {
         let added = nightRebuilds(after: recordTimes, now: Date(), in: .current)
         var pending = NightStore.pendingRebuilds
