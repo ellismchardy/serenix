@@ -30,8 +30,8 @@ public struct TodayView: Equatable, Sendable {
     public let readinessAdvice: String?
     /// The Night's Sleep Score, or "—".
     public let sleepScoreText: String
-    /// "Load so far" on today, "Load" on an earlier Day, or "Add your age" when Load is missing
-    /// for want of a Max HR (spec 005, Add your age).
+    /// "Load" on every Day, or "Add your age" when Load is missing for want of a Max HR (spec 005,
+    /// Add your age).
     public let loadLabel: String
     public let loadText: String
     /// Whether tapping the Load ring opens the profile menu: only while it asks for the age.
@@ -119,8 +119,7 @@ public struct TodayView: Equatable, Sendable {
 
         let dayLoad = dayLoads.first { $0.day == day }
         loadOpensProfileMenu = dayLoad?.missingReason == .noMaxHR
-        let usualLoadLabel = isToday ? "Load so far" : "Load"
-        loadLabel = loadOpensProfileMenu ? "Add your age" : usualLoadLabel
+        loadLabel = loadOpensProfileMenu ? "Add your age" : "Load"
         loadText = scoreText(dayLoad?.load)
         loadFill = ringFill(dayLoad?.load)
 

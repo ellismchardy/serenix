@@ -1,7 +1,7 @@
 # 002 — Today screen
 
 **Status:** built
-**Last updated:** 2026-11-01 (Readiness advice Load constants retuned by spec 005)
+**Last updated:** 2026-11-01 (spec 005: Readiness advice Load constants, "Load so far" dropped)
 
 ## Problem
 Once History Sync (spec 001) gets History Records onto the phone, the user still has nowhere
@@ -94,7 +94,7 @@ running.
   **Ready** (67–100), **Steady** (34–66) or **Take it easy** (0–33). When Readiness is
   Calibrating, the ring is empty and shows "n/4", the Nights so far.
 - **Sleep Score** on the left.
-- **Load** on the right, labelled "Load so far" on today and "Load" on earlier Days.
+- **Load** on the right, labelled "Load" on every Day (today's covers what has synced so far).
 
 The three rings line up level, with nothing under the Readiness ring that the others don't
 have.
@@ -253,7 +253,7 @@ other metrics are whole numbers.
   current time. It catches which Day and Night are shown, the week strip, the date picker's range,
   "No Night yet / recorded", the greeting, the avatar letter, bands, Calibrating counts,
   Baseline (median, earlier Nights only, at least 3, missing values skipped), every Zone
-  boundary, status words, gauge positions, difference formats, Load "so far", missing values,
+  boundary, status words, gauge positions, difference formats, the Load label, missing values,
   the Readiness advice, popup content and which sync pill shows. It misses layout, colours, the
   Look and Appearance, taps, animation, pill timing, closing the Readiness message, the name
   prompt, storage and the Strap facts in the menu, which are checked by hand on the phone
@@ -280,7 +280,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] Differences format as "+14%" for HRV, "−3 bpm" for Resting HR, and "+0.4" for respiratory
       rate and skin temperature.
 - [x] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.
-- [x] Load on today is labelled "Load so far"; on an earlier Day, "Load".
+- [x] Load is labelled "Load" on today and on an earlier Day alike.
 - [x] When either Baseline is Calibrating, vs your Baseline is the single Calibrating line with
       the right "N to go".
 - [x] Tiles carry no trend line; the Time Asleep tile has no Zone, status word or gauge.

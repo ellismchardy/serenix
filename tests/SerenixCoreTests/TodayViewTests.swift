@@ -141,7 +141,7 @@ private let nightsOct1ToNov1 =
     )
 }
 
-@Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoadSoFar() {
+@Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoad() {
     // Yesterday's Night has every value, so any of them leaking onto today would show.
     let yesterday = Night(
         day: oct31,
@@ -157,7 +157,7 @@ private let nightsOct1ToNov1 =
     let view = todayView(nights: [yesterday], showing: nov1)
 
     #expect(view.noNightMessage == "No Night yet")
-    #expect(view.loadLabel == "Load so far")
+    #expect(view.loadLabel == "Load")
     #expect(view.loadText == "5")
     #expect(view.pickerRange == oct31...nov1)
     #expect(view.sleepScoreText == "—")
@@ -1853,7 +1853,7 @@ func aLoadMissingForAnotherReasonKeepsTheUsualLabelAndNoTap(reason: LoadMissing)
     let today = todayView(nights: [Night(day: nov1)], dayLoads: missing, showing: nov1)
     let earlier = todayView(nights: [Night(day: oct31)], dayLoads: missing, showing: oct31)
 
-    #expect(today.loadLabel == "Load so far")
+    #expect(today.loadLabel == "Load")
     #expect(!today.loadOpensProfileMenu)
     #expect(earlier.loadLabel == "Load")
     #expect(!earlier.loadOpensProfileMenu)
@@ -1867,6 +1867,6 @@ func aLoadMissingForAnotherReasonKeepsTheUsualLabelAndNoTap(reason: LoadMissing)
     )
 
     #expect(view.loadText == "40")
-    #expect(view.loadLabel == "Load so far")
+    #expect(view.loadLabel == "Load")
     #expect(!view.loadOpensProfileMenu)
 }

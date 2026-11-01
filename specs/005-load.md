@@ -65,10 +65,11 @@ number. Rough values for a man with Max HR 190 and Resting HR 60: a Day at rest 
 
 **Missing vs 0.** Load is missing ("—") for a Day with no History Records, and when there's no Max
 HR (none entered, no birth year) or Max HR is at or below Resting HR. A Day with records but no
-second over the floor has Load 0. Today's Load is "so far": the records synced up to now.
+second over the floor has Load 0. Today's Load covers the records synced up to now, and is
+labelled "Load" like any other Day.
 
 **Add your age.** When Load is missing because there's no Max HR, the Load ring shows "—" and its
-label reads "Add your age" instead of "Load so far" / "Load". Tapping the ring then opens the
+label reads "Add your age" instead of "Load". Tapping the ring then opens the
 profile menu. Otherwise tapping the Load ring still does nothing (spec 002). A Day missing Load
 for any other reason keeps the normal label.
 
@@ -179,14 +180,14 @@ HR 60), and one History Record per second.
       13 years before the current year; the estimate for birth year 1986 in 2026 is 180.
 - [x] Today view: a Day whose Load is missing for no Max HR labels the ring "Add your age" and
       marks it as opening the profile menu; a Day missing Load for no records labels it "Load"
-      ("Load so far" on today) and marks no tap.
+      (on today too) and marks no tap.
 - [x] Readiness advice: a Load of 55 yesterday is mentioned as high, 54 isn't; Steady says "keep
       your Load under 50 today"; Take it easy says "keep your Load under 33 today".
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
 - [ ] On the phone (by hand): with birth year set, after a morning sync the Load ring shows
-      yesterday's Load on yesterday and "Load so far" on today; a Day with a workout reads clearly
-      higher than a Day without one.
+      yesterday's Load on yesterday and today's Load, labelled "Load", on today; a Day with a
+      workout reads clearly higher than a Day without one.
 - [ ] On the phone (by hand): with no birth year or Max HR, the ring reads "—" and "Add your age",
       and tapping it opens the profile menu; setting a birth year fills in Load for the last 30
       days.
