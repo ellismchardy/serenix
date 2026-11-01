@@ -63,36 +63,37 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     restingHR: [50, 50, 50]
 )
 
-// MARK: Which Day is shown
+// MARK: Which Day is shown and the top bar
 
-@Test func arrowsStepByDayFromTodayBackToTheEarliestNight() {
+@Test func todayIsTitledByItsDateWithoutTheTodayPillAndPicksFromTheEarliestNight() {
     // A distinct Sleep Score on each Night, so showing the wrong one would fail.
     let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
+    let view = todayView(nights: nights, showing: nov1)
 
-    let today = todayView(nights: nights, showing: nov1)
-    #expect(today.title == "Today")
-    #expect(today.subtitle == "Sun 1 Nov")
-    #expect(today.noNightMessage == nil)
-    #expect(today.sleepScoreText == "84")
-    #expect(today.earlierDay == oct31)
-    #expect(today.laterDay == nil)
+    #expect(view.title == "Sun 1 Nov")
+    #expect(!view.showsTodayPill)
+    #expect(view.noNightMessage == nil)
+    #expect(view.sleepScoreText == "84")
+    #expect(view.pickerRange == oct30...nov1)
+}
+
+@Test func anEarlierDayIsTitledByItsDateAndShowsTheTodayPill() {
+    let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
 
     let oneEarlier = todayView(nights: nights, showing: oct31)
     #expect(oneEarlier.title == "Sat 31 Oct")
-    #expect(oneEarlier.subtitle == "Night")
+    #expect(oneEarlier.showsTodayPill)
     #expect(oneEarlier.noNightMessage == "No Night recorded")
     #expect(oneEarlier.loadLabel == "Load")
     #expect(oneEarlier.loadText == "12")
-    #expect(oneEarlier.earlierDay == oct30)
-    #expect(oneEarlier.laterDay == nov1)
+    #expect(oneEarlier.pickerRange == oct30...nov1)
 
     let twoEarlier = todayView(nights: nights, showing: oct30)
     #expect(twoEarlier.title == "Fri 30 Oct")
+    #expect(twoEarlier.showsTodayPill)
     #expect(twoEarlier.noNightMessage == nil)
     #expect(twoEarlier.sleepScoreText == "71")
     #expect(twoEarlier.loadText == "9")
-    #expect(twoEarlier.earlierDay == nil)
-    #expect(twoEarlier.laterDay == oct31)
 }
 
 @Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoadSoFar() {
@@ -110,12 +111,12 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     )
     let view = todayView(nights: [yesterday], showing: nov1)
 
-    #expect(view.title == "Today")
+    #expect(view.title == "Sun 1 Nov")
+    #expect(!view.showsTodayPill)
     #expect(view.noNightMessage == "No Night yet")
     #expect(view.loadLabel == "Load so far")
     #expect(view.loadText == "5")
-    #expect(view.earlierDay == oct31)
-    #expect(view.laterDay == nil)
+    #expect(view.pickerRange == oct31...nov1)
     #expect(view.sleepScoreText == "—")
     #expect(view.readinessText == "—")
     #expect(view.readinessBand == nil)
@@ -124,12 +125,12 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     #expect(view.vsBaseline == nil)
 }
 
-@Test func withNoNightsBothArrowsAreDisabledOnToday() {
+@Test func withNoNightsTheDatePickerRunsFromTodayToToday() {
     let view = todayView(nights: [], showing: nov1)
 
     #expect(view.noNightMessage == "No Night yet")
-    #expect(view.earlierDay == nil)
-    #expect(view.laterDay == nil)
+    #expect(view.pickerRange == nov1...nov1)
+    #expect(!view.showsTodayPill)
 }
 
 @Test func aMissingLoadShowsADash() {
@@ -160,24 +161,27 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         timeZone: newYork,
         sync: .connecting
     )
-    #expect(newYorkToday.title == "Today")
-    #expect(newYorkToday.subtitle == "Sat 31 Oct")
+    #expect(newYorkToday.title == "Sat 31 Oct")
+    #expect(!newYorkToday.showsTodayPill)
+    #expect(newYorkToday.pickerRange == oct31...oct31)
 
     // 2026-10-24T23:30Z is 00:30 BST on 25 Oct in London.
+    let oct25 = Day(year: 2026, month: 10, day: 25)
     let justAfterMidnightOct25InLondon = Date(timeIntervalSince1970: 1_792_884_600)
     let londonToday = TodayView(
         nights: [],
         dayLoads: [],
-        showing: Day(year: 2026, month: 10, day: 25),
+        showing: oct25,
         now: justAfterMidnightOct25InLondon,
         timeZone: london,
         sync: .connecting
     )
-    #expect(londonToday.title == "Today")
-    #expect(londonToday.subtitle == "Sun 25 Oct")
+    #expect(londonToday.title == "Sun 25 Oct")
+    #expect(!londonToday.showsTodayPill)
+    #expect(londonToday.pickerRange == oct25...oct25)
 }
 
-@Test func theEarlierArrowStepsBackAcrossTheNewYear() {
+@Test func theDatePickerRunsBackAcrossTheNewYear() {
     let dec31 = Day(year: 2026, month: 12, day: 31)
     let jan1 = Day(year: 2027, month: 1, day: 1)
     // 2027-01-01T12:00Z, midday in London (GMT).
@@ -191,10 +195,9 @@ private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
         timeZone: london,
         sync: .connecting
     )
-    #expect(view.title == "Today")
-    #expect(view.subtitle == "Fri 1 Jan")
-    #expect(view.earlierDay == dec31)
-    #expect(view.laterDay == nil)
+    #expect(view.title == "Fri 1 Jan")
+    #expect(!view.showsTodayPill)
+    #expect(view.pickerRange == dec31...jan1)
 }
 
 // MARK: Sync pill
@@ -1304,4 +1307,23 @@ private func isClose(_ value: Double?, to expected: Double) -> Bool {
     let view = todayView(nights: [], showing: Day(year: 2026, month: 13, day: 1))
 
     #expect(view.title == "Fri 1 Jan")
+}
+
+@Test func theDatePickerGetsMiddayOfItsEndsAndOfTheDayShown() {
+    let view = todayView(nights: [Night(day: oct30), Night(day: nov1)], showing: oct31)
+
+    // Midday in London, which is GMT after 25 Oct: 30 Oct and 1 Nov 12:00Z, and 31 Oct 12:00Z.
+    #expect(
+        view.pickerDates
+            == Date(
+                timeIntervalSince1970: 1_793_361_600
+            )...Date(timeIntervalSince1970: 1_793_534_400)
+    )
+    #expect(view.shownDate == Date(timeIntervalSince1970: 1_793_448_000))
+}
+
+@Test func aNightDatedAfterTodayDoesNotStretchTheDatePickerPastToday() {
+    let view = todayView(nights: [Night(day: Day(year: 2026, month: 11, day: 2))], showing: nov1)
+
+    #expect(view.pickerRange == nov1...nov1)
 }

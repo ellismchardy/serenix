@@ -29,16 +29,17 @@ public struct Day: Hashable, Comparable, Sendable {
         (lhs.year, lhs.month, lhs.dayOfMonth) < (rhs.year, rhs.month, rhs.dayOfMonth)
     }
 
-    /// The Day `count` Days later (earlier when negative).
-    func adding(days count: Int) -> Day {
-        let calendar = Self.utcCalendar
-        let midnight = calendar.date(
-            from: DateComponents(year: year, month: month, day: dayOfMonth)
-        )!
-        return Day(containing: calendar.date(byAdding: .day, value: count, to: midnight)!, in: .gmt)
+    /// Midday on this Day in `timeZone`, on the Gregorian calendar whatever the phone's own
+    /// calendar is, so no daylight-saving change can move it onto a neighbouring Day.
+    func midday(in timeZone: TimeZone) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let components = DateComponents(year: year, month: month, day: dayOfMonth, hour: 12)
+        // The init keeps a Day a real date, so the calendar always has one for it.
+        return calendar.date(from: components)!
     }
 
-    /// How the Day reads in the Today screen's header, e.g. "Sun 1 Nov".
+    /// How the Day reads in the Today screen's title, e.g. "Sun 1 Nov".
     var text: String {
         let calendar = Self.utcCalendar
         let midnight = calendar.date(

@@ -2,14 +2,17 @@ import Foundation
 
 /// Everything the Today screen shows for one Day (spec 002). It decides; the shell draws.
 public struct TodayView: Equatable, Sendable {
-    /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
+    /// The Day's date, e.g. "Sun 1 Nov".
     public let title: String
-    /// The date on today, else "Night".
-    public let subtitle: String
-    /// Where ‹ goes; nil when it's disabled, on the Day of the earliest Night.
-    public let earlierDay: Day?
-    /// Where › goes; nil when it's disabled, on today.
-    public let laterDay: Day?
+    /// The Days the date picker offers: from the Day of the earliest Night to today, or just
+    /// today with no Nights.
+    public let pickerRange: ClosedRange<Day>
+    /// Midday on the first and last Days of `pickerRange`, and on the Day shown, for the shell's
+    /// date picker.
+    public let pickerDates: ClosedRange<Date>
+    public let shownDate: Date
+    /// Whether the Today pill shows: on any Day other than today.
+    public let showsTodayPill: Bool
     /// "No Night yet" on today or "No Night recorded" on an earlier Day; nil when the Day has a
     /// Night. Another Day's Night is never shown in its place.
     public let noNightMessage: String?
@@ -51,12 +54,15 @@ public struct TodayView: Equatable, Sendable {
     ) {
         let today = Day(containing: now, in: timeZone)
         let isToday = day == today
-        title = isToday ? "Today" : day.text
-        subtitle = isToday ? day.text : "Night"
-
+        title = day.text
         let earliestNight = nights.map(\.day).min()
-        earlierDay = earliestNight.flatMap { $0 < day ? day.adding(days: -1) : nil }
-        laterDay = day < today ? day.adding(days: 1) : nil
+        pickerRange = min(earliestNight ?? today, today)...today
+        pickerDates =
+            pickerRange.lowerBound.midday(
+                in: timeZone
+            )...pickerRange.upperBound.midday(in: timeZone)
+        shownDate = day.midday(in: timeZone)
+        showsTodayPill = !isToday
 
         let night = nights.first { $0.day == day }
         noNightMessage = night != nil ? nil : isToday ? "No Night yet" : "No Night recorded"

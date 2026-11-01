@@ -28,7 +28,7 @@ its change — an approved clarification of desired behaviour, not a plan decisi
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice:** Top bar — the title is the Day's date ("Sun 1 Nov"), the date picker's range
+1. [x] **Slice:** Top bar — the title is the Day's date ("Sun 1 Nov"), the date picker's range
    (earliest Night's Day … today; today … today with no Nights) and whether the Today pill
    shows; `earlierDay`/`laterDay`/`subtitle` go. Shell: large date title with ▾ opening a
    graphical `DatePicker` limited to that range, Today pill, avatar placeholder (person icon)

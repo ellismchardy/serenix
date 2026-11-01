@@ -4,8 +4,9 @@ import SwiftUI
 /// The Today screen (spec 002): draws the Today view for the Day shown and sends taps back.
 struct TodayScreen: View {
     @ObservedObject var connection: StrapConnection
-    /// The Day stepped to with the arrows; nil is today, whatever today is when the screen draws.
-    @State private var steppedToDay: Day?
+    /// The Day picked in the date picker; nil is today, whatever today is when the screen draws.
+    @State private var pickedDay: Day?
+    @State private var showsDatePicker = false
     @State private var showsSyncFailure = false
     @State private var openPopup: TodayPopup?
     @State private var showsProfileMenu = false
@@ -21,10 +22,11 @@ struct TodayScreen: View {
             showsSampleNights
             ? SampleNights.make(now: now, calendar: .current)
             : (nights: [Night](), dayLoads: [DayLoad]())
+        let shownDay = pickedDay ?? Day(containing: now, in: .current)
         let today = TodayView(
             nights: samples.nights,
             dayLoads: samples.dayLoads,
-            showing: steppedToDay ?? Day(containing: now, in: .current),
+            showing: shownDay,
             now: now,
             timeZone: .current,
             sync: connection.syncStatus
@@ -32,8 +34,8 @@ struct TodayScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    topRow(today)
-                    header(today)
+                    topBar(today)
+                    syncRow(today)
                     if let message = today.noNightMessage {
                         Text(message)
                             .font(.title3)
@@ -54,6 +56,14 @@ struct TodayScreen: View {
             .sheet(item: $openPopup) { popup in
                 TodayPopupView(popup: popup, today: today)
             }
+            .sheet(isPresented: $showsDatePicker) {
+                DayPicker(range: today.pickerDates, shown: today.shownDate) { picked in
+                    let day = Day(containing: picked, in: .current)
+                    // Picking today means today, so it moves on at midnight like opening does.
+                    pickedDay = day == Day(containing: Date(), in: .current) ? nil : day
+                    showsDatePicker = false
+                }
+            }
             .sheet(isPresented: $showsProfileMenu) {
                 ProfileMenu(connection: connection, showsSampleNights: $showsSampleNights)
             }
@@ -66,20 +76,50 @@ struct TodayScreen: View {
         }
     }
 
-    private func topRow(_ today: TodayView) -> some View {
+    /// The Day's date as a large title with ▾ opening the date picker, the Today pill on other
+    /// Days, and the profile avatar (spec 002, Top bar).
+    private func topBar(_ today: TodayView) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                showsDatePicker = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text(today.title)
+                        .font(.largeTitle.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Image(systemName: "chevron.down")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Pick a Day")
+            if today.showsTodayPill {
+                Button("Today") { showToday() }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+            }
+            Spacer()
+            Button {
+                showsProfileMenu = true
+            } label: {
+                Label("Profile", systemImage: "person.crop.circle")
+                    .labelStyle(.iconOnly)
+                    .font(.largeTitle)
+            }
+        }
+    }
+
+    /// The sync pill and 001's progress and Cancel; task 3 turns this into the pop-up pill.
+    private func syncRow(_ today: TodayView) -> some View {
         VStack(spacing: 6) {
             HStack {
                 Button(today.syncPill.text) { tapSyncPill(today.syncPill) }
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)
                 Spacer()
-                Button {
-                    showsProfileMenu = true
-                } label: {
-                    Label("Profile", systemImage: "person.crop.circle")
-                        .labelStyle(.iconOnly)
-                        .font(.title2)
-                }
             }
             if today.syncPill.showsProgress {
                 SyncProgressView(
@@ -207,30 +247,7 @@ struct TodayScreen: View {
     /// Back to today, closing any popup, which described the Day being left.
     private func showToday() {
         openPopup = nil
-        steppedToDay = nil
-    }
-
-    private func header(_ today: TodayView) -> some View {
-        HStack {
-            Button {
-                if let earlier = today.earlierDay { steppedToDay = earlier }
-            } label: {
-                Label("Earlier Day", systemImage: "chevron.left").labelStyle(.iconOnly)
-            }
-            .disabled(today.earlierDay == nil)
-            Spacer()
-            VStack(spacing: 2) {
-                Text(today.title).font(.title2.bold())
-                Text(today.subtitle).font(.subheadline).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button {
-                if let later = today.laterDay { steppedToDay = later }
-            } label: {
-                Label("Later Day", systemImage: "chevron.right").labelStyle(.iconOnly)
-            }
-            .disabled(today.laterDay == nil)
-        }
+        pickedDay = nil
     }
 
     /// A failed sync shows its reason and Retry; otherwise a tap starts a sync unless one is
@@ -266,5 +283,31 @@ private struct SyncProgressView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+/// The date picker the title's ▾ opens: a graphical calendar limited to the Today view's range,
+/// from the Day of the earliest Night to today. Picking a date shows it.
+private struct DayPicker: View {
+    let range: ClosedRange<Date>
+    let pick: (Date) -> Void
+    @State private var selection: Date
+
+    init(range: ClosedRange<Date>, shown: Date, pick: @escaping (Date) -> Void) {
+        self.range = range
+        self.pick = pick
+        _selection = State(initialValue: shown)
+    }
+
+    var body: some View {
+        NavigationStack {
+            DatePicker("Day", selection: $selection, in: range, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .padding()
+                .navigationTitle("Pick a Day")
+                .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium, .large])
+        .onChange(of: selection) { _, picked in pick(picked) }
     }
 }
