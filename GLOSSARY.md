@@ -107,7 +107,8 @@ _Avoid_: cycle
 
 **Baseline**:
 The user's typical Resting HR, HRV, respiratory rate and skin temperature, and the Spread of
-each, taken over their most recent Nights. SpO2 has no Baseline.
+each, taken over their most recent Nights, and their typical Load, taken over their most recent
+Days. SpO2 has no Baseline.
 _Avoid_: norm, average, usual (when the personal reference is meant)
 
 **Spread**:
@@ -144,8 +145,8 @@ _Avoid_: sleep performance, sleep quality
 The state of Readiness while too few Nights exist to form a Baseline.
 
 **Readiness**:
-Serenix's rating of how prepared the user's body is for exertion, derived from Nightly Metrics
-relative to their own Baseline.
+Serenix's rating of how prepared the user's body is for exertion, from their HRV and Resting HR
+against Baseline, their Time Asleep, and the previous Day's Load.
 _Avoid_: recovery (WHOOP's term)
 
 **Load**:
