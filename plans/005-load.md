@@ -95,7 +95,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Blocked by: 5, 6, 8
    - Seam: none in `SerenixCore` (shell, checked by hand per ADR 0002) · Files: `src/SerenixApp/NightStore.swift` or `DayLoadStore.swift` (new), `src/SerenixApp/HistoryRecordStore.swift`, `src/SerenixApp/StrapConnection.swift`, `src/SerenixApp/TodayScreen.swift`
    - Done when: the macOS CI job builds; the first manual criterion (Load ring after a morning sync) is listed with its steps for the PR.
-10. [ ] **Slice (shell):** Profile rows and the ring tap.
+10. [x] **Slice (shell):** Profile rows and the ring tap.
     - `ProfileStore` keeps birth year, sex and Max HR in UserDefaults, under the keys task 9 added
       for `ProfileStore.storedProfile` (`profileBirthYear`, `profileSex` as `Sex`'s raw value,
       `profileMaxHR`, both numbers as Int); reuse those constants.

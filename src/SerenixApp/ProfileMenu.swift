@@ -2,9 +2,10 @@ import SerenixCore
 import SwiftUI
 
 /// The profile menu (spec 002), opened from the Today screen's avatar: the Profile's avatar and
-/// name, which can be edited; the Strap's connection and model, battery and last sync, with Sync
-/// now; the Appearance; Debug; and a footer with the version, licence and disclaimer. Rounded,
-/// grouped rows on the Look's background, closed with an ✕.
+/// name, which can be edited, with its birth year, sex and Max HR (spec 005); the Strap's
+/// connection and model, battery and last sync, with Sync now; the Appearance; Debug; and a footer
+/// with the version, licence and disclaimer. Rounded, grouped rows on the Look's background,
+/// closed with an ✕.
 struct ProfileMenu: View {
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
@@ -39,6 +40,32 @@ struct ProfileMenu: View {
                     .accessibilityHint("Edit your name")
                 }
                 .listRowBackground(Color.clear)
+                Section {
+                    Picker("Birth year", selection: $profile.birthYear) {
+                        Text("Not set").tag(Int?.none)
+                        ForEach(birthYearOptions, id: \.self) { year in
+                            Text(String(year)).tag(Int?.some(year))
+                        }
+                    }
+                    Picker(selection: $profile.sex) {
+                        ForEach(Sex.allCases, id: \.self) { Text($0.label).tag($0) }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Sex")
+                            Text("Used only for heart-rate calculations")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Picker("Max HR", selection: $profile.maxHR) {
+                        Text(maxHRBlankText).tag(Int?.none)
+                        ForEach(Profile.allowedMaxHR, id: \.self) { bpm in
+                            Text("\(bpm) bpm").tag(Int?.some(bpm))
+                        }
+                    }
+                }
+                .pickerStyle(.navigationLink)
+                .listRowBackground(Theme.card)
                 Section("Strap") {
                     LabeledContent {
                         Text(connection.strapModel ?? "—")
@@ -125,6 +152,26 @@ struct ProfileMenu: View {
         .presentationDragIndicator(.visible)
     }
 
+    private var currentYear: Int {
+        Calendar(identifier: .gregorian).component(.year, from: Date())
+    }
+
+    /// The birth years the picker offers this year, newest first: 100 to 13 years ago (spec 005,
+    /// Profile), plus a stored one that has since fallen outside, so it still shows.
+    private var birthYearOptions: [Int] {
+        var years = Array(Profile.allowedBirthYears(in: currentYear).reversed())
+        if let stored = profile.birthYear, !years.contains(stored) { years.append(stored) }
+        return years
+    }
+
+    /// A blank Max HR: the estimate from age for this year, e.g. "Estimated 180 from your age",
+    /// or "Not set" with no birth year.
+    private var maxHRBlankText: String {
+        let estimate = Profile(name: nil, birthYear: profile.birthYear)
+            .estimatedMaxHR(in: currentYear)
+        return estimate.map { "Estimated \(Int($0.rounded())) from your age" } ?? "Not set"
+    }
+
     /// "Connected" once a Strap is paired with Serenix, else "Not found" (spec 002). Each sync
     /// connects to it, so this doesn't track the Bluetooth link between syncs.
     private var connectionText: String {
@@ -176,5 +223,16 @@ private struct SyncProgressView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityValue("\(Int((progress * 100).rounded())) percent synced")
+    }
+}
+
+extension Sex {
+    /// How the profile menu shows it (spec 005, Profile).
+    fileprivate var label: String {
+        switch self {
+        case .female: "Female"
+        case .male: "Male"
+        case .preferNotToSay: "Prefer not to say"
+        }
     }
 }

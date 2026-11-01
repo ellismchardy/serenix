@@ -190,6 +190,13 @@ final class StrapConnection: NSObject, ObservableObject {
         }
     }
 
+    /// Works out Load again for every Day whose History Records may still be on the phone, after
+    /// the birth year, sex or Max HR changed (spec 005, Profile changes). Older Days keep theirs.
+    func redoLoadAfterProfileChange() {
+        queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current))
+        rebuildNights()
+    }
+
     /// Stops looking for, connecting to or syncing with the Strap. CoreBluetooth never gives up
     /// on a scan or a connection by itself.
     func cancel() {

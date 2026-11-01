@@ -219,18 +219,35 @@ struct TodayScreen: View {
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
-            ScoreRing(
-                text: today.loadText,
-                fill: today.loadFill,
-                label: today.loadLabel,
-                diameter: ringDiameter
-            )
+            // The Load ring opens the profile menu only while it asks for the age (spec 005, Add
+            // your age); otherwise it isn't a button and does nothing (spec 002).
+            Group {
+                if today.loadOpensProfileMenu {
+                    Button {
+                        showsProfileMenu = true
+                    } label: {
+                        loadRing(today).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens your profile")
+                } else {
+                    loadRing(today)
+                }
+            }
             .frame(maxWidth: .infinity)
-            // Tapping the Load ring does nothing in spec 002.
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .themeCard()
+    }
+
+    private func loadRing(_ today: TodayView) -> some View {
+        ScoreRing(
+            text: today.loadText,
+            fill: today.loadFill,
+            label: today.loadLabel,
+            diameter: ringDiameter
+        )
     }
 
     /// The band word for the Night shown, in its colour, with the Today view's advice under it,
