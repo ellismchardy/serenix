@@ -72,7 +72,7 @@ still show that Day's Load. Serenix never shows another Day's Night in its place
 **Sync pill.** History Sync (spec 001) shows as a pill that slides down over the top of the
 screen only when there's something to say:
 - **Syncing:** "Syncing" with a spinner and a purple outline, while connecting or syncing, and
-  nothing more: 001's progress bar and time left are in the profile menu. It stays up until the
+  nothing more: 001's progress and time left are in the profile menu. It stays up until the
   sync ends. Tapping it offers Cancel (001's Cancel).
 - **Sync successful:** green, with a ✓, when a sync finishes. It slides away after 3 seconds.
 - **Sync paused:** amber, with a ⚠, when the Strap couldn't be reached: not found, Bluetooth
@@ -216,9 +216,9 @@ rounded, grouped rows:
 - **Strap:** a "Connected" row with the Strap's model on the right ("Not found" before a Strap
   is paired), battery level, and when the last sync finished ("Sun 1 Nov 08:10", 24-hour).
   "Connected" means a Strap is paired with Serenix; each sync connects to it. Battery and model
-  come from 001's handshake. While a sync runs, 001's progress bar and time left show here, once
-  there's progress. Then **Sync now**, labelled **Retry sync** after a failed or paused sync; it
-  does the same as 001's Sync now.
+  come from 001's handshake. Then **Sync now**, labelled **Retry sync** after a failed or paused
+  sync; it does the same as 001's Sync now. While a sync runs and has progress, the same row
+  shows 001's time left and, at its right-hand end, the progress as a small filling circle.
 - **Appearance:** System, Light or Dark (see Look).
 - **Debug:** opens 001's debug screen.
 - **Footer:** app version, "MIT licensed", "Not affiliated with WHOOP, Inc."
@@ -370,8 +370,8 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - [ ] Each metric tile shows its icon, value, ✓ status word and a gauge in the Zone colour, with
       no trend line.
 - [ ] The sync pill slides down while syncing, showing just "Syncing" and a spinner, and tapping
-      it offers Cancel; opening the profile menu meanwhile shows 001's progress bar and time
-      left in the Strap section; "Sync successful" shows green with a ✓ and slides away after 3 seconds;
+      it offers Cancel; opening the profile menu meanwhile shows the time left and a filling
+      progress circle at the right of the Sync now row; "Sync successful" shows green with a ✓ and slides away after 3 seconds;
       with the Strap out of range, "Sync paused" shows amber with a ⚠; tapping a paused or
       failed pill shows the reason and Retry restarts the sync; with nothing to say, no pill
       shows. Pulling down on the Today screen starts a sync.

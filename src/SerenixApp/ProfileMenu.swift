@@ -56,20 +56,23 @@ struct ProfileMenu: View {
                     } label: {
                         Label("Last sync", systemImage: "clock")
                     }
-                    // 001's progress bar and time left, once the running sync reports progress.
-                    if showsSyncProgress, let progress = connection.syncProgress {
-                        SyncProgressView(progress: progress, timeLeft: connection.syncTimeLeft)
+                    HStack(spacing: 10) {
+                        // 001's Sync now; after a failed or paused sync it's a retry.
+                        Button {
+                            connection.syncNow()
+                        } label: {
+                            Label(
+                                syncOffersRetry ? "Retry sync" : "Sync now",
+                                systemImage: "arrow.triangle.2.circlepath"
+                            )
+                        }
+                        .disabled(connection.phase.isBusy)
+                        Spacer(minLength: 0)
+                        // 001's time left and progress, once the running sync reports progress.
+                        if showsSyncProgress, let progress = connection.syncProgress {
+                            SyncProgressView(progress: progress, timeLeft: connection.syncTimeLeft)
+                        }
                     }
-                    // 001's Sync now; after a failed or paused sync it's a retry.
-                    Button {
-                        connection.syncNow()
-                    } label: {
-                        Label(
-                            syncOffersRetry ? "Retry sync" : "Sync now",
-                            systemImage: "arrow.triangle.2.circlepath"
-                        )
-                    }
-                    .disabled(connection.phase.isBusy)
                 }
                 .listRowBackground(Theme.card)
                 Section("Appearance") {
@@ -149,19 +152,30 @@ struct ProfileMenu: View {
     }
 }
 
-/// A running sync's progress bar and time left (spec 001, Sync progress).
+/// A running sync's time left, then its progress as a small circle filling clockwise (spec 001,
+/// Sync progress; spec 002, Profile menu).
 private struct SyncProgressView: View {
     let progress: Double
     let timeLeft: TimeInterval?
 
     var body: some View {
-        VStack(spacing: 4) {
-            ProgressView(value: progress)
+        HStack(spacing: 8) {
             if let timeLeft {
                 Text(HistorySync.timeLeftText(timeLeft))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
+            ZStack {
+                Circle().stroke(Theme.accentSoft, lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .frame(width: 22, height: 22)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue("\(Int((progress * 100).rounded())) percent synced")
     }
 }
