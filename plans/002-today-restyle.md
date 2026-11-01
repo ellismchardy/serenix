@@ -34,7 +34,7 @@ reference.
      tests), `src/SerenixApp/TodayScreen.swift`, `WeekStripView.swift` (new)
    - Done when: both week-strip criteria pass (1 Nov strip, picker range, 31 Oct; ‹ › 1 Nov ↔
      25 Oct with the October strip).
-2. [ ] **Slice:** Greeting and top bar — the greeting becomes "Good morning!" / "Good
+2. [x] **Slice:** Greeting and top bar — the greeting becomes "Good morning!" / "Good
    afternoon!" / "Good evening!" on every Day, with the Profile name as a separate output.
    Shell top bar: avatar (opens the menu), greeting over the name in bold, a calendar button
    (opens `DayPicker`) and a bell (shows "No notifications yet.").

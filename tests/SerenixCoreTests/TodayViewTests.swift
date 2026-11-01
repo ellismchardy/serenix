@@ -1419,15 +1419,15 @@ private func onNov1(_ hour: Int, _ minute: Int) -> Date {
 }
 
 @Test(arguments: [
-    (5, 0, "Good morning, Ellis"),
-    (8, 12, "Good morning, Ellis"),
-    (11, 59, "Good morning, Ellis"),
-    (12, 0, "Good afternoon, Ellis"),
-    (17, 59, "Good afternoon, Ellis"),
-    (18, 0, "Good evening, Ellis"),
-    (4, 59, "Good evening, Ellis"),
+    (5, 0, "Good morning!"),
+    (8, 12, "Good morning!"),
+    (11, 59, "Good morning!"),
+    (12, 0, "Good afternoon!"),
+    (17, 59, "Good afternoon!"),
+    (18, 0, "Good evening!"),
+    (4, 59, "Good evening!"),
 ])
-func theGreetingOnTodayFitsTheLocalTimeOfDayAndNamesTheProfile(
+func theGreetingFitsTheLocalTimeOfDayWithTheProfileNameUnderIt(
     hour: Int,
     minute: Int,
     greeting: String
@@ -1440,19 +1440,22 @@ func theGreetingOnTodayFitsTheLocalTimeOfDayAndNamesTheProfile(
     )
 
     #expect(view.greeting == greeting)
+    #expect(view.greetingName == "Ellis")
+}
+
+@Test func anEarlierDayHasTheSameGreetingAndName() {
+    let view = todayView(nights: [], showing: oct31, at: onNov1(8, 12), profileName: "Ellis")
+
+    #expect(view.greeting == "Good morning!")
+    #expect(view.greetingName == "Ellis")
 }
 
 @Test(arguments: [nil, "   "] as [String?])
-func withoutAProfileNameTheGreetingHasNoName(profileName: String?) {
-    let view = todayView(nights: [], showing: nov1, profileName: profileName)
+func withoutAProfileNameTheGreetingStandsAlone(profileName: String?) {
+    let view = todayView(nights: [], showing: nov1, at: onNov1(8, 12), profileName: profileName)
 
-    #expect(view.greeting == "Good morning")
-}
-
-@Test func anEarlierDayHasNoGreeting() {
-    let view = todayView(nights: [], showing: oct31, profileName: "Ellis")
-
-    #expect(view.greeting == nil)
+    #expect(view.greeting == "Good morning!")
+    #expect(view.greetingName == nil)
 }
 
 @Test func theAvatarLetterIsTheProfileNamesFirstLetterUpperCased() {

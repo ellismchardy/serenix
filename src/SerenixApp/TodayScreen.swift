@@ -8,6 +8,8 @@ struct TodayScreen: View {
     /// The Day picked in the date picker; nil is today, whatever today is when the screen draws.
     @State private var pickedDay: Day?
     @State private var showsDatePicker = false
+    /// The bell is a placeholder until a notifications spec (spec 002, Non-goals).
+    @State private var showsNotifications = false
     /// The pill the user swiped away, or "Sync successful" once its 3 seconds are up; it shows
     /// again as soon as the Today view gives a different pill.
     @State private var dismissedPill: SyncPill?
@@ -42,12 +44,6 @@ struct TodayScreen: View {
             ScrollView {
                 VStack(spacing: 24) {
                     topBar(today)
-                    if let greeting = today.greeting {
-                        Text(greeting)
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
                     WeekStripView(strip: today.weekStrip) { show($0) }
                     if let message = today.noNightMessage {
                         Text(message)
@@ -92,6 +88,9 @@ struct TodayScreen: View {
             .sheet(item: $openPopup) { popup in
                 TodayPopupView(popup: popup, today: today)
             }
+            .alert("No notifications yet.", isPresented: $showsNotifications) {
+                Button("OK", role: .cancel) {}
+            }
             .sheet(isPresented: $showsDatePicker) {
                 DayPicker(range: today.pickerDates, shown: today.shownDate) { picked in
                     show(Day(containing: picked, in: .current))
@@ -117,24 +116,43 @@ struct TodayScreen: View {
         }
     }
 
-    /// The calendar button opening the date picker, and the profile avatar (spec 002, Top bar).
+    /// The avatar opening the profile menu, the greeting over the Profile name, and the calendar
+    /// and bell buttons (spec 002, Top bar).
     private func topBar(_ today: TodayView) -> some View {
         HStack(spacing: 12) {
-            Spacer()
-            Button {
-                showsDatePicker = true
-            } label: {
-                Image(systemName: "calendar")
-                    .font(.title3)
-            }
-            .accessibilityLabel("Pick a Day")
             Button {
                 showsProfileMenu = true
             } label: {
-                Avatar(letter: today.avatarLetter, diameter: 40)
+                Avatar(letter: today.avatarLetter, diameter: 44)
             }
             .accessibilityLabel("Profile")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(today.greeting)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                if let name = today.greetingName {
+                    Text(name).font(.headline.bold())
+                }
+            }
+            .lineLimit(1)
+            Spacer()
+            roundButton("calendar", label: "Pick a Day") { showsDatePicker = true }
+            roundButton("bell", label: "Notifications") { showsNotifications = true }
         }
+    }
+
+    /// A round icon button in the top bar.
+    private func roundButton(_ symbol: String, label: String, action: @escaping () -> Void)
+        -> some View
+    {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.body.weight(.medium))
+                .frame(width: 40, height: 40)
+                .background(.background, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     /// The Today view's sync pill, unless it was swiped away or has timed out.

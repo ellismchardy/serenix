@@ -18,8 +18,8 @@ struct Profile: Equatable, Sendable {
     /// The profile menu header's name.
     var menuName: String { name ?? "Add your name" }
 
-    /// "Good morning", "Good afternoon" or "Good evening" by the local time of day, followed by
-    /// ", <name>" when there is one (spec 002, Greeting).
+    /// "Good morning!", "Good afternoon!" or "Good evening!" by the local time of day; the name
+    /// shows under it, not in it (spec 002, Greeting).
     func greeting(at time: Date, in timeZone: TimeZone) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -30,7 +30,7 @@ struct Profile: Equatable, Sendable {
             case Self.afternoonFrom..<Self.eveningFrom: "afternoon"
             default: "evening"
             }
-        return "Good \(partOfDay)" + (name.map { ", \($0)" } ?? "")
+        return "Good \(partOfDay)!"
     }
 
     /// Local hours the parts of the day start at (spec 002, Greeting); evening runs to 04:59.

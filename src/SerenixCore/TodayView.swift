@@ -11,8 +11,10 @@ public struct TodayView: Equatable, Sendable {
     /// date picker.
     public let pickerDates: ClosedRange<Date>
     public let shownDate: Date
-    /// e.g. "Good morning, Ellis", on today only.
-    public let greeting: String?
+    /// e.g. "Good morning!", by the time now, on every Day shown.
+    public let greeting: String
+    /// The Profile name under the greeting; nil with no name.
+    public let greetingName: String?
     /// The first letter of the Profile name, upper-cased; nil with no name.
     public let avatarLetter: String?
     /// The profile menu header's name: the Profile name, or "Add your name".
@@ -76,7 +78,8 @@ public struct TodayView: Equatable, Sendable {
             nights: Set(nights.map(\.day))
         )
         let profile = Profile(name: profileName)
-        greeting = isToday ? profile.greeting(at: now, in: timeZone) : nil
+        greeting = profile.greeting(at: now, in: timeZone)
+        greetingName = profile.name
         avatarLetter = profile.avatarLetter
         menuName = profile.menuName
 
