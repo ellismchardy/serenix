@@ -47,13 +47,10 @@ struct ProfileMenu: View {
         }
     }
 
-    /// "Connected" once the Strap has been found and connected, including after the sync that
-    /// followed, else "Not found" (spec 002).
+    /// "Connected" once a Strap is paired with Serenix, else "Not found" (spec 002). Each sync
+    /// connects to it, so this doesn't track the Bluetooth link between syncs.
     private var connectionText: String {
-        switch connection.phase {
-        case .connected, .syncing, .synced: "Connected"
-        default: "Not found"
-        }
+        connection.hasPairedStrap ? "Connected" : "Not found"
     }
 
     /// Whether the sync pill shows a failure, so the button offers a retry.

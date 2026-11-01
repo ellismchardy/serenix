@@ -188,6 +188,10 @@ final class StrapConnection: NSObject, ObservableObject {
         UserDefaults.standard.string(forKey: rememberedStrapKey).flatMap(UUID.init(uuidString:))
     }
 
+    /// Whether a Strap has been paired with Serenix. Each sync connects to it, so the link
+    /// itself only lasts while syncing.
+    var hasPairedStrap: Bool { rememberedStrap != nil }
+
     private func startConnecting() {
         connectTimer?.invalidate()
         connectTimer = Timer.scheduledTimer(withTimeInterval: connectTimeout, repeats: false) {
