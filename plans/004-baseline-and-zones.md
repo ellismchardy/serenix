@@ -65,7 +65,7 @@ gives the typical Spread the spec's examples assume.
      scaled MAD 0.59304 Zones (14.88/13.12 In, 14.9/13.11/15.48 Watch, 15.49/12.5 Out), HRV floor
      (50 vs seven 60s Watch, vs three In; 54 In), HRV ln Spread Zones (40.1 In, 39.9 Watch), and
      the 14-Night window (6 oldest wild values change nothing).
-6. [ ] **Slice:** Gauge positions and status words — HRV and respiratory rate 0.5 + z / 5;
+6. [x] **Slice:** Gauge positions and status words — HRV and respiratory rate 0.5 + z / 5;
    Resting HR 0.5 + d / 10; skin temperature and SpO2 unchanged. Status words follow the new
    Zones (HRV can be "High").
    - Seam: Today view · Files: `Zone.swift`, `MetricTile.swift` (only if `statusWord` needs a

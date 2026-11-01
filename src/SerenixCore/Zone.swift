@@ -15,26 +15,23 @@ public enum Zone: Equatable, Sendable {
     private static let hrvZInRangeFrom = -1.5
     private static let hrvZInRangeUpTo = 2.5
     private static let hrvZWatchFrom = -2.5
-    /// HRV's change from Baseline as a fraction of it, for the gauge and the popup's band only.
-    /// Superseded by spec 004: the gauge and band move to Spreads in later tasks of its plan.
+    /// HRV's change from Baseline as a fraction of it, for the popup's band only. Superseded by
+    /// spec 004: the band moves to Spreads in a later task of its plan.
     private static let hrvInRangeFrom = -0.05
-    private static let hrvWatchFrom = -0.15
     /// Resting HR above Baseline, bpm, up only (spec 004): Watch from +3, Out of range from +5.
     /// A lower Resting HR is never a warning.
     private static let restingHRWatchFrom = 3.0
     private static let restingHROutOfRangeFrom = 5.0
-    /// Resting HR above Baseline, bpm, for the gauge and the popup's band only. Superseded by
-    /// spec 004: the gauge and band move to its limits in later tasks of its plan.
+    /// Resting HR above Baseline, bpm, for the popup's band only. Superseded by spec 004: the
+    /// band moves to its limits in a later task of its plan.
     private static let restingHRInRangeUpTo = 1.0
-    private static let restingHRWatchUpTo = 4.0
     /// Respiratory rate's |z|, its distance from Baseline in Spreads, either side (spec 004): In
     /// range up to 1.5, Watch up to 2.5.
     private static let respiratoryRateZInRangeUpTo = 1.5
     private static let respiratoryRateZWatchUpTo = 2.5
-    /// Respiratory rate either side of Baseline, br/min, for the gauge and the popup's band only.
-    /// Superseded by spec 004: the gauge and band move to Spreads in later tasks of its plan.
+    /// Respiratory rate either side of Baseline, br/min, for the popup's band only. Superseded by
+    /// spec 004: the band moves to Spreads in a later task of its plan.
     private static let respiratoryRateInRangeUpTo = 0.5
-    private static let respiratoryRateWatchUpTo = 1.0
     /// Skin temperature either side of Baseline, °C: In range up to 0.3, Watch up to 0.6.
     private static let skinTemperatureInRangeUpTo = 0.3
     private static let skinTemperatureWatchUpTo = 0.6
@@ -53,9 +50,8 @@ public enum Zone: Equatable, Sendable {
         switch (metric, baseline?.median) {
         case (.spo2, _):
             self = Self.atLeast(value, inRange: Self.spo2InRangeFrom, watch: Self.spo2WatchFrom)
-        case (.hrv, let median?) where median > 0:
-            guard let spread = baseline?.spread else { return nil }
-            let z = (log(value) - log(median)) / spread
+        case (.hrv, _):
+            guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
             self =
                 z > Self.hrvZInRangeUpTo + Self.boundaryTolerance
                 ? .watch
@@ -66,10 +62,10 @@ public enum Zone: Equatable, Sendable {
                 watch: Self.restingHRWatchFrom,
                 outOfRange: Self.restingHROutOfRangeFrom
             )
-        case (.respiratoryRate, let median?):
-            guard let spread = baseline?.spread else { return nil }
+        case (.respiratoryRate, _):
+            guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
             self = Self.atMost(
-                abs(value - median) / spread,
+                abs(z),
                 inRange: Self.respiratoryRateZInRangeUpTo,
                 watch: Self.respiratoryRateZWatchUpTo
             )
@@ -105,9 +101,11 @@ public enum Zone: Equatable, Sendable {
         }
     }
 
-    /// Where `value` sits on its tile's gauge, 0 (bottom) to 1 (top), clamped (spec 002, Tiles):
-    /// the Baseline at 0.5 and the Watch limit on each side at the ends, or for SpO2 a fixed
-    /// scale. Nil when the metric needs a Baseline and has none, or HRV's Baseline is 0 or less.
+    /// Where `value` sits on its tile's gauge, 0 (bottom) to 1 (top), clamped (spec 004, Gauge):
+    /// the Baseline at 0.5 and, on each side, where Watch turns into Out of range at the ends, or
+    /// for SpO2 a fixed scale. Resting HR's ends are symmetric though only a rise changes its Zone.
+    /// Nil when the metric needs a Baseline and has none, HRV's Baseline is 0 or less, or an HRV
+    /// or respiratory rate Baseline has no Spread.
     static func gaugePosition(_ metric: NightlyMetric, value: Double, baseline: Baseline?)
         -> Double?
     {
@@ -115,12 +113,14 @@ public enum Zone: Equatable, Sendable {
         switch (metric, baseline?.median) {
         case (.spo2, _):
             position = (value - spo2GaugeBottom) / (spo2GaugeTop - spo2GaugeBottom)
-        case (.hrv, let median?) where median > 0:
-            position = centred((value - median) / median, limit: -hrvWatchFrom)
+        case (.hrv, _):
+            guard let z = z(metric, value: value, baseline: baseline) else { return nil }
+            position = centred(z, limit: -hrvZWatchFrom)
         case (.restingHR, let median?):
-            position = centred(value - median, limit: restingHRWatchUpTo)
-        case (.respiratoryRate, let median?):
-            position = centred(value - median, limit: respiratoryRateWatchUpTo)
+            position = centred(value - median, limit: restingHROutOfRangeFrom)
+        case (.respiratoryRate, _):
+            guard let z = z(metric, value: value, baseline: baseline) else { return nil }
+            position = centred(z, limit: respiratoryRateZWatchUpTo)
         case (.skinTemperature, let median?):
             position = centred(value - median, limit: skinTemperatureWatchUpTo)
         default:
@@ -128,6 +128,21 @@ public enum Zone: Equatable, Sendable {
         }
         // A value that gives no real position (e.g. NaN) shows an empty gauge.
         return position.isFinite ? min(max(position, 0), 1) : nil
+    }
+
+    /// How far `value` sits from its Baseline in Spreads (spec 004, Zones): on ln(RMSSD) for HRV.
+    /// Nil for metrics with no Spread, while Calibrating, and for HRV against a Baseline of 0 or
+    /// less, which gives no meaningful change.
+    private static func z(_ metric: NightlyMetric, value: Double, baseline: Baseline?) -> Double? {
+        guard let median = baseline?.median, let spread = baseline?.spread else { return nil }
+        switch metric {
+        case .hrv:
+            return median > 0 ? (log(value) - log(median)) / spread : nil
+        case .respiratoryRate:
+            return (value - median) / spread
+        case .restingHR, .skinTemperature, .spo2:
+            return nil
+        }
     }
 
     /// The Baseline at 0.5, `limit` either side at 0 and 1.

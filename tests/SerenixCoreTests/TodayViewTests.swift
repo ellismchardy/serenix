@@ -746,18 +746,37 @@ func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
 // The six oldest are three of 12.0 and three of 16.0. Over all 20 the median is still 14.0 but the
 // deviations become eight 0, six 1.0, six 2.0, median 1.0, so the Spread would be 1.4826 and all
 // three values would be In range. Adding them must change no Zone.
-@Test(arguments: [(14.2, .inRange), (14.5, .watch), (14.8, .outOfRange)] as [(Double, Zone)])
+// The gauge (0.5 + z / 5) uses the same Spread 0.3: 14.2 gives 0.5 + 0.6667 / 5 = 19/30 ≈ 0.6333,
+// 14.5 gives 0.5 + 1.6667 / 5 = 5/6 ≈ 0.8333, and 14.8 gives 1.0333, clamped to 1. With the
+// 20-Night Spread 1.4826 they would be ≈ 0.527, ≈ 0.567 and ≈ 0.608, so adding them must change
+// no gauge either.
+@Test(
+    arguments: [(14.2, .inRange, 19.0 / 30.0), (14.5, .watch, 5.0 / 6.0), (14.8, .outOfRange, 1)]
+        as [(Double, Zone, Double)]
+)
 func respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights(
     respiratoryRate: Double,
-    zone: Zone
+    zone: Zone,
+    gauge: Double
 ) {
     let fourteenNewest: [Double?] = [
         14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 14.0, 14.0, 14.0, 14.0,
     ]
     let sixOldest: [Double?] = [12.0, 16.0, 12.0, 16.0, 12.0, 16.0]
 
-    #expect(respiratoryRateZone(respiratoryRate, after: fourteenNewest) == zone)
-    #expect(respiratoryRateZone(respiratoryRate, after: fourteenNewest + sixOldest) == zone)
+    for earlier in [fourteenNewest, fourteenNewest + sixOldest] {
+        let tile = todayView(
+            nights: nightsBeforeNov1(respiratoryRate: earlier)
+                + [Night(day: nov1, respiratoryRate: respiratoryRate)],
+            showing: nov1
+        ).tile(.respiratoryRate)
+
+        #expect(tile?.zone == zone, "\(earlier.count) earlier Nights")
+        #expect(
+            isClose(tile?.gauge, to: gauge),
+            "\(earlier.count) earlier Nights: gauge \(String(describing: tile?.gauge))"
+        )
+    }
 }
 
 // MARK: Tile text
@@ -919,11 +938,20 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 
 // MARK: Status words and gauges
 
+// Values from spec 004, against Baselines HRV 60, Resting HR 52, respiratory rate 14.0 and skin
+// temperature 34.0 with typical Spreads (HRV 0.15 on ln, respiratory rate 0.5).
+// HRV: z = ln(v / 60) / 0.15, so 70 → +1.03 (In range, "Normal"), 90 → +2.70 (Watch, "High"),
+// 41 → −2.54 (Out of range, "Low").
+// Resting HR: 45 is below the Baseline, always In range ("Normal"); 55 is +3 (Watch, "High").
+// Respiratory rate: 15.0 → z = +2 ("High"), 13.0 → z = −2 ("Low").
+// Skin temperature: 34.5 is +0.5 ("High"), 33.5 is −0.5 ("Low").
+// SpO2 keeps its fixed level words.
 @Test(
     arguments: [
-        (.hrv, Night(day: nov1, hrv: 57), "Normal"),
+        (.hrv, Night(day: nov1, hrv: 70), "Normal"),
+        (.hrv, Night(day: nov1, hrv: 90), "High"),
         (.hrv, Night(day: nov1, hrv: 41), "Low"),
-        (.restingHR, Night(day: nov1, restingHR: 53), "Normal"),
+        (.restingHR, Night(day: nov1, restingHR: 45), "Normal"),
         (.restingHR, Night(day: nov1, restingHR: 55), "High"),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), "High"),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.0), "Low"),
@@ -938,15 +966,27 @@ func tileStatusWordAgainstExactBaselines(metric: NightlyMetric, night: Night, wo
     #expect(nov1Tile(metric, of: night)?.statusText == word)
 }
 
+// Values from spec 004, against the same Baselines and typical Spreads. Each side ends where
+// Watch turns into Out of range.
+// HRV, 0.5 + z / (2 × 2.5) with z = ln(v / 60) / 0.15: 60 → 0.5; 30 → z = −4.62, 0.5 − 0.92,
+// clamped to 0; 120 → z = +4.62, clamped to 1; 70 → z = ln(70 / 60) / 0.15 = 1.0277, 0.70553
+// (unclamped, so it pins the ln and Spread scale).
+// Respiratory rate, 0.5 + z / 5 with z = (v − 14.0) / 0.5: 15.0 → z = 2, 0.9; 13.5 → z = −1, 0.3;
+// 16 → z = 4, 1.3, clamped to 1.
+// Resting HR, 0.5 + d / (2 × 5): 54.5 → d = 2.5, 0.75; 47 → d = −5, 0.
+// Skin temperature, 0.5 + d / (2 × 0.6): 33.7 → d = −0.3, 0.25.
+// SpO2, fixed 88–100: 97 → 9 / 12 = 0.75; 85 → below 88, clamped to 0.
 @Test(
     arguments: [
         (.hrv, Night(day: nov1, hrv: 60), 0.5),
-        (.hrv, Night(day: nov1, hrv: 55.5), 0.25),
-        (.hrv, Night(day: nov1, hrv: 51), 0),
-        (.hrv, Night(day: nov1, hrv: 75), 1),
-        (.restingHR, Night(day: nov1, restingHR: 54), 0.75),
-        (.restingHR, Night(day: nov1, restingHR: 48), 0),
-        (.respiratoryRate, Night(day: nov1, respiratoryRate: 14.5), 0.75),
+        (.hrv, Night(day: nov1, hrv: 30), 0),
+        (.hrv, Night(day: nov1, hrv: 120), 1),
+        (.hrv, Night(day: nov1, hrv: 70), 0.705534239769678),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), 0.9),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.5), 0.3),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 16), 1),
+        (.restingHR, Night(day: nov1, restingHR: 54.5), 0.75),
+        (.restingHR, Night(day: nov1, restingHR: 47), 0),
         (.skinTemperature, Night(day: nov1, skinTemperature: 33.7), 0.25),
         (.spo2, Night(day: nov1, spo2: 97), 0.75),
         (.spo2, Night(day: nov1, spo2: 85), 0),
