@@ -106,9 +106,16 @@ private struct SyncLogFile: Transferable {
     }
 }
 
-/// One Sync Log entry: direction, time to the millisecond, and the bytes in hex.
+/// One Sync Log entry: direction, time to the millisecond, Frame type, and the bytes in hex.
 private struct SyncLogRow: View {
     let entry: SyncLogEntry
+
+    /// The Frame's type, e.g. "type 0x2f"; a message that isn't a Frame (the Strap sends some)
+    /// is shown as such rather than failing.
+    private var frameTypeText: String {
+        guard let frame = try? Frame(bytes: entry.bytes) else { return "not a Frame" }
+        return String(format: "type 0x%02x", frame.type)
+    }
 
     var body: some View {
         let direction: String = entry.direction == .toStrap ? "→ Strap" : "← Strap"
@@ -117,7 +124,7 @@ private struct SyncLogRow: View {
         )
         let hex: String = entry.hexBytes
         VStack(alignment: .leading, spacing: 2) {
-            Text(direction + "  " + time)
+            Text(direction + "  " + time + "  " + frameTypeText)
                 .font(.caption)
             Text(hex)
                 .font(.system(.caption2, design: .monospaced))
