@@ -48,7 +48,7 @@ public struct MetricTile: Equatable, Sendable {
 }
 
 /// The value with its unit (spec 002, Formats).
-private func formattedValue(of metric: NightlyMetric, _ value: Double) -> String {
+func formattedValue(of metric: NightlyMetric, _ value: Double) -> String {
     switch metric {
     case .restingHR: "\(wholeText(value)) bpm"
     case .hrv: "\(wholeText(value)) ms"

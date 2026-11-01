@@ -7,6 +7,7 @@ struct TodayScreen: View {
     /// The Day stepped to with the arrows; nil is today, whatever today is when the screen draws.
     @State private var steppedToDay: Day?
     @State private var showsSyncFailure = false
+    @State private var openPopup: TodayPopup?
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -41,9 +42,12 @@ struct TodayScreen: View {
             } message: {
                 Text(today.syncPill.failureReason ?? "")
             }
+            .sheet(item: $openPopup) { popup in
+                TodayPopupView(popup: popup, today: today)
+            }
             // Serenix opens on today (spec 002), also when iOS kept it suspended overnight.
             .onChange(of: scenePhase) { oldPhase, newPhase in
-                if oldPhase == .background, newPhase != .background { steppedToDay = nil }
+                if oldPhase == .background, newPhase != .background { showToday() }
             }
         }
     }
@@ -79,21 +83,33 @@ struct TodayScreen: View {
     /// Sleep Score, Readiness in the middle and largest with its band word, and Load.
     private func rings(_ today: TodayView) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            ScoreRing(
-                text: today.sleepScoreText,
-                fill: today.sleepScoreFill,
-                label: "Sleep Score",
-                diameter: 84
-            )
-            VStack(spacing: 8) {
+            Button {
+                open(.sleep, in: today)
+            } label: {
                 ScoreRing(
-                    text: today.readinessText,
-                    fill: today.readinessFill,
-                    label: "Readiness",
-                    diameter: 170,
-                    colour: today.readinessBand?.colour ?? .secondary,
-                    labelInside: true
+                    text: today.sleepScoreText,
+                    fill: today.sleepScoreFill,
+                    label: "Sleep Score",
+                    diameter: 84
                 )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            VStack(spacing: 8) {
+                Button {
+                    open(.readiness, in: today)
+                } label: {
+                    ScoreRing(
+                        text: today.readinessText,
+                        fill: today.readinessFill,
+                        label: "Readiness",
+                        diameter: 170,
+                        colour: today.readinessBand?.colour ?? .secondary,
+                        labelInside: true
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
                 if let band = today.readinessBand {
                     Text(band.word)
                         .font(.title3.bold())
@@ -106,6 +122,7 @@ struct TodayScreen: View {
                 label: today.loadLabel,
                 diameter: 84
             )
+            // Tapping the Load ring does nothing in spec 002.
         }
     }
 
@@ -141,14 +158,41 @@ struct TodayScreen: View {
                     .font(.headline)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     if let timeAsleep = today.timeAsleepTile {
-                        TimeAsleepTileView(tile: timeAsleep)
+                        Button {
+                            open(.sleep, in: today)
+                        } label: {
+                            TimeAsleepTileView(tile: timeAsleep)
+                        }
+                        .buttonStyle(.plain)
                     }
                     ForEach(today.tiles, id: \.metric) { tile in
-                        MetricTileView(tile: tile)
+                        Button {
+                            open(.metric(tile.metric), in: today)
+                        } label: {
+                            MetricTileView(tile: tile)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
         }
+    }
+
+    /// Opens a popup, unless the Today view has nothing for it to show (a Day without a Night).
+    private func open(_ popup: TodayPopup, in today: TodayView) {
+        let hasContent =
+            switch popup {
+            case .readiness: today.readinessPopup != nil
+            case .sleep: today.sleepPopup != nil
+            case .metric(let metric): today.metricPopup(metric) != nil
+            }
+        if hasContent { openPopup = popup }
+    }
+
+    /// Back to today, closing any popup, which described the Day being left.
+    private func showToday() {
+        openPopup = nil
+        steppedToDay = nil
     }
 
     private func header(_ today: TodayView) -> some View {

@@ -21,8 +21,11 @@ public struct TimeAsleepTile: Equatable, Sendable {
     }
 }
 
-/// A duration as hours and minutes, e.g. "7h 40m" (spec 002, Formats).
+/// A duration as hours and minutes, e.g. "7h 40m" (spec 002, Formats); "—" when it's negative or
+/// too large to show.
 func durationText(_ seconds: TimeInterval) -> String {
-    let minutes = Int((seconds / 60).rounded())
+    guard let minutes = Int(exactly: (seconds / 60).rounded()), minutes >= 0 else {
+        return missingText
+    }
     return "\(minutes / 60)h \(minutes % 60)m"
 }

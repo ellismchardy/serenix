@@ -29,6 +29,11 @@ public struct TodayView: Equatable, Sendable {
     public let syncPill: SyncPill
     /// Nil on a Day without a Night.
     public let vsBaseline: VsBaseline?
+    /// Nil on a Day without a Night.
+    public let readinessPopup: ReadinessPopup?
+    /// Nil on a Day without a Night.
+    public let sleepPopup: SleepPopup?
+    private let metricPopups: [MetricPopup]
     /// "Last night" on today, else the Day's date.
     public let tilesHeading: String
     /// Nil on a Day without a Night.
@@ -111,6 +116,57 @@ public struct TodayView: Equatable, Sendable {
                     }
                 )
             }
+
+        readinessPopup =
+            if let readinessBaselines {
+                if let calibratingNightsSoFar {
+                    ReadinessPopup(
+                        readinessText: readinessText,
+                        band: nil,
+                        rows: [],
+                        sleepScoreText: nil,
+                        baselineNote: nil,
+                        calibratingText:
+                            "Readiness needs \(nightsForBaseline) Nights to form your Baseline. "
+                            + "You have \(calibratingNightsSoFar) so far."
+                    )
+                } else {
+                    ReadinessPopup(
+                        readinessText: readinessText,
+                        band: readinessBand,
+                        rows: VsBaseline.metrics.compactMap { metric in
+                            tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
+                        },
+                        sleepScoreText: sleepScoreText,
+                        baselineNote:
+                            "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",
+                        calibratingText: nil
+                    )
+                }
+            } else {
+                nil
+            }
+        sleepPopup =
+            if let night {
+                SleepPopup(night, sleepScoreText: sleepScoreText, timeZone: timeZone)
+            } else {
+                nil
+            }
+        metricPopups =
+            night.map { night in
+                tiles.map { MetricPopup($0, for: night, among: nights) }
+            } ?? []
+    }
+
+    /// How many Nights Readiness's Baselines are taken over: the fewer of HRV's and Resting HR's,
+    /// at most `Baseline.maxNights`.
+    private static func baselineNights(_ baselines: (hrv: Baseline, restingHR: Baseline)) -> Int {
+        min(Baseline.maxNights, baselines.hrv.earlierNights, baselines.restingHR.earlierNights)
+    }
+
+    /// A Nightly Metric's popup; nil on a Day without a Night.
+    public func metricPopup(_ metric: NightlyMetric) -> MetricPopup? {
+        metricPopups.first { $0.metric == metric }
     }
 
     /// A Nightly Metric's tile; nil on a Day without a Night.

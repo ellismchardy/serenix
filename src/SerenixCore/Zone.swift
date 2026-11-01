@@ -64,6 +64,26 @@ public enum Zone: Equatable, Sendable {
         }
     }
 
+    /// The values around `baseline` that are In range, for the Nightly Metric popup's band (spec
+    /// 002, Popups); nil on a side with no limit. Both nil for SpO2, which has no Baseline, and
+    /// for HRV against a Baseline of 0 or less.
+    static func inRangeLimits(_ metric: NightlyMetric, baseline: Double)
+        -> (low: Double?, high: Double?)
+    {
+        switch metric {
+        case .hrv:
+            baseline > 0 ? (baseline * (1 + hrvInRangeFrom), nil) : (nil, nil)
+        case .restingHR:
+            (nil, baseline + restingHRInRangeUpTo)
+        case .respiratoryRate:
+            (baseline - respiratoryRateInRangeUpTo, baseline + respiratoryRateInRangeUpTo)
+        case .skinTemperature:
+            (baseline - skinTemperatureInRangeUpTo, baseline + skinTemperatureInRangeUpTo)
+        case .spo2:
+            (nil, nil)
+        }
+    }
+
     /// For measures where higher is better.
     private static func atLeast(_ measure: Double, inRange: Double, watch: Double) -> Zone {
         let tolerance = boundaryTolerance

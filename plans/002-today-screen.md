@@ -75,7 +75,7 @@ Assumptions (consistent with the spec, stated so review can check them):
      `tests/SerenixCoreTests/TodayViewTests.swift`, `src/SerenixApp/TodayScreen.swift`
    - Done when: the vs your Baseline Calibrating criterion passes, and a test shows +14% HRV and
      −3 bpm Resting HR both marked the good way.
-6. [ ] **Slice:** Popups: Readiness (with Calibrating text), Sleep (minutes awake) and Nightly
+6. [x] **Slice:** Popups: Readiness (with Calibrating text), Sleep (minutes awake) and Nightly
    Metric (up to 14 Nights, 5 most recent, Baseline and In range limits, none for SpO2); shell
    sheets opened from the rings and tiles, Load ring inert.
    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`,

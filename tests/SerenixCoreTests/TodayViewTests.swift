@@ -1016,3 +1016,264 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(view.noNightMessage == "No Night yet")
     #expect(view.vsBaseline == nil)
 }
+
+// MARK: Readiness popup
+
+@Test func readinessPopupShowsHRVAndRestingHRAgainstTheirBaselinesAndHowManyNightsFormThem() {
+    let night = Night(day: nov1, sleepScore: 84, readiness: 80, restingHR: 49, hrv: 68.4)
+    let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+        .readinessPopup
+
+    #expect(popup?.readinessText == "80")
+    #expect(popup?.band == .ready)
+    #expect(popup?.rows.map(\.metric) == [.hrv, .restingHR])
+    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm"])
+    #expect(popup?.rows.map(\.baselineText) == ["60 ms", "52 bpm"])
+    #expect(popup?.rows.map(\.differenceText) == ["+14%", "\u{2212}3 bpm"])
+    #expect(popup?.sleepScoreText == "84")
+    #expect(popup?.baselineNote == "Baseline: your last 3 Nights")
+    #expect(popup?.calibratingText == nil)
+}
+
+@Test func readinessPopupBaselineNoteCountsAtMostFourteenNights() {
+    let earlier = nightsBeforeNov1(
+        hrv: Array(repeating: 60, count: 20),
+        restingHR: Array(repeating: 52, count: 20)
+    )
+    let night = Night(day: nov1, readiness: 80, restingHR: 49, hrv: 68.4)
+    let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
+
+    #expect(popup?.baselineNote == "Baseline: your last 14 Nights")
+}
+
+@Test func readinessPopupBaselineNoteCountsByTheMetricWithFewerEarlierNights() {
+    let earlier = nightsBeforeNov1(hrv: [60, 60, 60, 60, 60], restingHR: [52, 52, 52, 52])
+    let night = Night(day: nov1, readiness: 80, restingHR: 49, hrv: 68.4)
+    let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
+
+    #expect(popup?.baselineNote == "Baseline: your last 4 Nights")
+}
+
+@Test func readinessPopupExplainsCalibratingWithTheNightsSoFar() {
+    let night = Night(day: nov1, sleepScore: 84, readiness: 80, restingHR: 50, hrv: 60)
+    let popup = todayView(
+        nights: nightsBeforeNov1(hrv: [60, 60], restingHR: [50, 50]) + [night],
+        showing: nov1
+    ).readinessPopup
+
+    #expect(popup?.readinessText == "3/4")
+    #expect(popup?.band == nil)
+    #expect(
+        popup?.calibratingText
+            == "Readiness needs 4 Nights to form your Baseline. You have 3 so far."
+    )
+    // Spec 002, Popups: while Calibrating it explains "instead", so no rows or Sleep Score.
+    #expect(popup?.baselineNote == nil)
+    #expect(popup?.rows == [])
+    #expect(popup != nil && popup?.sleepScoreText == nil)
+}
+
+// MARK: Sleep popup
+
+/// 2026-10-31T22:30:00Z.
+private let timeInBedStartOct31At2230 = Date(timeIntervalSince1970: 1_793_485_800)
+/// 2026-11-01T07:05:00Z.
+private let timeInBedEndNov1At0705 = Date(timeIntervalSince1970: 1_793_516_700)
+
+@Test func sleepPopupMinutesAwakeAreFinalWakeMinusSleepOnsetMinusTimeAsleep() {
+    // 22:45 to 06:57 is 492 min; Time Asleep 27 600 s is 460 min; so 32 min awake.
+    let night = Night(
+        day: nov1,
+        sleepScore: 84,
+        sleepOnset: onsetOct31At2245,
+        finalWake: finalWakeNov1At0657,
+        timeAsleep: 27_600,
+        timeInBedStart: timeInBedStartOct31At2230,
+        timeInBedEnd: timeInBedEndNov1At0705
+    )
+    let popup = todayView(nights: [night], showing: nov1).sleepPopup
+
+    #expect(popup?.sleepScoreText == "84")
+    #expect(popup?.timeInBedText == "22:30\u{2013}07:05")
+    #expect(popup?.timeInBedDurationText == "8h 35m")
+    #expect(popup?.sleepOnsetText == "22:45")
+    #expect(popup?.finalWakeText == "06:57")
+    #expect(popup?.timeAsleepText == "7h 40m")
+    #expect(popup?.minutesAwakeText == "32 min")
+}
+
+@Test func sleepPopupMinutesAwakeIsADashWithoutTimeAsleep() {
+    let night = Night(day: nov1, sleepOnset: onsetOct31At2245, finalWake: finalWakeNov1At0657)
+    let popup = todayView(nights: [night], showing: nov1).sleepPopup
+
+    #expect(popup?.timeAsleepText == "—")
+    #expect(popup?.minutesAwakeText == "—")
+}
+
+@Test func sleepPopupMinutesAwakeIsADashWhenTimeAsleepIsLongerThanTheSleepPeriod() {
+    // 30 000 s is 500 min, more than the 492 min from Sleep Onset to Final Wake.
+    let night = Night(
+        day: nov1,
+        sleepOnset: onsetOct31At2245,
+        finalWake: finalWakeNov1At0657,
+        timeAsleep: 30_000
+    )
+
+    #expect(todayView(nights: [night], showing: nov1).sleepPopup?.minutesAwakeText == "—")
+}
+
+@Test func sleepPopupTimeInBedIsADashWithoutItsEnd() {
+    let night = Night(
+        day: nov1,
+        sleepOnset: onsetOct31At2245,
+        finalWake: finalWakeNov1At0657,
+        timeAsleep: 27_600,
+        timeInBedStart: timeInBedStartOct31At2230
+    )
+    let popup = todayView(nights: [night], showing: nov1).sleepPopup
+
+    #expect(popup?.timeInBedText == "—")
+    #expect(popup?.timeInBedDurationText == "—")
+    #expect(popup?.minutesAwakeText == "32 min")
+}
+
+@Test func sleepPopupTimeInBedIsADashWhenItEndsBeforeItStarts() {
+    let night = Night(
+        day: nov1,
+        timeInBedStart: timeInBedEndNov1At0705,
+        timeInBedEnd: timeInBedStartOct31At2230
+    )
+    let popup = todayView(nights: [night], showing: nov1).sleepPopup
+
+    #expect(popup?.timeInBedDurationText == "—")
+}
+
+// MARK: Nightly Metric popup
+
+/// One Night a Day from 13 Oct to 1 Nov, HRV 40 ms on 13 Oct rising by 1 ms a Day to 59 ms on
+/// 1 Nov; `hrvOnOct25` replaces 25 Oct's 52 ms.
+private func nightsOct13ToNov1(hrvOnOct25: Double? = 52) -> [Night] {
+    let october = (13...31).map { dayOfMonth in
+        Night(
+            day: Day(year: 2026, month: 10, day: dayOfMonth),
+            hrv: dayOfMonth == 25 ? hrvOnOct25 : Double(27 + dayOfMonth)
+        )
+    }
+    return october + [Night(day: nov1, hrv: 59)]
+}
+
+/// A Night after 1 Nov, which must never appear in 1 Nov's popup.
+private let laterNightOnNov2 = Night(day: Day(year: 2026, month: 11, day: 2), hrv: 99)
+
+@Test func metricPopupChartHoldsTheNightShownAndThirteenEarlierNightsOldestFirst() {
+    // Given newest first, so the order of the input can't stand in for sorting.
+    let nights = [laterNightOnNov2] + nightsOct13ToNov1().reversed()
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(popup?.metric == .hrv)
+    #expect(popup?.valueText == "59 ms")
+    #expect(
+        popup?.chart.map(\.day)
+            == (19...31).map { Day(year: 2026, month: 10, day: $0) } + [nov1]
+    )
+    #expect(
+        popup?.chart.map(\.value)
+            == [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+    )
+}
+
+@Test func metricPopupListsTheFiveMostRecentNightsNewestFirst() {
+    let nights = nightsOct13ToNov1() + [laterNightOnNov2]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(
+        popup?.recent.map(\.dayText)
+            == ["Sun 1 Nov", "Sat 31 Oct", "Fri 30 Oct", "Thu 29 Oct", "Wed 28 Oct"]
+    )
+    #expect(popup?.recent.map(\.valueText) == ["59 ms", "58 ms", "57 ms", "56 ms", "55 ms"])
+}
+
+@Test func aNightMissingTheValueIsLeftOutOfTheMetricPopupChart() {
+    let popup = todayView(nights: nightsOct13ToNov1(hrvOnOct25: nil), showing: nov1)
+        .metricPopup(.hrv)
+
+    // 25 Oct's Night is one of the 14 but has no HRV; 18 Oct's Night doesn't take its place.
+    #expect(
+        popup?.chart.map(\.value)
+            == [46, 47, 48, 49, 50, 51, 53, 54, 55, 56, 57, 58, 59]
+    )
+    #expect(popup?.chart.first?.day == Day(year: 2026, month: 10, day: 19))
+}
+
+/// Whether `value` is within floating-point error of `expected`: limits such as 34.0 − 0.3 or
+/// 0.95 × 60 needn't be exact in binary floating point.
+private func isClose(_ value: Double?, to expected: Double) -> Bool {
+    value.map { abs($0 - expected) < 1e-9 } ?? false
+}
+
+@Test func metricPopupShowsTheBaselineAndItsInRangeLimits() {
+    let night = Night(
+        day: nov1,
+        restingHR: 52,
+        hrv: 60,
+        respiratoryRate: 14.0,
+        skinTemperature: 34.0,
+        spo2: 97
+    )
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    let hrv = view.metricPopup(.hrv)
+    #expect(isClose(hrv?.baseline, to: 60))
+    #expect(isClose(hrv?.inRangeLow, to: 57))
+    #expect(hrv != nil && hrv?.inRangeHigh == nil)
+
+    let restingHR = view.metricPopup(.restingHR)
+    #expect(isClose(restingHR?.baseline, to: 52))
+    #expect(restingHR != nil && restingHR?.inRangeLow == nil)
+    #expect(isClose(restingHR?.inRangeHigh, to: 53))
+
+    let respiratoryRate = view.metricPopup(.respiratoryRate)
+    #expect(isClose(respiratoryRate?.baseline, to: 14.0))
+    #expect(isClose(respiratoryRate?.inRangeLow, to: 13.5))
+    #expect(isClose(respiratoryRate?.inRangeHigh, to: 14.5))
+
+    let skinTemperature = view.metricPopup(.skinTemperature)
+    #expect(isClose(skinTemperature?.baseline, to: 34.0))
+    #expect(isClose(skinTemperature?.inRangeLow, to: 33.7))
+    #expect(isClose(skinTemperature?.inRangeHigh, to: 34.3))
+}
+
+@Test func spo2PopupHasNoBaselineOrInRangeLimitsButShowsItsLevel() {
+    let night = Night(day: nov1, spo2: 97)
+    let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+        .metricPopup(.spo2)
+
+    #expect(popup?.valueText == "97%")
+    #expect(popup?.differenceText == "95% or above")
+    #expect(popup?.zone == .inRange)
+    #expect(popup != nil && popup?.baseline == nil)
+    #expect(popup != nil && popup?.inRangeLow == nil)
+    #expect(popup != nil && popup?.inRangeHigh == nil)
+}
+
+@Test func aCalibratingMetricPopupHasNoBaselineOrInRangeLimits() {
+    let nights = nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(popup?.differenceText == "Calibrating")
+    #expect(popup != nil && popup?.baseline == nil)
+    #expect(popup != nil && popup?.inRangeLow == nil)
+    #expect(popup != nil && popup?.inRangeHigh == nil)
+}
+
+// MARK: Popups on a Day without a Night
+
+@Test func aDayWithoutANightHasNoPopups() {
+    let view = todayView(nights: calibratedNightsBeforeNov1, showing: nov1)
+
+    #expect(view.readinessPopup == nil)
+    #expect(view.sleepPopup == nil)
+    for metric in [NightlyMetric.restingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2] {
+        #expect(view.metricPopup(metric) == nil)
+    }
+}

@@ -39,5 +39,6 @@ func clockText(_ time: Date, in timeZone: TimeZone) -> String {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = timeZone
     let parts = calendar.dateComponents([.hour, .minute], from: time)
-    return String(format: "%02ld:%02ld", parts.hour!, parts.minute!)
+    guard let hour = parts.hour, let minute = parts.minute else { return missingText }
+    return String(format: "%02ld:%02ld", hour, minute)
 }

@@ -19,10 +19,16 @@ public struct Night: Equatable, Sendable {
     public var skinTemperature: Double?
     /// %.
     public var spo2: Double?
+    /// UTC.
     public var sleepOnset: Date?
+    /// UTC.
     public var finalWake: Date?
     /// Seconds.
     public var timeAsleep: TimeInterval?
+    /// UTC.
+    public var timeInBedStart: Date?
+    /// UTC.
+    public var timeInBedEnd: Date?
 
     public init(
         day: Day,
@@ -35,7 +41,9 @@ public struct Night: Equatable, Sendable {
         spo2: Double? = nil,
         sleepOnset: Date? = nil,
         finalWake: Date? = nil,
-        timeAsleep: TimeInterval? = nil
+        timeAsleep: TimeInterval? = nil,
+        timeInBedStart: Date? = nil,
+        timeInBedEnd: Date? = nil
     ) {
         self.day = day
         self.sleepScore = sleepScore
@@ -48,6 +56,8 @@ public struct Night: Equatable, Sendable {
         self.sleepOnset = sleepOnset
         self.finalWake = finalWake
         self.timeAsleep = timeAsleep
+        self.timeInBedStart = timeInBedStart
+        self.timeInBedEnd = timeInBedEnd
     }
 }
 
