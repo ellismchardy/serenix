@@ -667,7 +667,8 @@ private func progressReplaying(
     let atTenSeconds = try #require(session.timeLeft(at: firstArrival.addingTimeInterval(10)))
     #expect(abs(atTenSeconds - 186.666_666_666_666_67) < 1e-9)
 
-    // The rest arrives at T + 10 s (under the 10 s silence timeout); the last History Record
+    // The rest arrives at T + 10 s, 9 s after the last Frame (under the 10 s silence
+    // timeout); the last History Record
     // (1793130619) brings progress to 1, so nothing is left.
     for message in strapMessages[(tenthRecordOfFirstBatchIndex + 1)...] {
         _ = session.receive(message.bytes, at: start.addingTimeInterval(10))

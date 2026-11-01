@@ -33,6 +33,8 @@ jobs (store-stats refresh, Sync Log save) are chained so each waits for the one 
    - Done when: tests show silence of 10 s since `start` or the last `receive` fails the sync
      as `.timedOut`, just under 10 s doesn't, and a completed sync stays completed;
      `reportTimeout()`, the shell's `lastHeardFromStrap` and `strapSilenceTimeout` are gone.
+   - Also (from the task review): `receive` applies the same rule, so a Frame after 10 s of
+     silence fails the sync. The shell still checks first, so nothing changes on the phone.
 3. [x] **Prefactor (shell):** serialise store-stats refreshes and Sync Log saves
    - Files: `src/SerenixApp/StrapConnection.swift`
    - Done when: each refresh and each save awaits the previous one's task, so stats can't land

@@ -122,13 +122,13 @@ History Records are stored as usual.
   (docs/conventions.md); v1 has the Whoop 5.0 decoder only.
 - **`SerenixCore` — History Sync session.** A pure state machine: given the current time it
   yields the Frames to send; fed each incoming Frame it yields Frames to send, History Records,
-  Sync Log entries, and finally completed or failed. Timeouts are reported to it by the caller.
-  It owns the handshake order, the Batch/acknowledge loop, completion, empty Batches, failure
-  rules and the sync's progress and time left (from the time passed in). It never stores the
+  Sync Log entries, and finally completed or failed. It owns the handshake order, the
+  Batch/acknowledge loop, completion, empty Batches, failure rules and their wording, the
+  10-second timeout, and the sync's progress and time left (all from the times passed in). It never stores the
   Sync Cursor (the Strap owns it).
 - **iOS shell — Strap connection.** CoreBluetooth: scan, connect, pair, subscribe, write and
-  notify. Moves bytes between the Strap and the History Sync session, runs the 10-second timer,
-  and remembers the connected Strap. Declares iOS's Bluetooth background mode (central role)
+  notify. Moves bytes between the Strap and the History Sync session, asks the session for the
+  timeout on a timer, and remembers the connected Strap. Declares iOS's Bluetooth background mode (central role)
   so a running sync keeps receiving Frames in the background; no state restoration.
 - **iOS shell — History Record store.** SwiftData, keyed by Record Counter and timestamp,
   storing decoded fields plus raw bytes (so improved decoders can re-read them).
