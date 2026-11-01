@@ -48,7 +48,7 @@ ignored, and nothing holds a connection between syncs.
     the next sequence number.
   - `0x03` is *not* added to `sentOps`, so a reply to it never fails the sync.
   - `HistorySyncOutput` gains `liveHRReadings`, filled from `0x28` Frames instead of
-    `default: break`.
+    `default: break`, and `liveHRSkipped` for `0x28` Frames it can't read.
   - Bad CRC on any Frame still fails the sync (spec 001; spec 006 says nothing else changes).
 - **Live HR pill** (new `src/SerenixCore/LiveHRPill.swift`):
   `liveHRPill(connection: LiveHRConnection, last: LiveHRReading?, arrivedAt: Date?, now: Date) -> LiveHRPill`,
@@ -116,7 +116,7 @@ ignored, and nothing holds a connection between syncs.
      - A bad-CRC Frame is skipped and logged.
      - Stop sends `0x03 00`.
      - Every Frame appears in its Sync Log entries.
-8. [ ] **Slice:** History Sync turns Live HR on and off mid-sync and passes readings out.
+8. [x] **Slice:** History Sync turns Live HR on and off mid-sync and passes readings out.
    - Blocked by: 6
    - Seam: History Sync (spec 001's seam) · Files: `src/SerenixCore/HistorySync.swift`, `tests/SerenixCoreTests/HistorySyncTests.swift`
    - Done when, mid-capture:
@@ -168,6 +168,8 @@ ignored, and nothing holds a connection between syncs.
         `LiveHRSession`.
       - During a sync, it calls `session.setLiveHR`.
       - Stopping disconnects only outside a sync.
+      - A sync that ends while the popup is open disconnects (spec 001), so Live HR carries on
+        through a new `LiveHRSession` (`setLiveHR` sends nothing once the sync has ended).
     - The popup's appear and disappear and `sceneWentToBackground` / `sceneBecameActive` drive it.
     - It publishes the last reading, its arrival time and the connection state for `liveHRPill`.
       A 1-second timer re-evaluates staleness.
