@@ -45,8 +45,24 @@ public enum HistorySyncFailure: Error, Equatable, Sendable {
     case undecodableHistoryRecord(HistoryRecordError)
     /// The Strap's reply to one of this session's commands carried an error status.
     case errorStatus(op: UInt8, status: UInt8)
-    /// The caller reported that the Strap stopped responding.
+    /// The Strap sent nothing for 10 s (`timeOutIfSilent(at:)`).
     case timedOut
+
+    /// Why the sync failed, as the user reads it.
+    public var reason: String {
+        switch self {
+        case .badCRC:
+            "A Frame from the Strap failed its CRC check."
+        case .lengthMismatch:
+            "A Frame from the Strap had the wrong length."
+        case .undecodableHistoryRecord(let error):
+            "A History Record couldn't be decoded (\(error))."
+        case .errorStatus(let op, let status):
+            "The Strap answered command 0x\(hex([op])) with error 0x\(hex([status]))."
+        case .timedOut:
+            "The Strap stopped responding."
+        }
+    }
 }
 
 /// What one step of a History Sync produced.
@@ -88,6 +104,8 @@ public struct HistorySync: Sendable {
     private var firstRecordTimestamp: Date?
     private var newestRecordTimestamp: Date?
     private var firstRecordArrival: Date?
+    /// When the sync started or the Strap last sent anything, for the silence timeout.
+    private var lastHeardFromStrap: Date?
 
     public init(decoder: any HistoryRecordDecoder = Whoop5HistoryRecordDecoder()) {
         self.decoder = decoder
@@ -96,6 +114,7 @@ public struct HistorySync: Sendable {
     /// Begins the sync; `time` is the phone's current time, used to set the Strap's clock.
     public mutating func start(at time: Date) -> HistorySyncOutput {
         startTime = time
+        lastHeardFromStrap = time
         let clock = littleEndianBytes(UInt32(time.timeIntervalSince1970))
         pendingSteps = [
             [Command(op: helloOp, arguments: [0x01])],
@@ -120,7 +139,10 @@ public struct HistorySync: Sendable {
     public mutating func receive(_ bytes: [UInt8], at time: Date) -> HistorySyncOutput {
         var output = HistorySyncOutput()
         output.syncLog.append(SyncLogEntry(time: time, direction: .fromStrap, bytes: bytes))
+        // A message after a long silence comes too late: the sync has already timed out.
+        timeOutIfSilent(at: time)
         guard state == .running else { return output }
+        lastHeardFromStrap = time
         let frame: Frame
         do {
             frame = try Frame(bytes: bytes)
@@ -177,9 +199,14 @@ public struct HistorySync: Sendable {
         return output
     }
 
-    /// Reports that the Strap stopped responding; a running sync fails.
-    public mutating func reportTimeout() {
-        guard state == .running else { return }
+    /// Fails a running sync as timed out if the Strap has sent nothing for
+    /// `strapSilenceTimeout` since the sync started or its last message. `receive` checks this
+    /// too; the caller also checks regularly, so a long gap (e.g. while iOS held the app up)
+    /// counts as the Strap not responding (spec 001).
+    public mutating func timeOutIfSilent(at now: Date) {
+        guard state == .running, let lastHeardFromStrap,
+            now.timeIntervalSince(lastHeardFromStrap) >= strapSilenceTimeout
+        else { return }
         state = .failed(.timedOut)
     }
 
@@ -297,6 +324,9 @@ private let helloSequence: UInt8 = 1
 private let batteryLevelOffset = 5
 private let dataRangeOldestOffset = 46
 private let dataRangeNewestOffset = 62
+/// Seconds without a message from the Strap before a sync fails as "stopped responding" (spec
+/// 001, an assumption: the capture shows replies within milliseconds).
+private let strapSilenceTimeout: TimeInterval = 10
 /// Seconds after the first History Record before the time left is shown: too few records
 /// before then to tell the rate (spec 001, an assumption).
 private let timeLeftDelay: TimeInterval = 2
