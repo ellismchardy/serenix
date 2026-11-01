@@ -109,12 +109,12 @@ public enum Zone: Equatable, Sendable {
         case (.spo2, _):
             position = (value - spo2GaugeBottom) / (spo2GaugeTop - spo2GaugeBottom)
         case (.hrv, _):
-            guard let z = z(metric, value: value, baseline: baseline) else { return nil }
+            guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
             position = centred(z, limit: -hrvZWatchFrom)
         case (.restingHR, let median?):
             position = centred(value - median, limit: restingHROutOfRangeFrom)
         case (.respiratoryRate, _):
-            guard let z = z(metric, value: value, baseline: baseline) else { return nil }
+            guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
             position = centred(z, limit: respiratoryRateZWatchUpTo)
         case (.skinTemperature, let median?):
             position = centred(value - median, limit: skinTemperatureWatchUpTo)

@@ -362,7 +362,7 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - **Write a review.** It needs the App Store, which needs the Apple Developer Program (ADR 0003).
   When its spec comes, it may link to GitHub instead.
 - **SpO2 rounding.** Zones use unrounded values, so SpO2 94.6 shows "95%" with "Below 95%".
-  Assumption: keep it, as the Zone table says; revisit if it confuses on real Nights.
+  Assumption: keep it, as spec 004's Zone table says; revisit if it confuses on real Nights.
 ## Notes
 - Prototype: branch `prototype/homescreen`, file `src/SerenixApp/Prototype/home-screen-prototype.html`.
   Open it with `?variant=E`.

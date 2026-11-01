@@ -12,10 +12,10 @@ struct Baseline: Equatable, Sendable {
     /// for HRV. Nil while Calibrating, and for metrics whose Spread isn't worked out yet.
     let spread: Double?
 
-    /// At most this many of the most recent earlier Nights count (spec 002, Baseline).
+    /// At most this many of the most recent earlier Nights count (spec 004, Baseline).
     static let maxNights = 14
     /// Calibrating until this many earlier Nights have a value, so the 4th Night with one is the
-    /// first with a Baseline (spec 002; docs/architecture.md, "calibrating until 4 Nights").
+    /// first with a Baseline (spec 004; docs/architecture.md, "calibrating until 4 Nights").
     static let minEarlierNights = 3
     /// HRV's typical Spread, on ln(RMSSD) (spec 004, Spread). Assumption from issue #14 and
     /// docs/research/nightly-metric-deviation.md: tune with real Nights.
@@ -33,7 +33,8 @@ struct Baseline: Equatable, Sendable {
     /// the typical value (spec 004, Spread; issue #14).
     static let minEarlierNightsForMeasuredSpread = 7
     /// Scales a median absolute deviation to estimate a standard deviation for normally
-    /// distributed values (spec 004, Spread).
+    /// distributed values (spec 004, Spread). Unitless: 1 / Φ⁻¹(0.75), the standard
+    /// normal-consistency constant.
     static let madScale = 1.4826
 
     init(_ metric: NightlyMetric, for night: Night, among nights: [Night]) {

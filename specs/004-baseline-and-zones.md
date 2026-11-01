@@ -98,10 +98,10 @@ app shows is still the median in the metric's unit (e.g. "60 ms").
 ## Design decisions
 - **`SerenixCore`: Baseline** gains a Spread next to its median: nil while Calibrating,
   otherwise the scaled MAD (floored) or the typical value, and nil for metrics with no
-  Spread. It stays pure, takes the same inputs, and the Readiness spec will extend and reuse it. Floors, typical values, the 7-Night
-  threshold and the 1.4826 factor are named constants, each commented with its unit and source
-  (issue #14 and `docs/research/nightly-metric-deviation.md`, "assumption: tune with real
-  Nights").
+  Spread. It stays pure, takes the same inputs, and the Readiness spec will extend and reuse
+  it. Floors, typical values, the 7-Night threshold and the 1.4826 factor are named
+  constants, each commented with its unit and source (issue #14 and
+  `docs/research/nightly-metric-deviation.md`, "assumption: tune with real Nights").
 - **`SerenixCore`: Zone** takes the whole Baseline (median and Spread) instead of only the
   median, for the Zone, the gauge position and the In range band. Its cut-offs are named
   constants as before.
