@@ -25,6 +25,11 @@ public func nights(from records: [HistoryRecord], in timeZone: TimeZone) -> [Nig
                 day: Day(containing: period.finalWake, in: timeZone),
                 restingHR: NightlyMetrics.restingHR(of: asleep),
                 hrv: NightlyMetrics.hrv(of: asleep),
+                respiratoryRate: NightlyMetrics.respiratoryRate(
+                    of: asleep,
+                    sleepOnset: period.sleepOnset,
+                    finalWake: period.finalWake
+                ),
                 skinTemperature: NightlyMetrics.skinTemperature(of: asleep),
                 sleepOnset: period.sleepOnset,
                 finalWake: period.finalWake,

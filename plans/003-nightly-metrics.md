@@ -70,7 +70,7 @@ Assumptions (consistent with the spec, stated for review):
    - Seam: Nights from History Records · Files: `src/SerenixCore/NightlyMetrics.swift` (new),
      `src/SerenixCore/Nights.swift`, `tests/SerenixCoreTests/NightsTests.swift`
    - Done when: those three values match hr-tracker within ±0.05 (part of criterion 2).
-4. [ ] **Slice:** Respiratory rate: 5-minute windows with ≥ 200 kept RR, 4 Hz linear resample,
+4. [x] **Slice:** Respiratory rate: 5-minute windows with ≥ 200 kept RR, 4 Hz linear resample,
    Hann window, strongest bin in 0.12–0.4 Hz, mean of windows.
    - Seam: Nights from History Records · Files: `src/SerenixCore/NightlyMetrics.swift`,
      `tests/SerenixCoreTests/NightsTests.swift`
