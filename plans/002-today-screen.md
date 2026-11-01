@@ -60,7 +60,7 @@ Assumptions (consistent with the spec, stated so review can check them):
      `src/SerenixApp/TodayScreen.swift`, `src/SerenixApp/MetricTile.swift` (new)
    - Done when: the median (59 / 60), 14-Night, own-Night-excluded, earlier-Night, 2-vs-3
      Calibrating and missing-skipped criteria pass.
-4. [ ] **Slice:** Zones and the other tiles: Resting HR, respiratory rate, skin temperature and
+4. [x] **Slice:** Zones and the other tiles: Resting HR, respiratory rate, skin temperature and
    SpO2 tiles with Zone and difference text; Time Asleep tile; 7-Night trend lines; the "Last
    night" / date heading.
    - Seam: Today view · Files: `src/SerenixCore/Zone.swift` (new),

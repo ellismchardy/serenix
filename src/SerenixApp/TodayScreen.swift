@@ -108,11 +108,21 @@ struct TodayScreen: View {
         }
     }
 
-    /// The Nightly Metric tiles in a 2-column grid; none on a Day without a Night.
+    /// Under "Last night" or the date: Time Asleep, then the Nightly Metric tiles, in a 2-column
+    /// grid; none on a Day without a Night.
     private func tiles(_ today: TodayView) -> some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            ForEach(today.tiles, id: \.metric) { tile in
-                MetricTileView(tile: tile)
+        VStack(alignment: .leading, spacing: 8) {
+            if today.noNightMessage == nil {
+                Text(today.tilesHeading)
+                    .font(.headline)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    if let timeAsleep = today.timeAsleepTile {
+                        TimeAsleepTileView(tile: timeAsleep)
+                    }
+                    ForEach(today.tiles, id: \.metric) { tile in
+                        MetricTileView(tile: tile)
+                    }
+                }
             }
         }
     }

@@ -27,6 +27,10 @@ public struct TodayView: Equatable, Sendable {
     public let sleepScoreFill: Double
     public let loadFill: Double
     public let syncPill: SyncPill
+    /// "Last night" on today, else the Day's date.
+    public let tilesHeading: String
+    /// Nil on a Day without a Night.
+    public let timeAsleepTile: TimeAsleepTile?
     /// The Nightly Metric tiles in their order; none on a Day without a Night.
     public let tiles: [MetricTile]
 
@@ -85,6 +89,8 @@ public struct TodayView: Equatable, Sendable {
 
         syncPill = SyncPill(sync, timeZone: timeZone)
 
+        tilesHeading = isToday ? "Last night" : day.text
+        timeAsleepTile = night.map { TimeAsleepTile(for: $0, among: nights, timeZone: timeZone) }
         tiles =
             night.map { night in
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }

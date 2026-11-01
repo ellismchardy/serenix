@@ -37,12 +37,22 @@ private func todayView(
 
 /// Nights on the Days before 1 Nov, newest first: the first is on 31 Oct, the next on 30 Oct,
 /// and so on. A nil (or absent) entry is a Night without that Nightly Metric.
-private func nightsBeforeNov1(hrv: [Double?], restingHR: [Double?] = []) -> [Night] {
-    (0..<max(hrv.count, restingHR.count)).map { index in
+private func nightsBeforeNov1(
+    hrv: [Double?] = [],
+    restingHR: [Double?] = [],
+    respiratoryRate: [Double?] = [],
+    skinTemperature: [Double?] = [],
+    spo2: [Double?] = []
+) -> [Night] {
+    let count = [hrv, restingHR, respiratoryRate, skinTemperature, spo2].map(\.count).max()!
+    return (0..<count).map { index in
         Night(
             day: Day(year: 2026, month: 10, day: 31 - index),
             restingHR: index < restingHR.count ? restingHR[index] : nil,
-            hrv: index < hrv.count ? hrv[index] : nil
+            hrv: index < hrv.count ? hrv[index] : nil,
+            respiratoryRate: index < respiratoryRate.count ? respiratoryRate[index] : nil,
+            skinTemperature: index < skinTemperature.count ? skinTemperature[index] : nil,
+            spo2: index < spo2.count ? spo2[index] : nil
         )
     }
 }
@@ -464,4 +474,410 @@ func readinessShowsItsNumberAndBand(
     #expect(view.tile(.hrv)?.valueText == "—")
     #expect(view.tile(.hrv)?.differenceText == "—")
     #expect(view.tile(.hrv)?.baseline == 60)
+}
+
+// MARK: Zones
+
+/// Three earlier Nights at the same values, so 1 Nov's Baselines are exactly Resting HR 52 bpm,
+/// HRV 60 ms, respiratory rate 14.0 br/min and skin temperature 34.0 °C.
+private let exactBaselinesBeforeNov1 = nightsBeforeNov1(
+    hrv: [60, 60, 60],
+    restingHR: [52, 52, 52],
+    respiratoryRate: [14.0, 14.0, 14.0],
+    skinTemperature: [34.0, 34.0, 34.0]
+)
+
+private func nov1Tile(_ metric: NightlyMetric, of night: Night) -> MetricTile? {
+    todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1).tile(metric)
+}
+
+// 57 is −5% and 51 is −15% of 60, the boundaries themselves.
+@Test(
+    arguments: [(57, .inRange), (56.9, .watch), (51, .watch), (50.9, .outOfRange), (90, .inRange)]
+        as [(Double, Zone)]
+)
+func hrvZoneAgainstABaselineOf60(hrv: Double, zone: Zone) {
+    let tile = nov1Tile(.hrv, of: Night(day: nov1, hrv: hrv))
+
+    #expect(tile?.baseline == 60)
+    #expect(tile?.zone == zone)
+}
+
+@Test(
+    arguments: [(53, .inRange), (53.1, .watch), (56, .watch), (56.1, .outOfRange), (45, .inRange)]
+        as [(Double, Zone)]
+)
+func restingHRZoneAgainstABaselineOf52(restingHR: Double, zone: Zone) {
+    let tile = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: restingHR))
+
+    #expect(tile?.baseline == 52)
+    #expect(tile?.zone == zone)
+}
+
+@Test(
+    arguments: [
+        (14.5, .inRange), (13.5, .inRange), (15.0, .watch), (15.1, .outOfRange),
+        (12.9, .outOfRange),
+    ] as [(Double, Zone)]
+)
+func respiratoryRateZoneAgainstABaselineOf14(respiratoryRate: Double, zone: Zone) {
+    let tile = nov1Tile(.respiratoryRate, of: Night(day: nov1, respiratoryRate: respiratoryRate))
+
+    #expect(tile?.baseline == 14.0)
+    #expect(tile?.zone == zone)
+}
+
+@Test(arguments: [(34.3, .inRange), (33.6, .watch), (34.7, .outOfRange)] as [(Double, Zone)])
+func skinTemperatureZoneAgainstABaselineOf34(skinTemperature: Double, zone: Zone) {
+    let tile = nov1Tile(.skinTemperature, of: Night(day: nov1, skinTemperature: skinTemperature))
+
+    #expect(tile?.baseline == 34.0)
+    #expect(tile?.zone == zone)
+}
+
+@Test(
+    arguments: [(95, .inRange), (94, .watch), (92, .watch), (91, .outOfRange)] as [(Double, Zone)]
+)
+func spo2ZoneIsSetByFixedLevelsFromTheFirstNight(spo2: Double, zone: Zone) {
+    let firstNight = todayView(nights: [Night(day: nov1, spo2: spo2)], showing: nov1).tile(.spo2)
+    #expect(firstNight?.baseline == nil)
+    #expect(firstNight?.zone == zone)
+
+    // Earlier Nights well above 95% change nothing: SpO2 has no Baseline.
+    let afterOthers = todayView(
+        nights: nightsBeforeNov1(spo2: [99, 99, 99]) + [Night(day: nov1, spo2: spo2)],
+        showing: nov1
+    ).tile(.spo2)
+    #expect(afterOthers?.baseline == nil)
+    #expect(afterOthers?.zone == zone)
+}
+
+@Test func changingTheNightsOwnHRVChangesItsZoneButNotItsBaseline() {
+    let inRange = nov1Tile(.hrv, of: Night(day: nov1, hrv: 60))
+    let outOfRange = nov1Tile(.hrv, of: Night(day: nov1, hrv: 40))
+
+    #expect(inRange?.zone == .inRange)
+    #expect(outOfRange?.zone == .outOfRange)
+    #expect(inRange?.baseline == 60)
+    #expect(outOfRange?.baseline == 60)
+}
+
+// MARK: Tile text
+
+@Test func restingHRDifferenceIsInWholeSignedBpm() {
+    let down = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: 49))
+    #expect(down?.differenceText == "\u{2212}3 bpm")
+
+    let up = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: 54))
+    #expect(up?.differenceText == "+2 bpm")
+
+    let none = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: 51.6))
+    #expect(none?.differenceText == "0 bpm")
+}
+
+@Test func hrvDifferenceIsAWholeSignedPercentageAgainstAnExactBaseline() {
+    #expect(nov1Tile(.hrv, of: Night(day: nov1, hrv: 68.4))?.differenceText == "+14%")
+    #expect(nov1Tile(.hrv, of: Night(day: nov1, hrv: 59.8))?.differenceText == "0%")
+}
+
+@Test func respiratoryRateDifferenceIsSignedToOneDecimalWithoutAUnit() {
+    let up = nov1Tile(.respiratoryRate, of: Night(day: nov1, respiratoryRate: 14.4))
+    #expect(up?.differenceText == "+0.4")
+
+    let down = nov1Tile(.respiratoryRate, of: Night(day: nov1, respiratoryRate: 13.7))
+    #expect(down?.differenceText == "\u{2212}0.3")
+
+    let none = nov1Tile(.respiratoryRate, of: Night(day: nov1, respiratoryRate: 13.98))
+    #expect(none?.differenceText == "0.0")
+}
+
+@Test func skinTemperatureDifferenceIsSignedToOneDecimalWithoutAUnit() {
+    let up = nov1Tile(.skinTemperature, of: Night(day: nov1, skinTemperature: 34.4))
+    #expect(up?.differenceText == "+0.4")
+
+    let down = nov1Tile(.skinTemperature, of: Night(day: nov1, skinTemperature: 33.7))
+    #expect(down?.differenceText == "\u{2212}0.3")
+
+    let none = nov1Tile(.skinTemperature, of: Night(day: nov1, skinTemperature: 34.02))
+    #expect(none?.differenceText == "0.0")
+}
+
+@Test(
+    arguments: [
+        (96, "95% or above"), (95, "95% or above"), (94, "Below 95%"), (92, "Below 95%"),
+        (91, "Below 92%"),
+    ] as [(Double, String)]
+)
+func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
+    let tile = todayView(nights: [Night(day: nov1, spo2: spo2)], showing: nov1).tile(.spo2)
+
+    #expect(tile?.differenceText == line)
+}
+
+@Test func eachMetricsValueShowsWithItsUnit() {
+    let night = Night(
+        day: nov1,
+        restingHR: 52,
+        hrv: 62,
+        respiratoryRate: 14.2,
+        skinTemperature: 34.1,
+        spo2: 96
+    )
+    let view = todayView(nights: [night], showing: nov1)
+
+    #expect(view.tile(.restingHR)?.valueText == "52 bpm")
+    #expect(view.tile(.hrv)?.valueText == "62 ms")
+    #expect(view.tile(.respiratoryRate)?.valueText == "14.2 br/min")
+    #expect(view.tile(.skinTemperature)?.valueText == "34.1 °C")
+    #expect(view.tile(.spo2)?.valueText == "96%")
+}
+
+@Test func valuesRoundToWholeNumbersOrOneDecimal() {
+    let night = Night(
+        day: nov1,
+        restingHR: 51.6,
+        respiratoryRate: 14.0,
+        skinTemperature: 34.06,
+        spo2: 95.6
+    )
+    let view = todayView(nights: [night], showing: nov1)
+
+    #expect(view.tile(.restingHR)?.valueText == "52 bpm")
+    #expect(view.tile(.respiratoryRate)?.valueText == "14.0 br/min")
+    #expect(view.tile(.skinTemperature)?.valueText == "34.1 °C")
+    #expect(view.tile(.spo2)?.valueText == "96%")
+}
+
+// MARK: Calibrating and missing tiles
+
+@Test func aCalibratingMetricHasNoZoneButSpO2HasOne() {
+    let earlier = nightsBeforeNov1(
+        hrv: [60, 60],
+        restingHR: [52, 52],
+        respiratoryRate: [14.0, 14.0],
+        skinTemperature: [34.0, 34.0],
+        spo2: [97, 97]
+    )
+    let night = Night(
+        day: nov1,
+        restingHR: 60,
+        hrv: 40,
+        respiratoryRate: 16.0,
+        skinTemperature: 35.0,
+        spo2: 96
+    )
+    let view = todayView(nights: earlier + [night], showing: nov1)
+
+    for metric in [NightlyMetric.restingHR, .hrv, .respiratoryRate, .skinTemperature] {
+        #expect(view.tile(metric)?.baseline == nil, "\(metric)")
+        #expect(view.tile(metric)?.zone == nil, "\(metric)")
+        #expect(view.tile(metric)?.differenceText == "Calibrating", "\(metric)")
+    }
+    #expect(view.tile(.spo2)?.zone == .inRange)
+    #expect(view.tile(.spo2)?.differenceText == "95% or above")
+}
+
+@Test func aNightMissingEveryNightlyMetricShowsDashesWithNoZone() {
+    let earlier = nightsBeforeNov1(
+        hrv: [60, 60, 60],
+        restingHR: [52, 52, 52],
+        respiratoryRate: [14.0, 14.0, 14.0],
+        skinTemperature: [34.0, 34.0, 34.0],
+        spo2: [97, 97, 97]
+    )
+    let view = todayView(nights: earlier + [Night(day: nov1)], showing: nov1)
+
+    #expect(view.tiles.count == 5)
+    for tile in view.tiles {
+        #expect(tile.valueText == "—", "\(tile.metric)")
+        #expect(tile.differenceText == "—", "\(tile.metric)")
+        #expect(tile.zone == nil, "\(tile.metric)")
+    }
+}
+
+@Test func aNightWithoutSpO2ShowsADashWhileItsOtherMetricsShow() {
+    let view = todayView(nights: [Night(day: nov1, restingHR: 52)], showing: nov1)
+
+    #expect(view.tile(.spo2)?.valueText == "—")
+    #expect(view.tile(.spo2)?.differenceText == "—")
+    #expect(view.tile(.spo2)?.zone == nil)
+    #expect(view.tile(.restingHR)?.valueText == "52 bpm")
+}
+
+// MARK: Tile order and names
+
+@Test func tilesRunRestingHRHRVRespiratoryRateSkinTemperatureSpO2() {
+    let view = todayView(nights: [Night(day: nov1)], showing: nov1)
+
+    #expect(
+        view.tiles.map(\.metric) == [.restingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2]
+    )
+    #expect(
+        view.tiles.map(\.metric.name) == [
+            "Resting HR", "HRV", "Respiratory rate", "Skin temperature", "SpO2",
+        ]
+    )
+}
+
+// MARK: Trend lines
+
+/// Nights from 23 Oct to 31 Oct, one per Day, with a distinct value for every metric.
+private func nightsOct23ToOct31(hrvOnOct27: Double? = 44) -> [Night] {
+    let restingHR: [Double] = [60, 59, 58, 57, 56, 55, 54, 53, 52.5]
+    let hrv: [Double?] = [40, 41, 42, 43, hrvOnOct27, 45, 46, 47, 48.4]
+    let respiratoryRate: [Double] = [13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9]
+    let skinTemperature: [Double] = [33.1, 33.2, 33.3, 33.4, 33.5, 33.6, 33.7, 33.8, 33.9]
+    let spo2: [Double] = [90, 91, 92, 93, 94, 95, 96, 97, 98]
+    let timeAsleep: [TimeInterval] = [
+        25_000, 25_100, 25_200, 25_300, 25_400, 25_500, 25_600, 25_700, 25_800,
+    ]
+    return (0..<9).map { index in
+        Night(
+            day: Day(year: 2026, month: 10, day: 23 + index),
+            restingHR: restingHR[index],
+            hrv: hrv[index],
+            respiratoryRate: respiratoryRate[index],
+            skinTemperature: skinTemperature[index],
+            spo2: spo2[index],
+            timeAsleep: timeAsleep[index]
+        )
+    }
+}
+
+/// A Night after 31 Oct, which must never appear in 31 Oct's trend lines.
+private let laterNightOnNov1 = Night(
+    day: nov1,
+    restingHR: 99,
+    hrv: 99,
+    respiratoryRate: 19.9,
+    skinTemperature: 39.9,
+    spo2: 80,
+    timeAsleep: 99_999
+)
+
+@Test func eachTrendLineHoldsTheSevenMostRecentNightsUpToTheNightShownOldestFirst() {
+    // Given newest first, so the order of the input can't stand in for sorting.
+    let nights = [laterNightOnNov1] + nightsOct23ToOct31().reversed()
+    let view = todayView(nights: nights, showing: oct31)
+
+    #expect(view.tile(.restingHR)?.trend == [58, 57, 56, 55, 54, 53, 52.5])
+    #expect(view.tile(.hrv)?.trend == [42, 43, 44, 45, 46, 47, 48.4])
+    #expect(view.tile(.respiratoryRate)?.trend == [13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9])
+    #expect(view.tile(.skinTemperature)?.trend == [33.3, 33.4, 33.5, 33.6, 33.7, 33.8, 33.9])
+    #expect(view.tile(.spo2)?.trend == [92, 93, 94, 95, 96, 97, 98])
+    #expect(
+        view.timeAsleepTile?.trend == [25_200, 25_300, 25_400, 25_500, 25_600, 25_700, 25_800]
+    )
+}
+
+@Test func aNightMissingTheValueIsLeftOutOfTheTrendLine() {
+    let nights = nightsOct23ToOct31(hrvOnOct27: nil) + [laterNightOnNov1]
+    let view = todayView(nights: nights, showing: oct31)
+
+    // 27 Oct's Night is one of the 7 but has no HRV; 24 Oct's Night doesn't take its place.
+    #expect(view.tile(.hrv)?.trend == [42, 43, 45, 46, 47, 48.4])
+    #expect(view.tile(.restingHR)?.trend == [58, 57, 56, 55, 54, 53, 52.5])
+}
+
+// MARK: Time Asleep tile
+
+/// 2026-10-31T22:45:00Z.
+private let onsetOct31At2245 = Date(timeIntervalSince1970: 1_793_486_700)
+/// 2026-11-01T06:57:00Z.
+private let finalWakeNov1At0657 = Date(timeIntervalSince1970: 1_793_516_220)
+
+@Test func timeAsleepShowsHoursAndMinutesAndTheSleepOnsetToFinalWakeSpan() {
+    let night = Night(
+        day: nov1,
+        sleepOnset: onsetOct31At2245,
+        finalWake: finalWakeNov1At0657,
+        timeAsleep: 27_600
+    )
+    let tile = todayView(nights: [night], showing: nov1).timeAsleepTile
+
+    #expect(tile?.valueText == "7h 40m")
+    #expect(tile?.spanText == "22:45 → 06:57")
+    #expect(tile?.trend == [27_600])
+}
+
+@Test(
+    arguments: [(27_571, "7h 40m"), (27_629, "7h 40m"), (27_631, "7h 41m")]
+        as [(TimeInterval, String)]
+)
+func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) {
+    let tile = todayView(nights: [Night(day: nov1, timeAsleep: timeAsleep)], showing: nov1)
+        .timeAsleepTile
+
+    #expect(tile?.valueText == text)
+}
+
+@Test func theSleepOnsetToFinalWakeSpanIsInLocalTime() {
+    let newYork = TimeZone(identifier: "America/New_York")!
+    // 22:45Z on 31 Oct is 18:45 EDT; 06:57Z on 1 Nov is 01:57 EST (EDT ends at 06:00Z).
+    let view = TodayView(
+        nights: [Night(day: nov1, sleepOnset: onsetOct31At2245, finalWake: finalWakeNov1At0657)],
+        dayLoads: [],
+        showing: nov1,
+        now: now,
+        timeZone: newYork,
+        sync: .connecting
+    )
+
+    #expect(view.timeAsleepTile?.spanText == "18:45 → 01:57")
+}
+
+@Test func aNightWithoutTimeAsleepShowsADash() {
+    let night = Night(day: nov1, sleepOnset: onsetOct31At2245, finalWake: finalWakeNov1At0657)
+    let tile = todayView(nights: [night], showing: nov1).timeAsleepTile
+
+    #expect(tile?.valueText == "—")
+    #expect(tile?.spanText == "22:45 → 06:57")
+    #expect(tile?.trend == [])
+}
+
+@Test func theSpanIsADashWithoutSleepOnsetOrFinalWake() {
+    let noOnset = Night(day: nov1, finalWake: finalWakeNov1At0657, timeAsleep: 27_600)
+    #expect(todayView(nights: [noOnset], showing: nov1).timeAsleepTile?.spanText == "—")
+
+    let noFinalWake = Night(day: nov1, sleepOnset: onsetOct31At2245, timeAsleep: 27_600)
+    #expect(todayView(nights: [noFinalWake], showing: nov1).timeAsleepTile?.spanText == "—")
+}
+
+// MARK: Tiles heading
+
+@Test func tilesAreHeadedLastNightOnTodayAndByDateOnEarlierDays() {
+    let nights = [Night(day: oct31), Night(day: nov1)]
+
+    #expect(todayView(nights: nights, showing: nov1).tilesHeading == "Last night")
+    #expect(todayView(nights: nights, showing: oct31).tilesHeading == "Sat 31 Oct")
+}
+
+@Test func aDayWithoutANightHasNoTimeAsleepTile() {
+    let view = todayView(nights: [Night(day: oct31, timeAsleep: 27_600)], showing: nov1)
+
+    #expect(view.timeAsleepTile == nil)
+    #expect(view.tiles.isEmpty)
+}
+
+// MARK: Bad values
+
+@Test func skinTemperature06AboveBaselineIsWatchNotOutOfRange() {
+    // 34.6 − 34.0 is 0.6000000000000014 in floating point; the spec's 0.6 is still Watch.
+    #expect(nov1Tile(.skinTemperature, of: Night(day: nov1, skinTemperature: 34.6))?.zone == .watch)
+    #expect(nov1Tile(.skinTemperature, of: Night(day: nov1, skinTemperature: 33.4))?.zone == .watch)
+}
+
+@Test func aValueTooLargeToShowCountsAsMissingRatherThanACrash() {
+    let tile = nov1Tile(.hrv, of: Night(day: nov1, hrv: 1e300))
+
+    #expect(tile?.valueText == "—")
+    #expect(tile?.differenceText == "—")
+    #expect(tile?.zone == nil)
+}
+
+@Test func aNegativeTimeAsleepCountsAsMissing() {
+    let view = todayView(nights: [Night(day: nov1, timeAsleep: -300)], showing: nov1)
+
+    #expect(view.timeAsleepTile?.valueText == "—")
+    #expect(view.timeAsleepTile?.trend == [])
 }
