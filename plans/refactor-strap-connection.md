@@ -21,7 +21,7 @@ jobs (store-stats refresh, Sync Log save) are chained so each waits for the one 
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice:** a `HistorySyncFailure` gives its own failure reason
+1. [x] **Slice:** a `HistorySyncFailure` gives its own failure reason
    - Seam: `HistorySyncFailure.reason` (public, `SerenixCore`) · Files:
      `src/SerenixCore/HistorySync.swift`, `tests/SerenixCoreTests/HistorySyncTests.swift`,
      `src/SerenixApp/StrapConnection.swift`

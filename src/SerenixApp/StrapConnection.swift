@@ -302,7 +302,7 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         session.reportTimeout()
         self.session = session
         if case .failed(let failure) = session.state {
-            finish(as: .failed(reason(for: failure)))
+            finish(as: .failed(failure.reason))
         }
         return true
     }
@@ -357,22 +357,7 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
             UserDefaults.standard.set(historyRecordsReceived, forKey: lastSyncRecordCountKey)
             finish(as: .synced)
         case .failed(let failure):
-            finish(as: .failed(reason(for: failure)))
-        }
-    }
-
-    private func reason(for failure: HistorySyncFailure) -> String {
-        switch failure {
-        case .badCRC:
-            "A Frame from the Strap failed its CRC check."
-        case .lengthMismatch:
-            "A Frame from the Strap had the wrong length."
-        case .undecodableHistoryRecord(let error):
-            "A History Record couldn't be decoded (\(error))."
-        case .errorStatus(let op, let status):
-            String(format: "The Strap answered command 0x%02x with error 0x%02x.", op, status)
-        case .timedOut:
-            "The Strap stopped responding."
+            finish(as: .failed(failure.reason))
         }
     }
 

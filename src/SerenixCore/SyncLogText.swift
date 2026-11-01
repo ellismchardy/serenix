@@ -22,8 +22,8 @@ extension SyncLogEntry {
 }
 
 /// A shared log after a day away holds ~100,000 Frames, so this avoids building a string per
-/// byte.
-private func hex(_ bytes: [UInt8]) -> String {
+/// byte. Lowercase, two digits per byte.
+func hex(_ bytes: [UInt8]) -> String {
     var digits: [UInt8] = []
     digits.reserveCapacity(bytes.count * 2)
     for byte in bytes {

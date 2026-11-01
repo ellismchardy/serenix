@@ -47,6 +47,22 @@ public enum HistorySyncFailure: Error, Equatable, Sendable {
     case errorStatus(op: UInt8, status: UInt8)
     /// The caller reported that the Strap stopped responding.
     case timedOut
+
+    /// Why the sync failed, as the user reads it.
+    public var reason: String {
+        switch self {
+        case .badCRC:
+            "A Frame from the Strap failed its CRC check."
+        case .lengthMismatch:
+            "A Frame from the Strap had the wrong length."
+        case .undecodableHistoryRecord(let error):
+            "A History Record couldn't be decoded (\(error))."
+        case .errorStatus(let op, let status):
+            "The Strap answered command 0x\(hex([op])) with error 0x\(hex([status]))."
+        case .timedOut:
+            "The Strap stopped responding."
+        }
+    }
 }
 
 /// What one step of a History Sync produced.

@@ -724,3 +724,19 @@ private func sessionsReplayingConnection2() -> [HistorySync] {
         sessions[(dataRangeReplyIndex + 1)...].allSatisfy { $0.dataRange == connection2DataRange }
     )
 }
+
+// MARK: - Failure reasons
+
+@Test(arguments: [
+    (HistorySyncFailure.badCRC, "A Frame from the Strap failed its CRC check."),
+    (.lengthMismatch, "A Frame from the Strap had the wrong length."),
+    (
+        .undecodableHistoryRecord(.unexpectedLength(12)),
+        "A History Record couldn't be decoded (unexpectedLength(12))."
+    ),
+    (.errorStatus(op: 0x3f, status: 0x03), "The Strap answered command 0x3f with error 0x03."),
+    (.timedOut, "The Strap stopped responding."),
+])
+func aFailureReadsAsItsReason(failure: HistorySyncFailure, reason: String) {
+    #expect(failure.reason == reason)
+}
