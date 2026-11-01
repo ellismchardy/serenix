@@ -21,8 +21,8 @@ public struct MetricTile: Equatable, Sendable {
     /// Which way the difference from Baseline goes as shown; nil when it shows as zero or there's
     /// no difference to show.
     let differenceDirection: BaselineDirection?
-    /// The difference from Baseline in the whole units it's shown in (a percentage for HRV, bpm
-    /// for Resting HR); nil when there's none to show.
+    /// The difference from Baseline in the whole units it's shown in: a percentage for HRV, bpm
+    /// for Resting HR, tenths for respiratory rate and skin temperature; nil when there's none.
     let differenceAsShown: Int?
 
     init(_ metric: NightlyMetric, for night: Night, among nights: [Night]) {

@@ -391,28 +391,3 @@ private let successfulPillSeconds = 3
 
 /// All three rings' size, points (spec 002, Rings: the same size).
 private let ringDiameter: CGFloat = 84
-
-/// The Nights whose Readiness message the user closed, by the Night's Day, kept in UserDefaults
-/// on this phone so a closed message stays closed after relaunching.
-private struct ClosedReadinessMessages {
-    private var keys = Set(UserDefaults.standard.stringArray(forKey: Self.storageKey) ?? [])
-
-    func contains(_ day: Day) -> Bool { keys.contains(Self.key(day)) }
-
-    mutating func close(_ day: Day) {
-        keys.insert(Self.key(day))
-        // Only recent Nights matter; keep the list from growing for ever.
-        let kept = keys.sorted().suffix(Self.keptNights)
-        keys = Set(kept)
-        UserDefaults.standard.set(Array(kept), forKey: Self.storageKey)
-    }
-
-    /// e.g. "2026-11-01", which sorts by date.
-    private static func key(_ day: Day) -> String {
-        String(format: "%04ld-%02ld-%02ld", day.year, day.month, day.dayOfMonth)
-    }
-
-    /// How many closed Nights to remember.
-    private static let keptNights = 60
-    private static let storageKey = "closedReadinessMessages"
-}

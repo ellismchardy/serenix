@@ -59,8 +59,8 @@ W T F S) over its date number, with the Day shown highlighted in the accent colo
 Days are the week holding the Day shown, counted back from today in sevens: today and the six
 Days before it, then the seven before those, and so on. Its title is the month and year of the
 Day shown, e.g. "October 2026" with 28 Oct shown, even when the strip runs into November.
-Tapping a Day shows it; a Day with no Night is dimmed
-but can still be shown ("No Night recorded" with its Load). A Day before the earliest Night's
+Tapping a Day shows it; a Day with no Night is dimmed but can still be shown ("No Night recorded"
+with its Load). A Day before the earliest Night's
 Day is greyed out and can't be tapped. ‹ shows the Day a week earlier, but never before the
 earliest Night's Day; it is disabled on that Day. › shows the Day a week later, but never after
 today; it is disabled on today. There is no Today pill and no large date
@@ -113,7 +113,8 @@ applies: "Yesterday's Load was high (82)" when the Day before the Day shown had 
 more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Resting HR is up 4 bpm" when
 Resting HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
 or "A, B and C." before the band's sentence. The Load caps (60, 30) and the high-Load mark (70)
-are named constants and assumptions, to tune once the Load spec ships. Closing it hides it for that Night, remembered on the phone across
+are named constants and assumptions, to tune once the Load spec ships. Closing it hides it for that
+Night, remembered on the phone across
 relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
 missing.
 
@@ -249,9 +250,10 @@ other metrics are whole numbers.
 
   It returns a value describing everything above: the week strip (its title, Days and which are
   shown, without a Night or out of range, and where ‹ and › go), the date picker's range, the
-  greeting, the avatar's letter and the menu header's name, the sync
-  pill, the rings, vs your Baseline, the tiles with their status words, gauge positions and
-  Zones, and the content of each popup. It decides; it doesn't draw. Colours and how long a pill
+  greeting, the avatar's letter and the menu header's name, the sync pill, the rings, the
+  Readiness message's advice, vs your Baseline, the tiles with their status words, gauge
+  positions and Zones, and the content of each popup. It decides; it doesn't draw. Colours and how
+  long a pill
   stays up are not in it, only bands, Zones and which pill.
 - **iOS shell: Today screen, popups, profile menu, name prompt.** SwiftUI. It draws the Today
   view's output, maps band and Zone to colour, applies the Look and the Appearance, times the
@@ -271,9 +273,10 @@ other metrics are whole numbers.
   "No Night yet / recorded", the greeting, the avatar letter, bands, Calibrating counts,
   Baseline (median, earlier Nights only, at least 3, missing values skipped), every Zone
   boundary, status words, gauge positions, difference formats, Load "so far", missing values,
-  popup content and which sync pill shows. It misses layout, colours, the Look and Appearance,
-  taps, animation, pill timing, the name prompt, storage and the Strap facts in the menu, which are checked by hand on
-  the phone (ADR 0002).
+  the Readiness advice, popup content and which sync pill shows. It misses layout, colours, the
+  Look and Appearance, taps, animation, pill timing, closing the Readiness message, the name
+  prompt, storage and the Strap facts in the menu, which are checked by hand on the phone
+  (ADR 0002).
 
 ## Success criteria (must be checkable)
 Automated (`swift test`, on Windows and in CI). Expected values are literals worked out by hand:
@@ -371,14 +374,16 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
       no trend line.
 - [ ] The sync pill slides down while syncing, showing just "Syncing" and a spinner, and tapping
       it offers Cancel; opening the profile menu meanwhile shows the time left and a filling
-      progress circle at the right of the Sync now row; "Sync successful" shows green with a ✓ and slides away after 3 seconds;
+      progress circle at the right of the Sync now row; "Sync successful" shows green with a ✓ and
+      slides away after 3 seconds;
       with the Strap out of range, "Sync paused" shows amber with a ⚠; tapping a paused or
       failed pill shows the reason and Retry restarts the sync; with nothing to say, no pill
       shows. Pulling down on the Today screen starts a sync.
 - [ ] On first launch Serenix asks "What should we call you?"; after Continue the Today screen
       greets by name, after Skip it greets without one, and the prompt never shows again.
 - [ ] The avatar opens the menu with the name (or "Add your name") under a large letter (or
-      person icon); editing the name there updates the greeting's name and the avatar; the Strap rows
+      person icon); editing the name there updates the greeting's name and the avatar; the Strap
+      rows
       show Connected and the model, battery, last sync, and Sync now / Retry sync; Debug opens
       001's debug screen; ✕ closes the menu.
 - [ ] After a sync with a name set, the Sync Log shared from Debug doesn't contain the name.

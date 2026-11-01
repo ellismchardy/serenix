@@ -3,11 +3,11 @@ import Foundation
 /// The advice under the Readiness message's band word (spec 002, Readiness message): the band's
 /// sentence, led for Steady and Take it easy by why, from the Night's own numbers.
 enum ReadinessAdvice {
-    /// A Load at or above this, the Day before, counts as high. Assumption: tune once the Load
-    /// spec ships.
+    /// A Load at or above this, the Day before, counts as high. Load points, 0–100 (ADR 0005).
+    /// Assumption: tune once the Load spec ships.
     static let highLoad = 70
-    /// The Load to stay under today when Steady, and when Take it easy. Assumptions: tune once
-    /// the Load spec ships.
+    /// The Load to stay under today when Steady, and when Take it easy. Load points, 0–100 (ADR
+    /// 0005). Assumptions: tune once the Load spec ships.
     static let steadyLoadCap = 60
     static let takeItEasyLoadCap = 30
 

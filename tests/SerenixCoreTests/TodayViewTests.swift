@@ -1585,3 +1585,28 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 
     #expect(view.readinessAdvice == nil)
 }
+
+@Test func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff() {
+    let night = Night(day: nov1, readiness: 80, restingHR: 56, hrv: 51.6)
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [night],
+        dayLoads: [DayLoad(day: oct31, load: 82)],
+        showing: nov1
+    )
+
+    #expect(
+        view.readinessAdvice
+            == "You've recovered well. A good day to push: go for a harder session if you feel like it."
+    )
+}
+
+@Test func twoReasonsAreJoinedWithAnd() {
+    let night = Night(day: nov1, readiness: 50, restingHR: 56, hrv: 51.6)
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(
+        view.readinessAdvice
+            == "HRV is 14% below your Baseline and Resting HR is up 4 bpm. You're part-way "
+            + "recovered. Train at a moderate pace and keep your Load under 60 today."
+    )
+}
