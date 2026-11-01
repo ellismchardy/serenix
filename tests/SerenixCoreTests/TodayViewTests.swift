@@ -35,6 +35,24 @@ private func todayView(
     )
 }
 
+/// Nights on the Days before 1 Nov, newest first: the first is on 31 Oct, the next on 30 Oct,
+/// and so on. A nil (or absent) entry is a Night without that Nightly Metric.
+private func nightsBeforeNov1(hrv: [Double?], restingHR: [Double?] = []) -> [Night] {
+    (0..<max(hrv.count, restingHR.count)).map { index in
+        Night(
+            day: Day(year: 2026, month: 10, day: 31 - index),
+            restingHR: index < restingHR.count ? restingHR[index] : nil,
+            hrv: index < hrv.count ? hrv[index] : nil
+        )
+    }
+}
+
+/// Three earlier Nights with HRV and Resting HR, so Readiness on 1 Nov is past Calibrating.
+private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
+    hrv: [60, 60, 60],
+    restingHR: [50, 50, 50]
+)
+
 // MARK: Which Day is shown
 
 @Test func arrowsStepByDayFromTodayBackToTheEarliestNight() {
@@ -200,7 +218,10 @@ func readinessShowsItsNumberAndBand(
     band: ReadinessBand,
     word: String
 ) {
-    let view = todayView(nights: [Night(day: nov1, readiness: readiness)], showing: nov1)
+    let view = todayView(
+        nights: calibratedNightsBeforeNov1 + [Night(day: nov1, readiness: readiness)],
+        showing: nov1
+    )
 
     #expect(view.readinessText == text)
     #expect(view.readinessBand == band)
@@ -216,7 +237,7 @@ func readinessShowsItsNumberAndBand(
 // MARK: Missing values
 
 @Test func aNightWithoutScoresShowsDashesAndNoBand() {
-    let view = todayView(nights: [Night(day: nov1)], showing: nov1)
+    let view = todayView(nights: calibratedNightsBeforeNov1 + [Night(day: nov1)], showing: nov1)
 
     #expect(view.sleepScoreText == "—")
     #expect(view.readinessText == "—")
@@ -236,7 +257,10 @@ func readinessShowsItsNumberAndBand(
 }
 
 @Test func eachRingFillsToItsScoreOutOf100() {
-    let view = todayView(nights: [Night(day: nov1, sleepScore: 84, readiness: 67)], showing: nov1)
+    let view = todayView(
+        nights: calibratedNightsBeforeNov1 + [Night(day: nov1, sleepScore: 84, readiness: 67)],
+        showing: nov1
+    )
 
     #expect(view.sleepScoreFill == 0.84)
     #expect(view.readinessFill == 0.67)
@@ -249,4 +273,195 @@ func readinessShowsItsNumberAndBand(
     #expect(view.sleepScoreFill == 0)
     #expect(view.readinessFill == 0)
     #expect(view.loadFill == 0)
+}
+
+// MARK: Readiness Calibrating
+
+@Test func readinessIsCalibratingUntilThreeEarlierNightsFormBothBaselines() {
+    let shown = Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)
+
+    let twoEarlier = todayView(
+        nights: nightsBeforeNov1(hrv: [60, 60], restingHR: [50, 50]) + [shown],
+        showing: nov1
+    )
+    #expect(twoEarlier.readinessText == "3/4")
+    #expect(twoEarlier.readinessBand == nil)
+    #expect(twoEarlier.readinessFill == 0)
+
+    let threeEarlier = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
+    #expect(threeEarlier.readinessText == "80")
+    #expect(threeEarlier.readinessBand == .ready)
+}
+
+@Test func theFirstNightIsOneOfFourNightsWhileReadinessIsCalibrating() {
+    let view = todayView(
+        nights: [Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)],
+        showing: nov1
+    )
+
+    #expect(view.readinessText == "1/4")
+    #expect(view.readinessBand == nil)
+    #expect(view.readinessFill == 0)
+}
+
+@Test func calibratingCountsNightsByTheMetricWithFewestEarlierValues() {
+    let nights =
+        nightsBeforeNov1(hrv: [60, 60, 60], restingHR: [50])
+        + [Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)]
+    let view = todayView(nights: nights, showing: nov1)
+
+    #expect(view.readinessText == "2/4")
+    #expect(view.readinessBand == nil)
+}
+
+// MARK: Baseline (through the HRV tile)
+
+@Test func hrvBaselineIsTheMedianOfEarlierNights() {
+    let shown = Night(day: nov1, hrv: 60)
+
+    let evenCount = todayView(
+        nights: nightsBeforeNov1(hrv: [50, 70, 60, 58]) + [shown],
+        showing: nov1
+    )
+    #expect(evenCount.tile(.hrv)?.baseline == 59)
+
+    let oddCount = todayView(nights: nightsBeforeNov1(hrv: [50, 70, 60]) + [shown], showing: nov1)
+    #expect(oddCount.tile(.hrv)?.baseline == 60)
+}
+
+@Test func hrvBaselineUsesAtMostTheFourteenMostRecentEarlierNights() {
+    let shown = Night(day: nov1, hrv: 60)
+    let fourteenNewest: [Double?] = [50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76]
+    // If these counted, the median of all 20 would be 69, not 63.
+    let sixOldest: [Double?] = [200, 200, 200, 200, 200, 200]
+
+    let fourteen = todayView(nights: nightsBeforeNov1(hrv: fourteenNewest) + [shown], showing: nov1)
+    #expect(fourteen.tile(.hrv)?.baseline == 63)
+
+    let twenty = todayView(
+        nights: nightsBeforeNov1(hrv: fourteenNewest + sixOldest) + [shown],
+        showing: nov1
+    )
+    #expect(twenty.tile(.hrv)?.baseline == 63)
+}
+
+@Test func theNightShownIsNotInItsOwnBaseline() {
+    let earlier = nightsBeforeNov1(hrv: [50, 70, 60])
+
+    let low = todayView(nights: earlier + [Night(day: nov1, hrv: 62)], showing: nov1).tile(.hrv)
+    #expect(low?.baseline == 60)
+    #expect(low?.valueText == "62 ms")
+    #expect(low?.differenceText == "+3%")
+
+    let high = todayView(nights: earlier + [Night(day: nov1, hrv: 90)], showing: nov1).tile(.hrv)
+    #expect(high?.baseline == 60)
+    #expect(high?.valueText == "90 ms")
+    #expect(high?.differenceText == "+50%")
+}
+
+@Test func anEarlierNightsBaselineComesFromNightsBeforeItOnly() {
+    let nights = [
+        Night(day: Day(year: 2026, month: 10, day: 28), hrv: 50),
+        Night(day: Day(year: 2026, month: 10, day: 29), hrv: 70),
+        Night(day: oct30, hrv: 60),
+        Night(day: oct31, hrv: 64),
+    ]
+
+    let before = todayView(nights: nights, showing: oct31).tile(.hrv)
+    #expect(before?.baseline == 60)
+
+    let after = todayView(nights: nights + [Night(day: nov1, hrv: 100)], showing: oct31)
+        .tile(.hrv)
+    #expect(after?.baseline == 60)
+}
+
+@Test func hrvIsCalibratingWithTwoEarlierNightsAndHasABaselineWithThree() {
+    let shown = Night(day: nov1, hrv: 60)
+
+    let two = todayView(nights: nightsBeforeNov1(hrv: [50, 70]) + [shown], showing: nov1)
+        .tile(.hrv)
+    #expect(two?.baseline == nil)
+    #expect(two?.differenceText == "Calibrating")
+    #expect(two?.valueText == "60 ms")
+
+    let three = todayView(nights: nightsBeforeNov1(hrv: [50, 70, 60]) + [shown], showing: nov1)
+        .tile(.hrv)
+    #expect(three?.baseline == 60)
+}
+
+@Test func earlierNightsWithoutHRVAreSkippedForItsBaseline() {
+    let shown = Night(day: nov1, hrv: 60)
+
+    let twoOfFour = todayView(
+        nights: nightsBeforeNov1(hrv: [50, nil, 70, nil]) + [shown],
+        showing: nov1
+    ).tile(.hrv)
+    #expect(twoOfFour?.baseline == nil)
+    #expect(twoOfFour?.differenceText == "Calibrating")
+
+    // Counting the two missing values as 0 would make the median 50.
+    let threeOfFive = todayView(
+        nights: nightsBeforeNov1(hrv: [50, nil, 70, nil, 60]) + [shown],
+        showing: nov1
+    ).tile(.hrv)
+    #expect(threeOfFive?.baseline == 60)
+}
+
+// MARK: HRV tile text
+
+@Test func hrvDifferenceIsAWholeSignedPercentageFromBaseline() {
+    let earlier = nightsBeforeNov1(hrv: [50, 70, 60])
+
+    let up = todayView(nights: earlier + [Night(day: nov1, hrv: 68.4)], showing: nov1).tile(.hrv)
+    #expect(up?.differenceText == "+14%")
+
+    let down = todayView(nights: earlier + [Night(day: nov1, hrv: 58.2)], showing: nov1)
+        .tile(.hrv)
+    #expect(down?.differenceText == "\u{2212}3%")
+}
+
+@Test func hrvValueIsAWholeNumberOfMilliseconds() {
+    let whole = todayView(nights: [Night(day: nov1, hrv: 62.0)], showing: nov1).tile(.hrv)
+    #expect(whole?.valueText == "62 ms")
+
+    let rounded = todayView(nights: [Night(day: nov1, hrv: 61.6)], showing: nov1).tile(.hrv)
+    #expect(rounded?.valueText == "62 ms")
+}
+
+@Test func aNightWithoutHRVShowsDashes() {
+    let view = todayView(
+        nights: nightsBeforeNov1(hrv: [50, 70, 60]) + [Night(day: nov1)],
+        showing: nov1
+    )
+
+    let tile = view.tile(.hrv)
+    #expect(tile?.metric == .hrv)
+    #expect(tile?.valueText == "—")
+    #expect(tile?.differenceText == "—")
+}
+
+@Test func aDayWithoutANightHasNoHRVTile() {
+    let view = todayView(nights: nightsBeforeNov1(hrv: [50, 70, 60]), showing: nov1)
+
+    #expect(view.tile(.hrv) == nil)
+}
+
+@Test func aZeroHRVBaselineGivesNoDifferenceRatherThanACrash() {
+    let shown = Night(day: nov1, hrv: 62)
+    let view = todayView(nights: nightsBeforeNov1(hrv: [0, 0, 0]) + [shown], showing: nov1)
+
+    #expect(view.tile(.hrv)?.valueText == "62 ms")
+    #expect(view.tile(.hrv)?.differenceText == "—")
+}
+
+@Test func aNonFiniteHRVCountsAsMissing() {
+    let shown = Night(day: nov1, hrv: .nan)
+    let view = todayView(
+        nights: nightsBeforeNov1(hrv: [.infinity, 50, 70, 60]) + [shown],
+        showing: nov1
+    )
+
+    #expect(view.tile(.hrv)?.valueText == "—")
+    #expect(view.tile(.hrv)?.differenceText == "—")
+    #expect(view.tile(.hrv)?.baseline == 60)
 }

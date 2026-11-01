@@ -30,6 +30,7 @@ struct TodayScreen: View {
                             .foregroundStyle(.secondary)
                     }
                     rings(today)
+                    tiles(today)
                 }
                 .padding()
             }
@@ -104,6 +105,15 @@ struct TodayScreen: View {
                 label: today.loadLabel,
                 diameter: 84
             )
+        }
+    }
+
+    /// The Nightly Metric tiles in a 2-column grid; none on a Day without a Night.
+    private func tiles(_ today: TodayView) -> some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            ForEach(today.tiles, id: \.metric) { tile in
+                MetricTileView(tile: tile)
+            }
         }
     }
 

@@ -52,7 +52,7 @@ Assumptions (consistent with the spec, stated so review can check them):
      `src/SerenixApp/ScoreRing.swift` (new)
    - Done when: the 67/66/34/33 band criterion and the missing-score part of the "—" criterion
      pass.
-3. [ ] **Slice:** Baseline, shown through the HRV tile: median of up to 14 earlier Nights with a
+3. [x] **Slice:** Baseline, shown through the HRV tile: median of up to 14 earlier Nights with a
    value, Night shown excluded, Calibrating below 3, missing values skipped; Readiness ring
    Calibrating "n/4"; shell draws the tile grid with the HRV tile.
    - Seam: Today view · Files: `src/SerenixCore/Baseline.swift` (new),

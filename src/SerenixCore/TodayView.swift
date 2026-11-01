@@ -27,6 +27,8 @@ public struct TodayView: Equatable, Sendable {
     public let sleepScoreFill: Double
     public let loadFill: Double
     public let syncPill: SyncPill
+    /// The Nightly Metric tiles in their order; none on a Day without a Night.
+    public let tiles: [MetricTile]
 
     public init(
         nights: [Night],
@@ -48,9 +50,31 @@ public struct TodayView: Equatable, Sendable {
         let night = nights.first { $0.day == day }
         noNightMessage = night != nil ? nil : isToday ? "No Night yet" : "No Night recorded"
 
-        readinessText = scoreText(night?.readiness)
-        readinessBand = night?.readiness.map(ReadinessBand.init)
-        readinessFill = ringFill(night?.readiness)
+        // Readiness is Calibrating while either Baseline it's drawn from is (spec 002, Rings).
+        // "n/4" counts the Nights so far, by the metric with the fewest.
+        let readinessBaselines = night.map { night in
+            (
+                hrv: Baseline(.hrv, for: night, among: nights),
+                restingHR: Baseline(.restingHR, for: night, among: nights)
+            )
+        }
+        if let readinessBaselines,
+            readinessBaselines.hrv.isCalibrating || readinessBaselines.restingHR.isCalibrating
+        {
+            let nightsSoFar =
+                1
+                + min(
+                    readinessBaselines.hrv.earlierNights,
+                    readinessBaselines.restingHR.earlierNights
+                )
+            readinessText = "\(nightsSoFar)/\(Baseline.minEarlierNights + 1)"
+            readinessBand = nil
+            readinessFill = 0
+        } else {
+            readinessText = scoreText(night?.readiness)
+            readinessBand = night?.readiness.map(ReadinessBand.init)
+            readinessFill = ringFill(night?.readiness)
+        }
         sleepScoreText = scoreText(night?.sleepScore)
         sleepScoreFill = ringFill(night?.sleepScore)
 
@@ -60,6 +84,16 @@ public struct TodayView: Equatable, Sendable {
         loadFill = ringFill(load)
 
         syncPill = SyncPill(sync, timeZone: timeZone)
+
+        tiles =
+            night.map { night in
+                NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }
+            } ?? []
+    }
+
+    /// A Nightly Metric's tile; nil on a Day without a Night.
+    public func tile(_ metric: NightlyMetric) -> MetricTile? {
+        tiles.first { $0.metric == metric }
     }
 }
 
