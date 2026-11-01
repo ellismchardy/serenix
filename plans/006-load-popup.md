@@ -148,7 +148,7 @@ ignored, and nothing holds a connection between syncs.
     - Seam: shell (by hand, ADR 0002) · Files: `src/SerenixApp/DayLoadStore.swift`, `src/SerenixApp/StrapConnection.swift`, `src/SerenixApp/TodayScreen.swift`
     - Done when: the macOS CI job builds, and the "after the update" manual criterion is listed
       with steps for the PR.
-12. [ ] **Slice (shell):** the Load popup view, and the ring opening it.
+12. [x] **Slice (shell):** the Load popup view, and the ring opening it.
     - `TodayPopup.load` and a `LoadPopupView` in `TodayPopups.swift`, with Charts stacked hourly
       bars and zone rows.
     - The ring Button opens `.load` unless `loadOpensProfileMenu`.
@@ -190,6 +190,12 @@ ignored, and nothing holds a connection between syncs.
   shows its HR Zones. On a Day older than the History Records still on the phone, it says
   "Heart rate zones aren't available for this Day". Today's popup reads "As of your last sync at
   HH:mm" with the last successful sync's time.
+
+- **Manual check for the PR (task 12):** tap the Load ring on a Day with a Load: the popup
+  shows the Day and Load, the typical line, five "Zone N · …" rows with tinted bars, stacked
+  hourly bars, Highest HR and Max HR used; a tap outside or a swipe down closes it. With no birth
+  year or Max HR, the ring still opens the profile menu. On a Day with no History Records it says
+  "No heart rate recorded this Day".
 
 ## Done when
 - All tasks checked, every success criterion in spec 006 met, suite green.
