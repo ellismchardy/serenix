@@ -2,9 +2,9 @@
 <!--
   PROTOTYPE — throwaway, never merged (branch prototype/homescreen).
   Question: what should the Serenix home screen look like?
-  Four structurally different home screens (A–D), plus E/F combining the owner's picks
-  (A rings + B Readiness hero/Baseline + C tiles, with C and D as Sleep/Trends tabs),
-  switchable via ?variant=A..F,
+  Four structurally different home screens (A–D), plus E combining the owner's picks
+  (A rings + date arrows, B Readiness hero/Baseline, C tiles, with C and D as Sleep/Trends tabs),
+  switchable via ?variant=A..E,
   the floating bar at the bottom, or the ← → keys. Scenario via ?scenario=.
   Run: double-click this file. Mock data only; nothing is stored.
 -->
@@ -223,7 +223,7 @@ const SCENARIOS = {
   failed: 'Sync failed',
   first: 'First launch',
 };
-const VARIANTS = { A: 'Score rings', B: 'Briefing', C: 'Night timeline', D: 'Trends', E: 'Combined · date arrows', F: 'Combined · week strip' };
+const VARIANTS = { A: 'Score rings', B: 'Briefing', C: 'Night timeline', D: 'Trends', E: 'Combined' };
 const TABS = { today: ['◉', 'Today'], sleep: ['☾', 'Sleep'], trends: ['∿', 'Trends'] };
 const qs = new URLSearchParams(location.search);
 const state = {
@@ -231,7 +231,7 @@ const state = {
   scenario: SCENARIOS[qs.get('scenario')] ? qs.get('scenario') : 'normal',
   night: 0, sheet: null, range: 14, syncProgress: 0, tab: 'today',
 };
-const combined = () => state.variant === 'E' || state.variant === 'F';
+const combined = () => state.variant === 'E';
 const latestOnly = () => state.variant === 'D' || (combined() && state.tab === 'trends');
 let timer = null;
 
@@ -400,8 +400,8 @@ function weekStrip(list) {
   return `<div class="c-week" style="margin-top:12px">${week.map(({ m, k }) => `<button class="c-day tap ${k === state.night ? 'sel' : ''}" data-act="night:${k}">
     ${DOW[m.date.getDay()].slice(0, 1)}<b>${m.date.getDate()}</b><span class="dot" style="background:${band(m.readiness)}"></span></button>`).join('')}</div>`;
 }
-function metricTiles(list, n) {
-  return `<div class="c-grid">${METRICS.map(m => {
+function metricTiles(list, n, first = '') {
+  return `<div class="c-grid">${first}${METRICS.map(m => {
     const hist = list.slice(state.night, state.night + 7).map(x => x[m.key]).reverse();
     return `<button class="card c-tile tap" data-act="sheet:m-${m.key}"><div class="muted" style="font-size:12px">${m.name}</div>
       <div class="v">${m.fmt(n[m.key])} <span class="muted" style="font-size:12px;font-weight:400">${m.unit}</span></div>
@@ -445,15 +445,13 @@ function VariantD(list) {
   <div class="card">${METRICS.map(m => row(`m-${m.key}`, m.name, m.fmt(n[m.key]), m.unit, span.map(x => x[m.key]), 'var(--s-ink)', m.better ? bandOf(m.key) : null)).join('')}</div>`;
 }
 
-// ---------- variants E/F: Today tab combining A rings + B hero/Baseline + C tiles ----------
-// E keeps A's date header; F uses C's week strip. Sleep tab = C, Trends tab = D.
-function Combined(list, n, strip) {
+// ---------- variant E: Today tab combining A rings/date arrows + B hero/Baseline + C tiles ----------
+// Sleep tab = C (with its week strip), Trends tab = D.
+function Combined(list, n) {
   const small = (key, v, color, label) => `<button class="e-ring tap" data-act="sheet:${key}">
     ${ring(v, 100, color, 84, 8)}<div class="in" style="height:84px"><b style="font-size:24px">${v}</b></div><div class="lbl">${label}</div></button>`;
   const r = n.readiness;
-  const header = strip
-    ? `<div class="row" style="margin-top:6px"><div><div style="font-size:28px;font-weight:800">${n.today ? 'Today' : dlabel(n.date)}</div>${n.today ? `<div class="muted" style="font-size:12px">${dlabel(n.date)}</div>` : ''}</div>${syncStatus('pill')}</div>${weekStrip(list)}`
-    : `<div class="a-head">
+  const header = `<div class="a-head">
         <button class="navbtn tap" data-act="older" ${state.night >= list.length - 1 ? 'disabled' : ''}>‹</button>
         <div style="text-align:center"><div style="font-size:17px;font-weight:700">${n.today ? 'Today' : dlabel(n.date)}</div><div class="muted" style="font-size:12px">${n.today ? dlabel(n.date) : 'Night'}</div></div>
         <button class="navbtn tap" data-act="newer" ${state.night === 0 ? 'disabled' : ''}>›</button>
@@ -470,24 +468,26 @@ function Combined(list, n, strip) {
       ${contrib('Resting HR', `${n.rhr} bpm <span style="font-weight:400;font-size:12px">${delta(n, 'rhr')}</span>`, (n.base.rhr - n.rhr) / 6, n.rhr <= n.base.rhr)}
     </div>`
     : `<div class="card" style="padding:12px 14px;font-size:13px"><b>Calibrating.</b> <span class="muted">Readiness starts once 4 Nights form your Baseline. ${4 - n.nightsSoFar} to go.</span></div>`;
+  // time slept: opens the Sleep tab (C's timeline), not a sheet
+  const asleepTile = `<button class="card c-tile tap" data-act="tab:sleep"><div class="row muted" style="font-size:12px"><span>Time asleep</span><span>›</span></div>
+    <div class="v">${dur(n.asleep)}</div>
+    <div class="row"><span class="muted" style="font-size:11px">${clock(n.onset)} → ${clock(n.wake)}</span>${spark(list.slice(state.night, state.night + 7).map(x => x.asleep).reverse(), 56, 22, 'var(--sleep)')}</div></button>`;
   return `${header}
   <div class="e-rings">
     ${small('sleep', n.sleepScore, 'var(--sleep)', 'Sleep Score')}
     ${hero}
     ${small('load', n.load, 'var(--load)', n.today ? 'Load so far' : 'Load')}
   </div>
-  <button class="card row tap" data-act="tab:sleep" style="width:100%;padding:12px 14px;margin-top:14px">
-    <span><b>${dur(n.asleep)}</b> <span class="muted">asleep · ${clock(n.onset)} → ${clock(n.wake)}</span></span><span class="muted">›</span></button>
   <div class="e-sec">vs your Baseline</div>
   ${baseline}
-  <div class="e-sec">Nightly Metrics</div>
-  ${metricTiles(list, n)}
+  <div class="e-sec">${n.today ? 'Last night' : dlabel(n.date)}</div>
+  ${metricTiles(list, n, asleepTile)}
   <div style="height:90px"></div>`;
 }
 function tabScreen(list, n) {
   if (state.tab === 'sleep') return VariantC(list, n) + '<div style="height:90px"></div>';
   if (state.tab === 'trends') return VariantD(list) + '<div style="height:90px"></div>';
-  return Combined(list, n, state.variant === 'F');
+  return Combined(list, n);
 }
 
 // ---------- detail sheets (shared by every variant) ----------
@@ -526,7 +526,7 @@ function render() {
   const list = nights();
   state.night = clamp(state.night, 0, Math.max(0, list.length - 1));
   const n = list[state.night];
-  const V = { A: VariantA, B: VariantB, C: VariantC, D: VariantD, E: tabScreen, F: tabScreen }[state.variant];
+  const V = { A: VariantA, B: VariantB, C: VariantC, D: VariantD, E: tabScreen }[state.variant];
   document.getElementById('screen').innerHTML = n ? V(list, n) : empty();
   document.getElementById('tabbar').innerHTML = combined() && n ? `<div class="tabbar">${Object.entries(TABS).map(([k, [icon, label]]) =>
     `<button class="tap ${state.tab === k ? 'on' : ''}" data-act="tab:${k}"><b>${icon}</b>${label}</button>`).join('')}</div>` : '';
