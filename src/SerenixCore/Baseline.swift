@@ -46,7 +46,7 @@ struct Baseline: Equatable, Sendable {
             .compactMap { $0.value(of: metric) }
         earlierNights = earlier.count
         let used = Array(earlier.prefix(Self.maxNights))
-        let median = earlier.count < Self.minEarlierNights ? nil : Self.median(of: used)
+        let median = earlier.count < Self.minEarlierNights ? nil : SerenixCore.median(of: used)
         self.median = median
         spread = median.flatMap { median in
             Self.spread(of: metric, over: used, around: median, earlierNights: earlier.count)
@@ -77,17 +77,9 @@ struct Baseline: Equatable, Sendable {
             return nil
         }
         guard earlierNights >= minEarlierNightsForMeasuredSpread else { return typical }
-        let mad = Self.median(of: scaled.map { abs($0 - centre) })
+        let mad = SerenixCore.median(of: scaled.map { abs($0 - centre) })
         return max(madScale * mad, minSpread)
     }
 
     var isCalibrating: Bool { median == nil }
-
-    /// The middle value, or the mean of the two middle values for an even count.
-    private static func median(of values: [Double]) -> Double {
-        let sorted = values.sorted()
-        let middle = sorted.count / 2
-        return sorted.count.isMultiple(of: 2)
-            ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
-    }
 }

@@ -6,18 +6,9 @@ import UniformTypeIdentifiers
 /// newest Sync Log entries and Share log (spec 001, debug screen).
 struct DebugView: View {
     @ObservedObject var connection: StrapConnection
-    /// Feeds the Today screen hand-built Nights (plan 002, task 8).
-    @Binding var showsSampleNights: Bool
 
     var body: some View {
         List {
-            Section {
-                Toggle("Show sample Nights", isOn: $showsSampleNights)
-            } header: {
-                Text("Test aid")
-            } footer: {
-                Text("Shows made-up Nights on the Today screen. Nothing is saved; off at launch.")
-            }
             Section("Sync") {
                 LabeledContent("State", value: connection.phase.displayText)
                 LabeledContent(

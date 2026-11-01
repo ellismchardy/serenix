@@ -1,7 +1,7 @@
 import Foundation
 
 /// One local calendar Day, midnight to midnight (GLOSSARY).
-public struct Day: Hashable, Comparable, Sendable {
+public struct Day: Hashable, Comparable, Codable, Sendable {
     public let year: Int
     public let month: Int
     public let dayOfMonth: Int

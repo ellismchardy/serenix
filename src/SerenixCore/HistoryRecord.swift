@@ -21,6 +21,31 @@ public struct HistoryRecord: Equatable, Sendable {
     public let isInSpO2Window: Bool
     /// The Frame's body, kept so an improved decoder can re-read it.
     public let rawBytes: [UInt8]
+
+    /// Public, so the store can rebuild a History Record it saved and tests can build one.
+    public init(
+        recordCounter: UInt32,
+        timestamp: Date,
+        heartRate: Int,
+        rrIntervals: [Int],
+        motion: [Float],
+        skinTemperature: Double,
+        steps: Int,
+        spo2: Int,
+        isInSpO2Window: Bool,
+        rawBytes: [UInt8]
+    ) {
+        self.recordCounter = recordCounter
+        self.timestamp = timestamp
+        self.heartRate = heartRate
+        self.rrIntervals = rrIntervals
+        self.motion = motion
+        self.skinTemperature = skinTemperature
+        self.steps = steps
+        self.spo2 = spo2
+        self.isInSpO2Window = isInSpO2Window
+        self.rawBytes = rawBytes
+    }
 }
 
 extension HistoryRecord {
