@@ -14,6 +14,19 @@ public struct SyncLogEntry: Equatable, Sendable {
     public let bytes: [UInt8]
 }
 
+/// The span of History Records the Strap reported holding, in its reply to `0x22`.
+public struct HistoryDataRange: Equatable, Sendable {
+    /// The oldest History Record the Strap still has to send.
+    public let oldest: Date
+    /// A recent History Record, typically about 10 s before the newest one it sends.
+    public let newest: Date
+
+    public init(oldest: Date, newest: Date) {
+        self.oldest = oldest
+        self.newest = newest
+    }
+}
+
 /// Where a History Sync has got to.
 public enum HistorySyncState: Equatable, Sendable {
     case running
@@ -53,6 +66,10 @@ public struct HistorySyncOutput: Equatable, Sendable {
 /// Strap says so. It never stores the Sync Cursor; the Strap owns it.
 public struct HistorySync: Sendable {
     public private(set) var state: HistorySyncState = .running
+    /// What the Strap reported in this sync: its data range (`0x22`) and battery level in
+    /// percent (`0x1a`). Nil until it replies.
+    public private(set) var dataRange: HistoryDataRange?
+    public private(set) var batteryLevel: Int?
 
     private let decoder: any HistoryRecordDecoder
     /// Groups of commands still to send. A group goes out together, and the next one waits
@@ -123,6 +140,7 @@ public struct HistorySync: Sendable {
         case FrameType.reply where body.count > replyStatusOffset:
             let op = body[replyOpOffset]
             let status = body[replyStatusOffset]
+            if status == replyDone { noteReport(op: op, body: body) }
             if sentOps.contains(op), status != replyDone, status != replyMore {
                 state = .failed(.errorStatus(op: op, status: status))
             } else if op == awaitedOp, status == replyDone {
@@ -195,6 +213,26 @@ public struct HistorySync: Sendable {
         return "about \(Int((seconds / 60).rounded(.up))) min left"
     }
 
+    /// Keeps the battery level and data range from the Strap's final replies to `0x1a` and
+    /// `0x22`.
+    private mutating func noteReport(op: UInt8, body: [UInt8]) {
+        switch op {
+        case batteryOp where body.count > batteryLevelOffset:
+            batteryLevel = Int(body[batteryLevelOffset])
+        case dataRangeOp where body.count >= dataRangeNewestOffset + 4:
+            dataRange = HistoryDataRange(
+                oldest: Date(
+                    timeIntervalSince1970: TimeInterval(uint32(body, at: dataRangeOldestOffset))
+                ),
+                newest: Date(
+                    timeIntervalSince1970: TimeInterval(uint32(body, at: dataRangeNewestOffset))
+                )
+            )
+        default:
+            break
+        }
+    }
+
     private mutating func noteProgress(of record: HistoryRecord, arrivedAt time: Date) {
         if firstRecordTimestamp == nil {
             firstRecordTimestamp = record.timestamp
@@ -252,6 +290,13 @@ private let sendHistoryOp: UInt8 = 0x16
 /// Acknowledges a Batch: `01`, then the Batch's 8-byte Sync Cursor.
 private let acknowledgeOp: UInt8 = 0x17
 private let helloSequence: UInt8 = 1
+/// Body offsets in the Strap's final replies, worked out from the 27 Oct 2026 capture and the
+/// first phone syncs, where they matched every sync (not yet in hr-tracker `docs/protocol.md`):
+/// `0x1a`'s battery percentage (the Strap's console log reports the same value), and `0x22`'s
+/// u32 LE Unix-seconds oldest History Record still to send (repeated at 54) and a newest one.
+private let batteryLevelOffset = 5
+private let dataRangeOldestOffset = 46
+private let dataRangeNewestOffset = 62
 /// Seconds after the first History Record before the time left is shown: too few records
 /// before then to tell the rate (spec 001, an assumption).
 private let timeLeftDelay: TimeInterval = 2

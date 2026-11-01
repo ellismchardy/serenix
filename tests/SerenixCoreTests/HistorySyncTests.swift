@@ -654,3 +654,73 @@ private func progressReplaying(
     #expect(HistorySync.timeLeftText(60.1) == "about 2 min left")
     #expect(HistorySync.timeLeftText(186.67) == "about 4 min left")
 }
+
+// MARK: - Data range and battery level
+
+/// Index in `strapMessages` of the Strap's final reply to the session's `0x1a` (19:50:18.650),
+/// body `24 8e 1a 08 01 1d …`: body byte 5 is the battery percentage, 0x1d = 29.
+private let batteryReplyIndex = 10
+
+/// Index in `strapMessages` of the Strap's first reply to the session's `0x22` (19:50:18.950),
+/// body `24 8f 22 09 02 …`: status 0x02, not the final reply, so it carries no data range.
+private let dataRangePendingReplyIndex = 11
+
+/// Index in `strapMessages` of the Strap's final reply to the session's `0x22` (19:50:18.952),
+/// body `24 90 22 09 01 …`, 72 bytes. Body bytes 46..<50 (repeated at 54..<58) are `c7 ff e0 6a`
+/// and body bytes 62..<66 are `6b 00 e1 6a`, each a u32 little-endian Unix time.
+private let dataRangeReplyIndex = 12
+
+/// The data range connection 2's first sync reports, worked out by hand from that reply.
+/// 0x6ae10000 = 0x6ae10078 − 0x78 = 1793130616 − 120 = 1793130496 (19:48:16Z).
+/// Oldest 0x6ae0ffc7 = 1793130496 − 0x39 (57) = 1793130439: 2026-10-27T19:47:19Z, connection 2's
+/// first History Record. Newest 0x6ae1006b = 1793130496 + 0x6b (107) = 1793130603:
+/// 2026-10-27T19:50:03Z.
+private let connection2DataRange = HistoryDataRange(
+    oldest: Date(timeIntervalSince1970: 1_793_130_439),
+    newest: Date(timeIntervalSince1970: 1_793_130_603)
+)
+
+/// Starts a fresh session at `capturedPhoneTime` and feeds it `strapMessages` one second apart,
+/// as `replaySession` does, returning the session after `start` and after each message.
+private func sessionsReplayingConnection2() -> [HistorySync] {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+    var sessions = [session]
+    for (index, message) in strapMessages.enumerated() {
+        _ = session.receive(
+            message.bytes,
+            at: capturedPhoneTime.addingTimeInterval(Double(index + 1))
+        )
+        sessions.append(session)
+    }
+    return sessions
+}
+
+@Test func batteryLevelIsUnknownUntilTheStrapRepliesToTheBatteryCommand() throws {
+    let reply = strapMessages[batteryReplyIndex].bytes
+    try #require(reply[headerSize..<(headerSize + 6)] == [0x24, 0x8e, 0x1a, 0x08, 0x01, 0x1d])
+    let sessions = sessionsReplayingConnection2()
+    try #require(sessions.last?.state == .completed)
+    // sessions[0] is after start; sessions[i + 1] is after strapMessages[i].
+    #expect(sessions[...batteryReplyIndex].allSatisfy { $0.batteryLevel == nil })
+    #expect(sessions[(batteryReplyIndex + 1)...].allSatisfy { $0.batteryLevel == 29 })
+}
+
+@Test func dataRangeIsUnknownUntilTheStrapsFinalReplyToTheDataRangeCommand() throws {
+    let pending = strapMessages[dataRangePendingReplyIndex].bytes
+    try #require(pending[headerSize..<(headerSize + 5)] == [0x24, 0x8f, 0x22, 0x09, 0x02])
+    let reply = strapMessages[dataRangeReplyIndex].bytes
+    try #require(reply.count == headerSize + 72 + crcSize)
+    try #require(reply[headerSize..<(headerSize + 5)] == [0x24, 0x90, 0x22, 0x09, 0x01])
+    try #require(reply[(headerSize + 46)..<(headerSize + 50)] == [0xc7, 0xff, 0xe0, 0x6a])
+    try #require(reply[(headerSize + 54)..<(headerSize + 58)] == [0xc7, 0xff, 0xe0, 0x6a])
+    try #require(reply[(headerSize + 62)..<(headerSize + 66)] == [0x6b, 0x00, 0xe1, 0x6a])
+    let sessions = sessionsReplayingConnection2()
+    try #require(sessions.last?.state == .completed)
+    // sessions[0] is after start; sessions[i + 1] is after strapMessages[i]. The status-0x02
+    // reply before the final one brings no data range.
+    #expect(sessions[...dataRangeReplyIndex].allSatisfy { $0.dataRange == nil })
+    #expect(
+        sessions[(dataRangeReplyIndex + 1)...].allSatisfy { $0.dataRange == connection2DataRange }
+    )
+}

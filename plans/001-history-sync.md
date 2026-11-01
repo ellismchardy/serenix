@@ -177,7 +177,9 @@ background checks, so they can be watched during those.
      debug list of the newest 200 entries. Extend these to the last 5 syncs.
    - Seam: History Sync session (range, battery) + manual on the iPhone · Files:
      `src/SerenixCore/HistorySync*.swift`, `tests/SerenixCoreTests/HistorySyncTests.swift`,
-     `src/SerenixApp/`
+     `src/SerenixApp/`; also `src/SerenixCore/HistoryRecord.swift` and
+     `tests/SerenixCoreTests/HistoryRecordTests.swift` for the Record Counter gap count (pure,
+     so in `SerenixCore` and test-first)
    - Done when: the session tests for range and battery pass; on the phone the debug screen
      shows range, battery and firmware, and Share log opens the share sheet; closing Serenix
      mid-sync then syncing again leaves 0 gaps between the first and last Record Counter of the

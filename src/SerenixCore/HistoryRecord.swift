@@ -45,3 +45,11 @@ public protocol HistoryRecordDecoder: Sendable {
     /// it is one but can't be decoded, so the record is never silently lost.
     func historyRecord(from frame: Frame) throws(HistoryRecordError) -> HistoryRecord?
 }
+
+/// How many places a set of Record Counters skips numbers, for the debug screen's store stats:
+/// sorted and without repeats (a Record Counter the Strap reused is not a gap), each jump of
+/// more than one counts once.
+public func recordCounterGapCount(_ counters: [UInt32]) -> Int {
+    let sorted = Set(counters).sorted()
+    return zip(sorted, sorted.dropFirst()).filter { $1 - $0 > 1 }.count
+}

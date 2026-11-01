@@ -178,3 +178,33 @@ private let skinTemperatureTolerance = 0.001
     let record = try #require(try recordsByCounter()[2_863_315])
     #expect(record.identity == "2863315@1793130448")
 }
+
+// MARK: - Record Counter gaps
+
+@Test func recordCountersWithNoJumpHaveNoGaps() {
+    #expect(recordCounterGapCount([]) == 0)
+    #expect(recordCounterGapCount([5]) == 0)
+    #expect(recordCounterGapCount([1, 2, 3]) == 0)
+}
+
+@Test func recordCounterGapsDoNotDependOnOrder() {
+    #expect(recordCounterGapCount([3, 1, 2]) == 0)
+}
+
+@Test func aRecordCounterSeenTwiceIsNotAGap() {
+    // As after a Strap reboot reuses a Record Counter.
+    #expect(recordCounterGapCount([1, 2, 2, 3]) == 0)
+}
+
+@Test func eachJumpInRecordCountersCountsAsOneGap() {
+    #expect(recordCounterGapCount([1, 3]) == 1)
+    // 2 → 5 skips 3 and 4, one gap; 6 → 9 skips 7 and 8, another.
+    #expect(recordCounterGapCount([1, 2, 5, 6, 9]) == 2)
+}
+
+@Test func theCapturesHistoryRecordsHaveNoRecordCounterGaps() throws {
+    // The capture holds Record Counters 2862853 through 2863888 with none missing.
+    let records = try strapFrames.compactMap { try decoder.historyRecord(from: $0) }
+    #expect(records.count == 1036)
+    #expect(recordCounterGapCount(records.map(\.recordCounter)) == 0)
+}

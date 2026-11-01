@@ -38,7 +38,8 @@ final class StoredHistoryRecord {
 
 /// Saves the History Records a sync receives, on the phone only (ADR 0001).
 final class HistoryRecordStore {
-    private let container: ModelContainer
+    /// Sendable, so `stats(in:)` can read the store off the main thread.
+    let container: ModelContainer
     private var context: ModelContext
 
     init() throws {
@@ -66,9 +67,33 @@ final class HistoryRecordStore {
         context = Self.makeContext(container)
     }
 
-    /// How many History Records are stored.
-    func count() throws -> Int {
-        try ModelContext(container).fetchCount(FetchDescriptor<StoredHistoryRecord>())
+    /// What's stored, for the debug screen: how many History Records, the oldest and newest,
+    /// and how many gaps their Record Counters have. Call it off the main thread: a month of
+    /// History Records is ~2.6 million, so the Record Counters are read in batches.
+    static func stats(in container: ModelContainer) throws -> HistoryRecordStats {
+        let context = ModelContext(container)
+        let count = try context.fetchCount(FetchDescriptor<StoredHistoryRecord>())
+        var oldest = FetchDescriptor<StoredHistoryRecord>(sortBy: [SortDescriptor(\.timestamp)])
+        oldest.fetchLimit = 1
+        var newest = FetchDescriptor<StoredHistoryRecord>(
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        newest.fetchLimit = 1
+        let oldestRecord = try context.fetch(oldest).first
+        let newestRecord = try context.fetch(newest).first
+        var everyRecord = FetchDescriptor<StoredHistoryRecord>()
+        everyRecord.propertiesToFetch = [\.recordCounter]
+        var counters: [UInt32] = []
+        counters.reserveCapacity(count)
+        try context.enumerate(everyRecord, batchSize: statsBatchSize) { record in
+            counters.append(UInt32(record.recordCounter))
+        }
+        return HistoryRecordStats(
+            count: count,
+            oldest: oldestRecord.map(HistoryRecordStats.End.init),
+            newest: newestRecord.map(HistoryRecordStats.End.init),
+            gapCount: recordCounterGapCount(counters)
+        )
     }
 
     private static func makeContext(_ container: ModelContainer) -> ModelContext {
@@ -76,4 +101,26 @@ final class HistoryRecordStore {
         context.autosaveEnabled = false
         return context
     }
+}
+
+/// How many History Records `stats(in:)` loads at a time, so only one batch is in memory.
+private let statsBatchSize = 5_000
+
+/// What the History Record store holds, for the debug screen.
+struct HistoryRecordStats: Equatable, Sendable {
+    /// One end of the stored History Records.
+    struct End: Equatable, Sendable {
+        let recordCounter: Int
+        let timestamp: Date
+
+        init(_ record: StoredHistoryRecord) {
+            recordCounter = record.recordCounter
+            timestamp = record.timestamp
+        }
+    }
+
+    var count = 0
+    var oldest: End?
+    var newest: End?
+    var gapCount = 0
 }

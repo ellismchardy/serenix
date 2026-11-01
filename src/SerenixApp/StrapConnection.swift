@@ -44,13 +44,22 @@ enum StrapPhase: Equatable {
 final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     @Published private(set) var phase: StrapPhase = .idle
     @Published private(set) var strapName: String?
-    /// The current or last sync's Sync Log. In memory only for now (plan 001, task 4). Not
+    /// The current or last sync's Sync Log; `logArchive` keeps the last few on the phone. Not
     /// `@Published`: a day's sync is ~100,000 Frames, and redrawing the screen for each one
     /// slowed the first phone sync to a crawl. `syncTimer` redraws instead.
     private(set) var syncLog: [SyncLogEntry] = []
     /// History Records received in the current or last sync.
     private(set) var historyRecordsReceived = 0
-    @Published private(set) var historyRecordsStored = 0
+    @Published private(set) var storeStats = HistoryRecordStats()
+    var historyRecordsStored: Int { storeStats.count }
+    /// From the Strap's Device Info service, kept across launches.
+    @Published private(set) var strapModel: String?
+    @Published private(set) var strapFirmware: String?
+    /// What the Strap last reported during a sync, kept across launches.
+    @Published private(set) var lastBatteryLevel: Int?
+    @Published private(set) var lastDataRange: HistoryDataRange?
+    /// The last few syncs' Sync Logs, or why they can't be kept.
+    let logArchive: Result<SyncLogArchive, Error>
     /// When the last sync completed and how many History Records it received, kept across
     /// launches.
     @Published private(set) var lastSyncCompleted: Date?
@@ -65,6 +74,8 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
     private var commandCharacteristic: CBCharacteristic?
     private var subscribed: Set<CBUUID> = []
     private var session: HistorySync?
+    /// When the current sync started, to name its archived Sync Log.
+    private var syncStartedAt: Date?
     /// The store, or why it couldn't be opened; a sync then fails with that reason.
     private let store: Result<HistoryRecordStore, Error>
     /// When the Strap last sent anything in the current sync, for the 10-second timeout.
@@ -86,11 +97,21 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
 
     override init() {
         store = Result { try HistoryRecordStore() }
+        logArchive = Result { try SyncLogArchive() }
         super.init()
         central = CBCentralManager(delegate: self, queue: nil)
-        lastSyncCompleted = UserDefaults.standard.object(forKey: lastSyncCompletedKey) as? Date
-        lastSyncRecordCount = UserDefaults.standard.integer(forKey: lastSyncRecordCountKey)
-        refreshStoredCount()
+        let defaults = UserDefaults.standard
+        lastSyncCompleted = defaults.object(forKey: lastSyncCompletedKey) as? Date
+        lastSyncRecordCount = defaults.integer(forKey: lastSyncRecordCountKey)
+        strapModel = defaults.string(forKey: strapModelKey)
+        strapFirmware = defaults.string(forKey: strapFirmwareKey)
+        lastBatteryLevel = defaults.object(forKey: batteryLevelKey) as? Int
+        if let oldest = defaults.object(forKey: dataRangeOldestKey) as? Date,
+            let newest = defaults.object(forKey: dataRangeNewestKey) as? Date
+        {
+            lastDataRange = HistoryDataRange(oldest: oldest, newest: newest)
+        }
+        refreshStoreStats()
     }
 
     /// Syncs when Serenix launches or comes back from the background, once a Strap has been
@@ -187,14 +208,46 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         fail("Couldn't find the Strap. Check it's nearby and charged, then try again.")
     }
 
-    private func refreshStoredCount() {
+    /// Reads the store stats off the main thread (a month is ~2.6 million History Records),
+    /// then shows them.
+    private func refreshStoreStats() {
         guard case .success(let store) = self.store else { return }
-        do {
-            historyRecordsStored = try store.count()
-        } catch {
-            storeLog.error(
-                "Couldn't count stored History Records: \(error.localizedDescription, privacy: .public)"
-            )
+        let container = store.container
+        Task.detached(priority: .utility) { [self] in
+            do {
+                let stats = try HistoryRecordStore.stats(in: container)
+                await MainActor.run { self.storeStats = stats }
+            } catch {
+                storeLog.error(
+                    "Couldn't read stored History Records: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+        }
+    }
+
+    /// Keeps what the finished sync learnt about the Strap, and its Sync Log.
+    private func keepSyncResults(of session: HistorySync) {
+        let defaults = UserDefaults.standard
+        if let battery = session.batteryLevel {
+            lastBatteryLevel = battery
+            defaults.set(battery, forKey: batteryLevelKey)
+        }
+        if let range = session.dataRange {
+            lastDataRange = range
+            defaults.set(range.oldest, forKey: dataRangeOldestKey)
+            defaults.set(range.newest, forKey: dataRangeNewestKey)
+        }
+        guard let syncStartedAt, case .success(let archive) = logArchive else { return }
+        // A day's Sync Log is ~25 MB of text, so build and write it off the main thread.
+        let entries = syncLog
+        Task.detached(priority: .utility) {
+            do {
+                try archive.save(entries, syncStartedAt: syncStartedAt)
+            } catch {
+                storeLog.error(
+                    "Couldn't keep the Sync Log: \(error.localizedDescription, privacy: .public)"
+                )
+            }
         }
     }
 
@@ -219,6 +272,7 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
         let now = Date()
         let output = session.start(at: now)
         self.session = session
+        syncStartedAt = now
         lastHeardFromStrap = now
         phase = .syncing
         syncTimer?.invalidate()
@@ -255,14 +309,16 @@ final class StrapConnection: NSObject, ObservableObject, @unchecked Sendable {
 
     /// Forgets the session and redraws the screen one last time with the final Sync Log.
     private func endSession() {
+        if let session { keepSyncResults(of: session) }
         session = nil
+        syncStartedAt = nil
         lastHeardFromStrap = nil
         syncTimer?.invalidate()
         syncTimer = nil
         // Records received after the last acknowledgement were never acknowledged, so the Strap
         // sends them again; drop them rather than carry them into the next sync.
         if case .success(let store) = self.store { store.discardUnsaved() }
-        refreshStoredCount()
+        refreshStoreStats()
         objectWillChange.send()
     }
 
@@ -389,7 +445,7 @@ extension StrapConnection: CBCentralManagerDelegate {
         // Connected: pairing, if iOS needs it, happens next and isn't timed.
         connectTimer?.invalidate()
         connectTimer = nil
-        peripheral.discoverServices([StrapGATT.service])
+        peripheral.discoverServices([StrapGATT.service, StrapGATT.deviceInfoService])
     }
 
     func centralManager(
@@ -426,6 +482,14 @@ extension StrapConnection: CBPeripheralDelegate {
             fail("Couldn't read the Strap's services: \(error.localizedDescription)")
             return
         }
+        if let deviceInfo = peripheral.services?.first(where: {
+            $0.uuid == StrapGATT.deviceInfoService
+        }) {
+            peripheral.discoverCharacteristics(
+                [StrapGATT.modelCharacteristic, StrapGATT.firmwareCharacteristic],
+                for: deviceInfo
+            )
+        }
         guard let service = peripheral.services?.first(where: { $0.uuid == StrapGATT.service })
         else {
             fail("This doesn't look like a Whoop 5.0 Strap: its command service is missing.")
@@ -442,6 +506,19 @@ extension StrapConnection: CBPeripheralDelegate {
         didDiscoverCharacteristicsFor service: CBService,
         error: Error?
     ) {
+        if service.uuid == StrapGATT.deviceInfoService {
+            // Model and firmware are only shown on the debug screen, so a failure here is
+            // logged rather than failing the connection.
+            if let error {
+                strapLog.error(
+                    "Couldn't read Device Info: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+            for characteristic in service.characteristics ?? [] {
+                peripheral.readValue(for: characteristic)
+            }
+            return
+        }
         if let error {
             fail("Couldn't read the Strap's characteristics: \(error.localizedDescription)")
             return
@@ -490,6 +567,7 @@ extension StrapConnection: CBPeripheralDelegate {
         didUpdateValueFor characteristic: CBCharacteristic,
         error: Error?
     ) {
+        if keepDeviceInfo(from: characteristic, error: error) { return }
         let now = Date()
         // A gap this long means nothing arrived for 10 s, whether the Strap went silent or iOS
         // held Serenix up; either way it counts as the Strap not responding (spec 001).
@@ -504,6 +582,31 @@ extension StrapConnection: CBPeripheralDelegate {
         let output = session.receive(Array(value), at: now)
         self.session = session
         handle(output, state: session.state)
+    }
+
+    /// Keeps the model or firmware if `characteristic` is one of them; returns whether it was.
+    /// A failed read is logged, and the last known value stays.
+    private func keepDeviceInfo(from characteristic: CBCharacteristic, error: Error?) -> Bool {
+        let isModel = characteristic.uuid == StrapGATT.modelCharacteristic
+        guard isModel || characteristic.uuid == StrapGATT.firmwareCharacteristic else {
+            return false
+        }
+        if let error {
+            strapLog.error(
+                "Couldn't read Device Info: \(error.localizedDescription, privacy: .public)"
+            )
+            return true
+        }
+        guard let value = characteristic.value else { return true }
+        let text = String(decoding: value, as: UTF8.self)
+        if isModel {
+            strapModel = text
+            UserDefaults.standard.set(text, forKey: strapModelKey)
+        } else {
+            strapFirmware = text
+            UserDefaults.standard.set(text, forKey: strapFirmwareKey)
+        }
+        return true
     }
 
     func peripheral(
@@ -526,6 +629,10 @@ private enum StrapGATT {
     static var commandCharacteristic: CBUUID {
         CBUUID(string: "fd4b0002-cce1-4033-93ce-002d5875f58a")
     }
+    /// The standard Device Info service, and its model number and firmware revision.
+    static var deviceInfoService: CBUUID { CBUUID(string: "180A") }
+    static var modelCharacteristic: CBUUID { CBUUID(string: "2A24") }
+    static var firmwareCharacteristic: CBUUID { CBUUID(string: "2A26") }
     /// Replies, events, data and console logs, and misc events: the four channels a sync
     /// listens on.
     static var notifyCharacteristics: Set<CBUUID> {
@@ -551,9 +658,15 @@ private let strapSilenceTimeout: TimeInterval = 10
 private let rememberedStrapKey = "rememberedStrap"
 private let lastSyncCompletedKey = "lastSyncCompleted"
 private let lastSyncRecordCountKey = "lastSyncRecordCount"
+private let strapModelKey = "strapModel"
+private let strapFirmwareKey = "strapFirmware"
+private let batteryLevelKey = "batteryLevel"
+private let dataRangeOldestKey = "dataRangeOldest"
+private let dataRangeNewestKey = "dataRangeNewest"
 
 /// Seconds to look for or connect to the Strap before the attempt fails (spec 001: "can't be
 /// found or connected"). An assumption: a Strap in range connects within a second or two.
 private let connectTimeout: TimeInterval = 30
 
 private let storeLog = Logger(subsystem: "com.ellismchardy.Serenix", category: "store")
+private let strapLog = Logger(subsystem: "com.ellismchardy.Serenix", category: "strap")
