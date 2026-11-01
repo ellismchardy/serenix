@@ -80,7 +80,7 @@ gives the typical Spread the spec's examples assume.
      ln band 40.00–117.93 checks)
    - Done when: the band criterion and the band parts of the MAD, ln-Spread and 14-Night window
      criteria pass.
-8. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+8. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build` green, and the CI macOS job builds; every automated criterion in 004 ticked;
    the manual phone step (tile Zone, status word and gauge match the Today view on real Nights)
    listed for the PR.

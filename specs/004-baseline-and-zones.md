@@ -1,6 +1,6 @@
 # 004 — Baseline and Zones
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-01
 **Issue:** https://github.com/ellismchardy/serenix/issues/14 (map: https://github.com/ellismchardy/serenix/issues/12)
 
@@ -137,45 +137,45 @@ Baseline (carried over from spec 002, unchanged):
       don't count towards its 3.
 
 Spread:
-- [ ] With 3 to 6 earlier Nights, the typical Spread applies: respiratory rate 14.8 against six
+- [x] With 3 to 6 earlier Nights, the typical Spread applies: respiratory rate 14.8 against six
       earlier Nights of 14.0 is Watch (z 1.6); against seven, it is Out of range (Spread
       floored to 0.3, z 2.67).
-- [ ] Scaled MAD: respiratory rate over earlier Nights 14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0
+- [x] Scaled MAD: respiratory rate over earlier Nights 14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0
       has Baseline 14.0 and Spread 0.59304, so the popup band is 13.11 to 14.89 (to 2 dp), 14.88
       and 13.12 are In range, 14.9 and 13.11 are Watch, 15.48 is Watch, and 15.49 and 12.5 are
       Out of range.
-- [ ] HRV's floor: 50 against seven earlier Nights of 60 is Watch (Spread 0.10, z −1.82); against
+- [x] HRV's floor: 50 against seven earlier Nights of 60 is Watch (Spread 0.10, z −1.82); against
       three, it is In range (typical 0.15, z −1.22). 54 against seven of 60 is In range.
-- [ ] HRV's Spread is on ln(RMSSD): with earlier Nights 40, 50, 60, 60, 60, 72 and 90, the
+- [x] HRV's Spread is on ln(RMSSD): with earlier Nights 40, 50, 60, 60, 60, 72 and 90, the
       Baseline is 60 and the Spread is 1.4826 × ln 1.2 = 0.27031, so the popup band runs 40.00 to
       117.93 ms (to 2 dp); 40.1 is In range and 39.9 is Watch.
-- [ ] The Spread uses the same up-to-14 Nights as the median: with 20 earlier Nights, giving the
+- [x] The Spread uses the same up-to-14 Nights as the median: with 20 earlier Nights, giving the
       6 oldest wild values changes no Zone, gauge or band.
 
 Zones (replacing spec 002's Zone criteria):
-- [ ] HRV against Baseline 60 with the typical Spread: 48 is In range, 47.9 is Watch, 41.3 is
+- [x] HRV against Baseline 60 with the typical Spread: 48 is In range, 47.9 is Watch, 41.3 is
       Watch, 41.2 is Out of range; 87.2 is In range, 87.4 is Watch, and 200 is Watch (never Out
       of range).
-- [ ] Resting HR against Baseline 52: 54.9 is In range, 55 is Watch, 56.9 is Watch, 57 is Out of
+- [x] Resting HR against Baseline 52: 54.9 is In range, 55 is Watch, 56.9 is Watch, 57 is Out of
       range, and 40 is In range.
-- [ ] Respiratory rate against Baseline 14.0 with the typical Spread: 14.7 and 13.3 are In range,
+- [x] Respiratory rate against Baseline 14.0 with the typical Spread: 14.7 and 13.3 are In range,
       14.8 and 15.25 are Watch, 15.3 and 12.7 are Out of range.
-- [ ] Skin temperature against Baseline 34.0: 34.3 is In range, 33.6 is Watch, 34.7 is Out of
+- [x] Skin temperature against Baseline 34.0: 34.3 is In range, 33.6 is Watch, 34.7 is Out of
       range (unchanged).
-- [ ] SpO2: 95 is In range, 94 and 92 are Watch, 91 is Out of range, including on a Night with
+- [x] SpO2: 95 is In range, 94 and 92 are Watch, 91 is Out of range, including on a Night with
       no earlier Nights (unchanged).
 
 Status words, gauge and band (replacing spec 002's criteria for these):
-- [ ] Status words against Baselines HRV 60, Resting HR 52, respiratory rate 14.0 and skin
+- [x] Status words against Baselines HRV 60, Resting HR 52, respiratory rate 14.0 and skin
       temperature 34.0, with typical Spreads: HRV 70 "Normal", 90 "High", 41 "Low"; Resting HR
       45 "Normal", 55 "High"; respiratory rate 15.0 "High", 13.0 "Low"; skin temperature 34.5
       "High", 33.5 "Low"; SpO2 97 "95% or above", 93 "Below 95%", 90 "Below 92%"; a Calibrating
       metric "Calibrating".
-- [ ] Gauge positions against the same Baselines: HRV 60 → 0.5, 30 → 0 and 120 → 1 (clamped);
+- [x] Gauge positions against the same Baselines: HRV 60 → 0.5, 30 → 0 and 120 → 1 (clamped);
       respiratory rate 15.0 → 0.9, 13.5 → 0.3, 16 → 1 (clamped); Resting HR 54.5 → 0.75, 47 →
       0; skin temperature 33.7 → 0.25; SpO2 97 → 0.75, 85 → 0 (clamped); a Calibrating or
       missing metric has no position.
-- [ ] Popup In range band with typical Spreads: HRV against 60 runs 47.91 to 87.30 ms;
+- [x] Popup In range band with typical Spreads: HRV against 60 runs 47.91 to 87.30 ms;
       respiratory rate against 14.0 runs 13.25 to 14.75; Resting HR against 52 has no lower
       limit and an upper limit of 55; skin temperature against 34.0 runs 33.7 to 34.3; SpO2 has
       none.
