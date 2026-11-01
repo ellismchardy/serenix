@@ -6,7 +6,7 @@ public struct MetricTile: Equatable, Sendable {
     /// The value with its unit, e.g. "62 ms", or "—" when the Night doesn't have it.
     public let valueText: String
     /// The Baseline's median; nil while it's Calibrating, and always for SpO2.
-    public let baseline: Double?
+    public var baseline: Double? { comparedBaseline?.median }
     /// The difference from Baseline, e.g. "+14%" or "−3 bpm"; SpO2's level in words;
     /// "Calibrating" while the Baseline is; "—" when the value is missing.
     public let differenceText: String
@@ -24,14 +24,17 @@ public struct MetricTile: Equatable, Sendable {
     /// The difference from Baseline in the whole units it's shown in: a percentage for HRV, bpm
     /// for Resting HR, tenths for respiratory rate and skin temperature; nil when there's none.
     let differenceAsShown: Int?
+    /// The Baseline the value is compared against, Calibrating or not; nil for SpO2.
+    let comparedBaseline: Baseline?
 
     init(_ metric: NightlyMetric, for night: Night, among nights: [Night]) {
         self.metric = metric
         let value = night.value(of: metric)
-        let baseline =
-            metric.hasBaseline ? Baseline(metric, for: night, among: nights).median : nil
-        self.baseline = baseline
-        let zone = value.flatMap { Zone(metric, value: $0, baseline: baseline) }
+        let comparedBaseline =
+            metric.hasBaseline ? Baseline(metric, for: night, among: nights) : nil
+        self.comparedBaseline = comparedBaseline
+        let baseline = comparedBaseline?.median
+        let zone = value.flatMap { Zone(metric, value: $0, baseline: comparedBaseline) }
         self.zone = zone
         valueText = value.map { formattedValue(of: metric, $0) } ?? missingText
         // The difference as shown, in whole units: its text and its direction both come from it.
@@ -60,7 +63,7 @@ public struct MetricTile: Equatable, Sendable {
             ?? value.flatMap { value in
                 baseline.map { statusWord(zone, below: value < $0) }
             } ?? missingText
-        gauge = value.flatMap { Zone.gaugePosition(metric, value: $0, baseline: baseline) }
+        gauge = value.flatMap { Zone.gaugePosition(metric, value: $0, baseline: comparedBaseline) }
     }
 }
 

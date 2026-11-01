@@ -574,10 +574,15 @@ private func nov1Tile(_ metric: NightlyMetric, of night: Night) -> MetricTile? {
     todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1).tile(metric)
 }
 
-// 57 is −5% and 51 is −15% of 60, the boundaries themselves.
+// Values from spec 004. With 3 earlier Nights (under the 7 a measured Spread needs), the typical
+// HRV Spread applies, so z = (ln v − ln 60) / 0.15: z = −1.5 at ≈47.91 and −2.5 at ≈41.24, so
+// 48/47.9 and 41.3/41.2 sit either side of the Watch and Out of range edges; z = +2.5 at ≈87.30, so
+// 87.2 is In range and 87.4 is Watch. A high HRV is never Out of range, however high (200).
 @Test(
-    arguments: [(57, .inRange), (56.9, .watch), (51, .watch), (50.9, .outOfRange), (90, .inRange)]
-        as [(Double, Zone)]
+    arguments: [
+        (48, .inRange), (47.9, .watch), (41.3, .watch), (41.2, .outOfRange),
+        (87.2, .inRange), (87.4, .watch), (200, .watch),
+    ] as [(Double, Zone)]
 )
 func hrvZoneAgainstABaselineOf60(hrv: Double, zone: Zone) {
     let tile = nov1Tile(.hrv, of: Night(day: nov1, hrv: hrv))
@@ -586,9 +591,14 @@ func hrvZoneAgainstABaselineOf60(hrv: Double, zone: Zone) {
     #expect(tile?.zone == zone)
 }
 
+// Values from spec 004. Resting HR uses a fixed gap, not a Spread, and only upward: with
+// d = v − 52, In range while d < 3, Watch while 3 ≤ d < 5, Out of range from d ≥ 5. So 54.9 is
+// In range, 55 and 56.9 are Watch, and 57 is Out of range. A lower Resting HR is never a warning,
+// however low (40).
 @Test(
-    arguments: [(53, .inRange), (53.1, .watch), (56, .watch), (56.1, .outOfRange), (45, .inRange)]
-        as [(Double, Zone)]
+    arguments: [
+        (54.9, .inRange), (55, .watch), (56.9, .watch), (57, .outOfRange), (40, .inRange),
+    ] as [(Double, Zone)]
 )
 func restingHRZoneAgainstABaselineOf52(restingHR: Double, zone: Zone) {
     let tile = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: restingHR))
@@ -597,10 +607,14 @@ func restingHRZoneAgainstABaselineOf52(restingHR: Double, zone: Zone) {
     #expect(tile?.zone == zone)
 }
 
+// Values from spec 004. With 3 earlier Nights (under the 7 a measured Spread needs), the typical
+// respiratory rate Spread applies, so z = (v − 14.0) / 0.5: In range while |z| ≤ 1.5 (14.0 ± 0.75),
+// Watch while |z| ≤ 2.5 (14.0 ± 1.25), Out of range beyond. So 14.7 and 13.3 are In range, 14.8 and
+// 15.25 are Watch, and 15.3 and 12.7 are Out of range.
 @Test(
     arguments: [
-        (14.5, .inRange), (13.5, .inRange), (15.0, .watch), (15.1, .outOfRange),
-        (12.9, .outOfRange),
+        (14.7, .inRange), (13.3, .inRange), (14.8, .watch), (15.25, .watch),
+        (15.3, .outOfRange), (12.7, .outOfRange),
     ] as [(Double, Zone)]
 )
 func respiratoryRateZoneAgainstABaselineOf14(respiratoryRate: Double, zone: Zone) {
@@ -643,6 +657,162 @@ func spo2ZoneIsSetByFixedLevelsFromTheFirstNight(spo2: Double, zone: Zone) {
     #expect(outOfRange?.zone == .outOfRange)
     #expect(inRange?.baseline == 60)
     #expect(outOfRange?.baseline == 60)
+}
+
+// MARK: Spread (through the Zone)
+
+/// The Zone of 1 Nov's respiratory rate against the given earlier Nights (newest first).
+private func respiratoryRateZone(_ value: Double, after earlier: [Double?]) -> Zone? {
+    todayView(
+        nights: nightsBeforeNov1(respiratoryRate: earlier)
+            + [Night(day: nov1, respiratoryRate: value)],
+        showing: nov1
+    ).tile(.respiratoryRate)?.zone
+}
+
+/// The Zone of 1 Nov's HRV against the given earlier Nights (newest first).
+private func hrvZone(_ value: Double, after earlier: [Double?]) -> Zone? {
+    todayView(
+        nights: nightsBeforeNov1(hrv: earlier) + [Night(day: nov1, hrv: value)],
+        showing: nov1
+    ).tile(.hrv)?.zone
+}
+
+// Values from spec 004. Six earlier Nights of 14.0: the typical Spread 0.5 applies, so
+// z = 0.8 / 0.5 = 1.6, Watch. Seven: the scaled MAD is 0, floored to 0.3, so z = 0.8 / 0.3 = 2.67,
+// Out of range.
+@Test func respiratoryRateUsesTheTypicalSpreadUntilSevenEarlierNightsThenItsFloor() {
+    #expect(respiratoryRateZone(14.8, after: Array(repeating: 14.0, count: 6)) == .watch)
+    #expect(respiratoryRateZone(14.8, after: Array(repeating: 14.0, count: 7)) == .outOfRange)
+}
+
+// Values from spec 004. Earlier Nights 14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0: median 14.0;
+// |value − 14.0| sorted is 0, 0, 0, 0.4, 0.4, 0.8, 0.8, median 0.4, so Spread = 1.4826 × 0.4 =
+// 0.59304. In range while |d| ≤ 1.5 × 0.59304 = 0.88956 (13.11044 to 14.88956), Watch while
+// |d| ≤ 2.5 × 0.59304 = 1.4826 (12.5174 to 15.4826), Out of range beyond.
+@Test(
+    arguments: [
+        (14.88, .inRange), (13.12, .inRange), (14.9, .watch), (13.11, .watch),
+        (15.48, .watch), (15.49, .outOfRange), (12.5, .outOfRange),
+    ] as [(Double, Zone)]
+)
+func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
+    respiratoryRate: Double,
+    zone: Zone
+) {
+    let earlier: [Double?] = [14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0]
+    let tile = todayView(
+        nights: nightsBeforeNov1(respiratoryRate: earlier)
+            + [Night(day: nov1, respiratoryRate: respiratoryRate)],
+        showing: nov1
+    ).tile(.respiratoryRate)
+
+    #expect(tile?.baseline == 14.0)
+    #expect(tile?.zone == zone)
+}
+
+// Values from spec 004, the same seven earlier Nights: Spread = 1.4826 × 0.4 = 0.59304, so the
+// In range band is 14.0 ∓ 1.5 × 0.59304 = 13.11044 to 14.88956 (13.11 to 14.89 to 2 dp).
+@Test func respiratoryRateInRangeBandIsScaledByTheMADOfSevenEarlierNights() {
+    let earlier: [Double?] = [14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0]
+    let popup = todayView(
+        nights: nightsBeforeNov1(respiratoryRate: earlier)
+            + [Night(day: nov1, respiratoryRate: 14.0)],
+        showing: nov1
+    ).metricPopup(.respiratoryRate)
+
+    #expect(isClose(popup?.baseline, to: 14.0))
+    #expect(isClose(popup?.inRangeLow, to: 13.11, within: 0.005))
+    #expect(isClose(popup?.inRangeHigh, to: 14.89, within: 0.005))
+}
+
+// Values from spec 004. ln(50 / 60) = −0.18232. Seven earlier Nights of 60: the MAD is 0, floored
+// to 0.10, so z = −1.82, Watch. Three: the typical 0.15 applies, so z = −1.22, In range.
+// 54 against seven: ln(54 / 60) / 0.10 = −1.05, In range.
+@Test func hrvSpreadIsFlooredAt010OnceSevenEarlierNightsHaveIt() {
+    #expect(hrvZone(50, after: Array(repeating: 60, count: 7)) == .watch)
+    #expect(hrvZone(50, after: Array(repeating: 60, count: 3)) == .inRange)
+    #expect(hrvZone(54, after: Array(repeating: 60, count: 7)) == .inRange)
+}
+
+// Values from spec 004. Earlier Nights 40, 50, 60, 60, 60, 72, 90: median 60; |ln(v / 60)| sorted
+// is 0, 0, 0, ln 1.2, ln 1.2, ln 1.5, ln 1.5, median ln 1.2 = 0.18232, so Spread = 1.4826 × ln 1.2 =
+// 0.27031. The low In range edge is exp(ln 60 − 1.5 × 0.27031) ≈ 40.00 ms: 40.1 gives z = −1.49,
+// In range; 39.9 gives z = −1.51, Watch. (On raw ms, or with the typical 0.15, both would be
+// Out of range.)
+// The popup's In range band is 60 × e^(−1.5 × 0.27031) = 40.00 to 60 × e^(2.5 × 0.27031) =
+// 117.93 ms (to 2 dp).
+@Test func hrvSpreadIsTheScaledMADOfLnRMSSD() {
+    let earlier: [Double?] = [40, 50, 60, 60, 60, 72, 90]
+    let tile = { (hrv: Double) in
+        todayView(
+            nights: nightsBeforeNov1(hrv: earlier) + [Night(day: nov1, hrv: hrv)],
+            showing: nov1
+        ).tile(.hrv)
+    }
+
+    #expect(tile(40.1)?.baseline == 60)
+    #expect(tile(40.1)?.zone == .inRange)
+    #expect(tile(39.9)?.zone == .watch)
+
+    let popup = todayView(
+        nights: nightsBeforeNov1(hrv: earlier) + [Night(day: nov1, hrv: 60)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    #expect(isClose(popup?.inRangeLow, to: 40.00, within: 0.005))
+    #expect(isClose(popup?.inRangeHigh, to: 117.93, within: 0.005))
+}
+
+// Spec 004: the Spread uses the same up-to-14 Nights as the median. The 14 newest earlier Nights
+// are eight of 14.0, three of 13.0 and three of 15.0: median 14.0; deviations eight 0 and six 1.0,
+// median 0, so the Spread is floored to 0.3. 14.2 gives z = 0.67 (In range), 14.5 gives 1.67
+// (Watch), 14.8 gives 2.67 (Out of range).
+// The six oldest are three of 12.0 and three of 16.0. Over all 20 the median is still 14.0 but the
+// deviations become eight 0, six 1.0, six 2.0, median 1.0, so the Spread would be 1.4826 and all
+// three values would be In range. Adding them must change no Zone.
+// The gauge (0.5 + z / 5) uses the same Spread 0.3: 14.2 gives 0.5 + 0.6667 / 5 = 19/30 ≈ 0.6333,
+// 14.5 gives 0.5 + 1.6667 / 5 = 5/6 ≈ 0.8333, and 14.8 gives 1.0333, clamped to 1. With the
+// 20-Night Spread 1.4826 they would be ≈ 0.527, ≈ 0.567 and ≈ 0.608, so adding them must change
+// no gauge either.
+// The popup's In range band also uses Spread 0.3: 14.0 ∓ 1.5 × 0.3 = 13.55 to 14.45. With the
+// 20-Night Spread 1.4826 it would be 11.7761 to 16.2239.
+@Test(
+    arguments: [(14.2, .inRange, 19.0 / 30.0), (14.5, .watch, 5.0 / 6.0), (14.8, .outOfRange, 1)]
+        as [(Double, Zone, Double)]
+)
+func respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights(
+    respiratoryRate: Double,
+    zone: Zone,
+    gauge: Double
+) {
+    let fourteenNewest: [Double?] = [
+        14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 14.0, 14.0, 14.0, 14.0,
+    ]
+    let sixOldest: [Double?] = [12.0, 16.0, 12.0, 16.0, 12.0, 16.0]
+
+    for earlier in [fourteenNewest, fourteenNewest + sixOldest] {
+        let view = todayView(
+            nights: nightsBeforeNov1(respiratoryRate: earlier)
+                + [Night(day: nov1, respiratoryRate: respiratoryRate)],
+            showing: nov1
+        )
+        let tile = view.tile(.respiratoryRate)
+        let popup = view.metricPopup(.respiratoryRate)
+
+        #expect(tile?.zone == zone, "\(earlier.count) earlier Nights")
+        #expect(
+            isClose(tile?.gauge, to: gauge),
+            "\(earlier.count) earlier Nights: gauge \(String(describing: tile?.gauge))"
+        )
+        #expect(
+            isClose(popup?.inRangeLow, to: 13.55),
+            "\(earlier.count) earlier Nights: low \(String(describing: popup?.inRangeLow))"
+        )
+        #expect(
+            isClose(popup?.inRangeHigh, to: 14.45),
+            "\(earlier.count) earlier Nights: high \(String(describing: popup?.inRangeHigh))"
+        )
+    }
 }
 
 // MARK: Tile text
@@ -804,11 +974,20 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 
 // MARK: Status words and gauges
 
+// Values from spec 004, against Baselines HRV 60, Resting HR 52, respiratory rate 14.0 and skin
+// temperature 34.0 with typical Spreads (HRV 0.15 on ln, respiratory rate 0.5).
+// HRV: z = ln(v / 60) / 0.15, so 70 → +1.03 (In range, "Normal"), 90 → +2.70 (Watch, "High"),
+// 41 → −2.54 (Out of range, "Low").
+// Resting HR: 45 is below the Baseline, always In range ("Normal"); 55 is +3 (Watch, "High").
+// Respiratory rate: 15.0 → z = +2 ("High"), 13.0 → z = −2 ("Low").
+// Skin temperature: 34.5 is +0.5 ("High"), 33.5 is −0.5 ("Low").
+// SpO2 keeps its fixed level words.
 @Test(
     arguments: [
-        (.hrv, Night(day: nov1, hrv: 57), "Normal"),
-        (.hrv, Night(day: nov1, hrv: 54), "Low"),
-        (.restingHR, Night(day: nov1, restingHR: 53), "Normal"),
+        (.hrv, Night(day: nov1, hrv: 70), "Normal"),
+        (.hrv, Night(day: nov1, hrv: 90), "High"),
+        (.hrv, Night(day: nov1, hrv: 41), "Low"),
+        (.restingHR, Night(day: nov1, restingHR: 45), "Normal"),
         (.restingHR, Night(day: nov1, restingHR: 55), "High"),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), "High"),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.0), "Low"),
@@ -823,15 +1002,27 @@ func tileStatusWordAgainstExactBaselines(metric: NightlyMetric, night: Night, wo
     #expect(nov1Tile(metric, of: night)?.statusText == word)
 }
 
+// Values from spec 004, against the same Baselines and typical Spreads. Each side ends where
+// Watch turns into Out of range.
+// HRV, 0.5 + z / (2 × 2.5) with z = ln(v / 60) / 0.15: 60 → 0.5; 30 → z = −4.62, 0.5 − 0.92,
+// clamped to 0; 120 → z = +4.62, clamped to 1; 70 → z = ln(70 / 60) / 0.15 = 1.0277, 0.70553
+// (unclamped, so it pins the ln and Spread scale).
+// Respiratory rate, 0.5 + z / 5 with z = (v − 14.0) / 0.5: 15.0 → z = 2, 0.9; 13.5 → z = −1, 0.3;
+// 16 → z = 4, 1.3, clamped to 1.
+// Resting HR, 0.5 + d / (2 × 5): 54.5 → d = 2.5, 0.75; 47 → d = −5, 0.
+// Skin temperature, 0.5 + d / (2 × 0.6): 33.7 → d = −0.3, 0.25.
+// SpO2, fixed 88–100: 97 → 9 / 12 = 0.75; 85 → below 88, clamped to 0.
 @Test(
     arguments: [
         (.hrv, Night(day: nov1, hrv: 60), 0.5),
-        (.hrv, Night(day: nov1, hrv: 55.5), 0.25),
-        (.hrv, Night(day: nov1, hrv: 51), 0),
-        (.hrv, Night(day: nov1, hrv: 75), 1),
-        (.restingHR, Night(day: nov1, restingHR: 54), 0.75),
-        (.restingHR, Night(day: nov1, restingHR: 48), 0),
-        (.respiratoryRate, Night(day: nov1, respiratoryRate: 14.5), 0.75),
+        (.hrv, Night(day: nov1, hrv: 30), 0),
+        (.hrv, Night(day: nov1, hrv: 120), 1),
+        (.hrv, Night(day: nov1, hrv: 70), 0.705534239769678),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), 0.9),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.5), 0.3),
+        (.respiratoryRate, Night(day: nov1, respiratoryRate: 16), 1),
+        (.restingHR, Night(day: nov1, restingHR: 54.5), 0.75),
+        (.restingHR, Night(day: nov1, restingHR: 47), 0),
         (.skinTemperature, Night(day: nov1, skinTemperature: 33.7), 0.25),
         (.spo2, Night(day: nov1, spo2: 97), 0.75),
         (.spo2, Night(day: nov1, spo2: 85), 0),
@@ -1311,12 +1502,18 @@ private let laterNightOnNov2 = Night(day: Day(year: 2026, month: 11, day: 2), hr
     #expect(popup?.chart.first?.day == Day(year: 2026, month: 10, day: 19))
 }
 
-/// Whether `value` is within floating-point error of `expected`: limits such as 34.0 − 0.3 or
-/// 0.95 × 60 needn't be exact in binary floating point.
-private func isClose(_ value: Double?, to expected: Double) -> Bool {
-    value.map { abs($0 - expected) < 1e-9 } ?? false
+/// Whether `value` is within `tolerance` of `expected`. By default that is floating-point error:
+/// limits such as 34.0 − 0.3 needn't be exact in binary floating point. Values the spec quotes to
+/// 2 dp pass a looser tolerance such as 0.005.
+private func isClose(_ value: Double?, to expected: Double, within tolerance: Double = 1e-9) -> Bool
+{
+    value.map { abs($0 - expected) < tolerance } ?? false
 }
 
+// Values from spec 004, with typical Spreads (three earlier Nights). HRV: Spread 0.15 on ln(RMSSD),
+// so the band is 60 × e^(−1.5 × 0.15) = 60 × e^−0.225 = 47.91097 to 60 × e^(2.5 × 0.15) =
+// 60 × e^0.375 = 87.29948 ms. Respiratory rate: Spread 0.5, so 14.0 ∓ 1.5 × 0.5 = 13.25 to 14.75.
+// Resting HR: no lower limit, upper 52 + 3 = 55. Skin temperature: 34.0 ± 0.3.
 @Test func metricPopupShowsTheBaselineAndItsInRangeLimits() {
     let night = Night(
         day: nov1,
@@ -1330,23 +1527,27 @@ private func isClose(_ value: Double?, to expected: Double) -> Bool {
 
     let hrv = view.metricPopup(.hrv)
     #expect(isClose(hrv?.baseline, to: 60))
-    #expect(isClose(hrv?.inRangeLow, to: 57))
-    #expect(hrv != nil && hrv?.inRangeHigh == nil)
+    #expect(isClose(hrv?.inRangeLow, to: 47.910_973_125_562_62))
+    #expect(isClose(hrv?.inRangeHigh, to: 87.299_484_877_092_07))
 
     let restingHR = view.metricPopup(.restingHR)
     #expect(isClose(restingHR?.baseline, to: 52))
     #expect(restingHR != nil && restingHR?.inRangeLow == nil)
-    #expect(isClose(restingHR?.inRangeHigh, to: 53))
+    #expect(isClose(restingHR?.inRangeHigh, to: 55))
 
     let respiratoryRate = view.metricPopup(.respiratoryRate)
     #expect(isClose(respiratoryRate?.baseline, to: 14.0))
-    #expect(isClose(respiratoryRate?.inRangeLow, to: 13.5))
-    #expect(isClose(respiratoryRate?.inRangeHigh, to: 14.5))
+    #expect(isClose(respiratoryRate?.inRangeLow, to: 13.25))
+    #expect(isClose(respiratoryRate?.inRangeHigh, to: 14.75))
 
     let skinTemperature = view.metricPopup(.skinTemperature)
     #expect(isClose(skinTemperature?.baseline, to: 34.0))
     #expect(isClose(skinTemperature?.inRangeLow, to: 33.7))
     #expect(isClose(skinTemperature?.inRangeHigh, to: 34.3))
+
+    let spo2 = view.metricPopup(.spo2)
+    #expect(spo2 != nil && spo2?.inRangeLow == nil)
+    #expect(spo2 != nil && spo2?.inRangeHigh == nil)
 }
 
 @Test func spo2PopupHasNoBaselineOrInRangeLimitsButShowsItsLevel() {
