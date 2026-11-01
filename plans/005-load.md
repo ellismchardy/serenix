@@ -67,7 +67,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Done when: birth year 1986 at 154 bpm gives 56; no birth year means missing for no Max HR;
      Max HR 190 with 1986 gives 57. (`.maxHRNotAboveRestingHR` moved to task 5: it needs Resting
      HR from Nights, since no allowed Max HR is at or below the 60 bpm fallback.)
-5. [ ] **Slice:** Resting HR as the median of up to 14 Nights dated on or before the Day,
+5. [x] **Slice:** Resting HR as the median of up to 14 Nights dated on or before the Day,
    skipping Nights without one.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift`, `tests/SerenixCoreTests/LoadTests.swift`
    - Done when: both Resting HR criteria pass (45; the later Night is ignored; 41; 43 with 15

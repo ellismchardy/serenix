@@ -298,3 +298,120 @@ private func loadOf(_ day: Day, _ records: [HistoryRecord]) -> DayLoad {
     #expect(result.load == 57)
     #expect(result.missingReason == nil)
 }
+
+// Resting HR (spec 005): the median Resting HR of up to 14 of the most recent Nights dated on or
+// before the Day, skipping Nights without one. Expected Loads are the spec's literals for an hour
+// at 120 bpm, a man with Max HR 190.
+
+/// A Night dated `day` of November 2026 with `restingHR`.
+private func night(onNovember day: Int, restingHR: Double?) -> Night {
+    Night(day: Day(year: 2026, month: 11, day: day), restingHR: restingHR)
+}
+
+/// The Load of 4 Nov 2026 in London from `records` and `nights`.
+private func loadOfFourthOfNovember(
+    _ records: [HistoryRecord],
+    nights: [Night],
+    profile: Profile = man
+) -> DayLoad {
+    load(of: fourthOfNovember, records: records, nights: nights, profile: profile, in: london)
+}
+
+/// Nights dated 1, 2 and 3 Nov 2026 with Resting HR 50, 52 and 54.
+private let threeNightsBefore = [
+    night(onNovember: 1, restingHR: 50),
+    night(onNovember: 2, restingHR: 52),
+    night(onNovember: 3, restingHR: 54),
+]
+
+@Test func restingHRIsTheMedianOfTheNightsBeforeTheDay() {
+    let result = loadOfFourthOfNovember(
+        records(at: 120, for: oneHour, from: tenAM),
+        nights: threeNightsBefore
+    )
+
+    #expect(result.load == 45)
+}
+
+@Test func aNightDatedTheDayAfterDoesNotCountTowardRestingHR() {
+    let withTheDayAfter = threeNightsBefore + [night(onNovember: 5, restingHR: 90)]
+
+    let result = loadOfFourthOfNovember(
+        records(at: 120, for: oneHour, from: tenAM),
+        nights: withTheDayAfter
+    )
+
+    #expect(result.load == 45)
+}
+
+@Test func theNightThatEndedOnTheDayCountsTowardRestingHR() {
+    let result = loadOfFourthOfNovember(
+        records(at: 120, for: oneHour, from: tenAM),
+        nights: [night(onNovember: 4, restingHR: 70)]
+    )
+
+    #expect(result.load == 41)
+}
+
+@Test func onlyTheFourteenMostRecentNightsCountTowardRestingHR() {
+    // 15 Nights dated 21 Oct to 4 Nov 2026: 21 Oct at 20, 22–28 Oct at 50, 29 Oct–4 Nov at 70.
+    let oldest = Night(day: Day(year: 2026, month: 10, day: 21), restingHR: 20)
+    let middle = (22...28).map { Night(day: Day(year: 2026, month: 10, day: $0), restingHR: 50) }
+    let recentOctober = (29...31).map {
+        Night(day: Day(year: 2026, month: 10, day: $0), restingHR: 70)
+    }
+    let recentNovember = (1...4).map { night(onNovember: $0, restingHR: 70) }
+    let fifteenNights = [oldest] + middle + recentOctober + recentNovember
+
+    let result = loadOfFourthOfNovember(
+        records(at: 120, for: oneHour, from: tenAM),
+        nights: fifteenNights
+    )
+
+    #expect(result.load == 43)
+}
+
+@Test func aNightWithoutARestingHRIsSkipped() {
+    let withNoRestingHR = threeNightsBefore + [night(onNovember: 4, restingHR: nil)]
+
+    let result = loadOfFourthOfNovember(
+        records(at: 120, for: oneHour, from: tenAM),
+        nights: withNoRestingHR
+    )
+
+    #expect(result.load == 45)
+}
+
+@Test func onlyNightsWithoutARestingHRGiveTheFallbackNotZero() {
+    // Resting HR is the 60 bpm fallback; counted as 0 it would give 50.
+    let result = loadOfFourthOfNovember(
+        records(at: 120, for: oneHour, from: tenAM),
+        nights: [night(onNovember: 4, restingHR: nil)]
+    )
+
+    #expect(result.load == 43)
+}
+
+@Test func aHeartRateOverTheFloorButUnderARestingHRFromNightsAddsNothing() {
+    // Max HR 190 puts the floor at 95 bpm, so 96 bpm counts but is under the 100 bpm Resting HR.
+    let result = loadOfFourthOfNovember(
+        records(at: 96, for: oneHour, from: tenAM),
+        nights: [night(onNovember: 4, restingHR: 100)]
+    )
+
+    #expect(result.load == 0)
+    #expect(result.missingReason == nil)
+}
+
+@Test func maxHRAtRestingHRHasLoadMissingForMaxHRNotAboveRestingHR() {
+    let maxHR100 = Profile(name: nil, sex: .male, maxHR: 100)
+
+    let result = loadOfFourthOfNovember(
+        records(at: 164, for: oneHour, from: tenAM),
+        nights: [night(onNovember: 4, restingHR: 100)],
+        profile: maxHR100
+    )
+
+    #expect(result.load == nil)
+    #expect(result.missingReason == .maxHRNotAboveRestingHR)
+}

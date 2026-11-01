@@ -4,7 +4,7 @@ import Foundation
 /// counting only heart rates at or over the floor, scaled to 0–100. Max HR is the one entered,
 /// else estimated from age in the Day's year. Missing with no History Records or no Max HR. Only
 /// records from the Day's local midnight to the next local midnight count; their order and any
-/// repeats don't matter. For now Resting HR is always the 60 bpm fallback.
+/// repeats don't matter. Resting HR comes from the Nights; missing too when Max HR isn't above it.
 public func load(
     of day: Day,
     records: [HistoryRecord],
@@ -21,7 +21,10 @@ public func load(
     guard let maxHR = profile.maxHR.map(Double.init) ?? profile.estimatedMaxHR(in: day.year) else {
         return DayLoad(day: day, load: nil, missingReason: .noMaxHR)
     }
-    let restingHR = LoadMethod.fallbackRestingHR
+    let restingHR = LoadMethod.restingHR(for: day, among: nights)
+    guard maxHR > restingHR else {
+        return DayLoad(day: day, load: nil, missingReason: .maxHRNotAboveRestingHR)
+    }
     let constants = LoadMethod.BanisterConstants(for: profile.sex)
     let sum = LoadMethod.trimp(
         of: unique.map(\.heartRate),
@@ -52,6 +55,22 @@ enum LoadMethod {
 
     /// Resting HR with no Nights, bpm. Assumption: a typical adult value (issue 16).
     static let fallbackRestingHR = 60.0
+    /// At most this many of the most recent Nights give Resting HR (issue 16; as Baseline's 14).
+    static let restingHRNights = 14
+
+    /// The median Resting HR of up to `restingHRNights` of the most recent Nights dated on or
+    /// before `day`, so the Night that ended that morning counts; Nights without one are skipped.
+    /// With none, `fallbackRestingHR`.
+    static func restingHR(for day: Day, among nights: [Night]) -> Double {
+        let recent =
+            nights
+            .filter { $0.day <= day }
+            .sorted { $0.day > $1.day }
+            .compactMap(\.restingHR)
+            .prefix(restingHRNights)
+        return recent.isEmpty ? fallbackRestingHR : median(of: Array(recent))
+    }
+
     /// Only heart rates at or over this fraction of Max HR count (Edwards' 50% floor, issue 16).
     static let floorFractionOfMaxHR = 0.5
     /// Seconds at Max HR that score 100: 24 hours (spec 005, Scale; issue 16).
