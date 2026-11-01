@@ -7,6 +7,12 @@
 Personal wellness tracking from a wearable's raw sensor data: sleep, overnight physiology, and
 daily scores, computed on the user's phone without the wearable vendor's subscription.
 
+## The user
+
+**Profile**:
+The user's name, kept only on the phone, used to address them in the app.
+_Avoid_: account, user account, login
+
 ## Devices and data
 
 **Strap**:

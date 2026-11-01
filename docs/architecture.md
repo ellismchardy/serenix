@@ -66,7 +66,8 @@ starting a sync in the background, iCloud sync, and the Whoop 4.0 and MG.
 
 ## Cross-cutting concerns
 - Auth: none. No accounts. The only "auth" is BLE pairing with the Strap, which encrypts the
-  link the Whoop service needs.
+  link the Whoop service needs. A Profile holds the user's name on the device only; it is never
+  sent anywhere or included in any log or report.
 - Errors: `SerenixCore` returns typed errors and never crashes on malformed frames: a bad CRC
   or unknown record type is reported and skipped. The shell shows sync failures to the user.
 - Logging/observability: `os.Logger` on the device only. No automatic analytics or
