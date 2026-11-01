@@ -40,6 +40,17 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
         return calendar.date(from: components) ?? .distantPast
     }
 
+    /// The Day's local midnight in `timeZone` up to the next (23 or 25 hours across a clock
+    /// change), on the Gregorian calendar whatever the phone's own calendar is. A time at `end`
+    /// belongs to the next Day, so callers must not use `DateInterval.contains`, which includes it.
+    func span(in timeZone: TimeZone) -> DateInterval {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let start = calendar.startOfDay(for: midday(in: timeZone))
+        let end = calendar.startOfDay(for: adding(days: 1).midday(in: timeZone))
+        return DateInterval(start: start, end: end)
+    }
+
     /// The Day `count` Days later (earlier when negative).
     /// A Day is always a real date (see `init`), so the fallback to `self` never happens in practice.
     func adding(days count: Int) -> Day {

@@ -12,7 +12,7 @@ public func load(
     profile: Profile,
     in timeZone: TimeZone
 ) -> DayLoad {
-    let span = LoadMethod.span(of: day, in: timeZone)
+    let span = day.span(in: timeZone)
     var seen = Set<String>()
     let unique = records.filter {
         span.start <= $0.timestamp && $0.timestamp < span.end && seen.insert($0.identity).inserted
@@ -92,17 +92,6 @@ enum LoadMethod {
             let r = min(max((bpm - restingHR) / (maxHR - restingHR), 0), 1)
             return sum + perSecond(r, constants: constants)
         }
-    }
-
-    /// The Day's local midnight up to the next (23 or 25 hours across a clock change), on the
-    /// Gregorian calendar whatever the phone's own calendar is. A record at `end` belongs to the
-    /// next Day, so callers must not use `DateInterval.contains`, which includes it.
-    static func span(of day: Day, in timeZone: TimeZone) -> DateInterval {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let start = calendar.startOfDay(for: day.midday(in: timeZone))
-        let end = calendar.startOfDay(for: day.adding(days: 1).midday(in: timeZone))
-        return DateInterval(start: start, end: end)
     }
 
     /// `100 · ln(1 + L) / ln(1 + L_max)`, rounded, with L_max 24 hours at Max HR (r = 1).

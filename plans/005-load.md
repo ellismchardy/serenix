@@ -73,7 +73,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Done when: both Resting HR criteria pass (45; the later Night is ignored; 41; 43 with 15
      Nights; a missing Resting HR is skipped); the Resting HR 100 / 96 bpm criterion gives 0;
      Max HR 100 with Resting HR 100 means missing (`.maxHRNotAboveRestingHR`).
-6. [ ] **Slice:** Day rebuilds after a sync, and every Day still due for a Profile change.
+6. [x] **Slice:** Day rebuilds after a sync, and every Day still due for a Profile change.
    - Blocked by: (none; it's independent of 1–5)
    - Seam: Day rebuilds · Files: `src/SerenixCore/DayRebuild.swift` (new), `src/SerenixCore/NightRebuild.swift` (retention constant visibility only), `tests/SerenixCoreTests/DayRebuildTests.swift` (new)
    - Move `LoadMethod.span(of:in:)` (Load.swift, task 3) to `Day.span(in:)` in `Day.swift` and use it from both Load and Day rebuilds, so the local-midnight logic lives once (standards review, task 3). Files also: `src/SerenixCore/Load.swift`, `src/SerenixCore/Day.swift`.

@@ -17,7 +17,7 @@ public struct NightRebuild: Equatable, Codable, Sendable {
     /// is), nor while they start after `now` (a Strap clock that's wrong). Checked again when a
     /// waiting rebuild is resumed.
     public func isDue(at now: Date) -> Bool {
-        records.start >= now.addingTimeInterval(-historyRecordRetention) && records.start <= now
+        isWithinRetention(start: records.start, now: now)
     }
 }
 
@@ -54,7 +54,3 @@ public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: Tim
     }
     return rebuilds
 }
-
-/// Seconds History Records are kept on the phone before they're pruned: 30 days
-/// (docs/architecture.md, Data model).
-private let historyRecordRetention: TimeInterval = 30 * 24 * 60 * 60
