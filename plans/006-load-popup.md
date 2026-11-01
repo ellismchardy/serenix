@@ -66,7 +66,7 @@ ignored, and nothing holds a connection between syncs.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Prefactor:** move `records(at:for:from:firstCounter:)` from `LoadTests.swift` into the
+1. [x] **Prefactor:** move `records(at:for:from:firstCounter:)` from `LoadTests.swift` into the
    shared `HistoryRecordBuilder.swift`. There is no behavior change.
    - Files: `tests/SerenixCoreTests/LoadTests.swift`, `tests/SerenixCoreTests/HistoryRecordBuilder.swift`
    - Done when: the existing suite is still green.
