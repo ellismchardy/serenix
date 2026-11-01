@@ -138,7 +138,7 @@ ignored, and nothing holds a connection between syncs.
       - "42m" and "1h 05m".
       - The typical line's text: "Typical: 45 · today +45", "that Day", "−", "±0", and just
         "Typical: 45" with a missing Load.
-11. [ ] **Slice (shell):** store a Day's heart rate with its Load, and queue every due Day once
+11. [x] **Slice (shell):** store a Day's heart rate with its Load, and queue every due Day once
     after the update.
     - `StoredDayLoad` gains an optional encoded `heartRate` field (lightweight migration).
     - A new UserDefaults key (e.g. `heartRateZonesBackfilled`) queues `dayRebuildsDue` once and
@@ -184,6 +184,12 @@ ignored, and nothing holds a connection between syncs.
 - A bad CRC during a sync still fails the sync (spec 001). Outside a sync, the Live HR session
   skips it.
 - The shell can't build on Windows; tasks 11–13 rely on the macOS CI job.
+
+- **Manual check for the PR (task 11):** install the build over one that already has Day Loads
+  (before spec 006), launch without syncing, and open the Load popup on a Day in the last 30: it
+  shows its HR Zones. On a Day older than the History Records still on the phone, it says
+  "Heart rate zones aren't available for this Day". Today's popup reads "As of your last sync at
+  HH:mm" with the last successful sync's time.
 
 ## Done when
 - All tasks checked, every success criterion in spec 006 met, suite green.

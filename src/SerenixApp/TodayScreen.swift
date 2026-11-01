@@ -35,7 +35,8 @@ struct TodayScreen: View {
             now: now,
             timeZone: .current,
             sync: connection.syncStatus,
-            profileName: profile.name
+            profileName: profile.name,
+            lastSyncEnded: connection.lastSyncCompleted
         )
         NavigationStack {
             ScrollView {

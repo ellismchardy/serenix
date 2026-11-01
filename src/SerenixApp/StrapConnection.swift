@@ -145,6 +145,12 @@ final class StrapConnection: NSObject, ObservableObject {
             lastDataRange = HistoryDataRange(oldest: oldest, newest: newest)
         }
         refreshStoreStats()
+        // Days worked out before spec 006 have no HR Zones: work out every Day whose History
+        // Records may still be here once, on the first launch with HR Zones (spec 006).
+        if !defaults.bool(forKey: heartRateZonesBackfilledKey) {
+            queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current))
+            defaults.set(true, forKey: heartRateZonesBackfilledKey)
+        }
         rebuildNights()
     }
 
@@ -850,6 +856,8 @@ private let strapFirmwareKey = "strapFirmware"
 private let batteryLevelKey = "batteryLevel"
 private let dataRangeOldestKey = "dataRangeOldest"
 private let dataRangeNewestKey = "dataRangeNewest"
+/// Set once every due Day has been queued to gain HR Zones (spec 006).
+private let heartRateZonesBackfilledKey = "heartRateZonesBackfilled"
 
 /// Seconds to look for or connect to the Strap before the attempt fails (spec 001: "can't be
 /// found or connected"). An assumption: a Strap in range connects within a second or two.
