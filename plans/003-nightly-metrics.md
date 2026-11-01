@@ -54,7 +54,7 @@ Assumptions (consistent with the spec, stated for review):
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Prefactor:** public memberwise `HistoryRecord` init; no behaviour change.
+1. [x] **Prefactor:** public memberwise `HistoryRecord` init; no behaviour change.
    - Files: `src/SerenixCore/HistoryRecord.swift`
    - Done when: existing suite still green.
 2. [ ] **Slice (tracer):** fixture + Sleep Period: the 29–30 Oct night gives one Night dated
