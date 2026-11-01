@@ -200,7 +200,8 @@ function derive(list) {
     const count = list.length - i;
     let base = null, readiness = null;
     if (count >= 4) {
-      base = { hrv: avg(prior.map(p => p.hrv)), rhr: avg(prior.map(p => p.rhr)) };
+      // hrv/rhr are the glossary's Baseline; resp/skin/spo2 "usual" values are a prototype extension
+      base = Object.fromEntries(['hrv', 'rhr', 'resp', 'skin', 'spo2'].map(k => [k, avg(prior.map(p => p[k]))]));
       readiness = clamp(Math.round(58 + 140 * (n.hrv - base.hrv) / base.hrv - 3.5 * (n.rhr - base.rhr) + (n.sleepScore - 75) * 0.5), 1, 99);
     }
     return { ...n, base, readiness, nightsSoFar: count };
@@ -400,12 +401,27 @@ function weekStrip(list) {
   return `<div class="c-week" style="margin-top:12px">${week.map(({ m, k }) => `<button class="c-day tap ${k === state.night ? 'sel' : ''}" data-act="night:${k}">
     ${DOW[m.date.getDay()].slice(0, 1)}<b>${m.date.getDate()}</b><span class="dot" style="background:${band(m.readiness)}"></span></button>`).join('')}</div>`;
 }
+// green / amber / red by distance from Baseline (made-up thresholds, to tune in the spec)
+const STATUS = {
+  hrv: (v, b) => { const d = (v - b) / b; return d >= -0.05 ? 'good' : d >= -0.15 ? 'mid' : 'low'; },
+  rhr: (v, b) => { const d = v - b; return d <= 1 ? 'good' : d <= 4 ? 'mid' : 'low'; },
+  resp: (v, b) => { const d = Math.abs(v - b); return d <= 0.5 ? 'good' : d <= 1 ? 'mid' : 'low'; },
+  skin: (v, b) => { const d = Math.abs(v - b); return d <= 0.3 ? 'good' : d <= 0.6 ? 'mid' : 'low'; },
+  spo2: (v, b) => { const d = b - v; return d <= 1 ? 'good' : d <= 2 ? 'mid' : 'low'; },
+};
+const statusColor = (n, key) => n.base ? `var(--${STATUS[key](n[key], n.base[key])})` : 'var(--s-ink)';
+function tileDelta(n, m) {
+  if (!n.base) return '<span class="muted">Calibrating</span>';
+  const d = n[m.key] - n.base[m.key];
+  const txt = m.key === 'hrv' ? `${Math.round(d / n.base.hrv * 100)}%` : m.key === 'rhr' ? `${Math.round(d)} bpm` : `${d.toFixed(1)}`;
+  return `<span style="color:${statusColor(n, m.key)}">${d >= 0 ? '+' : ''}${txt}</span>`;
+}
 function metricTiles(list, n, first = '') {
   return `<div class="c-grid">${first}${METRICS.map(m => {
     const hist = list.slice(state.night, state.night + 7).map(x => x[m.key]).reverse();
     return `<button class="card c-tile tap" data-act="sheet:m-${m.key}"><div class="muted" style="font-size:12px">${m.name}</div>
-      <div class="v">${m.fmt(n[m.key])} <span class="muted" style="font-size:12px;font-weight:400">${m.unit}</span></div>
-      <div class="row"><span style="font-size:11px">${m.better ? delta(n, m.key) : ''}</span>${spark(hist, 70, 22, 'var(--s-sub)')}</div></button>`;
+      <div class="v" style="color:${statusColor(n, m.key)}">${m.fmt(n[m.key])} <span class="muted" style="font-size:12px;font-weight:400">${m.unit}</span></div>
+      <div class="row"><span style="font-size:11px">${tileDelta(n, m)}</span>${spark(hist, 70, 22, 'var(--s-sub)')}</div></button>`;
   }).join('')}</div>`;
 }
 function VariantC(list, n) {
