@@ -200,8 +200,8 @@ function derive(list) {
     const count = list.length - i;
     let base = null, readiness = null;
     if (count >= 4) {
-      // hrv/rhr are the glossary's Baseline; resp/skin/spo2 "usual" values are a prototype extension
-      base = Object.fromEntries(['hrv', 'rhr', 'resp', 'skin', 'spo2'].map(k => [k, avg(prior.map(p => p[k]))]));
+      // Baseline widened to resp/skin (proposed glossary change); SpO2 uses fixed levels instead
+      base = Object.fromEntries(['hrv', 'rhr', 'resp', 'skin'].map(k => [k, avg(prior.map(p => p[k]))]));
       readiness = clamp(Math.round(58 + 140 * (n.hrv - base.hrv) / base.hrv - 3.5 * (n.rhr - base.rhr) + (n.sleepScore - 75) * 0.5), 1, 99);
     }
     return { ...n, base, readiness, nightsSoFar: count };
@@ -407,10 +407,13 @@ const STATUS = {
   rhr: (v, b) => { const d = v - b; return d <= 1 ? 'good' : d <= 4 ? 'mid' : 'low'; },
   resp: (v, b) => { const d = Math.abs(v - b); return d <= 0.5 ? 'good' : d <= 1 ? 'mid' : 'low'; },
   skin: (v, b) => { const d = Math.abs(v - b); return d <= 0.3 ? 'good' : d <= 0.6 ? 'mid' : 'low'; },
-  spo2: (v, b) => { const d = b - v; return d <= 1 ? 'good' : d <= 2 ? 'mid' : 'low'; },
+  spo2: v => v >= 95 ? 'good' : v >= 92 ? 'mid' : 'low', // fixed levels, no Baseline
 };
-const statusColor = (n, key) => n.base ? `var(--${STATUS[key](n[key], n.base[key])})` : 'var(--s-ink)';
+const SPO2_LABEL = { good: '95% or above', mid: 'Below 95%', low: 'Below 92%' };
+const statusColor = (n, key) => key === 'spo2' ? `var(--${STATUS.spo2(n.spo2)})`
+  : n.base ? `var(--${STATUS[key](n[key], n.base[key])})` : 'var(--s-ink)';
 function tileDelta(n, m) {
+  if (m.key === 'spo2') return `<span style="color:${statusColor(n, 'spo2')}">${SPO2_LABEL[STATUS.spo2(n.spo2)]}</span>`;
   if (!n.base) return '<span class="muted">Calibrating</span>';
   const d = n[m.key] - n.base[m.key];
   const txt = m.key === 'hrv' ? `${Math.round(d / n.base.hrv * 100)}%` : m.key === 'rhr' ? `${Math.round(d)} bpm` : `${d.toFixed(1)}`;
