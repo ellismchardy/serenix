@@ -136,35 +136,19 @@ grid. Tiles have no trend line; a metric's history is in its popup.
   status word with a ✓, and a vertical gauge. The status word and the gauge take the colour of
   the metric's Zone.
   - **Status word:** "Normal" when In range. Otherwise "Low" or "High", by which side of the
-    Baseline the value is on: HRV below Baseline is "Low"; Resting HR above Baseline is "High";
-    respiratory rate and skin temperature are "Low" below Baseline and "High" above. SpO2 shows
-    its level instead: "95% or above", "Below 95%", "Below 92%".
-  - **Gauge:** a position from 0 (bottom) to 1 (top), clamped. For metrics with a Baseline, the
-    Baseline sits at 0.5 and the Watch limit on each side at the ends: 0.5 + d / (2 × limit),
-    with d signed and the limit from the Zone table (HRV: d as a fraction of Baseline, limit
-    0.15; Resting HR: 4 bpm; respiratory rate: 1.0; skin temperature: 0.6). SpO2 runs on a
-    fixed scale from 88% (0) to 100% (1).
+    Baseline the value is on. SpO2 shows its level instead: "95% or above", "Below 95%",
+    "Below 92%". Details in spec 004.
+  - **Gauge:** a position from 0 (bottom) to 1 (top), clamped, with the Baseline at 0.5 for
+    metrics that have one. SpO2 runs on a fixed scale from 88% (0) to 100% (1). Positions are
+    set by spec 004.
 
 A metric whose Baseline is Calibrating shows white with "Calibrating" and an empty gauge, and
 has no Zone. SpO2 needs no Baseline, so it has a Zone from the first Night.
 
-**Zones.** These are worked out on unrounded values. They are named constants and assumptions,
-to be tuned once real Nights exist (see Open questions):
-
-| Metric | In range (green) | Watch (amber) | Out of range (red) |
-|---|---|---|---|
-| HRV, d = (value − Baseline) / Baseline | d ≥ −5% | −15% ≤ d < −5% | d < −15% |
-| Resting HR, d = value − Baseline (bpm) | d ≤ 1 | 1 < d ≤ 4 | d > 4 |
-| Respiratory rate, \|value − Baseline\| (br/min) | ≤ 0.5 | ≤ 1.0 | > 1.0 |
-| Skin temperature, \|value − Baseline\| (°C) | ≤ 0.3 | ≤ 0.6 | > 0.6 |
-| SpO2, fixed levels (%) | ≥ 95 | 92 ≤ value < 95 | < 92 |
-
-**Baseline.** For a given Night and metric, the Baseline is the **median** of that metric over
-the up-to-14 most recent *earlier* Nights that have a value for it. With an even count it is the
-mean of the two middle values. The Night shown is never part of its own Baseline. An earlier
-Night is compared against its own Baseline, not today's. A metric's Baseline is Calibrating
-until at least 3 earlier Nights have it, so the 4th Night with a value is the first with a
-Baseline (docs/architecture.md: "calibrating until 4 Nights exist"). SpO2 has no Baseline.
+**Zones and Baseline.** Zones are coloured In range (green), Watch (amber) or Out of range
+(red). Baseline, its Spread, and the Zone rules are defined in spec 004. In short: the Baseline
+is the median of up to 14 earlier Nights, it is Calibrating until 3 earlier Nights have the
+metric, and SpO2 has no Baseline.
 
 **Missing values.** A score or Nightly Metric that the Night doesn't have shows "—" with no Zone
 and no colour, as do Time Asleep and Load. Examples: no SpO2 Window, or a score whose spec hasn't
@@ -191,7 +175,8 @@ one describes the Night shown:
   - the value and difference, or the SpO2 level, coloured by Zone
   - its values for the Night shown and up to 13 earlier Nights, as a chart and as a list of the
     5 most recent
-  - the Baseline and its In range limits, drawn as a band, for metrics with a Baseline
+  - the Baseline and its In range limits (spec 004), drawn as a band, for metrics with a
+    Baseline
 
 Tapping the Load ring does nothing in this spec.
 
@@ -232,12 +217,8 @@ are bpm, ms, br/min, °C and %. Respiratory rate and skin temperature have one d
 other metrics are whole numbers.
 
 ## Design decisions
-- **`SerenixCore`: Baseline.** Given a Night and the earlier Nights, it returns, for each of
-  Resting HR, HRV, respiratory rate and skin temperature, either the median or Calibrating
-  (with the count so far). It is pure. The Readiness spec reuses it.
-- **`SerenixCore`: Zone.** Given a metric, its value and its Baseline (none for SpO2), it
-  returns In range, Watch or Out of range. The cut-offs are named constants, each commented with
-  its unit and "assumption: from the 002 prototype, tune with real Nights".
+- **`SerenixCore`: Baseline and Zone** are specified in spec 004. The Today view uses them for
+  tiles, gauges and popup bands.
 - **`SerenixCore`: Today view.** One pure function. It takes:
   - the stored Nights (Nightly Metrics, Time Asleep, Sleep Onset, Final Wake, Time in Bed,
     Sleep Score and Readiness, any of which may be missing)
@@ -294,46 +275,18 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
       Day's values.
 - [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
-- [x] Baseline for HRV over earlier values 50, 70, 60, 58 is 59 (even-count median); over 50,
-      70, 60 it is 60.
-- [x] Baseline uses at most the 14 most recent earlier Nights: with 20 earlier Nights, the 6
-      oldest change nothing.
-- [x] The Night shown is not in its own Baseline: changing its HRV changes its Zone but not its
-      Baseline.
-- [x] An earlier Night's Baseline comes from Nights before it only: adding a newer Night leaves
-      it unchanged.
-- [x] A metric with 2 earlier Nights is Calibrating ("Calibrating", no Zone); with 3, it has a
-      Baseline.
-- [x] Earlier Nights missing a metric are skipped for that metric's Baseline and popup chart, and
-      don't count towards its 3.
-- [x] HRV against Baseline 60: 57 (−5%) is In range, 56.9 is Watch, 51 (−15%) is Watch, 50.9 is
-      Out of range, 90 is In range.
-- [x] Resting HR against Baseline 52: 53 is In range, 53.1 is Watch, 56 is Watch, 56.1 is Out of
-      range, 45 is In range.
-- [x] Respiratory rate against Baseline 14.0: 14.5 and 13.5 are In range, 15.0 is Watch, 15.1
-      and 12.9 are Out of range.
-- [x] Skin temperature against Baseline 34.0: 34.3 is In range, 33.6 is Watch, 34.7 is Out of
-      range.
-- [x] SpO2: 95 is In range, 94 and 92 are Watch, 91 is Out of range, including on a Night with
-      no earlier Nights.
+- [x] Baseline, Spread, Zones, status words, gauge positions and the popup's In range band: see
+      spec 004's success criteria.
 - [x] Differences format as "+14%" for HRV, "−3 bpm" for Resting HR, and "+0.4" for respiratory
       rate and skin temperature.
 - [x] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.
 - [x] Load on today is labelled "Load so far"; on an earlier Day, "Load".
 - [x] When either Baseline is Calibrating, vs your Baseline is the single Calibrating line with
       the right "N to go".
-- [x] Tile status words against exact Baselines (HRV 60, Resting HR 52, respiratory rate 14.0,
-      skin temperature 34.0): HRV 57 "Normal", 54 "Low"; Resting HR 53 "Normal", 55 "High";
-      respiratory rate 15.0 "High", 13.0 "Low"; skin temperature 34.5 "High", 33.5 "Low"; SpO2
-      97 "95% or above", 93 "Below 95%", 90 "Below 92%"; a Calibrating metric "Calibrating".
-- [x] Gauge positions against the same Baselines: HRV 60 → 0.5, 55.5 → 0.25, 51 → 0, 75 → 1
-      (clamped); Resting HR 54 → 0.75, 48 → 0; respiratory rate 14.5 → 0.75; skin temperature
-      33.7 → 0.25; SpO2 97 → 0.75, 85 → 0 (clamped); a Calibrating or missing metric has no
-      position.
 - [x] Tiles carry no trend line; the Time Asleep tile has no Zone, status word or gauge.
 - [x] The Sleep popup's minutes awake equal Final Wake − Sleep Onset − Time Asleep.
 - [x] The Nightly Metric popup holds the Night shown and up to 13 earlier Nights, plus the
-      Baseline and In range limits (none for SpO2).
+      Baseline and In range limits (none for SpO2; values per spec 004).
 - [x] Which sync pill shows: connecting and syncing → "Syncing"; a sync just finished → "Sync
       successful"; Strap not found, Bluetooth unavailable or the Strap disconnecting → "Sync
       paused", carrying its reason and "Serenix will try again next time you open it."; any
@@ -406,12 +359,10 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
   spec gives it something to show.
 
 ## Open questions
-- **Zone cut-offs** are the prototype's placeholders. Tune them once there are a few weeks of
-  real Nights, and change the constants and their tests together.
 - **Write a review.** It needs the App Store, which needs the Apple Developer Program (ADR 0003).
   When its spec comes, it may link to GitHub instead.
 - **SpO2 rounding.** Zones use unrounded values, so SpO2 94.6 shows "95%" with "Below 95%".
-  Assumption: keep it, as the Zone table says; revisit if it confuses on real Nights.
+  Assumption: keep it, as spec 004's Zone table says; revisit if it confuses on real Nights.
 ## Notes
 - Prototype: branch `prototype/homescreen`, file `src/SerenixApp/Prototype/home-screen-prototype.html`.
   Open it with `?variant=E`.
@@ -430,4 +381,5 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - Redesign (2026-11-01): the top bar, sync pill, tiles and profile menu follow reference
   screenshots the owner shared in conversation. Their layout is taken, not their names or
   features (ADR 0005).
-- Related: `specs/001-history-sync.md`.
+- Related: `specs/001-history-sync.md`; `specs/004-baseline-and-zones.md` (Baseline, Spread and
+  Zones, moved out of this spec).
