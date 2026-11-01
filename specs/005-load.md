@@ -1,7 +1,7 @@
 # 005 — Load
 
-**Status:** approved
-**Last updated:** 2026-11-01
+**Status:** built
+**Last updated:** 2026-11-01 (built; CI and the phone checks open in the PR)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map); decisions in
 https://github.com/ellismchardy/serenix/issues/16 and
 https://github.com/ellismchardy/serenix/issues/18
@@ -142,45 +142,45 @@ the ring, and keeping the fields out of logs, which are checked by hand on the p
 Unless a criterion says otherwise: Europe/London, sex Male, Max HR 190 entered, no Nights (Resting
 HR 60), and one History Record per second.
 
-- [ ] An hour of records at 164 bpm gives Load 57; with sex Female 58; with Prefer not to say, or
+- [x] An hour of records at 164 bpm gives Load 57; with sex Female 58; with Prefer not to say, or
       sex not set, 57.
-- [ ] 30 minutes at 112 bpm gives 33; an hour at 120 bpm gives 43.
-- [ ] 16 hours at 94 bpm (below 50% of Max HR) gives 0; an hour at 95 bpm gives 33.
-- [ ] An hour at 200 bpm gives the same Load as an hour at 190 bpm: 64.
-- [ ] 24 hours at 190 bpm gives 100.
-- [ ] An hour at 164 bpm plus an hour of records with heart rate 0 gives 57; the same hour with
+- [x] 30 minutes at 112 bpm gives 33; an hour at 120 bpm gives 43.
+- [x] 16 hours at 94 bpm (below 50% of Max HR) gives 0; an hour at 95 bpm gives 33.
+- [x] An hour at 200 bpm gives the same Load as an hour at 190 bpm: 64.
+- [x] 24 hours at 190 bpm gives 100.
+- [x] An hour at 164 bpm plus an hour of records with heart rate 0 gives 57; the same hour with
       every record repeated, or in a different order, gives 57.
-- [ ] With Resting HR 100 entered through Nights, an hour at 96 bpm (over the floor, under Resting
+- [x] With Resting HR 100 entered through Nights, an hour at 96 bpm (over the floor, under Resting
       HR) gives 0.
-- [ ] No Max HR, birth year 1986, sex Male: an hour at 154 bpm on a Day in 2026 (Max HR 180) gives
+- [x] No Max HR, birth year 1986, sex Male: an hour at 154 bpm on a Day in 2026 (Max HR 180) gives
       56; with no birth year either, Load is missing because there's no Max HR.
-- [ ] An entered Max HR wins over birth year: Max HR 190 with birth year 1986 gives 57 for an hour
+- [x] An entered Max HR wins over birth year: Max HR 190 with birth year 1986 gives 57 for an hour
       at 164 bpm.
-- [ ] Resting HR: with Nights whose Resting HR are 50, 52 and 54, all dated on or before the Day,
+- [x] Resting HR: with Nights whose Resting HR are 50, 52 and 54, all dated on or before the Day,
       an hour at 120 bpm gives 45; adding a Night dated the Day after, at 90, changes nothing;
       with a Night of Resting HR 70 dated the Day itself and no others, it gives 41.
-- [ ] Resting HR: with 15 Nights on or before the Day, the oldest at Resting HR 20, then 7 at 50
+- [x] Resting HR: with 15 Nights on or before the Day, the oldest at Resting HR 20, then 7 at 50
       and the 7 most recent at 70, an hour at 120 bpm gives 43 (median 60 of the 14 most recent;
       counting the oldest would give 45); a Night without a Resting HR is skipped, not counted.
-- [ ] Max HR at or below Resting HR gives missing Load (Max HR 100 entered, Resting HR 100 from a
+- [x] Max HR at or below Resting HR gives missing Load (Max HR 100 entered, Resting HR 100 from a
       Night).
-- [ ] A Day with no History Records has missing Load; one with records but none over the floor
+- [x] A Day with no History Records has missing Load; one with records but none over the floor
       has 0.
-- [ ] Only the Day's records count: an hour at 164 bpm from 23:30 to 00:30 on the night 31 Oct to
+- [x] Only the Day's records count: an hour at 164 bpm from 23:30 to 00:30 on the night 31 Oct to
       1 Nov 2026 counts 30 minutes toward each Day (each gives 49); on 29 Mar 2026 (clocks go
       forward) the Day runs 00:00 to 23:00 UTC.
-- [ ] Day rebuilds: records at 23:00 on 14 Nov and 07:00 on 15 Nov 2026 queue 14 Nov and 15 Nov,
+- [x] Day rebuilds: records at 23:00 on 14 Nov and 07:00 on 15 Nov 2026 queue 14 Nov and 15 Nov,
       each reading local midnight to midnight; repeats and order change nothing.
-- [ ] Day rebuilds: with now 30 Nov 2026 12:00, a record at 31 Oct 13:00 queues nothing (its Day
+- [x] Day rebuilds: with now 30 Nov 2026 12:00, a record at 31 Oct 13:00 queues nothing (its Day
       starts more than 30 days earlier), one at 1 Nov 01:00 queues 1 Nov, one at 30 Nov 13:00
       queues 30 Nov, and one at 1 Dec 01:00 queues nothing (its Day starts after now); for a
       Profile change, the 30 Days 1 Nov to 30 Nov are returned, oldest first.
-- [ ] Profile: Max HR is accepted from 100 to 230 and refused outside it; birth year from 100 to
+- [x] Profile: Max HR is accepted from 100 to 230 and refused outside it; birth year from 100 to
       13 years before the current year; the estimate for birth year 1986 in 2026 is 180.
-- [ ] Today view: a Day whose Load is missing for no Max HR labels the ring "Add your age" and
+- [x] Today view: a Day whose Load is missing for no Max HR labels the ring "Add your age" and
       marks it as opening the profile menu; a Day missing Load for no records labels it "Load"
       ("Load so far" on today) and marks no tap.
-- [ ] Readiness advice: a Load of 55 yesterday is mentioned as high, 54 isn't; Steady says "keep
+- [x] Readiness advice: a Load of 55 yesterday is mentioned as high, 54 isn't; Steady says "keep
       your Load under 50 today"; Take it easy says "keep your Load under 33 today".
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.

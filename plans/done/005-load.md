@@ -107,7 +107,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
     - Check "Add your age" by hand on a Day with synced records: with none, Load is missing for no
       records first, so the ring keeps its usual label (spec review, task 8).
     - Done when: the macOS CI job builds; the remaining manual criteria (Add your age, the rows surviving a relaunch, no Profile fields in a shared Sync Log) are listed with steps for the PR.
-11. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+11. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
     and `swift build` are green, the macOS CI job builds, and every spec 005 criterion (plus
     spec 002's advice criterion) is checked; the manual ones are done on the phone.
     - Blocked by: 10
