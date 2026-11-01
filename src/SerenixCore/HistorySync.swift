@@ -139,6 +139,8 @@ public struct HistorySync: Sendable {
     public mutating func receive(_ bytes: [UInt8], at time: Date) -> HistorySyncOutput {
         var output = HistorySyncOutput()
         output.syncLog.append(SyncLogEntry(time: time, direction: .fromStrap, bytes: bytes))
+        // A message after a long silence comes too late: the sync has already timed out.
+        timeOutIfSilent(at: time)
         guard state == .running else { return output }
         lastHeardFromStrap = time
         let frame: Frame
@@ -198,9 +200,9 @@ public struct HistorySync: Sendable {
     }
 
     /// Fails a running sync as timed out if the Strap has sent nothing for
-    /// `strapSilenceTimeout` since the sync started or its last message. The caller checks
-    /// regularly and before feeding each message, so a long gap (e.g. while iOS held the app
-    /// up) counts as the Strap not responding (spec 001).
+    /// `strapSilenceTimeout` since the sync started or its last message. `receive` checks this
+    /// too; the caller also checks regularly, so a long gap (e.g. while iOS held the app up)
+    /// counts as the Strap not responding (spec 001).
     public mutating func timeOutIfSilent(at now: Date) {
         guard state == .running, let lastHeardFromStrap,
             now.timeIntervalSince(lastHeardFromStrap) >= strapSilenceTimeout

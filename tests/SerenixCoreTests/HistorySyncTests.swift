@@ -524,6 +524,18 @@ private let handshakeOps: [UInt8] = [0x91, 0x0a, 0x0a, 0x0b, 0x61, 0x45, 0x1a, 0
     #expect(session.state == .failed(.timedOut))
 }
 
+@Test func aFrameAfter10SecondsOfSilenceFailsTheSyncAndIsOnlyLogged() {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+    let late = capturedPhoneTime.addingTimeInterval(10)
+
+    let output = session.receive(strapMessages[0].bytes, at: late)
+    #expect(session.state == .failed(.timedOut))
+    #expect(output.framesToSend.isEmpty)
+    #expect(output.syncLog.map(\.bytes) == [strapMessages[0].bytes])
+    #expect(output.syncLog.map(\.direction) == [.fromStrap])
+}
+
 @Test func aTimeoutFailsTheSyncAndLaterFramesAreOnlyLogged() throws {
     try #require(isMetadataFrame(strapMessages[firstBatchStartIndex].bytes, kind: batchStartKind))
     var session = HistorySync()
@@ -655,13 +667,13 @@ private func progressReplaying(
     let atTenSeconds = try #require(session.timeLeft(at: firstArrival.addingTimeInterval(10)))
     #expect(abs(atTenSeconds - 186.666_666_666_666_67) < 1e-9)
 
-    // The rest arrives at T + 20 s; the last History Record (1793130619) brings progress to 1,
-    // so nothing is left.
+    // The rest arrives at T + 10 s (under the 10 s silence timeout); the last History Record
+    // (1793130619) brings progress to 1, so nothing is left.
     for message in strapMessages[(tenthRecordOfFirstBatchIndex + 1)...] {
-        _ = session.receive(message.bytes, at: start.addingTimeInterval(20))
+        _ = session.receive(message.bytes, at: start.addingTimeInterval(10))
     }
     try #require(session.state == .completed)
-    #expect(session.timeLeft(at: start.addingTimeInterval(21)) == 0)
+    #expect(session.timeLeft(at: start.addingTimeInterval(11)) == 0)
 }
 
 @Test func anEmptySyncReportsNoProgressAndCompletes() throws {
