@@ -129,8 +129,8 @@ enum NightStore {
     }
 
     /// The stored History Records in `interval` (end excluded), oldest first, read in batches.
-    /// Their raw bytes aren't read: the Night methods don't use them.
-    private static func historyRecords(
+    /// Their raw bytes aren't read: neither the Night methods nor Load use them.
+    static func historyRecords(
         in interval: DateInterval,
         context: ModelContext
     ) throws -> [HistoryRecord] {

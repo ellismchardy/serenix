@@ -87,7 +87,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Blocked by: 4, 7
    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`
    - Done when: the spec's Today view criterion passes.
-9. [ ] **Slice (shell):** store a Load per Day and work Days out after each sync's Nights.
+9. [x] **Slice (shell):** store a Load per Day and work Days out after each sync's Nights.
    - A `StoredDayLoad` SwiftData model keyed by date, in `NightStore.swift` or a new `DayLoadStore.swift`, added to the `ModelContainer` schema in `HistoryRecordStore`.
    - A pending `DayRebuild` queue in UserDefaults, like `NightStore.pendingRebuilds`.
    - `StrapConnection`: `queueNightRebuilds` also queues Day rebuilds, and `rebuildNights()` works out queued Days after the Nights, one at a time off the main thread, reading the Day's records plus the stored Nights and the Profile.
@@ -96,7 +96,9 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Seam: none in `SerenixCore` (shell, checked by hand per ADR 0002) · Files: `src/SerenixApp/NightStore.swift` or `DayLoadStore.swift` (new), `src/SerenixApp/HistoryRecordStore.swift`, `src/SerenixApp/StrapConnection.swift`, `src/SerenixApp/TodayScreen.swift`
    - Done when: the macOS CI job builds; the first manual criterion (Load ring after a morning sync) is listed with its steps for the PR.
 10. [ ] **Slice (shell):** Profile rows and the ring tap.
-    - `ProfileStore` keeps birth year, sex and Max HR in UserDefaults.
+    - `ProfileStore` keeps birth year, sex and Max HR in UserDefaults, under the keys task 9 added
+      for `ProfileStore.storedProfile` (`profileBirthYear`, `profileSex` as `Sex`'s raw value,
+      `profileMaxHR`, both numbers as Int); reuse those constants.
     - `ProfileMenu` adds the Birth year picker, the Sex choice with its hint, and the Max HR field with "Estimated N from your age".
     - A change queues `dayRebuildsDue` and runs the rebuild.
     - The Load ring opens the profile menu when `loadOpensProfileMenu` is true.
@@ -125,6 +127,15 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
   for that year, so birth year 2013 picked in January 2026 gives no Max HR for a Day in December
   2025 ("Add your age" though an age is set). Options: accept any set birth year in Load, or keep
   the range check only in the shell's picker (spec review, task 4).
+
+- **Manual check for the PR (task 9):** with a birth year set (or, before task 10, via Debug or a
+  test build), sync in the morning, then confirm the Load ring shows yesterday's Load on
+  yesterday and "Load so far" on today, and that a Day with a workout reads clearly higher than a
+  Day without one.
+- **Open (ask the user, task 9 review):** the pending-rebuild queue, its drain loop and
+  `removeOnePending` are now written twice (Nights and Day Loads) in the shell; a generic queue
+  would remove the copy but reworks shell code that only CI can compile. Also: the rebuild
+  names (`rebuildNights`, `queueNightRebuilds`) now cover Loads too.
 
 ## Done when
 - All tasks checked, every success criterion in spec 005 met, suite green.

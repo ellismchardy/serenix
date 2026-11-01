@@ -56,6 +56,8 @@ final class StrapConnection: NSObject, ObservableObject {
     var historyRecordsStored: Int { storeStats.count }
     /// Every stored Night, oldest first, for the Today screen (spec 003).
     @Published private(set) var nights: [Night] = []
+    /// Every stored Day Load, oldest first, for the Today screen (spec 005).
+    @Published private(set) var dayLoads: [DayLoad] = []
     /// From the Strap's Device Info service, kept across launches.
     @Published private(set) var strapModel: String?
     @Published private(set) var strapFirmware: String?
@@ -113,11 +115,12 @@ final class StrapConnection: NSObject, ObservableObject {
     /// so stats never land out of order and two saves never prune the same old Sync Log.
     private var storeStatsRefresh: Task<Void, Never>?
     private var syncLogSave: Task<Void, Never>?
-    /// The latest Night rebuild. Each new one waits for the one before, so two never replace
-    /// the same Nights at once.
+    /// The latest Night and Day Load rebuild. Each new one waits for the one before, so two
+    /// never replace the same Nights or Loads at once.
     private var nightsRebuild: Task<Void, Never>?
-    /// The queued rebuild being worked out right now, if any.
+    /// The queued rebuilds being worked out right now, if any.
     private var rebuildInProgress: NightRebuild?
+    private var dayRebuildInProgress: DayRebuild?
     /// When each History Record inserted since the last save was taken. Just before the save,
     /// the dates they touch are queued to be worked out again (`NightStore.pendingRebuilds`).
     private var unsavedRecordTimes: [Date] = []
@@ -267,18 +270,30 @@ final class StrapConnection: NSObject, ObservableObject {
         }
     }
 
-    /// Queues the dates that History Records about to be saved at `recordTimes` touch, so
-    /// they're worked out again even if iOS ends Serenix before the sync does (spec 003, When).
+    /// Queues the dates and Days that History Records about to be saved at `recordTimes` touch,
+    /// so their Nights and Loads are worked out again even if iOS ends Serenix before the sync
+    /// does (spec 003, When; spec 005, When).
     private func queueNightRebuilds(after recordTimes: [Date]) {
-        let added = nightRebuilds(after: recordTimes, now: Date(), in: .current)
+        let now = Date()
         var pending = NightStore.pendingRebuilds
-        for rebuild in added {
+        for rebuild in nightRebuilds(after: recordTimes, now: now, in: .current) {
             // A date being worked out right now may be reading History Records from before this
             // save, so it's queued once more to be worked out again afterwards.
             let copiesWanted = rebuild == rebuildInProgress ? 2 : 1
             if pending.filter({ $0 == rebuild }).count < copiesWanted { pending.append(rebuild) }
         }
         NightStore.pendingRebuilds = pending
+        queueDayRebuilds(dayRebuilds(after: recordTimes, now: now, in: .current))
+    }
+
+    /// Queues `added`, as `queueNightRebuilds(after:)` queues dates.
+    private func queueDayRebuilds(_ added: [DayRebuild]) {
+        var pending = DayLoadStore.pendingRebuilds
+        for rebuild in added {
+            let copiesWanted = rebuild == dayRebuildInProgress ? 2 : 1
+            if pending.filter({ $0 == rebuild }).count < copiesWanted { pending.append(rebuild) }
+        }
+        DayLoadStore.pendingRebuilds = pending
     }
 
     /// Takes away one queued copy of `rebuild`, leaving any copy queued while it was worked out.
@@ -288,9 +303,18 @@ final class StrapConnection: NSObject, ObservableObject {
         NightStore.pendingRebuilds = pending
     }
 
-    /// Works out, off the main thread and one date at a time, every queued rebuild still due,
-    /// then shows every stored Night. A rebuild that fails goes to the back of the queue, to be
-    /// tried after the next sync or launch; it never stops the stored Nights from showing.
+    /// Takes away one queued copy of `rebuild`, as for a Night rebuild.
+    private static func removeOnePending(_ rebuild: DayRebuild) {
+        var pending = DayLoadStore.pendingRebuilds
+        if let index = pending.firstIndex(of: rebuild) { pending.remove(at: index) }
+        DayLoadStore.pendingRebuilds = pending
+    }
+
+    /// Works out, off the main thread and one date at a time, every queued Night rebuild still
+    /// due, then every queued Day rebuild still due (so a Day's Load sees that morning's Night),
+    /// then shows every stored Night and Day Load. A rebuild that fails goes to the back of its
+    /// queue, to be tried after the next sync or launch; it never stops what's stored from
+    /// showing.
     private func rebuildNights() {
         guard case .success(let store) = self.store else { return }
         let container = store.container
@@ -321,12 +345,56 @@ final class StrapConnection: NSObject, ObservableObject {
                     }
                 }
             }
+            let nights: [Night]?
             do {
-                let nights = try NightStore.nights(in: container)
-                await MainActor.run { self.nights = nights }
+                let stored = try NightStore.nights(in: container)
+                nights = stored
+                await MainActor.run { self.nights = stored }
             } catch {
+                nights = nil
                 storeLog.error(
                     "Couldn't read stored Nights: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+            // Without the stored Nights, Resting HR would be wrong, so the Days stay queued.
+            let profile = ProfileStore.storedProfile
+            var queuedDays: [DayRebuild] = []
+            if nights != nil {
+                queuedDays = await MainActor.run { DayLoadStore.pendingRebuilds }
+            }
+            for rebuild in queuedDays {
+                await MainActor.run { self.dayRebuildInProgress = rebuild }
+                do {
+                    if rebuild.isDue(at: now) {
+                        try DayLoadStore.apply(
+                            rebuild,
+                            nights: nights ?? [],
+                            profile: profile,
+                            in: container,
+                            timeZone: timeZone
+                        )
+                    }
+                    await MainActor.run {
+                        Self.removeOnePending(rebuild)
+                        self.dayRebuildInProgress = nil
+                    }
+                } catch {
+                    storeLog.error(
+                        "Couldn't work out a Day's Load: \(error.localizedDescription, privacy: .public)"
+                    )
+                    await MainActor.run {
+                        Self.removeOnePending(rebuild)
+                        DayLoadStore.pendingRebuilds.append(rebuild)
+                        self.dayRebuildInProgress = nil
+                    }
+                }
+            }
+            do {
+                let dayLoads = try DayLoadStore.dayLoads(in: container)
+                await MainActor.run { self.dayLoads = dayLoads }
+            } catch {
+                storeLog.error(
+                    "Couldn't read stored Day Loads: \(error.localizedDescription, privacy: .public)"
                 )
             }
         }

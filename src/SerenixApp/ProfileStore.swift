@@ -1,4 +1,5 @@
 import Foundation
+import SerenixCore
 
 /// The Profile (GLOSSARY): the user's name, kept in UserDefaults on this phone. It is never sent
 /// anywhere, and never written to the Sync Log or any shared log or report (spec 002).
@@ -38,5 +39,22 @@ final class ProfileStore: ObservableObject {
     }
 }
 
+extension ProfileStore {
+    /// The Profile as kept on the phone, readable off the main thread (UserDefaults is
+    /// thread-safe) for working out Load (spec 005).
+    nonisolated static var storedProfile: Profile {
+        let defaults = UserDefaults.standard
+        return Profile(
+            name: defaults.string(forKey: nameKey),
+            birthYear: defaults.object(forKey: birthYearKey) as? Int,
+            sex: defaults.string(forKey: sexKey).flatMap(Sex.init(rawValue:)) ?? .preferNotToSay,
+            maxHR: defaults.object(forKey: maxHRKey) as? Int
+        )
+    }
+}
+
 private let nameKey = "profileName"
+private let birthYearKey = "profileBirthYear"
+private let sexKey = "profileSex"
+private let maxHRKey = "profileMaxHR"
 private let askedKey = "profileNameAsked"

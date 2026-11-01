@@ -25,12 +25,12 @@ struct TodayScreen: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        // The stored Nights (spec 003). No Load is worked out yet (its own spec).
+        // The stored Nights (spec 003) and Day Loads (spec 005).
         let now = Date()
         let shownDay = pickedDay ?? Day(containing: now, in: .current)
         let today = TodayView(
             nights: connection.nights,
-            dayLoads: [],
+            dayLoads: connection.dayLoads,
             showing: shownDay,
             now: now,
             timeZone: .current,
