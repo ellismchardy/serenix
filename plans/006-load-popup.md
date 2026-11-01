@@ -83,7 +83,7 @@ ignored, and nothing holds a connection between syncs.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift`, `src/SerenixCore/Day.swift`, tests as task 2
    - Done when: the hourly criterion passes (31 Oct 23:00 and 1 Nov 00:00 hold 1800 s each; 29
      Mar has 23 hours and 25 Oct has 25), and the 164 bpm hour's bars hold HR Zone 4 only.
-4. [ ] **Slice:** Highest HR and its earliest time, with HR 0 skipped.
+4. [x] **Slice:** Highest HR and its earliest time, with HR 0 skipped.
    - Seam: Load of a Day · Files: as task 3
    - Done when: the Highest HR criterion passes (150 at 09:00; all HR 0 gives none), and so do
      Highest HR 164 and 200 in criteria 1–2.

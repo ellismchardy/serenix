@@ -8,21 +8,35 @@ public struct DayHeartRate: Equatable, Codable, Sendable {
     /// per started hour: 24, or 23 / 25 across a clock change. Every entry has every HR Zone as a
     /// key (0 when none).
     public var hourlyZoneSeconds: [[HRZone: Int]]
+    /// The highest heart rate in the Day's History Records, HR 0 skipped, even under Load's
+    /// floor; the earliest time if it repeats. Nil with no heart rate over 0.
+    public var highestHR: HighestHR?
     public var maxHRUsed: MaxHRUsed
 
     public init(
         zoneSeconds: [HRZone: Int],
         hourlyZoneSeconds: [[HRZone: Int]],
+        highestHR: HighestHR?,
         maxHRUsed: MaxHRUsed
     ) {
         self.zoneSeconds = zoneSeconds
         self.hourlyZoneSeconds = hourlyZoneSeconds
+        self.highestHR = highestHR
         self.maxHRUsed = maxHRUsed
     }
 
     /// The HR Zone seconds of `records`, one second each, against `maxHRUsed`, in total and by
-    /// hour of `span` (the Day, local midnight to midnight; every record falls inside it).
+    /// hour of `span` (the Day, local midnight to midnight; every record falls inside it), and
+    /// their highest heart rate.
     init(records: [HistoryRecord], span: DateInterval, maxHRUsed: MaxHRUsed) {
+        // Highest first, then earliest.
+        let highest =
+            records
+            .filter { $0.heartRate > 0 }
+            .min {
+                ($0.heartRate, $1.timestamp) > ($1.heartRate, $0.timestamp)
+            }
+            .map { HighestHR(bpm: $0.heartRate, time: $0.timestamp) }
         let none = Dictionary(uniqueKeysWithValues: HRZone.allCases.map { ($0, 0) })
         var seconds = none
         // Hours are counted as time elapsed since local midnight, one entry per started hour: a
@@ -36,7 +50,23 @@ public struct DayHeartRate: Equatable, Codable, Sendable {
             let hour = Int(record.timestamp.timeIntervalSince(span.start) / secondsPerHour)
             hourly[hour][zone, default: 0] += 1
         }
-        self.init(zoneSeconds: seconds, hourlyZoneSeconds: hourly, maxHRUsed: maxHRUsed)
+        self.init(
+            zoneSeconds: seconds,
+            hourlyZoneSeconds: hourly,
+            highestHR: highest,
+            maxHRUsed: maxHRUsed
+        )
+    }
+}
+
+/// A Day's highest heart rate and when it was first reached (spec 006).
+public struct HighestHR: Equatable, Codable, Sendable {
+    public var bpm: Int
+    public var time: Date
+
+    public init(bpm: Int, time: Date) {
+        self.bpm = bpm
+        self.time = time
     }
 }
 

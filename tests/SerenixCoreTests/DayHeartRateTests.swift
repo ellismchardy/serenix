@@ -214,3 +214,78 @@ private func loadInLondon(of day: Day, _ records: [HistoryRecord]) -> DayLoad {
     #expect(hours?.count == 24)
     #expect(hours?.last == [.one: 0, .two: 0, .three: 0, .four: 600, .five: 0])
 }
+
+// Highest HR: the highest heart rate in the Day's History Records, HR 0 skipped, even under the
+// floor; the earliest time if it repeats.
+
+@Test func theHighestHRIsTheEarliestTimeTheDaysTopHeartRateWasReached() {
+    let nineAM = utcDate(2026, 11, 4, 9, 0)
+    let twentyToSeven = utcDate(2026, 11, 4, 18, 40)
+    let records =
+        historyRecords(
+            at: 120,
+            for: oneHour,
+            from: utcDate(2026, 11, 4, 8, 0),
+            firstRecordCounter: 1
+        )
+        + historyRecords(at: 150, for: 1, from: nineAM, firstRecordCounter: 3_601)
+        + historyRecords(
+            at: 120,
+            for: oneHour,
+            from: nineAM.addingTimeInterval(1),
+            firstRecordCounter: 3_602
+        )
+        + historyRecords(at: 150, for: 1, from: twentyToSeven, firstRecordCounter: 10_000)
+        + historyRecords(
+            at: 120,
+            for: tenMinutes,
+            from: twentyToSeven.addingTimeInterval(1),
+            firstRecordCounter: 10_001
+        )
+
+    let inOrder = loadOfFourthOfNovember(records)
+    let reversed = loadOfFourthOfNovember(records.reversed())
+
+    #expect(inOrder.heartRate?.highestHR == HighestHR(bpm: 150, time: nineAM))
+    #expect(reversed.heartRate?.highestHR == HighestHR(bpm: 150, time: nineAM))
+}
+
+@Test func aDayOfOnlyHR0HasHeartRateButNoHighestHR() {
+    let result = loadOfFourthOfNovember(historyRecords(at: 0, for: oneHour, from: tenAM))
+
+    #expect(result.heartRate != nil)
+    #expect(result.heartRate?.highestHR == nil)
+}
+
+@Test func theHighestHRCountsEvenUnderLoadsFloor() {
+    // 80 bpm is under the 95 bpm floor for Max HR 190.
+    let result = loadOfFourthOfNovember(historyRecords(at: 80, for: oneHour, from: tenAM))
+
+    #expect(result.heartRate?.highestHR == HighestHR(bpm: 80, time: tenAM))
+}
+
+@Test func anHourAt164BpmHasHighestHR164AtTheHoursFirstRecord() {
+    let result = loadOfFourthOfNovember(historyRecords(at: 164, for: oneHour, from: tenAM))
+
+    #expect(result.heartRate?.highestHR == HighestHR(bpm: 164, time: tenAM))
+}
+
+@Test func theHRZoneEdgeListHasHighestHR200AtTheStartOfItsLast10Minutes() {
+    let bpms = [94, 95, 113, 114, 133, 152, 170, 171, 200]
+    var records: [HistoryRecord] = []
+    for (index, bpm) in bpms.enumerated() {
+        records += historyRecords(
+            at: bpm,
+            for: tenMinutes,
+            from: tenAM.addingTimeInterval(TimeInterval(index * tenMinutes)),
+            firstRecordCounter: UInt32(1 + index * tenMinutes)
+        )
+    }
+
+    let result = loadOfFourthOfNovember(records)
+
+    // 200 bpm is the ninth 10 minutes, from 10:00 + 80 minutes = 11:20 UTC.
+    #expect(
+        result.heartRate?.highestHR == HighestHR(bpm: 200, time: utcDate(2026, 11, 4, 11, 20))
+    )
+}
