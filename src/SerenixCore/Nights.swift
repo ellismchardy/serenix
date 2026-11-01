@@ -9,7 +9,7 @@ public func nights(from records: [HistoryRecord], in timeZone: TimeZone) -> [Nig
     var seen = Set<String>()
     let unique = records.filter { seen.insert($0.identity).inserted }
     let byWindow = Dictionary(grouping: unique) {
-        nightWindowEnd(containing: $0.timestamp, in: timeZone)
+        nightWindow(containing: $0.timestamp, in: timeZone).start
     }
     let found = byWindow.values.compactMap {
         windowRecords -> (night: Night, period: SleepPeriod)? in
@@ -58,8 +58,12 @@ private func night(from records: [HistoryRecord], period: SleepPeriod, in timeZo
     )
 }
 
-/// The Day whose local noon ends the night window `time` falls in.
-private func nightWindowEnd(containing time: Date, in timeZone: TimeZone) -> Day {
+/// The night window `time` falls in: local noon to the next local noon in `timeZone` (23 or 25
+/// hours across a clock change).
+func nightWindow(containing time: Date, in timeZone: TimeZone) -> DateInterval {
     let day = Day(containing: time, in: timeZone)
-    return time < day.midday(in: timeZone) ? day : day.adding(days: 1)
+    let noon = day.midday(in: timeZone)
+    return time < noon
+        ? DateInterval(start: day.adding(days: -1).midday(in: timeZone), end: noon)
+        : DateInterval(start: noon, end: day.adding(days: 1).midday(in: timeZone))
 }

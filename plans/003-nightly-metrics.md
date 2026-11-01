@@ -16,8 +16,8 @@ sample Nights.
 
 ## Approach
 One public `SerenixCore` entry point, **Nights from History Records**: `nights(from: [HistoryRecord],
-in: TimeZone) -> [Night]`, plus a public `nightWindow(containing: Date, in: TimeZone)` helper the
-shell uses to know which records to fetch. Inside: per-minute table → wake/sleep labels → Sleep
+in: TimeZone) -> [Night]`, plus (from task 7) **Night rebuilds**, which tells the shell which
+dates to work out again after a sync and which History Records to read for each. Inside: per-minute table → wake/sleep labels → Sleep
 Period → Time in Bed, then one pure function per Nightly Metric, each constant named with its
 unit and its hr-tracker source. Quirks are kept (minute means include HR 0, Resting HR steps by
 records, skin temperature includes warm-up). Every test goes through the entry point (the spec's
@@ -91,17 +91,24 @@ Assumptions (consistent with the spec, stated for review):
      `src/SerenixCore/SleepPeriod.swift`, `tests/SerenixCoreTests/NightsTests.swift`,
      `tests/SerenixCoreTests/HistoryRecordBuilder.swift` (new helper)
    - Done when: criteria 3–7 and 10 pass, and the short-Sleep-Period Resting HR test passes.
-7. [ ] **Slice (shell):** `StoredNight` in SwiftData; after a completed sync, rebuild the touched
-   night windows and their neighbours and replace their Nights; Today screen reads stored Nights;
-   remove `SampleNights` and Debug's "Show sample Nights" switch.
-   - Seam: none in `SerenixCore` (checked by hand on the phone, ADR 0002) · Files:
-     `src/SerenixApp/NightStore.swift` (new), `src/SerenixApp/HistoryRecordStore.swift` (fetch by
-     window), `src/SerenixApp/StrapConnection.swift` (call the rebuild on `.completed`),
-     `src/SerenixApp/TodayScreen.swift`, `src/SerenixApp/DebugView.swift`,
-     `src/SerenixApp/ProfileMenu.swift`, `src/SerenixApp/SampleNights.swift` (removed),
-     `src/SerenixApp/SerenixApp.swift` (model container)
-   - Done when: macOS CI builds the app; the PR lists the phone steps for the three by-hand
-     criteria.
+7. [x] **Slice (shell + Night rebuilds):** `StoredNight` in SwiftData; after a sync, rebuild the
+   dates its History Records touched, one at a time, and replace their Nights; Today screen reads
+   stored Nights; remove `SampleNights` and Debug's "Show sample Nights" switch. Changed in review
+   (agreed with the user): which dates to rebuild and which History Records to read for each is
+   logic, so it is a second public `SerenixCore` seam, **Night rebuilds**
+   (`nightRebuilds(after: [Date], now: Date, in: TimeZone) -> [NightRebuild]`), test-first. Each
+   date reads only the two night windows that can give it (memory stays at two windows), dates
+   whose windows start more than 30 days before now (History Records kept 30 days) or after now
+   are skipped, and dates still to do are kept on the phone and resumed at launch.
+   - Seam: Night rebuilds (`SerenixCore`); the rest is checked by hand on the phone (ADR 0002) ·
+     Files: `src/SerenixCore/Nights.swift`, `src/SerenixCore/NightRebuild.swift` (new),
+     `tests/SerenixCoreTests/NightRebuildTests.swift` (new), `src/SerenixApp/NightStore.swift`
+     (new), `src/SerenixApp/HistoryRecordStore.swift` (model container),
+     `src/SerenixApp/StrapConnection.swift`, `src/SerenixApp/TodayScreen.swift`,
+     `src/SerenixApp/DebugView.swift`, `src/SerenixApp/ProfileMenu.swift`,
+     `src/SerenixApp/SampleNights.swift` (removed)
+   - Done when: the Night rebuilds tests pass; macOS CI builds the app; the PR lists the phone
+     steps for the three by-hand criteria, including syncing twice in one morning.
 8. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build` green; CI green; every spec success criterion checked, the by-hand ones on the
    phone.

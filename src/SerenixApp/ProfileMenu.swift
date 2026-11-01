@@ -15,7 +15,6 @@ struct ProfileMenu: View {
     let syncOffersRetry: Bool
     /// The Today view's say on whether a sync is running, so 001's progress shows here.
     let showsSyncProgress: Bool
-    @Binding var showsSampleNights: Bool
     @EnvironmentObject private var appearanceStore: AppearanceStore
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
@@ -84,7 +83,7 @@ struct ProfileMenu: View {
                 .listRowBackground(Theme.card)
                 Section {
                     NavigationLink {
-                        DebugView(connection: connection, showsSampleNights: $showsSampleNights)
+                        DebugView(connection: connection)
                     } label: {
                         Label("Debug", systemImage: "ladybug")
                     }

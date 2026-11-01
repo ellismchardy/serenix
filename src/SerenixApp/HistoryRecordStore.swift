@@ -38,12 +38,13 @@ final class StoredHistoryRecord {
 
 /// Saves the History Records a sync receives, on the phone only (ADR 0001).
 final class HistoryRecordStore {
-    /// Sendable, so `stats(in:)` can read the store off the main thread.
+    /// Sendable, so `stats(in:)` can read the store off the main thread. It also holds the stored
+    /// Nights, which `NightStore` works out from these History Records (spec 003).
     let container: ModelContainer
     private var context: ModelContext
 
     init() throws {
-        container = try ModelContainer(for: StoredHistoryRecord.self)
+        container = try ModelContainer(for: StoredHistoryRecord.self, StoredNight.self)
         context = Self.makeContext(container)
     }
 

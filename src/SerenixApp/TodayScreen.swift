@@ -19,25 +19,18 @@ struct TodayScreen: View {
     @State private var showsPillDetail = false
     @State private var openPopup: TodayPopup?
     @State private var showsProfileMenu = false
-    /// Debug's "Show sample Nights" (plan 002, task 8): off at launch and never saved.
-    @State private var showsSampleNights = false
     /// The Nights whose Readiness message was closed, kept on the phone (spec 002, Readiness
     /// message).
     @State private var closedMessages = ClosedReadinessMessages()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        // No Night or Load is computed yet (each is its own spec), so both are empty unless
-        // Debug's sample Nights are on.
+        // The stored Nights (spec 003). No Load is worked out yet (its own spec).
         let now = Date()
-        let samples =
-            showsSampleNights
-            ? SampleNights.make(now: now, calendar: .current)
-            : (nights: [Night](), dayLoads: [DayLoad]())
         let shownDay = pickedDay ?? Day(containing: now, in: .current)
         let today = TodayView(
-            nights: samples.nights,
-            dayLoads: samples.dayLoads,
+            nights: connection.nights,
+            dayLoads: [],
             showing: shownDay,
             now: now,
             timeZone: .current,
@@ -110,12 +103,9 @@ struct TodayScreen: View {
                     avatarLetter: today.avatarLetter,
                     menuName: today.menuName,
                     syncOffersRetry: today.syncOffersRetry,
-                    showsSyncProgress: today.syncPill?.showsProgress ?? false,
-                    showsSampleNights: $showsSampleNights
+                    showsSyncProgress: today.syncPill?.showsProgress ?? false
                 )
             }
-            // Switching the sample Nights on or off starts again from today.
-            .onChange(of: showsSampleNights) { showToday() }
             // Serenix opens on today (spec 002), also when iOS kept it suspended overnight.
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 if oldPhase == .background, newPhase != .background { showToday() }
