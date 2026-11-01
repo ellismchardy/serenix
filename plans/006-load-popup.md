@@ -70,7 +70,7 @@ ignored, and nothing holds a connection between syncs.
    shared `HistoryRecordBuilder.swift`. There is no behavior change.
    - Files: `tests/SerenixCoreTests/LoadTests.swift`, `tests/SerenixCoreTests/HistoryRecordBuilder.swift`
    - Done when: the existing suite is still green.
-2. [ ] **Slice (tracer):** HR Zone and the Day's seconds in each HR Zone, plus the Max HR used,
+2. [x] **Slice (tracer):** HR Zone and the Day's seconds in each HR Zone, plus the Max HR used,
    from Load of a Day.
    - Seam: Load of a Day · Files: `src/SerenixCore/HRZone.swift` (new), `src/SerenixCore/Load.swift`, `src/SerenixCore/Day.swift`, `tests/SerenixCoreTests/LoadTests.swift` (or new `DayHeartRateTests.swift`)
    - Done when these criteria pass:

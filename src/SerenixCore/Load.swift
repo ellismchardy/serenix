@@ -5,6 +5,7 @@ import Foundation
 /// else estimated from age in the Day's year. Missing with no History Records or no Max HR. Only
 /// records from the Day's local midnight to the next local midnight count; their order and any
 /// repeats don't matter. Resting HR comes from the Nights; missing too when Max HR isn't above it.
+/// With records and a Max HR, it also carries the Day's HR Zones and the Max HR used (spec 006).
 public func load(
     of day: Day,
     records: [HistoryRecord],
@@ -18,21 +19,38 @@ public func load(
         span.start <= $0.timestamp && $0.timestamp < span.end && seen.insert($0.identity).inserted
     }
     guard !unique.isEmpty else { return DayLoad(day: day, load: nil, missingReason: .noRecords) }
-    guard let maxHR = profile.maxHR.map(Double.init) ?? profile.estimatedMaxHR(in: day.year) else {
+    let maxHRUsed: MaxHRUsed
+    if let entered = profile.maxHR {
+        maxHRUsed = MaxHRUsed(bpm: Double(entered), source: .entered)
+    } else if let estimated = profile.estimatedMaxHR(in: day.year) {
+        maxHRUsed = MaxHRUsed(bpm: estimated, source: .estimated)
+    } else {
         return DayLoad(day: day, load: nil, missingReason: .noMaxHR)
     }
+    let maxHR = maxHRUsed.bpm
+    let heartRates = unique.map(\.heartRate)
+    let heartRate = DayHeartRate(heartRates: heartRates, maxHRUsed: maxHRUsed)
     let restingHR = LoadMethod.restingHR(for: day, among: nights)
     guard maxHR > restingHR else {
-        return DayLoad(day: day, load: nil, missingReason: .maxHRNotAboveRestingHR)
+        return DayLoad(
+            day: day,
+            load: nil,
+            missingReason: .maxHRNotAboveRestingHR,
+            heartRate: heartRate
+        )
     }
     let constants = LoadMethod.BanisterConstants(for: profile.sex)
     let sum = LoadMethod.trimp(
-        of: unique.map(\.heartRate),
+        of: heartRates,
         restingHR: restingHR,
         maxHR: maxHR,
         constants: constants
     )
-    return DayLoad(day: day, load: LoadMethod.scaled(sum, constants: constants))
+    return DayLoad(
+        day: day,
+        load: LoadMethod.scaled(sum, constants: constants),
+        heartRate: heartRate
+    )
 }
 
 /// The pieces of Load's method (spec 005; issue 16; docs/research/cardio-load-methods.md).
@@ -85,10 +103,10 @@ enum LoadMethod {
         maxHR: Double,
         constants: BanisterConstants
     ) -> Double {
-        let floor = floorFractionOfMaxHR * maxHR
-        return heartRates.reduce(0) { sum, heartRate in
+        heartRates.reduce(0) { sum, heartRate in
+            // Under the floor is exactly in no HR Zone (spec 006), so both use one comparison.
+            guard HRZone.zone(forHeartRate: heartRate, maxHR: maxHR) != nil else { return sum }
             let bpm = Double(heartRate)
-            guard bpm >= floor else { return sum }
             let r = min(max((bpm - restingHR) / (maxHR - restingHR), 0), 1)
             return sum + perSecond(r, constants: constants)
         }
