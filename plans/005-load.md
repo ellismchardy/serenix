@@ -40,8 +40,8 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
 - **Today view** (`src/SerenixCore/TodayView.swift`): reads `DayLoad.missingReason`. With
   `.noMaxHR`, `loadLabel` is "Add your age" and a new `loadOpensProfileMenu: Bool` is true.
 - Expected values are the literals in the spec's success criteria, worked by hand from its
-  formula. Records come from `tests/SerenixCoreTests/HistoryRecordBuilder.swift`, one per
-  second.
+  formula. Records are built one per second at a given heart rate by a helper in
+  `LoadTests.swift` (the shared `HistoryRecordBuilder.swift` fixes heart rate at 55 bpm).
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
@@ -50,7 +50,7 @@ Four `SerenixCore` seams from the spec, each built test-first, then two hand-che
    - Seam: Profile · Files: `src/SerenixCore/Profile.swift`, `tests/SerenixCoreTests/ProfileTests.swift` (new)
    - Done when: the spec's Profile criterion passes (Max HR 100–230, birth year 100 to 13 years
      back, the estimate for 1986 in 2026 is 180); the existing Today view tests stay green.
-2. [ ] **Slice (tracer):** Load of a Day with an entered Max HR and no Nights (60 bpm): the
+2. [x] **Slice (tracer):** Load of a Day with an entered Max HR and no Nights (60 bpm): the
    per-second sum, the floor, the cap at Max HR, the clamp at Resting HR, the sex constants, the
    scale and rounding, HR 0, repeats and order, and missing for no records vs 0.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift` (new), `src/SerenixCore/Day.swift` (`DayLoad.missingReason`), `tests/SerenixCoreTests/LoadTests.swift` (new)

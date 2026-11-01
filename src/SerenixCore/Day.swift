@@ -106,13 +106,26 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
     ]
 }
 
-/// A Day's Load, missing until the Load spec computes it.
-public struct DayLoad: Equatable, Sendable {
+/// Why a Day's Load is missing (spec 005, Missing vs 0).
+public enum LoadMissing: String, Codable, Sendable {
+    /// The Day has no History Records.
+    case noRecords
+    /// No Max HR was entered and there's no birth year to estimate one from.
+    case noMaxHR
+    /// Max HR is at or below Resting HR, so there's no heart-rate reserve.
+    case maxHRNotAboveRestingHR
+}
+
+/// A Day's Load (spec 005): 0–100, or missing with why.
+public struct DayLoad: Equatable, Codable, Sendable {
     public var day: Day
     public var load: Int?
+    /// Nil when `load` is there.
+    public var missingReason: LoadMissing?
 
-    public init(day: Day, load: Int?) {
+    public init(day: Day, load: Int?, missingReason: LoadMissing? = nil) {
         self.day = day
         self.load = load
+        self.missingReason = missingReason
     }
 }
