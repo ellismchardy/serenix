@@ -14,6 +14,9 @@ public struct MetricTile: Equatable, Sendable {
     public let zone: Zone?
     /// The trend line's values, oldest first.
     public let trend: [Double]
+    /// Which way the difference from Baseline goes as shown; nil when it shows as zero or there's
+    /// no difference to show.
+    let differenceDirection: BaselineDirection?
 
     init(_ metric: NightlyMetric, for night: Night, among nights: [Night]) {
         self.metric = metric
@@ -23,13 +26,22 @@ public struct MetricTile: Equatable, Sendable {
         self.baseline = baseline
         zone = value.flatMap { Zone(metric, value: $0, baseline: baseline) }
         valueText = value.map { formattedValue(of: metric, $0) } ?? missingText
+        // The difference as shown, in whole units: its text and its direction both come from it.
+        let shown = value.flatMap { value in
+            baseline.flatMap { shownDifference(of: metric, value - $0, $0) }
+        }
         differenceText =
             switch (value, baseline) {
             case (nil, _): missingText
             case (_, _) where metric == .spo2: spo2LevelText(zone)
             case (_, nil): "Calibrating"
-            case (let value?, let baseline?):
-                formattedDifference(of: metric, value - baseline, baseline)
+            case (_, _?): shown.map { formattedDifference(of: metric, $0) } ?? missingText
+            }
+        differenceDirection =
+            switch shown?.signum() {
+            case 1?: .up
+            case (-1)?: .down
+            default: nil
             }
         trend = trendValues(of: { $0.value(of: metric) }, upTo: night, among: nights)
     }
@@ -46,16 +58,31 @@ private func formattedValue(of metric: NightlyMetric, _ value: Double) -> String
     }
 }
 
-/// The difference from Baseline (spec 002, Tiles): HRV as a whole percentage of it, Resting HR
-/// in whole bpm, respiratory rate and skin temperature to one decimal with no unit.
-private func formattedDifference(of metric: NightlyMetric, _ difference: Double, _ baseline: Double)
-    -> String
+/// The difference from Baseline in the whole units it's shown in (spec 002, Tiles): HRV as a
+/// percentage of Baseline, Resting HR in bpm, respiratory rate and skin temperature in tenths.
+/// Nil for SpO2, for HRV against a Baseline of 0 or less, and when it's too large to show.
+private func shownDifference(of metric: NightlyMetric, _ difference: Double, _ baseline: Double)
+    -> Int?
 {
-    switch metric {
-    // A difference from a Baseline of 0 or less means nothing as a percentage.
-    case .hrv: baseline > 0 ? "\(signedWholeText(difference / baseline * 100))%" : missingText
-    case .restingHR: "\(signedWholeText(difference)) bpm"
-    case .respiratoryRate, .skinTemperature: signedTenthsText(difference)
+    let shown: Double? =
+        switch metric {
+        case .hrv: baseline > 0 ? difference / baseline * 100 : nil
+        case .restingHR: difference
+        case .respiratoryRate, .skinTemperature: difference * 10
+        case .spo2: nil
+        }
+    // `Int(exactly:)` gives nil rather than crashing on a value too large for an Int.
+    return shown.flatMap { Int(exactly: $0.rounded()) }
+}
+
+/// A shown difference as text: "+14%", "−3 bpm", "+0.4"; one that's zero has no sign.
+private func formattedDifference(of metric: NightlyMetric, _ shown: Int) -> String {
+    let sign = shown > 0 ? "+" : shown < 0 ? "\u{2212}" : ""
+    let size = abs(shown)
+    return switch metric {
+    case .hrv: "\(sign)\(size)%"
+    case .restingHR: "\(sign)\(size) bpm"
+    case .respiratoryRate, .skinTemperature: "\(sign)\(size / 10).\(size % 10)"
     case .spo2: missingText
     }
 }
@@ -79,15 +106,4 @@ private func tenthsText(_ value: Double) -> String {
     let tenths = Int((value * 10).rounded())
     let sign = tenths < 0 ? "\u{2212}" : ""
     return "\(sign)\(abs(tenths) / 10).\(abs(tenths) % 10)"
-}
-
-/// Signed with "+" or "−" (U+2212); one that rounds to zero has no sign.
-private func signedWholeText(_ value: Double) -> String {
-    let whole = Int(value.rounded())
-    return whole > 0 ? "+\(whole)" : whole < 0 ? "\u{2212}\(-whole)" : "0"
-}
-
-private func signedTenthsText(_ value: Double) -> String {
-    let tenths = Int((value * 10).rounded())
-    return tenths > 0 ? "+\(tenthsText(value))" : tenths < 0 ? tenthsText(value) : "0.0"
 }

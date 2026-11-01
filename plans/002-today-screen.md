@@ -69,7 +69,7 @@ Assumptions (consistent with the spec, stated so review can check them):
    - Done when: every Zone boundary criterion (HRV, Resting HR, respiratory rate, skin
      temperature, SpO2), the difference-format criterion, the trend-line criterion and the
      missing-metric / missing-Time Asleep "—" parts pass.
-5. [ ] **Slice:** vs your Baseline: HRV and Resting HR with value, difference and direction
+5. [x] **Slice:** vs your Baseline: HRV and Resting HR with value, difference and direction
    (good way / bad way), or the single Calibrating line with "N to go"; shell draws the bars.
    - Seam: Today view · Files: `src/SerenixCore/TodayView.swift`,
      `tests/SerenixCoreTests/TodayViewTests.swift`, `src/SerenixApp/TodayScreen.swift`

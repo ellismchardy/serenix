@@ -30,6 +30,7 @@ struct TodayScreen: View {
                             .foregroundStyle(.secondary)
                     }
                     rings(today)
+                    vsBaseline(today)
                     tiles(today)
                 }
                 .padding()
@@ -105,6 +106,29 @@ struct TodayScreen: View {
                 label: today.loadLabel,
                 diameter: 84
             )
+        }
+    }
+
+    /// HRV and Resting HR against Baseline, or the one Calibrating line; nothing on a Day without
+    /// a Night.
+    @ViewBuilder
+    private func vsBaseline(_ today: TodayView) -> some View {
+        switch today.vsBaseline {
+        case .comparisons(let comparisons):
+            VStack(alignment: .leading, spacing: 8) {
+                Text("vs your Baseline")
+                    .font(.headline)
+                ForEach(comparisons, id: \.metric) { comparison in
+                    BaselineComparisonRow(comparison: comparison)
+                }
+            }
+        case .calibrating(let line):
+            Text(line)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case nil:
+            EmptyView()
         }
     }
 

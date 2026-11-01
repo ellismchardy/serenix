@@ -881,3 +881,138 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
     #expect(view.timeAsleepTile?.valueText == "—")
     #expect(view.timeAsleepTile?.trend == [])
 }
+
+// MARK: vs your Baseline
+
+/// vs your Baseline's HRV and Resting HR comparisons; nil when it's Calibrating or absent.
+private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
+    guard case .comparisons(let comparisons) = view.vsBaseline else { return nil }
+    return comparisons
+}
+
+@Test func hrvUp14PercentAndRestingHRDown3BpmAreBothMarkedTheGoodWay() {
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 49, hrv: 68.4)],
+        showing: nov1
+    )
+    let comparisons = baselineComparisons(view)
+
+    #expect(comparisons?.map(\.metric) == [.hrv, .restingHR])
+
+    let hrv = comparisons?.first
+    #expect(hrv?.valueText == "68 ms")
+    #expect(hrv?.differenceText == "+14%")
+    #expect(hrv?.direction == .up)
+    #expect(hrv?.movedTheGoodWay == true)
+
+    let restingHR = comparisons?.last
+    #expect(restingHR?.valueText == "49 bpm")
+    #expect(restingHR?.differenceText == "\u{2212}3 bpm")
+    #expect(restingHR?.direction == .down)
+    #expect(restingHR?.movedTheGoodWay == true)
+}
+
+@Test func hrvDownAndRestingHRUpAreBothMarkedTheBadWay() {
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 55, hrv: 54)],
+        showing: nov1
+    )
+    let comparisons = baselineComparisons(view)
+
+    let hrv = comparisons?.first
+    #expect(hrv?.metric == .hrv)
+    #expect(hrv?.differenceText == "\u{2212}10%")
+    #expect(hrv?.direction == .down)
+    #expect(hrv?.movedTheGoodWay == false)
+
+    let restingHR = comparisons?.last
+    #expect(restingHR?.metric == .restingHR)
+    #expect(restingHR?.differenceText == "+3 bpm")
+    #expect(restingHR?.direction == .up)
+    #expect(restingHR?.movedTheGoodWay == false)
+}
+
+@Test func aDifferenceThatRoundsToZeroHasNoDirection() {
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 52.2, hrv: 60.1)],
+        showing: nov1
+    )
+    let comparisons = baselineComparisons(view)
+
+    let hrv = comparisons?.first
+    #expect(hrv?.differenceText == "0%")
+    #expect(hrv?.direction == nil)
+    #expect(hrv?.movedTheGoodWay == nil)
+
+    let restingHR = comparisons?.last
+    #expect(restingHR?.differenceText == "0 bpm")
+    #expect(restingHR?.direction == nil)
+    #expect(restingHR?.movedTheGoodWay == nil)
+}
+
+@Test func aNightWithoutHRVComparesItAsDashesWithNoDirection() {
+    let view = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 49)],
+        showing: nov1
+    )
+    let comparisons = baselineComparisons(view)
+
+    #expect(comparisons?.map(\.metric) == [.hrv, .restingHR])
+
+    let hrv = comparisons?.first
+    #expect(hrv?.valueText == "—")
+    #expect(hrv?.differenceText == "—")
+    #expect(hrv?.direction == nil)
+    #expect(hrv?.movedTheGoodWay == nil)
+
+    let restingHR = comparisons?.last
+    #expect(restingHR?.differenceText == "\u{2212}3 bpm")
+    #expect(restingHR?.movedTheGoodWay == true)
+}
+
+@Test func vsBaselineIsTheCalibratingLineWithTheNightsToGo() {
+    let shown = Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)
+
+    let firstNight = todayView(nights: [shown], showing: nov1)
+    #expect(firstNight.readinessText == "1/4")
+    #expect(
+        firstNight.vsBaseline
+            == .calibrating(
+                "Calibrating. Readiness starts once 4 Nights form your Baseline. 3 to go."
+            )
+    )
+
+    let twoEarlier = todayView(
+        nights: nightsBeforeNov1(hrv: [60, 60], restingHR: [50, 50]) + [shown],
+        showing: nov1
+    )
+    #expect(twoEarlier.readinessText == "3/4")
+    #expect(
+        twoEarlier.vsBaseline
+            == .calibrating(
+                "Calibrating. Readiness starts once 4 Nights form your Baseline. 1 to go."
+            )
+    )
+}
+
+@Test func vsBaselineIsCalibratingWhileEitherBaselineIs() {
+    let nights =
+        nightsBeforeNov1(hrv: [60, 60, 60], restingHR: [50])
+        + [Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)]
+    let view = todayView(nights: nights, showing: nov1)
+
+    #expect(view.readinessText == "2/4")
+    #expect(
+        view.vsBaseline
+            == .calibrating(
+                "Calibrating. Readiness starts once 4 Nights form your Baseline. 2 to go."
+            )
+    )
+}
+
+@Test func aDayWithoutANightHasNoVsBaseline() {
+    let view = todayView(nights: calibratedNightsBeforeNov1, showing: nov1)
+
+    #expect(view.noNightMessage == "No Night yet")
+    #expect(view.vsBaseline == nil)
+}

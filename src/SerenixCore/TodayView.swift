@@ -27,6 +27,8 @@ public struct TodayView: Equatable, Sendable {
     public let sleepScoreFill: Double
     public let loadFill: Double
     public let syncPill: SyncPill
+    /// Nil on a Day without a Night.
+    public let vsBaseline: VsBaseline?
     /// "Last night" on today, else the Day's date.
     public let tilesHeading: String
     /// Nil on a Day without a Night.
@@ -62,16 +64,13 @@ public struct TodayView: Equatable, Sendable {
                 restingHR: Baseline(.restingHR, for: night, among: nights)
             )
         }
-        if let readinessBaselines,
-            readinessBaselines.hrv.isCalibrating || readinessBaselines.restingHR.isCalibrating
-        {
-            let nightsSoFar =
-                1
-                + min(
-                    readinessBaselines.hrv.earlierNights,
-                    readinessBaselines.restingHR.earlierNights
-                )
-            readinessText = "\(nightsSoFar)/\(Baseline.minEarlierNights + 1)"
+        let calibratingNightsSoFar = readinessBaselines.flatMap { baselines in
+            baselines.hrv.isCalibrating || baselines.restingHR.isCalibrating
+                ? 1 + min(baselines.hrv.earlierNights, baselines.restingHR.earlierNights) : nil
+        }
+        let nightsForBaseline = Baseline.minEarlierNights + 1
+        if let calibratingNightsSoFar {
+            readinessText = "\(calibratingNightsSoFar)/\(nightsForBaseline)"
             readinessBand = nil
             readinessFill = 0
         } else {
@@ -91,10 +90,27 @@ public struct TodayView: Equatable, Sendable {
 
         tilesHeading = isToday ? "Last night" : day.text
         timeAsleepTile = night.map { TimeAsleepTile(for: $0, among: nights, timeZone: timeZone) }
-        tiles =
+        let tiles =
             night.map { night in
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }
             } ?? []
+        self.tiles = tiles
+
+        vsBaseline =
+            if night == nil {
+                nil
+            } else if let calibratingNightsSoFar {
+                .calibrating(
+                    "Calibrating. Readiness starts once \(nightsForBaseline) Nights form your "
+                        + "Baseline. \(nightsForBaseline - calibratingNightsSoFar) to go."
+                )
+            } else {
+                .comparisons(
+                    VsBaseline.metrics.compactMap { metric in
+                        tiles.first { $0.metric == metric }.map(BaselineComparison.init)
+                    }
+                )
+            }
     }
 
     /// A Nightly Metric's tile; nil on a Day without a Night.
