@@ -16,8 +16,16 @@ public func nights(from records: [HistoryRecord], in timeZone: TimeZone) -> [Nig
                 ($0.timestamp, $0.recordCounter) < ($1.timestamp, $1.recordCounter)
             }
             guard let period = SleepPeriod(records: sorted) else { return nil }
+            // The Nightly Metrics use the Sleep Period's records with a heart rate (metrics.py).
+            let asleep = sorted.filter {
+                $0.timestamp >= period.sleepOnset && $0.timestamp < period.finalWake
+                    && $0.heartRate > 0
+            }
             return Night(
                 day: Day(containing: period.finalWake, in: timeZone),
+                restingHR: NightlyMetrics.restingHR(of: asleep),
+                hrv: NightlyMetrics.hrv(of: asleep),
+                skinTemperature: NightlyMetrics.skinTemperature(of: asleep),
                 sleepOnset: period.sleepOnset,
                 finalWake: period.finalWake,
                 timeAsleep: period.timeAsleep,

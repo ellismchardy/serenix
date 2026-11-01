@@ -66,7 +66,7 @@ Assumptions (consistent with the spec, stated for review):
      `tests/SerenixCoreTests/NightFixture.swift` (new loader),
      `tests/SerenixCoreTests/Fixtures/Night-2026-10-30.csv` (new), `scripts/make-night-fixture.py` (new)
    - Done when: the first success criterion passes.
-3. [ ] **Slice:** Resting HR, HRV and skin temperature over the Sleep Period's records with HR > 0.
+3. [x] **Slice:** Resting HR, HRV and skin temperature over the Sleep Period's records with HR > 0.
    - Seam: Nights from History Records · Files: `src/SerenixCore/NightlyMetrics.swift` (new),
      `src/SerenixCore/Nights.swift`, `tests/SerenixCoreTests/NightsTests.swift`
    - Done when: those three values match hr-tracker within ±0.05 (part of criterion 2).

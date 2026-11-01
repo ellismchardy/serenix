@@ -24,16 +24,8 @@ struct Baseline: Equatable, Sendable {
         earlierNights = earlier.count
         median =
             earlier.count < Self.minEarlierNights
-            ? nil : Self.median(of: Array(earlier.prefix(Self.maxNights)))
+            ? nil : SerenixCore.median(of: Array(earlier.prefix(Self.maxNights)))
     }
 
     var isCalibrating: Bool { median == nil }
-
-    /// The middle value, or the mean of the two middle values for an even count.
-    private static func median(of values: [Double]) -> Double {
-        let sorted = values.sorted()
-        let middle = sorted.count / 2
-        return sorted.count.isMultiple(of: 2)
-            ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
-    }
 }

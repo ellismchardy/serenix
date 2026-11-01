@@ -142,13 +142,13 @@ private func labelled(_ minutes: [Minute?]) -> [Label?] {
     var labels: [Label?] = active.indices.map { index in
         guard let seconds = active[index] else { return nil }
         let near = window(active, around: index, reach: wakeMedianReach).map(Double.init)
-        let isWake = seconds >= wakeActiveSeconds || median(near) >= wakeMedianActiveSeconds
+        let isWake = seconds >= wakeActiveSeconds || median(of: near) >= wakeMedianActiveSeconds
         return isWake ? .wake : .sleep
     }
     let heartRates = minutes.map { $0?.meanHeartRate }
     let rollingMedians = heartRates.indices.map { index in
         let near = window(heartRates, around: index, reach: heartRateMedianReach)
-        return near.isEmpty ? nil : median(near)
+        return near.isEmpty ? nil : median(of: near)
     }
     // A wake bout led by movement runs on while heart rate stays raised.
     var index = 0
@@ -175,14 +175,6 @@ private func window<Value>(_ values: [Value?], around index: Int, reach: Int) ->
     let lower = max(0, index - reach)
     let upper = min(values.count, index + reach + 1)
     return values[lower..<upper].compactMap { $0 }
-}
-
-/// The middle value, or the mean of the two middle values for an even count (Python's
-/// `statistics.median`). `values` must not be empty.
-private func median(_ values: [Double]) -> Double {
-    let sorted = values.sorted()
-    let middle = sorted.count / 2
-    return sorted.count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
 }
 
 /// The minute range (end exclusive) of the Sleep Period with the most sleep minutes, the first

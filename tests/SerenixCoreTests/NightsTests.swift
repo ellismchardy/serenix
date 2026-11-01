@@ -25,3 +25,22 @@ private let london = TimeZone(identifier: "Europe/London")!
     let fiveHoursFiftyTwo: TimeInterval? = 352 * 60
     #expect(night.timeAsleep == fiveHoursFiftyTwo)
 }
+
+/// Spec 003: each Nightly Metric must be within ±0.05 of hr-tracker's unrounded value on the
+/// same fixture night (units: bpm, ms, °C).
+private let hrTrackerTolerance = 0.05
+
+/// Spec 003, success criterion 2 (Resting HR, HRV and skin temperature). Expected values are
+/// hr-tracker's unrounded output on the same fixture night.
+@Test func fixtureNightHasRestingHRHRVAndSkinTemperatureMatchingHRTracker() throws {
+    let found = nights(from: NightFixture.night20261030, in: london)
+
+    try #require(found.count == 1)
+    let night = found[0]
+    let restingHR = try #require(night.restingHR)
+    let hrv = try #require(night.hrv)
+    let skinTemperature = try #require(night.skinTemperature)
+    #expect(abs(restingHR - 48.11506392440245) <= hrTrackerTolerance)
+    #expect(abs(hrv - 85.40044373112873) <= hrTrackerTolerance)
+    #expect(abs(skinTemperature - 32.58730047441119) <= hrTrackerTolerance)
+}
