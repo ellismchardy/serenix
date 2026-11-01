@@ -8,6 +8,7 @@ struct TodayScreen: View {
     @State private var steppedToDay: Day?
     @State private var showsSyncFailure = false
     @State private var openPopup: TodayPopup?
+    @State private var showsProfileMenu = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -45,6 +46,9 @@ struct TodayScreen: View {
             .sheet(item: $openPopup) { popup in
                 TodayPopupView(popup: popup, today: today)
             }
+            .sheet(isPresented: $showsProfileMenu) {
+                ProfileMenu(connection: connection)
+            }
             // Serenix opens on today (spec 002), also when iOS kept it suspended overnight.
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 if oldPhase == .background, newPhase != .background { showToday() }
@@ -59,11 +63,12 @@ struct TodayScreen: View {
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)
                 Spacer()
-                NavigationLink {
-                    SettingsView(connection: connection)
+                Button {
+                    showsProfileMenu = true
                 } label: {
-                    Label("Settings", systemImage: "gearshape")
+                    Label("Profile", systemImage: "person.crop.circle")
                         .labelStyle(.iconOnly)
+                        .font(.title2)
                 }
             }
             if today.syncPill.showsProgress {

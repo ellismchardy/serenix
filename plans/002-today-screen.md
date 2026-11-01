@@ -84,7 +84,7 @@ Assumptions (consistent with the spec, stated so review can check them):
    - Done when: the Sleep popup minutes-awake criterion and the Nightly Metric popup criterion
      pass, plus a test of the Readiness popup's "Baseline: your last N Nights" and Calibrating
      content.
-7. [ ] **Slice (shell only, ADR 0002):** Profile menu replaces `SettingsView`: Strap model,
+7. [x] **Slice (shell only, ADR 0002):** Profile menu replaces `SettingsView`: Strap model,
    connection, battery and last sync; Sync now / Retry sync; Debug opens 001's debug screen;
    footer with version, "MIT licensed", "Not affiliated with WHOOP, Inc."; Done closes it.
    - Seam: none (manual on the phone) · Files: `src/SerenixApp/ProfileMenu.swift` (new),
