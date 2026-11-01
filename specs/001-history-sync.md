@@ -1,6 +1,6 @@
 # 001 — History Sync
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-10-31
 
 ## Problem
@@ -138,61 +138,61 @@ it.
 
 ## Success criteria (must be checkable)
 Automated (`swift test`, on Windows and in CI):
-- [ ] Encoding each command the captured app sent, with the same sequence number, produces its
+- [x] Encoding each command the captured app sent, with the same sequence number, produces its
       exact captured bytes.
-- [ ] Every Strap Frame in the capture parses with a valid CRC; a Frame with one byte changed is
+- [x] Every Strap Frame in the capture parses with a valid CRC; a Frame with one byte changed is
       rejected.
-- [ ] Decoding the capture's per-second `0x2f` Frames yields History Records whose Record
+- [x] Decoding the capture's per-second `0x2f` Frames yields History Records whose Record
       Counter, timestamp and HR match values listed in the fixture (taken from `hr-tracker`'s
       `history.py` output, committed as literals).
-- [ ] Replaying a captured sync, the session sends the captured app's commands with the same op
+- [x] Replaying a captured sync, the session sends the captured app's commands with the same op
       codes and arguments, in the same order, except: no `0x03` or `0x3f`, and the clock
       arguments carry the time the test passes in.
-- [ ] Replaying the whole capture yields exactly 1,036 History Records, each Record Counter once.
-- [ ] Every `0x17` the session sends carries exactly the 8 Sync Cursor bytes from the preceding
+- [x] Replaying the whole capture yields exactly 1,036 History Records, each Record Counter once.
+- [x] Every `0x17` the session sends carries exactly the 8 Sync Cursor bytes from the preceding
       Batch end.
-- [ ] Replaying an empty Batch (Sync Cursor all `ff`) acknowledges it and completes with 0 new
+- [x] Replaying an empty Batch (Sync Cursor all `ff`) acknowledges it and completes with 0 new
       History Records.
-- [ ] Replaying a Batch twice (the re-send after an interrupted sync) produces no duplicate
+- [x] Replaying a Batch twice (the re-send after an interrupted sync) produces no duplicate
       History Records.
-- [ ] Two per-second `0x2f` Frames in one sync with the same Record Counter but different
+- [x] Two per-second `0x2f` Frames in one sync with the same Record Counter but different
       timestamps (as after a Strap reboot) both yield History Records; the same Record Counter
       and timestamp a second time yields none.
-- [ ] A Batch containing a Frame with a bad CRC is not acknowledged, and the session fails with
+- [x] A Batch containing a Frame with a bad CRC is not acknowledged, and the session fails with
       that reason.
-- [ ] A per-second `0x2f` Frame of an unexpected length is rejected by the decoder; a Batch
+- [x] A per-second `0x2f` Frame of an unexpected length is rejected by the decoder; a Batch
       containing one is not acknowledged, and the session fails with that reason.
-- [ ] An error status in a reply, or a reported timeout, ends the session as failed with the
+- [x] An error status in a reply, or a reported timeout, ends the session as failed with the
       reason.
-- [ ] Every Frame sent and received appears in the Sync Log, in order, with its direction.
-- [ ] Replaying a captured sync, the session reports no progress before its first History
+- [x] Every Frame sent and received appears in the Sync Log, in order, with its direction.
+- [x] Replaying a captured sync, the session reports no progress before its first History
       Record; after that, progress never decreases, stays within 0–1, and after the last
       History Record equals the value worked out by hand from the fixture's timestamps and the
       start time passed in (committed as a literal).
-- [ ] With History Records fed at known times, the session reports no time left until 2
+- [x] With History Records fed at known times, the session reports no time left until 2
       seconds after the first one, then the time left worked out by hand (a literal).
-- [ ] Replaying an empty sync reports no progress at any point and completes.
+- [x] Replaying an empty sync reports no progress at any point and completes.
 
 Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
-- [ ] "Connect Strap" connects to the Strap, and after relaunching Serenix it reconnects
+- [x] "Connect Strap" connects to the Strap, and after relaunching Serenix it reconnects
       without asking again.
-- [ ] Opening Serenix runs a History Sync; the debug screen then shows more than 0 History
+- [x] Opening Serenix runs a History Sync; the debug screen then shows more than 0 History
       Records stored and the state "up to date".
-- [ ] Tapping "Sync now" straight after shows "Up to date" with 0 new History Records.
-- [ ] Closing Serenix mid-sync, then syncing again, leaves 0 gaps in Record Counters across the
+- [x] Tapping "Sync now" straight after shows "Up to date" with 0 new History Records.
+- [x] Closing Serenix mid-sync, then syncing again, leaves 0 gaps in Record Counters across the
       period synced.
-- [ ] The debug screen shows the data range, battery level and firmware, and "Share log" opens
+- [x] The debug screen shows the data range, battery level and firmware, and "Share log" opens
       the iOS share sheet with the Sync Log.
-- [ ] Starting a sync of a backlog of at least an hour, then locking the phone straight away:
+- [x] Starting a sync of a backlog of at least an hour, then locking the phone straight away:
       on unlocking after it would have finished, the state reads "Up to date" and the shared
       Sync Log has Frames timestamped throughout the time the phone was locked.
-- [ ] Starting a sync, then switching to another app for a minute: the shared Sync Log has
+- [x] Starting a sync, then switching to another app for a minute: the shared Sync Log has
       Frames from that minute, and returning to Serenix shows the same sync (no second
       handshake in the Sync Log).
-- [ ] Taking the Strap out of range mid-sync while the phone is locked: on unlocking, Serenix
+- [x] Taking the Strap out of range mid-sync while the phone is locked: on unlocking, Serenix
       shows the sync failed with a reason, and the next sync leaves 0 gaps in Record Counters
       across the period synced.
-- [ ] A sync of at least an hour's backlog shows "Starting…", then a progress bar that fills and
+- [x] A sync of at least an hour's backlog shows "Starting…", then a progress bar that fills and
       a time left that falls to "less than a minute left", and ends "Up to date"; the screen
       stays responsive throughout.
 

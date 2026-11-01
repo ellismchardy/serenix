@@ -193,9 +193,16 @@ background checks, so they can be watched during those.
      first and last Record Counter and time, and gaps. Share log opened the share sheet with
      both syncs since the new build, each headed `# sync …`. The 0-gaps check across an
      interrupted and resumed sync passed with task 11's out-of-range test.
-13. [ ] **Verify:** full suite + lint + build green locally and in CI; every spec success
+13. [x] **Verify:** full suite + lint + build green locally and in CI; every spec success
     criterion checked, with the manual steps and their results written in the PR.
     - Blocked by: 10, 11, 12
+    - **Result (1 Nov 2026):** lint, build and 53 tests green locally and in CI (run
+      41276335861). All 16 automated spec criteria have named passing tests. All 9 manual
+      criteria passed on the phone (results under tasks 4 and 9–12). Closing Serenix mid-sync:
+      the closed sync acknowledged Record Counters up to 3,186,723, the next sync started at
+      3,186,724, and the store shows 0 gaps. Found while checking: the debug Sync Log lacked
+      each Frame's type, which the spec lists; added. **For the PR, known limit:** a sync iOS
+      or the user ends outright never saves its Sync Log (its History Records are stored).
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
