@@ -78,6 +78,7 @@ starting a sync in the background, iCloud sync, and the Whoop 4.0 and MG.
 - Config/secrets: none at runtime. Signing for TestFlight or the App Store needs the Apple
   Developer Program; until then there are no secrets.
 - Sync: History Sync starts when the app opens or on "Sync now", and a sync that has started
-  finishes in the background (ADR 0006).
+  finishes in the background (ADR 0006). Between syncs Serenix stays disconnected, except while
+  Live HR is on screen (ADR 0007).
 - Privacy: test fixtures are the owner's real nights, published in this public repo by choice;
   rules in `docs/conventions.md` (Testing).
