@@ -6,6 +6,7 @@ import SwiftUI
 /// a footer with the version, licence and disclaimer.
 struct ProfileMenu: View {
     @ObservedObject var connection: StrapConnection
+    @Binding var showsSampleNights: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -24,7 +25,9 @@ struct ProfileMenu: View {
                     // 001's Sync now; after a failed sync it's a retry.
                     Button(isFailed ? "Retry sync" : "Sync now") { connection.syncNow() }
                         .disabled(connection.phase.isBusy)
-                    NavigationLink("Debug") { DebugView(connection: connection) }
+                    NavigationLink("Debug") {
+                        DebugView(connection: connection, showsSampleNights: $showsSampleNights)
+                    }
                 }
                 Section {
                     // Later specs add Apple Health, Export data, Contact us, Report a bug and

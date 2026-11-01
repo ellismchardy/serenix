@@ -9,15 +9,23 @@ struct TodayScreen: View {
     @State private var showsSyncFailure = false
     @State private var openPopup: TodayPopup?
     @State private var showsProfileMenu = false
+    /// Debug's "Show sample Nights" (plan 002, task 8): off at launch and never saved.
+    @State private var showsSampleNights = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        // No Night or Load is computed yet (each is its own spec), so both start empty.
+        // No Night or Load is computed yet (each is its own spec), so both are empty unless
+        // Debug's sample Nights are on.
+        let now = Date()
+        let samples =
+            showsSampleNights
+            ? SampleNights.make(now: now, calendar: .current)
+            : (nights: [Night](), dayLoads: [DayLoad]())
         let today = TodayView(
-            nights: [],
-            dayLoads: [],
-            showing: steppedToDay ?? Day(containing: Date(), in: .current),
-            now: Date(),
+            nights: samples.nights,
+            dayLoads: samples.dayLoads,
+            showing: steppedToDay ?? Day(containing: now, in: .current),
+            now: now,
             timeZone: .current,
             sync: connection.syncStatus
         )
@@ -47,8 +55,10 @@ struct TodayScreen: View {
                 TodayPopupView(popup: popup, today: today)
             }
             .sheet(isPresented: $showsProfileMenu) {
-                ProfileMenu(connection: connection)
+                ProfileMenu(connection: connection, showsSampleNights: $showsSampleNights)
             }
+            // Switching the sample Nights on or off starts again from today.
+            .onChange(of: showsSampleNights) { showToday() }
             // Serenix opens on today (spec 002), also when iOS kept it suspended overnight.
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 if oldPhase == .background, newPhase != .background { showToday() }

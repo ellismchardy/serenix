@@ -91,7 +91,7 @@ Assumptions (consistent with the spec, stated so review can check them):
      `src/SerenixApp/SettingsView.swift` (removed), `src/SerenixApp/TodayScreen.swift`
    - Done when: `swift build` and the CI macOS job are green, and the profile-menu manual steps
      are written into the PR checklist.
-8. [ ] **Slice (shell only, test aid):** "Show sample Nights" switch on the Debug screen. When on,
+8. [x] **Slice (shell only, test aid):** "Show sample Nights" switch on the Debug screen. When on,
    the Today screen is fed about 20 hand-built Nights and Days ending today. They cover every
    band, every Zone, a Calibrating stretch at the start, a Day with no Night, and a Night
    missing SpO2. When off, it goes back to the real (empty) input. Off at launch, not saved,
