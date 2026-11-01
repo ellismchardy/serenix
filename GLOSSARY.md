@@ -69,6 +69,11 @@ The moment the user last wakes at the end of a Sleep Period.
 **Time in Bed**:
 The span around a Sleep Period during which the user is lying down but not up and about.
 
+**Time Asleep**:
+The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus the wake bouts
+inside it.
+_Avoid_: sleep duration, total sleep
+
 **Night**:
 The dated record of one night's sleep: a Sleep Period together with the Nightly Metrics and
 scores drawn from it, dated by the local calendar date of its Final Wake.
@@ -84,8 +89,14 @@ _Avoid_: cycle
 ## Metrics and scores
 
 **Baseline**:
-The user's typical HRV and Resting HR, taken over their most recent Nights.
-_Avoid_: norm, average (when the personal reference is meant)
+The user's typical Resting HR, HRV, respiratory rate and skin temperature, each taken over their
+most recent Nights. SpO2 has no Baseline.
+_Avoid_: norm, average, usual (when the personal reference is meant)
+
+**Zone**:
+Where one Nightly Metric sits against its Baseline (or, for SpO2, against fixed levels): In
+range, Watch or Out of range.
+_Avoid_: status, colour, traffic light
 
 **Nightly Metrics**:
 The physiological measures taken over one Sleep Period: Resting HR, HRV, respiratory rate, skin
