@@ -1,7 +1,7 @@
 # 003 — Nightly Metrics
 
 **Status:** approved
-**Last updated:** 2026-11-01
+**Last updated:** 2026-11-01 (Night rebuilds added during the build)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -32,7 +32,7 @@ unchanged.
 **Which records make a Night.** History Records are grouped into **night windows**: local noon
 to the next local noon. Each window gives at most one Night: the Sleep Period with the most
 sleep minutes inside it. The Night is dated by the local date of its Final Wake (GLOSSARY). If
-two windows give Nights with the same date, the one with more Time Asleep is kept. No Sleep
+two windows give Nights with the same date, the one with more Time Asleep is kept (on a tie, the one that ends first). No Sleep
 Period in a window means no Night from it. Naps never make a Night, and sleep that crosses
 local noon (e.g. a night shift) is not handled.
 
@@ -73,27 +73,41 @@ no RR pair survives the filter, respiratory rate when no 5-minute window has 200
 temperature when no record has one, SpO2 when no SpO2 Window has a reading from 85 to 100. One
 missing metric never stops the others or the Night.
 
-**When.** After each History Sync, every night window that gained History Records is worked out
-again and its Night replaced. This includes a sync in the middle of the night: the Night it
-makes is replaced by the next sync's. History Records are pruned after 30 days
-(docs/architecture.md), so a Night older than that is never worked out again and stays as it is.
-Nights are kept forever.
+**When.** Nights are worked out again date by date. A night window from noon on one Day to noon
+on the next gives a Night dated one of those two Days, so each night window a sync's History
+Records fall in queues both its dates. A date is worked out from the two night windows that can
+give it (noon the Day before to noon the Day after) and its stored Night replaced, or removed if
+there's no longer one. This includes a sync in the middle of the night: the Night it makes is
+replaced by the next sync's. Dates are queued as each Batch is stored, kept on the phone, and
+worked out after the sync ends or, if iOS ended Serenix first, at the next launch. History
+Records are pruned after 30 days (docs/architecture.md), so a date whose History Records start
+more than 30 days ago is never worked out again and its Night stays as it is; nor is a date
+whose History Records start in the future (a Strap clock that's wrong). Both are checked when a
+date is queued and again when it's worked out. Nights are kept forever.
 
 **Sample Nights.** Debug's "Show sample Nights" switch and the sample Nights it shows are
 removed from the app: the Today screen shows only real Nights.
 
 ## Design decisions
-- **`SerenixCore`: Nights from History Records.** One public entry point: given History Records
-  and a time zone, it returns the Nights they make, one per night window that has a Sleep Period.
+- **`SerenixCore`: Nights from History Records.** Given History Records and a time zone, it
+  returns the Nights they make, one per night window that has a Sleep Period (one per date).
   Inside it, the Sleep Period finder and each Nightly Metric are separate pure functions with
   their constants named and commented with their unit and their source in hr-tracker
   (docs/conventions.md). It never reads the clock.
+- **`SerenixCore`: Night rebuilds.** Given the times of History Records a sync stored, the
+  current time and a time zone, it returns the dates to work out again, oldest first, each with
+  the stretch of History Records to read. Each rebuild can say whether it's still due at a given
+  time (the 30-day and future rules). Added during the build, when deciding which dates to redo
+  turned out to be logic the shell shouldn't hold.
 - **`Night`** keeps its existing fields; this spec fills Sleep Onset, Final Wake, Time in Bed,
   Time Asleep and the five Nightly Metrics. Sleep Score and Readiness stay missing until their
   specs ship.
-- **Shell:** after a History Sync it asks the store for the History Records of each night window
-  that gained records, calls the entry point, and saves the Nights it gets back in SwiftData
-  (replacing any with the same date). The Today screen reads stored Nights.
+- **Shell:** as each Batch is stored it asks Night rebuilds for the dates to queue and keeps the
+  queue on the phone. After the sync (and at launch) it works through the queue one date at a
+  time, off the main thread: it reads that date's History Records from the store, calls Nights
+  from History Records, and saves the Night for that date in SwiftData (one per date), so at most
+  two night windows are in memory. A date that fails goes to the back of the queue. The Today
+  screen reads stored Nights.
 - Follows ADR 0002 (logic in `SerenixCore`). No new ADR: porting a checked method is easy to
   change later.
 
@@ -101,8 +115,13 @@ removed from the app: the Today screen shows only real Nights.
 - **Nights from History Records (`SerenixCore`)**, fed the fixture night and hand-built History
   Records with a fixed time zone. It catches the whole Sleep Period method, all five Nightly
   Metrics, night windows, dating by Final Wake, two windows with one date, missing metrics and
-  "no Sleep Period, no Night". It misses when the rebuild runs, storing and replacing Nights,
-  pruning, and the Today screen showing them, which are checked by hand on the phone (ADR 0002).
+  "no Sleep Period, no Night".
+- **Night rebuilds (`SerenixCore`)**, fed hand-picked record times and a fixed `now` and time
+  zone. It catches which dates each night window queues, the stretch read for each, repeats and
+  order, the 30-day and future rules, and windows across a clock change.
+
+Both miss when the rebuild runs, the queue kept on the phone, storing and replacing Nights,
+pruning, and the Today screen showing them, which are checked by hand on the phone (ADR 0002).
 
 ## Success criteria (must be checkable)
 Expected values are hr-tracker's output on the same records, committed as literals.
@@ -124,6 +143,17 @@ Expected values are hr-tracker's output on the same records, committed as litera
       Resting HR, skin temperature and SpO2 unchanged.
 - [ ] Two sleep runs 59 minutes of wake apart make one Sleep Period; 60 minutes apart make two,
       and the one with more sleep minutes is the Night's.
+- [ ] Night rebuilds: History Records at 01:00 and 07:00 on 15 Nov 2026 (Europe/London) queue
+      14 Nov (reading 13 Nov 12:00 to 15 Nov 12:00) and 15 Nov (14 Nov 12:00 to 16 Nov 12:00);
+      adding one at 14:00 also queues 16 Nov; repeats and order change nothing; no times queue
+      nothing.
+- [ ] Night rebuilds: with now 30 Nov 2026 12:00, a record at 31 Oct 13:00 queues only 1 Nov
+      (its History Records start exactly 30 days earlier); 31 Oct and a 1970 time are skipped. A
+      queued 1 Nov is no longer due one minute after 30 Nov 12:00.
+- [ ] Night rebuilds: with now 15 Nov 2026 11:00, a record at 16 Nov 01:00 queues 15 Nov but not
+      16 Nov (its History Records start after now).
+- [ ] Night rebuilds: a record at 28 Mar 2027 03:00 UTC (the morning the clocks go forward)
+      queues 28 Mar reading 27 Mar 12:00 UTC to 29 Mar 11:00 UTC.
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
 - [ ] On the phone (by hand): after a morning sync the Today screen shows last night's Time
@@ -131,6 +161,8 @@ Expected values are hr-tracker's output on the same records, committed as litera
       the same night's Sync Log within the tolerance above.
 - [ ] On the phone (by hand): syncing again later the same morning leaves the Night the same;
       a sync at 3am shows a partial Night that the morning sync replaces.
+- [ ] On the phone (by hand): closing Serenix from the app switcher in the middle of a morning
+      sync, then opening it again, still shows last night's Night once that sync finishes.
 - [ ] On the phone (by hand): Debug has no "Show sample Nights" switch, and a Day without a
       Night shows "No Night recorded".
 
