@@ -31,31 +31,31 @@ public enum Zone: Equatable, Sendable {
 
     /// The Zone of `value`; nil when the metric needs a Baseline and has none (Calibrating), or
     /// HRV's Baseline is 0 or less, which gives no meaningful change.
-    init?(_ metric: NightlyMetric, value: Double, baseline: Double?) {
-        switch (metric, baseline) {
+    init?(_ metric: NightlyMetric, value: Double, baseline: Baseline?) {
+        switch (metric, baseline?.median) {
         case (.spo2, _):
             self = Self.atLeast(value, inRange: Self.spo2InRangeFrom, watch: Self.spo2WatchFrom)
-        case (.hrv, let baseline?) where baseline > 0:
+        case (.hrv, let median?) where median > 0:
             self = Self.atLeast(
-                (value - baseline) / baseline,
+                (value - median) / median,
                 inRange: Self.hrvInRangeFrom,
                 watch: Self.hrvWatchFrom
             )
-        case (.restingHR, let baseline?):
+        case (.restingHR, let median?):
             self = Self.atMost(
-                value - baseline,
+                value - median,
                 inRange: Self.restingHRInRangeUpTo,
                 watch: Self.restingHRWatchUpTo
             )
-        case (.respiratoryRate, let baseline?):
+        case (.respiratoryRate, let median?):
             self = Self.atMost(
-                abs(value - baseline),
+                abs(value - median),
                 inRange: Self.respiratoryRateInRangeUpTo,
                 watch: Self.respiratoryRateWatchUpTo
             )
-        case (.skinTemperature, let baseline?):
+        case (.skinTemperature, let median?):
             self = Self.atMost(
-                abs(value - baseline),
+                abs(value - median),
                 inRange: Self.skinTemperatureInRangeUpTo,
                 watch: Self.skinTemperatureWatchUpTo
             )
@@ -66,19 +66,20 @@ public enum Zone: Equatable, Sendable {
 
     /// The values around `baseline` that are In range, for the Nightly Metric popup's band (spec
     /// 002, Popups); nil on a side with no limit. Both nil for SpO2, which has no Baseline, and
-    /// for HRV against a Baseline of 0 or less.
-    static func inRangeLimits(_ metric: NightlyMetric, baseline: Double)
+    /// for HRV against a Baseline of 0 or less, and while the Baseline is Calibrating.
+    static func inRangeLimits(_ metric: NightlyMetric, baseline: Baseline)
         -> (low: Double?, high: Double?)
     {
-        switch metric {
+        guard let median = baseline.median else { return (nil, nil) }
+        return switch metric {
         case .hrv:
-            baseline > 0 ? (baseline * (1 + hrvInRangeFrom), nil) : (nil, nil)
+            median > 0 ? (median * (1 + hrvInRangeFrom), nil) : (nil, nil)
         case .restingHR:
-            (nil, baseline + restingHRInRangeUpTo)
+            (nil, median + restingHRInRangeUpTo)
         case .respiratoryRate:
-            (baseline - respiratoryRateInRangeUpTo, baseline + respiratoryRateInRangeUpTo)
+            (median - respiratoryRateInRangeUpTo, median + respiratoryRateInRangeUpTo)
         case .skinTemperature:
-            (baseline - skinTemperatureInRangeUpTo, baseline + skinTemperatureInRangeUpTo)
+            (median - skinTemperatureInRangeUpTo, median + skinTemperatureInRangeUpTo)
         case .spo2:
             (nil, nil)
         }
@@ -87,21 +88,21 @@ public enum Zone: Equatable, Sendable {
     /// Where `value` sits on its tile's gauge, 0 (bottom) to 1 (top), clamped (spec 002, Tiles):
     /// the Baseline at 0.5 and the Watch limit on each side at the ends, or for SpO2 a fixed
     /// scale. Nil when the metric needs a Baseline and has none, or HRV's Baseline is 0 or less.
-    static func gaugePosition(_ metric: NightlyMetric, value: Double, baseline: Double?)
+    static func gaugePosition(_ metric: NightlyMetric, value: Double, baseline: Baseline?)
         -> Double?
     {
         let position: Double
-        switch (metric, baseline) {
+        switch (metric, baseline?.median) {
         case (.spo2, _):
             position = (value - spo2GaugeBottom) / (spo2GaugeTop - spo2GaugeBottom)
-        case (.hrv, let baseline?) where baseline > 0:
-            position = centred((value - baseline) / baseline, limit: -hrvWatchFrom)
-        case (.restingHR, let baseline?):
-            position = centred(value - baseline, limit: restingHRWatchUpTo)
-        case (.respiratoryRate, let baseline?):
-            position = centred(value - baseline, limit: respiratoryRateWatchUpTo)
-        case (.skinTemperature, let baseline?):
-            position = centred(value - baseline, limit: skinTemperatureWatchUpTo)
+        case (.hrv, let median?) where median > 0:
+            position = centred((value - median) / median, limit: -hrvWatchFrom)
+        case (.restingHR, let median?):
+            position = centred(value - median, limit: restingHRWatchUpTo)
+        case (.respiratoryRate, let median?):
+            position = centred(value - median, limit: respiratoryRateWatchUpTo)
+        case (.skinTemperature, let median?):
+            position = centred(value - median, limit: skinTemperatureWatchUpTo)
         default:
             return nil
         }

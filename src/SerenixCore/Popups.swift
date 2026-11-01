@@ -116,7 +116,7 @@ public struct MetricPopup: Equatable, Sendable {
             )
         }
         baseline = tile.baseline
-        let limits = tile.baseline.map { Zone.inRangeLimits(tile.metric, baseline: $0) }
+        let limits = tile.comparedBaseline.map { Zone.inRangeLimits(tile.metric, baseline: $0) }
         inRangeLow = limits?.low
         inRangeHigh = limits?.high
     }

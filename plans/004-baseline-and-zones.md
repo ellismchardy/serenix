@@ -35,7 +35,7 @@ gives the typical Spread the spec's examples assume.
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Prefactor:** Zone takes the Baseline — `Zone.init?`, `gaugePosition`, `inRangeLimits`
+1. [x] **Prefactor:** Zone takes the Baseline — `Zone.init?`, `gaugePosition`, `inRangeLimits`
    accept `Baseline?` (reading its median); `MetricTile` keeps its `Baseline`; `Popups` passes it.
    No behavior change.
    - Files: `Zone.swift`, `MetricTile.swift`, `Popups.swift`, `Baseline.swift` (if an init for
