@@ -56,6 +56,7 @@ struct TodayScreen: View {
                 }
                 .padding()
             }
+            .background(Theme.background.ignoresSafeArea())
             // Pulling down starts a sync (001's Sync now) unless one is running.
             .refreshable { @MainActor in
                 if !connection.phase.isBusy { connection.syncNow() }
@@ -148,8 +149,9 @@ struct TodayScreen: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.body.weight(.medium))
+                .foregroundStyle(Theme.accent)
                 .frame(width: 40, height: 40)
-                .background(.background, in: Circle())
+                .themeCard(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -204,7 +206,8 @@ struct TodayScreen: View {
                     text: today.sleepScoreText,
                     fill: today.sleepScoreFill,
                     label: "Sleep Score",
-                    diameter: ringDiameter
+                    diameter: ringDiameter,
+                    colour: Theme.accent
                 )
                 .contentShape(Rectangle())
             }
@@ -225,7 +228,7 @@ struct TodayScreen: View {
                 .buttonStyle(.plain)
                 if let band = today.readinessBand {
                     Text(band.word)
-                        .font(.title3.bold())
+                        .font(.subheadline.bold())
                         .foregroundStyle(band.colour)
                 }
             }
@@ -237,6 +240,9 @@ struct TodayScreen: View {
             )
             // Tapping the Load ring does nothing in spec 002.
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .themeCard()
     }
 
     /// HRV and Resting HR against Baseline, or the one Calibrating line; nothing on a Day without
@@ -252,11 +258,15 @@ struct TodayScreen: View {
                     BaselineComparisonRow(comparison: comparison)
                 }
             }
+            .padding(16)
+            .themeCard()
         case .calibrating(let line):
             Text(line)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .themeCard()
         case nil:
             EmptyView()
         }

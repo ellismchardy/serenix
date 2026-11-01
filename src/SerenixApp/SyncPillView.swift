@@ -24,7 +24,7 @@ struct SyncPillView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
+        .background(Theme.card, in: Capsule())
         .overlay(Capsule().strokeBorder(colour.opacity(0.6)))
         .shadow(radius: 6, y: 2)
         .accessibilityElement(children: .combine)
@@ -42,7 +42,7 @@ struct SyncPillView: View {
 
     private var colour: Color {
         switch pill.kind {
-        case .syncing: .secondary
+        case .syncing: Theme.accent
         case .successful: .green
         case .paused: .orange
         case .failed: .red

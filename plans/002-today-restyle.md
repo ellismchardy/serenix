@@ -41,7 +41,7 @@ reference.
    - Seam: Today view · Files: `src/SerenixCore/Profile.swift`, `TodayView.swift`,
      `TodayViewTests.swift` (rewrite the greeting tests), `src/SerenixApp/TodayScreen.swift`
    - Done when: the greeting criterion passes.
-3. [ ] **Slice (shell only, ADR 0002):** Look and Appearance — a `Theme` of colours (light grey
+3. [x] **Slice (shell only, ADR 0002):** Look and Appearance — a `Theme` of colours (light grey
    background, white cards, soft shadow, purple accent; dark equivalents) used by the Today
    screen, tiles, rings (Sleep Score in the accent), sync pill, week strip and menus; an
    Appearance setting (System / Light / Dark) kept in UserDefaults, applied with

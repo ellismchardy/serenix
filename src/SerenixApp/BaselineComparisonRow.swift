@@ -42,7 +42,7 @@ private struct DirectionBar: View {
         GeometryReader { geometry in
             let half = geometry.size.width / 2
             ZStack(alignment: .leading) {
-                Capsule().fill(.quaternary)
+                Capsule().fill(Theme.accentSoft)
                 if let direction {
                     Capsule()
                         .fill(colour)

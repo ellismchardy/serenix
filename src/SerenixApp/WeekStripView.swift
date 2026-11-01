@@ -28,7 +28,7 @@ struct WeekStripView: View {
                         .padding(.vertical, 8)
                         .foregroundStyle(foreground(day))
                         .background(
-                            day.isShown ? Color.accentColor : .clear,
+                            day.isShown ? Theme.accent : .clear,
                             in: RoundedRectangle(cornerRadius: 14)
                         )
                         .opacity(day.isInRange ? 1 : 0.35)
@@ -39,7 +39,7 @@ struct WeekStripView: View {
             }
         }
         .padding(14)
-        .background(.background, in: RoundedRectangle(cornerRadius: 20))
+        .themeCard()
     }
 
     private func arrow(_ symbol: String, label: String, to day: Day?) -> some View {
@@ -48,8 +48,9 @@ struct WeekStripView: View {
         } label: {
             Image(systemName: symbol)
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
                 .frame(width: 30, height: 30)
-                .background(.quaternary, in: Circle())
+                .background(Theme.accentSoft, in: Circle())
         }
         .buttonStyle(.plain)
         .disabled(day == nil)

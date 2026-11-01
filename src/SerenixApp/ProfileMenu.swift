@@ -3,8 +3,8 @@ import SwiftUI
 
 /// The profile menu (spec 002), opened from the Today screen's avatar: the Profile's avatar and
 /// name, which can be edited; the Strap's connection and model, battery and last sync, with Sync
-/// now; Debug; and a footer with the version, licence and disclaimer. Rounded, grouped rows,
-/// closed with an ✕.
+/// now; the Appearance; Debug; and a footer with the version, licence and disclaimer. Rounded,
+/// grouped rows on the Look's background, closed with an ✕.
 struct ProfileMenu: View {
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
@@ -14,6 +14,7 @@ struct ProfileMenu: View {
     /// The Today view's say on whether Sync now reads Retry sync.
     let syncOffersRetry: Bool
     @Binding var showsSampleNights: Bool
+    @EnvironmentObject private var appearanceStore: AppearanceStore
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
     @State private var draftName = ""
@@ -64,6 +65,14 @@ struct ProfileMenu: View {
                     }
                     .disabled(connection.phase.isBusy)
                 }
+                .listRowBackground(Theme.card)
+                Section("Appearance") {
+                    Picker("Appearance", selection: $appearanceStore.selected) {
+                        ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .listRowBackground(Theme.card)
                 Section {
                     NavigationLink {
                         DebugView(connection: connection, showsSampleNights: $showsSampleNights)
@@ -80,8 +89,11 @@ struct ProfileMenu: View {
                     }
                     .padding(.top, 8)
                 }
+                .listRowBackground(Theme.card)
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Theme.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
