@@ -6,10 +6,15 @@ public struct Day: Hashable, Comparable, Sendable {
     public let month: Int
     public let dayOfMonth: Int
 
+    /// A date outside the calendar rolls over the way the calendar does: month 13 of 2026 is
+    /// January 2027, so a Day is always a real date and never crashes when shown.
     public init(year: Int, month: Int, day: Int) {
-        self.year = year
-        self.month = month
-        self.dayOfMonth = day
+        let calendar = Self.utcCalendar
+        let parts = calendar.date(from: DateComponents(year: year, month: month, day: day))
+            .map { calendar.dateComponents([.year, .month, .day], from: $0) }
+        self.year = parts?.year ?? year
+        self.month = parts?.month ?? month
+        self.dayOfMonth = parts?.day ?? day
     }
 
     /// The Day `time` falls on in `timeZone`.
@@ -17,7 +22,7 @@ public struct Day: Hashable, Comparable, Sendable {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let parts = calendar.dateComponents([.year, .month, .day], from: time)
-        self.init(year: parts.year!, month: parts.month!, day: parts.day!)
+        self.init(year: parts.year ?? 1970, month: parts.month ?? 1, day: parts.day ?? 1)
     }
 
     public static func < (lhs: Day, rhs: Day) -> Bool {
@@ -40,6 +45,10 @@ public struct Day: Hashable, Comparable, Sendable {
             from: DateComponents(year: year, month: month, day: dayOfMonth)
         )!
         let weekday = calendar.component(.weekday, from: midnight)
+        // The init keeps month and weekday in range; the guards make that hold here too.
+        guard Self.weekdayNames.indices.contains(weekday - 1),
+            Self.monthNames.indices.contains(month - 1)
+        else { return missingText }
         return "\(Self.weekdayNames[weekday - 1]) \(dayOfMonth) \(Self.monthNames[month - 1])"
     }
 

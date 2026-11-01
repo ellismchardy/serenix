@@ -46,7 +46,8 @@ still show that Day's Load. Serenix never shows another Day's Night in its place
 **Top row.** On the left, a sync pill showing the History Sync state from spec 001:
 - **Connecting:** "Connecting…".
 - **Syncing:** "Syncing", with 001's progress bar and time left shown under the pill.
-- **Up to date:** "Synced HH:mm", the time the last sync finished.
+- **Up to date:** "Synced HH:mm", the time the last sync finished, or "Not synced" before the
+  first sync.
 - **Failed:** "Sync failed". Tapping it shows the reason and a Retry button.
 
 Tapping the pill when no sync is running starts one (001's "Sync now"). On the right, a profile
@@ -259,9 +260,6 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
   with the same band and Zone colours in both.
 - **Write a review.** It needs the App Store, which needs the Apple Developer Program (ADR 0003).
   When its spec comes, it may link to GitHub instead.
-- **Before `/plan`:** spec 001 must be merged first. This spec takes over 001's main and
-  settings screens, and the plan builds on them.
-
 ## Notes
 - Prototype: branch `prototype/homescreen`, file `src/SerenixApp/Prototype/home-screen-prototype.html`.
   Open it with `?variant=E`.
@@ -274,4 +272,4 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
   Readiness hero and Baseline bars, C for the tiles and the Sleep screen, D for Trends.
 - Glossary changes in this spec: Baseline now covers respiratory rate and skin temperature, not
   SpO2. New terms: Time Asleep and Zone.
-- Related: `specs/001-history-sync.md` (on `feat/history-sync` until it merges).
+- Related: `specs/001-history-sync.md`.

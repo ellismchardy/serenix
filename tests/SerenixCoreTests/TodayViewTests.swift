@@ -1298,3 +1298,10 @@ private func isClose(_ value: Double?, to expected: Double) -> Bool {
         #expect(view.metricPopup(metric) == nil)
     }
 }
+
+@Test func aDayOutsideTheCalendarReadsAsTheDateItRollsOverToRatherThanCrashing() {
+    // Month 13 of 2026 rolls over to January 2027; 1 Jan 2027 is a Friday.
+    let view = todayView(nights: [], showing: Day(year: 2026, month: 13, day: 1))
+
+    #expect(view.title == "Fri 1 Jan")
+}
