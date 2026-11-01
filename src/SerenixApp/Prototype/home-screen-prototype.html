@@ -44,6 +44,56 @@
   .navbtn[disabled] { opacity: .3; cursor: default; }
   .up { color: var(--good); } .down { color: var(--low); }
 
+  /* variant F: light restyle, purple accent; dark via Appearance */
+  .phone.f { --s-bg: #f3f2f8; --s-card: #fff; --s-card2: #efeafe; --s-ink: #16151c; --s-sub: #8b8a97;
+    --track: #e7e4f2; --sep: #efedf5; --accent: #7c5cff; --accent-ink: #fff; --shadow: 0 4px 16px rgba(40,30,90,.07);
+    --good: #22c55e; --mid: #f59e0b; --low: #ef4444; border-color: #1a1a1a; }
+  .phone.f.dark { --s-bg: #0f0e14; --s-card: #1c1b24; --s-card2: #2a2440; --s-ink: #f4f3f8; --s-sub: #8f8d9e;
+    --track: #2f2d3b; --sep: #2a2934; --accent: #9b85ff; --accent-ink: #fff; --shadow: none;
+    --good: #4ade80; --mid: #fbbf24; --low: #fb7185; }
+  .phone.f .card, .phone.f .f-card { background: var(--s-card); border-radius: 22px; box-shadow: var(--shadow); }
+  .phone.f .backdrop { background: rgba(20,15,40,.35); }
+  .f-top { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
+  .f-av { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-size: 18px; flex: none; }
+  .f-hi { flex: 1; line-height: 1.2; } .f-hi small { color: var(--s-sub); font-size: 12px; display: block; } .f-hi b { font-size: 17px; }
+  .f-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--s-card); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; flex: none; }
+  .f-week { padding: 14px 14px 12px; margin-bottom: 14px; }
+  .f-week .hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .f-week .hd b { font-size: 17px; }
+  .f-arrow { width: 30px; height: 30px; border-radius: 50%; background: var(--s-card2); display: grid; place-items: center; color: var(--accent); font-size: 16px; }
+  .f-arrow[disabled] { opacity: .35; cursor: default; }
+  .f-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 2px; }
+  .f-day { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0 8px; border-radius: 16px; font-size: 12px; color: var(--s-sub); }
+  .f-day b { font-size: 15px; color: var(--s-ink); font-weight: 600; }
+  .f-day.sel { background: var(--accent); color: var(--accent-ink); } .f-day.sel b { color: var(--accent-ink); }
+  .f-day.off { opacity: .35; cursor: default; } .f-day.none b { color: var(--s-sub); }
+  .f-rings { display: grid; grid-template-columns: repeat(3, 1fr); padding: 14px 6px 12px; margin-bottom: 14px; }
+  .f-ring { display: flex; flex-direction: column; align-items: center; position: relative; }
+  .f-ring .in { position: absolute; top: 0; height: 84px; display: grid; place-items: center; font-weight: 800; font-size: 24px; }
+  .f-ring .lbl { font-size: 12px; color: var(--s-sub); margin-top: 6px; } .f-ring .word { font-size: 13px; font-weight: 700; }
+  .f-sec { font-size: 17px; font-weight: 700; margin: 6px 4px 10px; }
+  .f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .f-tile { padding: 14px; display: flex; gap: 8px; text-align: left; }
+  .f-tile .nm { font-size: 13px; color: var(--s-sub); display: flex; gap: 6px; align-items: center; }
+  .f-tile .ic { width: 26px; height: 26px; border-radius: 50%; background: var(--s-card2); display: grid; place-items: center; font-size: 13px; color: var(--accent); }
+  .f-tile .v { font-size: 24px; font-weight: 800; margin: 8px 0 4px; letter-spacing: -.02em; } .f-tile .v small { font-size: 12px; font-weight: 500; color: var(--s-sub); }
+  .f-tile .st { font-size: 13px; font-weight: 600; }
+  .f-gauge { width: 12px; height: 70px; border-radius: 6px; background: var(--track); position: relative; margin-left: auto; align-self: center; flex: none; }
+  .f-gauge .fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px; opacity: .75; }
+  .f-gauge .knob { position: absolute; left: 50%; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid; transform: translate(-50%, 50%); }
+  .f-pill { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 8; background: var(--s-card); box-shadow: 0 6px 20px rgba(40,30,90,.18); border-radius: 99px; padding: 8px 16px; font-size: 13px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 1.5px solid var(--track); animation: drop .25s ease-out; }
+  @keyframes drop { from { transform: translate(-50%, -30px); opacity: 0; } }
+  .f-pill .bar { width: 160px; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; } .f-pill .bar i { display: block; height: 100%; background: var(--accent); }
+  .phone.f .tabbar { background: var(--s-card); box-shadow: 0 -2px 16px rgba(40,30,90,.06); }
+  .phone.f .tabbar button.on { color: var(--accent); }
+  .phone.f .m-list { background: var(--s-bg); }
+  .f-seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--s-card2); border-radius: 12px; padding: 3px; }
+  .f-seg button { text-align: center; padding: 7px 0; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--s-sub); }
+  .f-seg button.on { background: var(--s-card); color: var(--s-ink); box-shadow: var(--shadow); }
+  .f-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-top: 10px; }
+  .f-cal button, .f-cal span { padding: 9px 0; border-radius: 50%; font-size: 14px; }
+  .f-cal .sel { background: var(--accent); color: var(--accent-ink); } .f-cal .off { opacity: .3; cursor: default; }
+
   /* sheet */
   .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 10; }
   .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 82%; overflow-y: auto; background: var(--s-card); border-radius: 22px 22px 0 0; padding: 10px 20px 34px; z-index: 11; animation: up .2s ease-out; }
@@ -238,15 +288,16 @@ const SCENARIOS = {
   failed: 'Sync failed',
   first: 'First launch',
 };
-const VARIANTS = { A: 'Score rings', B: 'Briefing', C: 'Night timeline', D: 'Trends', E: 'Combined' };
+const VARIANTS = { A: 'Score rings', B: 'Briefing', C: 'Night timeline', D: 'Trends', E: 'Combined', F: 'Light restyle' };
 const TABS = { today: ['◉', 'Today'], sleep: ['☾', 'Sleep'], trends: ['∿', 'Trends'] };
 const qs = new URLSearchParams(location.search);
 const state = {
   variant: VARIANTS[qs.get('variant')] ? qs.get('variant') : 'A',
   scenario: SCENARIOS[qs.get('scenario')] ? qs.get('scenario') : 'normal',
   night: 0, sheet: null, range: 14, syncProgress: 0, tab: 'today', page: null, toast: null,
+  appearance: 'system', name: 'Ellis', weekOffset: 0,
 };
-const combined = () => state.variant === 'E';
+const combined = () => state.variant === 'E' || state.variant === 'F';
 const latestOnly = () => state.variant === 'D' || (combined() && state.tab === 'trends');
 let timer = null;
 
@@ -525,6 +576,128 @@ function tabScreen(list, n) {
   return Combined(list, n);
 }
 
+// ---------- variant F: light restyle (purple accent, greeting top bar, week strip) ----------
+const GAUGE_LIMIT = { hrv: 0.15, rhr: 4, resp: 1.0, skin: 0.6 };
+function gaugePos(n, key) {
+  const v = n[key];
+  if (v == null) return null;
+  if (key === 'spo2') return clamp((v - 88) / 12, 0, 1);
+  if (!n.base) return null;
+  const d = key === 'hrv' ? (v - n.base.hrv) / n.base.hrv : v - n.base[key];
+  return clamp(0.5 + d / (2 * GAUGE_LIMIT[key]), 0, 1);
+}
+function statusWordF(n, key) {
+  if (key === 'spo2') return SPO2_LABEL[STATUS.spo2(n.spo2)];
+  if (!n.base) return 'Calibrating';
+  const z = STATUS[key](n[key], n.base[key]);
+  return z === 'good' ? 'Normal' : n[key] < n.base[key] ? 'Low' : 'High';
+}
+const ICONS = { rhr: '♥', hrv: '∿', resp: '≋', skin: '🌡', spo2: '💧' };
+const greetingF = () => { const h = Math.floor(NOW_MIN / 60); return h >= 5 && h < 12 ? 'Good morning!' : h < 18 ? 'Good afternoon!' : 'Good evening!'; };
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function todayDate(list) { return list.length ? list[0].date : new Date(); }
+function weekStripF(list) {
+  const today = todayDate(list), shown = list[state.night].date;
+  const earliest = list[list.length - 1].date;
+  // The seven Days ending today (or a week earlier per ‹), so today is never stranded among future Days.
+  const start = new Date(today); start.setDate(today.getDate() - 6 - 7 * state.weekOffset);
+  const days = [...Array(7)].map((_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
+  const canOlder = days[0] > earliest, canNewer = state.weekOffset > 0;
+  return `<div class="f-card f-week"><div class="hd"><b>${MONTHS_LONG[days[6].getMonth()]} ${days[6].getFullYear()}</b>
+      <span style="display:flex;gap:8px"><button class="f-arrow tap" data-act="week:older" ${canOlder ? '' : 'disabled'}>‹</button>
+      <button class="f-arrow tap" data-act="week:newer" ${canNewer ? '' : 'disabled'}>›</button></span></div>
+    <div class="f-days">${days.map(d => {
+      const idx = list.findIndex(x => sameDay(x.date, d));
+      const future = d > today && !sameDay(d, today), tooOld = d < earliest && !sameDay(d, earliest);
+      const sel = sameDay(d, shown);
+      const act = future || tooOld ? '' : idx >= 0 ? `night:${idx}` : 'toast:No Night recorded that Day';
+      return `<button class="f-day tap ${sel ? 'sel' : ''} ${future || tooOld ? 'off' : ''} ${idx < 0 ? 'none' : ''}" ${act ? `data-act="${act}"` : 'disabled'}>
+        ${'SMTWTFS'[d.getDay()]}<b>${d.getDate()}</b></button>`;
+    }).join('')}</div></div>`;
+}
+function syncPillF() {
+  const s = state.scenario;
+  if (s === 'syncing') return `<div class="f-pill"><span style="display:flex;gap:8px;align-items:center"><span class="spin" style="border-color:var(--accent);border-top-color:transparent"></span>Syncing</span>
+    ${state.syncProgress > 8 ? `<span class="bar"><i style="width:${state.syncProgress}%"></i></span><span class="muted" style="font-size:11px;font-weight:500">about ${Math.max(1, Math.ceil((100 - state.syncProgress) / 30))} min left</span>` : ''}</div>`;
+  if (s === 'failed') return `<button class="f-pill tap" data-act="toast:Couldn't find the Strap. Serenix will try again next time you open it." style="border-color:var(--mid)"><span><span style="color:var(--mid)">⚠</span> Sync paused</span></button>`;
+  if (state.justSynced) return `<div class="f-pill" style="border-color:var(--good)"><span><span style="color:var(--good)">✓</span> Sync successful</span></div>`;
+  return '';
+}
+function VariantF(list, n) {
+  const name = state.name.trim();
+  const top = `<div class="f-top">
+      <button class="f-av tap" data-act="sheet:profile">${name ? name[0].toUpperCase() : '👤'}</button>
+      <div class="f-hi"><small>${greetingF()}</small><b>${name || ''}</b></div>
+      <button class="f-icon tap" data-act="sheet:calendar" title="Pick a Day">📅</button>
+      <button class="f-icon tap" data-act="toast:No notifications yet" title="Notifications">🔔</button></div>`;
+  const ringF = (key, v, color, label, word, inner) => `<button class="f-ring tap" data-act="${key ? `sheet:${key}` : ''}">
+      ${ring(v, 100, color, 84, 8)}<div class="in">${inner ?? v}</div><div class="lbl">${label}</div>${word ?? ''}</button>`;
+  const r = n.readiness;
+  const rings = `<div class="f-card f-rings">
+      ${ringF('sleep', n.sleepScore, 'var(--accent)', 'Sleep Score')}
+      ${ringF('readiness', r, band(r), 'Readiness', `<div class="word" style="color:${band(r)}">${bandWord(r)}</div>`, r == null ? `<span class="muted" style="font-size:16px">${n.nightsSoFar}/4</span>` : null)}
+      ${ringF('', n.load, 'var(--load)', n.today ? 'Load so far' : 'Load')}</div>`;
+  const baseline = n.base ? `<div class="f-card" style="padding:14px 14px 4px;margin-bottom:14px">
+      ${contrib('HRV', `${n.hrv} ms <span style="font-weight:400;font-size:12px">${delta(n, 'hrv')}</span>`, (n.hrv - n.base.hrv) / n.base.hrv * 4, n.hrv >= n.base.hrv)}
+      ${contrib('Resting HR', `${n.rhr} bpm <span style="font-weight:400;font-size:12px">${delta(n, 'rhr')}</span>`, (n.base.rhr - n.rhr) / 6, n.rhr <= n.base.rhr)}</div>`
+    : `<div class="f-card" style="padding:14px;font-size:13px;margin-bottom:14px"><b>Calibrating.</b> <span class="muted">Readiness starts once 4 Nights form your Baseline. ${4 - n.nightsSoFar} to go.</span></div>`;
+  const tile = m => {
+    const pos = gaugePos(n, m.key);
+    const col = (m.key === 'spo2' || n.base) ? statusColor(n, m.key) : 'var(--s-sub)';
+    return `<button class="f-card f-tile tap" data-act="sheet:m-${m.key}"><div style="flex:1;min-width:0">
+        <div class="nm"><span class="ic">${ICONS[m.key]}</span>${m.name}</div>
+        <div class="v">${m.fmt(n[m.key])} <small>${m.unit}</small></div>
+        <div class="st" style="color:${col}">${col === 'var(--s-sub)' ? '' : '✓ '}${statusWordF(n, m.key)}</div></div>
+      <div class="f-gauge">${pos == null ? '' : `<div class="fill" style="height:${pos * 100}%;background:${col}"></div><div class="knob" style="bottom:${pos * 100}%;border-color:${col}"></div>`}</div></button>`;
+  };
+  const asleep = `<button class="f-card f-tile tap" data-act="sheet:sleep"><div style="flex:1">
+      <div class="nm"><span class="ic">☾</span>Time Asleep</div><div class="v">${dur(n.asleep)}</div>
+      <div class="st muted" style="font-weight:500">${clock(n.onset)} → ${clock(n.wake)}</div></div></button>`;
+  return `${top}${weekStripF(list)}${rings}
+    <div class="f-sec">vs your Baseline</div>${baseline}
+    <div class="f-sec">${n.today ? 'Last night' : dlabel(n.date)}</div>
+    <div class="f-grid">${asleep}${METRICS.map(tile).join('')}</div>
+    <div style="height:90px"></div>`;
+}
+function tabScreenF(list, n) {
+  if (state.tab === 'sleep') return VariantC(list, n) + '<div style="height:90px"></div>';
+  if (state.tab === 'trends') return VariantD(list) + '<div style="height:90px"></div>';
+  return VariantF(list, n);
+}
+function calendarSheet(list) {
+  const today = todayDate(list), earliest = list[list.length - 1].date, shown = list[state.night].date;
+  const first = new Date(today.getFullYear(), today.getMonth(), 1);
+  const blanks = first.getDay(), days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  return `<h2>${MONTHS_LONG[today.getMonth()]} ${today.getFullYear()}</h2><div class="muted" style="font-size:13px">Pick a Day · earliest Night to today</div>
+    <div class="f-cal">${'SMTWTFS'.split('').map(c => `<span class="muted" style="font-size:11px">${c}</span>`).join('')}
+    ${'<span></span>'.repeat(blanks)}${[...Array(days)].map((_, i) => {
+      const d = new Date(today.getFullYear(), today.getMonth(), i + 1);
+      const ok = !(d > today && !sameDay(d, today)) && !(d < earliest && !sameDay(d, earliest));
+      const idx = list.findIndex(x => sameDay(x.date, d));
+      const act = !ok ? '' : idx >= 0 ? `pick:${idx}` : 'toast:No Night recorded that Day';
+      return `<button class="tap ${sameDay(d, shown) ? 'sel' : ''} ${ok ? '' : 'off'}" ${act ? `data-act="${act}"` : 'disabled'}>${i + 1}</button>`;
+    }).join('')}</div>`;
+}
+function profileSheetF(list) {
+  if (state.page === 'debug') return profileSheet(list);
+  const name = state.name.trim(), s = state.scenario;
+  const row = (icon, label, right, act = '') => `<button class="m-item tap" ${act ? `data-act="${act}"` : ''}>
+      <span class="ic" style="background:var(--s-card2);color:var(--accent)">${icon}</span><span class="tx">${label}</span><span class="muted">${right}</span></button>`;
+  return `<div class="row"><span></span><button class="f-icon tap" data-act="close" style="width:34px;height:34px">✕</button></div>
+    <div style="text-align:center;margin:4px 0 18px"><button class="f-av tap" data-act="rename" style="width:88px;height:88px;font-size:36px;margin:0 auto">${name ? name[0].toUpperCase() : '👤'}</button>
+      <div style="font-size:22px;font-weight:800;margin-top:10px">${name || 'Add your name'}</div><div class="muted" style="font-size:12px">Tap to edit · stays on this phone</div></div>
+    <div class="m-sec">Strap</div><div class="m-list">
+      ${row('⌚', s === 'first' ? 'Not found' : 'Connected', 'Whoop 5.0')}
+      ${row('▮', 'Battery', '72%')}
+      ${row('◷', 'Last sync', s === 'failed' ? 'Sat 31 Oct 07:12' : 'Sun 1 Nov 08:10')}
+      ${row('↻', s === 'failed' ? 'Retry sync' : 'Sync now', '', 'sync')}</div>
+    <div class="m-sec">Appearance</div>
+    <div class="f-seg">${['system', 'light', 'dark'].map(a => `<button class="tap ${state.appearance === a ? 'on' : ''}" data-act="appearance:${a}">${a[0].toUpperCase() + a.slice(1)}</button>`).join('')}</div>
+    <div class="m-sec">More</div><div class="m-list">${row('⌘', 'Debug', '›', 'page:debug')}</div>
+    <div class="muted" style="font-size:11px;text-align:center;margin-top:22px">Serenix 0.1.0 · MIT licensed · Not affiliated with WHOOP, Inc.</div>`;
+}
+
 // ---------- profile menu (variant E, top-right icon) ----------
 function profileSheet(list) {
   const item = (icon, bg, label, sub, act, right = '›') => `<button class="m-item tap" data-act="${act}">
@@ -578,7 +751,8 @@ function profileSheet(list) {
 
 // ---------- detail sheets (shared by every variant) ----------
 function sheet(key, list, n) {
-  if (key === 'profile') return profileSheet(list);
+  if (key === 'profile') return state.variant === 'F' ? profileSheetF(list) : profileSheet(list);
+  if (key === 'calendar') return calendarSheet(list);
   if (key === 'sleep') return `<h2>Sleep</h2><div class="muted" style="margin-bottom:14px">${nightName(n)} · Sleep Score <b style="color:var(--sleep)">${n.sleepScore}</b></div>
     ${nightChart(n, 350, 160)}
     <div style="margin-top:10px">
@@ -613,8 +787,11 @@ function render() {
   const list = nights();
   state.night = clamp(state.night, 0, Math.max(0, list.length - 1));
   const n = list[state.night];
-  const V = { A: VariantA, B: VariantB, C: VariantC, D: VariantD, E: tabScreen }[state.variant];
-  document.getElementById('screen').innerHTML = n ? V(list, n) : empty();
+  const V = { A: VariantA, B: VariantB, C: VariantC, D: VariantD, E: tabScreen, F: tabScreenF }[state.variant];
+  const phone = document.querySelector('.phone');
+  const dark = state.appearance === 'dark' || (state.appearance === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  phone.classList.toggle('f', state.variant === 'F'); phone.classList.toggle('dark', state.variant === 'F' && dark);
+  document.getElementById('screen').innerHTML = (n ? V(list, n) : empty()) + (state.variant === 'F' ? syncPillF() : '');
   document.getElementById('tabbar').innerHTML = combined() && n ? `<div class="tabbar">${Object.entries(TABS).map(([k, [icon, label]]) =>
     `<button class="tap ${state.tab === k ? 'on' : ''}" data-act="tab:${k}"><b>${icon}</b>${label}</button>`).join('')}</div>` : '';
   const shown = latestOnly() ? list[0] : n;
@@ -636,6 +813,7 @@ function render() {
       scenario: state.scenario,
       nightsOnPhone: list.length,
       sheet: state.sheet,
+      ...(state.variant === 'F' ? { appearance: state.appearance, profileName: state.name || null } : {}),
       ...(state.scenario === 'syncing' ? { syncProgress: `${state.syncProgress}%` } : {}),
       night: shown ? {
         date: dlabel(shown.date), sleepOnset: clock(shown.onset), finalWake: clock(shown.wake),
@@ -655,7 +833,10 @@ function startSync() {
   state.scenario = 'syncing'; state.syncProgress = 0; state.sheet = null;
   timer = setInterval(() => {
     state.syncProgress = Math.min(100, state.syncProgress + 3);
-    if (state.syncProgress >= 100) { clearInterval(timer); state.scenario = 'normal'; state.night = 0; }
+    if (state.syncProgress >= 100) {
+      clearInterval(timer); state.scenario = 'normal'; state.night = 0;
+      state.justSynced = true; setTimeout(() => { state.justSynced = false; render(); }, 3000);
+    }
     render();
   }, 90);
   render();
@@ -683,6 +864,10 @@ document.addEventListener('click', e => {
   if (act === 'older') state.night++;
   if (act === 'newer') state.night--;
   if (act === 'night') state.night = +arg;
+  if (act === 'pick') { state.night = +arg; state.sheet = null; state.weekOffset = 0; }
+  if (act === 'week') state.weekOffset = Math.max(0, state.weekOffset + (arg === 'older' ? 1 : -1));
+  if (act === 'appearance') state.appearance = arg;
+  if (act === 'rename') { const v = prompt('What should we call you?', state.name); if (v != null) state.name = v; }
   if (act === 'sheet') state.sheet = el.dataset.act.slice(6);
   if (act === 'close') { state.sheet = null; state.page = null; }
   if (act === 'page') state.page = arg === 'main' ? null : arg;
