@@ -129,3 +129,88 @@ private func loadOfFourthOfNovember(
     )
     #expect(result.heartRate?.maxHRUsed == MaxHRUsed(bpm: 100, source: .entered))
 }
+
+// Hourly HR Zone seconds: entries are the hours elapsed since local midnight, so a Day with a
+// clock change has 23 or 25 entries.
+
+private let noZoneSeconds: [HRZone: Int] = [.one: 0, .two: 0, .three: 0, .four: 0, .five: 0]
+
+/// 2026-10-31 23:30:00 UTC, which is 23:30 GMT in London (clocks went back on 25 Oct).
+private let halfPastElevenOn31October = Date(timeIntervalSince1970: 1_793_489_400)
+
+/// 2026-03-29 12:00:00 UTC, which is 13:00 BST in London (clocks went forward at 01:00 GMT).
+private let noonUTCOn29March = Date(timeIntervalSince1970: 1_774_785_600)
+
+/// 2026-10-25 12:00:00 UTC, which is 12:00 GMT in London (clocks went back at 02:00 BST).
+private let noonUTCOn25October = Date(timeIntervalSince1970: 1_792_929_600)
+
+/// The Load of `day` in London from `records`, with no Nights.
+private func loadInLondon(of day: Day, _ records: [HistoryRecord]) -> DayLoad {
+    load(of: day, records: records, nights: [], profile: man, in: london)
+}
+
+@Test func anHourAt164BpmAcrossMidnightIsSplitBetweenEachDaysHours() {
+    let records = historyRecords(at: 164, for: oneHour, from: halfPastElevenOn31October)
+
+    let october31 = loadInLondon(of: Day(year: 2026, month: 10, day: 31), records)
+    let november1 = loadInLondon(of: Day(year: 2026, month: 11, day: 1), records)
+
+    let october31Hours = october31.heartRate?.hourlyZoneSeconds
+    #expect(october31Hours?.count == 24)
+    #expect(october31Hours?[23] == [.one: 0, .two: 0, .three: 0, .four: 1_800, .five: 0])
+    #expect(october31Hours?.prefix(23).allSatisfy { $0 == noZoneSeconds } == true)
+
+    let november1Hours = november1.heartRate?.hourlyZoneSeconds
+    #expect(november1Hours?.count == 24)
+    #expect(november1Hours?[0] == [.one: 0, .two: 0, .three: 0, .four: 1_800, .five: 0])
+    #expect(november1Hours?.dropFirst().allSatisfy { $0 == noZoneSeconds } == true)
+}
+
+@Test func theDayClocksGoForwardHas23HoursAndTheDayTheyGoBackHas25() {
+    // 29 Mar: local 01:00 never happens, so 13:00 BST is 12 hours after local midnight (entry 12).
+    let march29 = loadInLondon(
+        of: Day(year: 2026, month: 3, day: 29),
+        historyRecords(at: 164, for: oneHour, from: noonUTCOn29March)
+    )
+    // 25 Oct: local 01:00 happens twice (BST then GMT), so 12:00 GMT is 13 hours after local
+    // midnight (entry 13).
+    let october25 = loadInLondon(
+        of: Day(year: 2026, month: 10, day: 25),
+        historyRecords(at: 164, for: oneHour, from: noonUTCOn25October)
+    )
+
+    let march29Hours = march29.heartRate?.hourlyZoneSeconds
+    #expect(march29Hours?.count == 23)
+    #expect(march29Hours?[12] == [.one: 0, .two: 0, .three: 0, .four: 3_600, .five: 0])
+
+    let october25Hours = october25.heartRate?.hourlyZoneSeconds
+    #expect(october25Hours?.count == 25)
+    #expect(october25Hours?[13] == [.one: 0, .two: 0, .three: 0, .four: 3_600, .five: 0])
+}
+
+@Test func anHourAt164BpmFrom10AMFillsOnlyThe10AMHourWithHRZone4() {
+    let result = loadOfFourthOfNovember(historyRecords(at: 164, for: oneHour, from: tenAM))
+
+    let hours = result.heartRate?.hourlyZoneSeconds
+    #expect(hours?.count == 24)
+    #expect(hours?[10] == [.one: 0, .two: 0, .three: 0, .four: 3_600, .five: 0])
+    #expect(
+        hours?.enumerated().allSatisfy { hour, seconds in hour == 10 || seconds == noZoneSeconds }
+            == true
+    )
+}
+
+@Test func aDayWithAHalfHourClockChangeKeepsItsLastPartHour() {
+    // Lord Howe Island moves its clocks forward 30 minutes (02:00 → 02:30) on 4 Oct 2026, so the
+    // Day is 23.5 hours: 24 entries, the last one half an hour long. 12:40 UTC is 23:40 local
+    // (UTC+11), 23 h 10 m after local midnight, so entry 23.
+    let lordHowe = TimeZone(identifier: "Australia/Lord_Howe")!
+    let october4 = Day(year: 2026, month: 10, day: 4)
+    let records = historyRecords(at: 164, for: tenMinutes, from: utcDate(2026, 10, 4, 12, 40))
+
+    let result = load(of: october4, records: records, nights: [], profile: man, in: lordHowe)
+
+    let hours = result.heartRate?.hourlyZoneSeconds
+    #expect(hours?.count == 24)
+    #expect(hours?.last == [.one: 0, .two: 0, .three: 0, .four: 600, .five: 0])
+}

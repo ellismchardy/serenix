@@ -79,7 +79,7 @@ ignored, and nothing holds a connection between syncs.
      - Zone seconds equal the seconds over the floor, including with repeats and order changes.
      - Birth year 1986 at 162 bpm gives HR Zone 5, estimated, Max HR 180.
      - The existing Load tests stay green.
-3. [ ] **Slice:** hourly HR Zone seconds per local hour, across midnight and clock changes.
+3. [x] **Slice:** hourly HR Zone seconds per local hour, across midnight and clock changes.
    - Seam: Load of a Day · Files: `src/SerenixCore/Load.swift`, `src/SerenixCore/Day.swift`, tests as task 2
    - Done when: the hourly criterion passes (31 Oct 23:00 and 1 Nov 00:00 hold 1800 s each; 29
      Mar has 23 hours and 25 Oct has 25), and the 164 bpm hour's bars hold HR Zone 4 only.

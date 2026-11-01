@@ -29,7 +29,7 @@ public func load(
     }
     let maxHR = maxHRUsed.bpm
     let heartRates = unique.map(\.heartRate)
-    let heartRate = DayHeartRate(heartRates: heartRates, maxHRUsed: maxHRUsed)
+    let heartRate = DayHeartRate(records: unique, span: span, maxHRUsed: maxHRUsed)
     let restingHR = LoadMethod.restingHR(for: day, among: nights)
     guard maxHR > restingHR else {
         return DayLoad(

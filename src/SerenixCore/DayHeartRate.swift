@@ -4,24 +4,44 @@ import Foundation
 public struct DayHeartRate: Equatable, Codable, Sendable {
     /// Seconds in each HR Zone; every HR Zone has a key (0 when none).
     public var zoneSeconds: [HRZone: Int]
+    /// Seconds in each HR Zone for each hour of the Day, counted from local midnight, one entry
+    /// per started hour: 24, or 23 / 25 across a clock change. Every entry has every HR Zone as a
+    /// key (0 when none).
+    public var hourlyZoneSeconds: [[HRZone: Int]]
     public var maxHRUsed: MaxHRUsed
 
-    public init(zoneSeconds: [HRZone: Int], maxHRUsed: MaxHRUsed) {
+    public init(
+        zoneSeconds: [HRZone: Int],
+        hourlyZoneSeconds: [[HRZone: Int]],
+        maxHRUsed: MaxHRUsed
+    ) {
         self.zoneSeconds = zoneSeconds
+        self.hourlyZoneSeconds = hourlyZoneSeconds
         self.maxHRUsed = maxHRUsed
     }
 
-    /// The HR Zone seconds of `heartRates`, one per second, against `maxHRUsed`.
-    init(heartRates: [Int], maxHRUsed: MaxHRUsed) {
-        var seconds = Dictionary(uniqueKeysWithValues: HRZone.allCases.map { ($0, 0) })
-        for heartRate in heartRates {
-            if let zone = HRZone.zone(forHeartRate: heartRate, maxHR: maxHRUsed.bpm) {
-                seconds[zone, default: 0] += 1
-            }
+    /// The HR Zone seconds of `records`, one second each, against `maxHRUsed`, in total and by
+    /// hour of `span` (the Day, local midnight to midnight; every record falls inside it).
+    init(records: [HistoryRecord], span: DateInterval, maxHRUsed: MaxHRUsed) {
+        let none = Dictionary(uniqueKeysWithValues: HRZone.allCases.map { ($0, 0) })
+        var seconds = none
+        // Hours are counted as time elapsed since local midnight, one entry per started hour: a
+        // clock change removes or adds entries (23 or 25, or 24 for a 30-minute change).
+        let hourCount = Int((span.duration / secondsPerHour).rounded(.up))
+        var hourly = Array(repeating: none, count: hourCount)
+        for record in records {
+            guard let zone = HRZone.zone(forHeartRate: record.heartRate, maxHR: maxHRUsed.bpm)
+            else { continue }
+            seconds[zone, default: 0] += 1
+            let hour = Int(record.timestamp.timeIntervalSince(span.start) / secondsPerHour)
+            hourly[hour][zone, default: 0] += 1
         }
-        self.init(zoneSeconds: seconds, maxHRUsed: maxHRUsed)
+        self.init(zoneSeconds: seconds, hourlyZoneSeconds: hourly, maxHRUsed: maxHRUsed)
     }
 }
+
+/// Seconds in an hour.
+private let secondsPerHour = 3_600.0
 
 /// Whether a Max HR was entered or estimated from age (spec 005).
 public enum MaxHRSource: String, Codable, Sendable {
