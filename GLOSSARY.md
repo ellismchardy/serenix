@@ -10,7 +10,8 @@ daily scores, computed on the user's phone without the wearable vendor's subscri
 ## The user
 
 **Profile**:
-The user's name, kept only on the phone, used to address them in the app.
+The user's name, and optionally their birth year, sex and Max HR, kept only on the phone, used to
+address them and to work out Load.
 _Avoid_: account, user account, login
 
 ## Devices and data
@@ -105,9 +106,15 @@ _Avoid_: cycle
 ## Metrics and scores
 
 **Baseline**:
-The user's typical Resting HR, HRV, respiratory rate and skin temperature, each taken over their
-most recent Nights. SpO2 has no Baseline.
+The user's typical Resting HR, HRV, respiratory rate and skin temperature, and the Spread of
+each, taken over their most recent Nights. It also holds their typical Load, taken over their
+most recent Days. SpO2 has no Baseline.
 _Avoid_: norm, average, usual (when the personal reference is meant)
+
+**Spread**:
+How much one Nightly Metric usually varies from Night to Night for the user; part of that
+metric's Baseline.
+_Avoid_: variability (clashes with HRV), SD, deviation
 
 **Zone**:
 Where one Nightly Metric sits against its Baseline (or, for SpO2, against fixed levels): In
@@ -123,6 +130,10 @@ _Avoid_: vitals, biometrics
 The user's lowest sustained heart rate during a Sleep Period.
 _Avoid_: RHR (in prose; fine as an abbreviation in code)
 
+**Max HR**:
+The highest heart rate the user can reach: estimated from their age unless they enter it.
+_Avoid_: HRmax (in prose), peak HR
+
 **HRV**:
 Heart-rate variability during a Sleep Period, expressed as RMSSD in milliseconds.
 
@@ -131,11 +142,11 @@ Serenix's rating of how well the user slept in one Sleep Period.
 _Avoid_: sleep performance, sleep quality
 
 **Calibrating**:
-The state of Readiness while too few Nights exist to form a Baseline.
+The state of Readiness while too few Nights exist to form an HRV or Resting HR Baseline.
 
 **Readiness**:
-Serenix's rating of how prepared the user's body is for exertion, derived from Nightly Metrics
-relative to their own Baseline.
+Serenix's rating of how prepared the user's body is for exertion, from their HRV and Resting HR
+against Baseline, their Time Asleep, and the previous Day's Load.
 _Avoid_: recovery (WHOOP's term)
 
 **Load**:

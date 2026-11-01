@@ -41,8 +41,9 @@ The app is split in two (ADR 0002):
 - **Night**: one Sleep Period, dated by the local date of its Final Wake. It holds Sleep Onset,
   Final Wake, Time in Bed, Nightly Metrics, Sleep Score and Readiness. Kept forever.
 - **Day**: a local calendar day with its Load. Kept forever.
-- **Baseline**: derived from the last 14 Nights, not stored. Readiness is "calibrating" until
-  4 Nights exist.
+- **Baseline**: not stored. Each Nightly Metric's median and Spread come from the last 14
+  Nights; typical Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights
+  exist.
 - **Sync Cursor**: kept by the Strap, not the phone. The phone echoes it to acknowledge each
   Batch, so each sync only gets newer records.
 
@@ -66,8 +67,9 @@ starting a sync in the background, iCloud sync, and the Whoop 4.0 and MG.
 
 ## Cross-cutting concerns
 - Auth: none. No accounts. The only "auth" is BLE pairing with the Strap, which encrypts the
-  link the Whoop service needs. A Profile holds the user's name on the device only; it is never
-  sent anywhere or included in any log or report.
+  link the Whoop service needs. A Profile holds the user's name, and optionally their birth year,
+  sex and Max HR, on the device only; none of it is ever sent anywhere or included in any log
+  or report.
 - Errors: `SerenixCore` returns typed errors and never crashes on malformed frames: a bad CRC
   or unknown record type is reported and skipped. The shell shows sync failures to the user.
 - Logging/observability: `os.Logger` on the device only. No automatic analytics or
