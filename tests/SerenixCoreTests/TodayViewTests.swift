@@ -574,10 +574,10 @@ private func nov1Tile(_ metric: NightlyMetric, of night: Night) -> MetricTile? {
     todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1).tile(metric)
 }
 
-// Values from spec 004. With fewer Nights than a Spread needs, the typical HRV Spread applies, so
-// z = (ln v − ln 60) / 0.15: z = −1.5 at ≈47.91 and −2.5 at ≈41.24, so 48/47.9 and 41.3/41.2
-// sit either side of the Watch and Out of range edges; z = +2.5 at ≈87.30, so 87.2 is In range
-// and 87.4 is Watch. A high HRV is never Out of range, however high (200).
+// Values from spec 004. With 3 earlier Nights (under the 7 a measured Spread needs), the typical
+// HRV Spread applies, so z = (ln v − ln 60) / 0.15: z = −1.5 at ≈47.91 and −2.5 at ≈41.24, so
+// 48/47.9 and 41.3/41.2 sit either side of the Watch and Out of range edges; z = +2.5 at ≈87.30, so
+// 87.2 is In range and 87.4 is Watch. A high HRV is never Out of range, however high (200).
 @Test(
     arguments: [
         (48, .inRange), (47.9, .watch), (41.3, .watch), (41.2, .outOfRange),
@@ -602,10 +602,14 @@ func restingHRZoneAgainstABaselineOf52(restingHR: Double, zone: Zone) {
     #expect(tile?.zone == zone)
 }
 
+// Values from spec 004. With 3 earlier Nights (under the 7 a measured Spread needs), the typical
+// respiratory rate Spread applies, so z = (v − 14.0) / 0.5: In range while |z| ≤ 1.5 (14.0 ± 0.75),
+// Watch while |z| ≤ 2.5 (14.0 ± 1.25), Out of range beyond. So 14.7 and 13.3 are In range, 14.8 and
+// 15.25 are Watch, and 15.3 and 12.7 are Out of range.
 @Test(
     arguments: [
-        (14.5, .inRange), (13.5, .inRange), (15.0, .watch), (15.1, .outOfRange),
-        (12.9, .outOfRange),
+        (14.7, .inRange), (13.3, .inRange), (14.8, .watch), (15.25, .watch),
+        (15.3, .outOfRange), (12.7, .outOfRange),
     ] as [(Double, Zone)]
 )
 func respiratoryRateZoneAgainstABaselineOf14(respiratoryRate: Double, zone: Zone) {

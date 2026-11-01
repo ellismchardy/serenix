@@ -22,7 +22,12 @@ public enum Zone: Equatable, Sendable {
     /// Resting HR above Baseline, bpm: In range up to +1, Watch up to +4.
     private static let restingHRInRangeUpTo = 1.0
     private static let restingHRWatchUpTo = 4.0
-    /// Respiratory rate either side of Baseline, br/min: In range up to 0.5, Watch up to 1.0.
+    /// Respiratory rate's |z|, its distance from Baseline in Spreads, either side (spec 004): In
+    /// range up to 1.5, Watch up to 2.5.
+    private static let respiratoryRateZInRangeUpTo = 1.5
+    private static let respiratoryRateZWatchUpTo = 2.5
+    /// Respiratory rate either side of Baseline, br/min, for the gauge and the popup's band only.
+    /// Superseded by spec 004: the gauge and band move to Spreads in later tasks of its plan.
     private static let respiratoryRateInRangeUpTo = 0.5
     private static let respiratoryRateWatchUpTo = 1.0
     /// Skin temperature either side of Baseline, °C: In range up to 0.3, Watch up to 0.6.
@@ -37,8 +42,8 @@ public enum Zone: Equatable, Sendable {
     private static let boundaryTolerance = 1e-9
 
     /// The Zone of `value`; nil when the metric needs a Baseline and has none (Calibrating), when
-    /// HRV's Baseline is 0 or less, which gives no meaningful change, or when HRV's Baseline has
-    /// no Spread.
+    /// HRV's Baseline is 0 or less, which gives no meaningful change, or when an HRV or
+    /// respiratory rate Baseline has no Spread.
     init?(_ metric: NightlyMetric, value: Double, baseline: Baseline?) {
         switch (metric, baseline?.median) {
         case (.spo2, _):
@@ -57,10 +62,11 @@ public enum Zone: Equatable, Sendable {
                 watch: Self.restingHRWatchUpTo
             )
         case (.respiratoryRate, let median?):
+            guard let spread = baseline?.spread else { return nil }
             self = Self.atMost(
-                abs(value - median),
-                inRange: Self.respiratoryRateInRangeUpTo,
-                watch: Self.respiratoryRateWatchUpTo
+                abs(value - median) / spread,
+                inRange: Self.respiratoryRateZInRangeUpTo,
+                watch: Self.respiratoryRateZWatchUpTo
             )
         case (.skinTemperature, let median?):
             self = Self.atMost(

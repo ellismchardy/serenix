@@ -20,6 +20,9 @@ struct Baseline: Equatable, Sendable {
     /// HRV's typical Spread, on ln(RMSSD) (spec 004, Spread). Assumption from issue #14 and
     /// docs/research/nightly-metric-deviation.md: tune with real Nights.
     static let hrvTypicalSpread = 0.15
+    /// Respiratory rate's typical Spread, br/min (spec 004, Spread). Assumption from issue #14
+    /// and docs/research/nightly-metric-deviation.md: tune with real Nights.
+    static let respiratoryRateTypicalSpread = 0.5
 
     init(_ metric: NightlyMetric, for night: Night, among nights: [Night]) {
         // Newest first; missing values are skipped, never counted as 0.
@@ -39,7 +42,8 @@ struct Baseline: Equatable, Sendable {
     private static func typicalSpread(of metric: NightlyMetric) -> Double? {
         switch metric {
         case .hrv: hrvTypicalSpread
-        case .restingHR, .respiratoryRate, .skinTemperature, .spo2: nil
+        case .respiratoryRate: respiratoryRateTypicalSpread
+        case .restingHR, .skinTemperature, .spo2: nil
         }
     }
 

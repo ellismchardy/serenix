@@ -47,7 +47,7 @@ gives the typical Spread the spec's examples assume.
    - Seam: Today view · Files: `Baseline.swift`, `Zone.swift`, `TodayViewTests.swift` (rewrite
      `hrvZoneAgainstABaselineOf60`)
    - Done when: criterion "HRV against Baseline 60 with the typical Spread: 48 … 200 is Watch".
-3. [ ] **Slice:** Respiratory rate Spread-scaled Zone — typical Spread 0.5 br/min; |z| ≤ 1.5 In
+3. [x] **Slice:** Respiratory rate Spread-scaled Zone — typical Spread 0.5 br/min; |z| ≤ 1.5 In
    range, ≤ 2.5 Watch.
    - Seam: Today view · Files: `Baseline.swift`, `Zone.swift`, `TodayViewTests.swift` (rewrite
      `respiratoryRateZoneAgainstABaselineOf14`)
