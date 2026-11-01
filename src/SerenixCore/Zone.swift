@@ -15,23 +15,14 @@ public enum Zone: Equatable, Sendable {
     private static let hrvZInRangeFrom = -1.5
     private static let hrvZInRangeUpTo = 2.5
     private static let hrvZWatchFrom = -2.5
-    /// HRV's change from Baseline as a fraction of it, for the popup's band only. Superseded by
-    /// spec 004: the band moves to Spreads in a later task of its plan.
-    private static let hrvInRangeFrom = -0.05
     /// Resting HR above Baseline, bpm, up only (spec 004): Watch from +3, Out of range from +5.
-    /// A lower Resting HR is never a warning.
+    /// A lower Resting HR is never a warning. The Watch cut-off is also the band's upper limit.
     private static let restingHRWatchFrom = 3.0
     private static let restingHROutOfRangeFrom = 5.0
-    /// Resting HR above Baseline, bpm, for the popup's band only. Superseded by spec 004: the
-    /// band moves to its limits in a later task of its plan.
-    private static let restingHRInRangeUpTo = 1.0
     /// Respiratory rate's |z|, its distance from Baseline in Spreads, either side (spec 004): In
     /// range up to 1.5, Watch up to 2.5.
     private static let respiratoryRateZInRangeUpTo = 1.5
     private static let respiratoryRateZWatchUpTo = 2.5
-    /// Respiratory rate either side of Baseline, br/min, for the popup's band only. Superseded by
-    /// spec 004: the band moves to Spreads in a later task of its plan.
-    private static let respiratoryRateInRangeUpTo = 0.5
     /// Skin temperature either side of Baseline, °C: In range up to 0.3, Watch up to 0.6.
     private static let skinTemperatureInRangeUpTo = 0.3
     private static let skinTemperatureWatchUpTo = 0.6
@@ -81,22 +72,26 @@ public enum Zone: Equatable, Sendable {
     }
 
     /// The values around `baseline` that are In range, for the Nightly Metric popup's band (spec
-    /// 002, Popups); nil on a side with no limit. Both nil for SpO2, which has no Baseline, and
-    /// for HRV against a Baseline of 0 or less, and while the Baseline is Calibrating.
+    /// 004, In range band); nil on a side with no limit. Both nil for SpO2, which has no Baseline,
+    /// for HRV against a Baseline of 0 or less, while the Baseline is Calibrating, and for an HRV
+    /// or respiratory rate Baseline with no Spread.
     static func inRangeLimits(_ metric: NightlyMetric, baseline: Baseline)
         -> (low: Double?, high: Double?)
     {
         guard let median = baseline.median else { return (nil, nil) }
-        return switch metric {
-        case .hrv:
-            median > 0 ? (median * (1 + hrvInRangeFrom), nil) : (nil, nil)
-        case .restingHR:
-            (nil, median + restingHRInRangeUpTo)
-        case .respiratoryRate:
-            (median - respiratoryRateInRangeUpTo, median + respiratoryRateInRangeUpTo)
-        case .skinTemperature:
+        return switch (metric, baseline.spread) {
+        case (.hrv, let spread?) where median > 0:
+            (median * exp(hrvZInRangeFrom * spread), median * exp(hrvZInRangeUpTo * spread))
+        case (.restingHR, _):
+            (nil, median + restingHRWatchFrom)
+        case (.respiratoryRate, let spread?):
+            (
+                median - respiratoryRateZInRangeUpTo * spread,
+                median + respiratoryRateZInRangeUpTo * spread
+            )
+        case (.skinTemperature, _):
             (median - skinTemperatureInRangeUpTo, median + skinTemperatureInRangeUpTo)
-        case .spo2:
+        case (.hrv, _), (.respiratoryRate, nil), (.spo2, _):
             (nil, nil)
         }
     }

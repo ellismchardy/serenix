@@ -73,7 +73,7 @@ gives the typical Spread the spec's examples assume.
      test)
    - Done when: the status-word and gauge-position criteria pass, and the 14-Night window test
      (`respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights`) also checks the gauge.
-7. [ ] **Slice:** Popup In range band — HRV exp(ln B − 1.5S)…exp(ln B + 2.5S); respiratory rate
+7. [x] **Slice:** Popup In range band — HRV exp(ln B − 1.5S)…exp(ln B + 2.5S); respiratory rate
    B ± 1.5S; Resting HR none…B + 3; skin temperature B ± 0.3; SpO2 none.
    - Seam: Today view · Files: `Zone.swift`, `TodayViewTests.swift` (rewrite
      `metricPopupShowsTheBaselineAndItsInRangeLimits`; add the MAD band 13.11–14.89 and the HRV
