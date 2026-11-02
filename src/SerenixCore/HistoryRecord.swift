@@ -57,6 +57,18 @@ extension HistoryRecord {
     }
 }
 
+extension Array where Element == HistoryRecord {
+    /// The records with timestamps in `span` (its end excluded), each History Record once by
+    /// `identity`, in their order here.
+    func unique(in span: DateInterval) -> [HistoryRecord] {
+        var seen = Set<String>()
+        return filter {
+            span.start <= $0.timestamp && $0.timestamp < span.end
+                && seen.insert($0.identity).inserted
+        }
+    }
+}
+
 /// Why a Frame that should hold a History Record can't be decoded.
 public enum HistoryRecordError: Error, Equatable, Sendable {
     /// A per-second record whose body isn't the length the decoder knows, e.g. after a

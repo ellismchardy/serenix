@@ -41,7 +41,7 @@ private func night(from records: [HistoryRecord], period: SleepPeriod, in timeZo
     }
     return Night(
         day: Day(containing: period.finalWake, in: timeZone),
-        restingHR: NightlyMetrics.restingHR(of: asleep),
+        sleepingHR: NightlyMetrics.sleepingHR(of: asleep),
         hrv: NightlyMetrics.hrv(of: asleep),
         respiratoryRate: NightlyMetrics.respiratoryRate(
             of: asleep,

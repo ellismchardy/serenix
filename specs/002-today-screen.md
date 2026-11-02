@@ -1,7 +1,7 @@
 # 002 — Today screen
 
 **Status:** built
-**Last updated:** 2026-11-01 (spec 005: Readiness advice Load constants, "Load so far" dropped)
+**Last updated:** 2026-11-01 (spec 007: Resting HR renamed Sleeping HR, Resting HR tile, Time Asleep full width)
 
 ## Problem
 Once History Sync (spec 001) gets History Records onto the phone, the user still has nowhere
@@ -22,7 +22,7 @@ say.
    I know at a glance how hard to push today.
 2. As a Strap owner, I want each Nightly Metric coloured by its Zone, so that I can spot the
    one that is off without reading every number.
-3. As a Strap owner, I want to see how HRV and Resting HR compare to my Baseline, so that I
+3. As a Strap owner, I want to see how HRV and Sleeping HR compare to my Baseline, so that I
    understand why Readiness is what it is.
 4. As a Strap owner, I want to pick an earlier Day and jump back to today, so that I can look
    at a past Night the same way.
@@ -110,29 +110,31 @@ have.
 
 For Steady and Take it easy, it starts with why, from the Night's own numbers, naming only what
 applies: "Yesterday's Load was high (82)" when the Day before the Day shown had a Load of 55 or
-more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Resting HR is up 4 bpm" when
-Resting HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
+more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Sleeping HR is up 4 bpm" when
+Sleeping HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
 or "A, B and C." before the band's sentence. The Load caps (50, 33) and the high-Load mark (55)
 are named constants and assumptions, set by the Load spec (005) and to tune with real Days.
 Closing it hides it for that Night, remembered on the phone across
 relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
 missing.
 
-**vs your Baseline.** HRV and Resting HR, each with its value, its difference from Baseline,
+**vs your Baseline.** HRV and Sleeping HR, each with its value, its difference from Baseline,
 and a bar showing which way it moved from Baseline:
 - HRV's difference is a whole-number percentage, e.g. "+14%".
-- Resting HR's difference is in whole bpm, e.g. "−3 bpm".
+- Sleeping HR's difference is in whole bpm, e.g. "−3 bpm".
 
-The bar is green when the move is the good way: HRV up, Resting HR down. It is red otherwise.
+The bar is green when the move is the good way: HRV up, Sleeping HR down. It is red otherwise.
 When either Baseline is Calibrating, this section is one line instead: "Calibrating. Readiness
 starts once 4 Nights form your Baseline. N to go."
 
-**Tiles.** Under a heading of "Last night" (today) or the Day's date, six tiles in a 2-column
-grid. Tiles have no trend line; a metric's history is in its popup.
+**Tiles.** Under a heading of "Last night" (today) or the Day's date: the Time Asleep tile across
+the full width, then the metric tiles in a 2-column grid (Sleeping HR and Resting HR first, as set
+by spec 007). Tiles have no trend line; a metric's history is in its popup.
 - **Time Asleep:** shows "7h 40m" and Sleep Onset → Final Wake ("22:45 → 06:57"). It has no
   Zone and no gauge. Tapping it opens the Sleep popup.
-- **One tile per Nightly Metric**, in this order: Resting HR, HRV, respiratory rate, skin
-  temperature, SpO2. Each shows the metric's name with an icon, the value with its unit, a
+- **One tile per Nightly Metric**, in this order: Sleeping HR, HRV, respiratory rate, skin
+  temperature, SpO2, with spec 007's Resting HR tile after Sleeping HR. Each shows the metric's
+  name with an icon, the value with its unit, a
   status word with a ✓, and a vertical gauge. The status word and the gauge take the colour of
   the metric's Zone.
   - **Status word:** "Normal" when In range. Otherwise "Low" or "High", by which side of the
@@ -159,7 +161,7 @@ popup charts and in Baseline, never counted as 0.
 one describes the Night shown:
 - **Readiness** (from the Readiness ring) shows:
   - the number and band word
-  - HRV and Resting HR, each with value, Baseline (whole numbers) and difference
+  - HRV and Sleeping HR, each with value, Baseline (whole numbers) and difference
   - Sleep Score
   - "Baseline: your last N Nights"
 
@@ -277,7 +279,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
 - [x] Baseline, Spread, Zones, status words, gauge positions and the popup's In range band: see
       spec 004's success criteria.
-- [x] Differences format as "+14%" for HRV, "−3 bpm" for Resting HR, and "+0.4" for respiratory
+- [x] Differences format as "+14%" for HRV, "−3 bpm" for Sleeping HR, and "+0.4" for respiratory
       rate and skin temperature.
 - [x] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.
 - [x] Load is labelled "Load" on today and on an earlier Day alike.
@@ -298,8 +300,8 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
       for a harder session if you feel like it."; Steady with nothing off gives "You're
       part-way recovered. Train at a moderate pace and keep your Load under 50 today."; Take it
-      easy with yesterday's Load 82, HRV 51.6 against Baseline 60 and Resting HR 56 against 52
-      gives "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up
+      easy with yesterday's Load 82, HRV 51.6 against Baseline 60 and Sleeping HR 56 against 52
+      gives "Yesterday's Load was high (82), HRV is 14% below your Baseline and Sleeping HR is up
       4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your
       Load under 33 today."; a Load of 54 yesterday isn't mentioned; no advice while
       Calibrating.
@@ -307,7 +309,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       "Ellis"; with no name there is no letter and the menu name is "Add your name".
 
 Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
-- [ ] After a sync with real Nights, the Today screen shows the rings, vs your Baseline and six
+- [ ] After a sync with real Nights, the Today screen shows the rings, vs your Baseline and seven
       tiles, with values matching the Today view's output for that data.
 - [ ] Zone colours show green, amber and red as given; the three rings line up level; the
       Readiness message card under them shows the band word in the ring's band colour, its ✕

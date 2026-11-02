@@ -1,12 +1,12 @@
 import Foundation
 
-/// The Readiness popup (spec 002, Popups): Readiness with HRV and Resting HR against their
+/// The Readiness popup (spec 002, Popups): Readiness with HRV and Sleeping HR against their
 /// Baselines and Sleep Score, or instead, while Calibrating, why there's no Readiness yet.
 public struct ReadinessPopup: Equatable, Sendable {
     /// As on the ring: the number, or "n/4" while Calibrating.
     public let readinessText: String
     public let band: ReadinessBand?
-    /// HRV, then Resting HR; none while Calibrating.
+    /// HRV, then Sleeping HR; none while Calibrating.
     public let rows: [ReadinessPopupRow]
     /// Nil while Calibrating.
     public let sleepScoreText: String?

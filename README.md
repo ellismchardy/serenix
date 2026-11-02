@@ -18,7 +18,8 @@ Everything runs on your phone. There's no backend, no account and no telemetry.
 - **History Sync**: when the app opens, it pulls every new History Record (one second of heart
   rate, RR intervals, motion, skin temperature and steps, plus SpO2 during sleep) off the Strap.
 - **Sleep**: finds each Night's Sleep Period, Sleep Onset, Final Wake and Time in Bed.
-- **Nightly Metrics**: Resting HR, HRV, respiratory rate, skin temperature and SpO2.
+- **Nightly Metrics**: Sleeping HR, HRV, respiratory rate, skin temperature and SpO2, plus an
+  awake Resting HR for each Day.
 - **Scores**: Sleep Score, Readiness (against your own Baseline) and daily Load, each 0–100 on
   Serenix's own scales.
 - **Apple Health**: writes Resting HR, HRV, SpO2, respiratory rate and sleep to HealthKit.

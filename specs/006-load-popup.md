@@ -1,7 +1,7 @@
 # 006 — Load popup
 
 **Status:** built
-**Last updated:** 2026-11-02 (built; CI and the phone checks open in the PR)
+**Last updated:** 2026-11-02 (spec 007: default is no Days with a Resting HR)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -141,9 +141,9 @@ Sync Log, storage, the first-launch queue and the drawing, which are checked by 
 phone (ADR 0002).
 
 ## Success criteria (must be checkable)
-Unless a criterion says otherwise: Europe/London, sex Male, Max HR 190 entered, no Nights (Resting
-HR 60), and one History Record per second. HR Zone lower edges for Max HR 190: 95, 114, 133,
-152 and 171 bpm.
+Unless a criterion says otherwise: Europe/London, sex Male, Max HR 190 entered, no Days with a
+Resting HR (Resting HR 60, spec 007), and one History Record per second. HR Zone lower edges for
+Max HR 190: 95, 114, 133, 152 and 171 bpm.
 
 - [x] An hour at 164 bpm gives 3600 s in HR Zone 4 and none in the others; its hour bars hold
       HR Zone 4 only; Highest HR is 164 at the hour's first record; Max HR used is 190, entered.

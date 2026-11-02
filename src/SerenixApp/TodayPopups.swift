@@ -67,7 +67,7 @@ private struct ReadinessPopupView: View {
         }
     }
 
-    /// HRV and Resting HR: last night, Baseline and the difference.
+    /// HRV and Sleeping HR: last night, Baseline and the difference.
     private var rows: some View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
             GridRow {

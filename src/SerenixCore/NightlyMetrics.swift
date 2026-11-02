@@ -6,12 +6,12 @@ import Foundation
 /// first, and is nil when its method has nothing to work on. Means are summed in order, where
 /// Python's `fmean` sums exactly; the two differ only in the last digits.
 enum NightlyMetrics {
-    /// The span Resting HR averages over: 30 minutes, which is also 1,800 records at one a
+    /// The span Sleeping HR averages over: 30 minutes, which is also 1,800 records at one a
     /// second. metrics.py `RHR_SPAN`.
-    private static let restingHRSpan = 1800
-    /// Records between Resting HR start points: one minute at one a second. metrics.py
+    private static let sleepingHRSpan = 1800
+    /// Records between Sleeping HR start points: one minute at one a second. metrics.py
     /// `resting_hr()`.
-    private static let restingHRStep = 60
+    private static let sleepingHRStep = 60
     /// ms: the shortest and longest RR interval kept for HRV and respiratory rate. metrics.py
     /// `RR_MIN`, `RR_MAX`.
     private static let keptRRIntervals = 600...1600
@@ -19,17 +19,17 @@ enum NightlyMetrics {
     /// `RR_DIFF`.
     private static let largestRRDifference = 200
 
-    /// bpm: the lowest mean heart rate over `restingHRSpan` seconds, trying a start every
-    /// `restingHRStep` records (records, not seconds, as metrics.py `resting_hr()` does).
-    static func restingHR(of records: [HistoryRecord]) -> Double? {
+    /// bpm: the lowest mean heart rate over `sleepingHRSpan` seconds, trying a start every
+    /// `sleepingHRStep` records (records, not seconds, as metrics.py `resting_hr()` does).
+    static func sleepingHR(of records: [HistoryRecord]) -> Double? {
         guard let last = records.last?.timestamp.timeIntervalSince1970 else { return nil }
         var lowest: Double?
-        for start in stride(from: 0, to: records.count, by: restingHRStep) {
+        for start in stride(from: 0, to: records.count, by: sleepingHRStep) {
             let startTime = records[start].timestamp.timeIntervalSince1970
-            let endTime = startTime + Double(restingHRSpan)
+            let endTime = startTime + Double(sleepingHRSpan)
             if endTime > last { break }
             // metrics.py looks at most one span plus one step of records ahead.
-            let ahead = records[start..<min(records.count, start + restingHRSpan + restingHRStep)]
+            let ahead = records[start..<min(records.count, start + sleepingHRSpan + sleepingHRStep)]
             let rates = ahead.filter { $0.timestamp.timeIntervalSince1970 < endTime }
                 .map(\.heartRate)
             let mean = Double(rates.reduce(0, +)) / Double(rates.count)

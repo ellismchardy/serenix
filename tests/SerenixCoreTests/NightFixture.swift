@@ -4,11 +4,16 @@ import SerenixCore
 /// A fixture night in `Fixtures/`: untrimmed real History Records from the project owner's own
 /// nights, one CSV row per second (docs/conventions.md, Testing).
 enum NightFixture {
+    /// The night of 28–29 Oct 2026, Europe/London: its night window, 12:00 on 28 Oct to 12:00 on
+    /// 29 Oct (UTC, London time on those dates); the records end at 05:00:23 on 29 Oct.
+    static let night20261029: [HistoryRecord] = records(fixture: "Night-2026-10-29")
+
     /// The night of 29–30 Oct 2026, Europe/London.
     static let night20261030: [HistoryRecord] = records(fixture: "Night-2026-10-30")
 
     /// Reads `Fixtures/<name>.csv`, whose header is
-    /// `counter,utc,hr,rr_ms,q0,q1,q2,q3,temp_c,spo2_window,spo2`.
+    /// `counter,utc,hr,rr_ms,q0,q1,q2,q3,temp_c,spo2_window,spo2`, optionally followed by
+    /// `steps` (Day CSVs). Without it, steps read 0.
     static func records(fixture name: String) -> [HistoryRecord] {
         guard
             let url = Bundle.module.url(
@@ -30,14 +35,15 @@ enum NightFixture {
         -> HistoryRecord
     {
         let fields = line.split(separator: ",", omittingEmptySubsequences: false)
-        guard fields.count == 11,
+        guard fields.count == 11 || fields.count == 12,
             let counter = UInt32(fields[0]),
             let timestamp = formatter.date(from: String(fields[1])),
             let heartRate = Int(fields[2]),
             let motion = Optional(fields[4...7].compactMap { Float($0) }), motion.count == 4,
             let skinTemperature = Double(fields[8]),
             let spo2Window = Int(fields[9]),
-            let spo2 = Int(fields[10])
+            let spo2 = Int(fields[10]),
+            let steps = fields.count == 12 ? Int(fields[11]) : 0
         else {
             fatalError("malformed fixture line: \(line)")
         }
@@ -52,7 +58,7 @@ enum NightFixture {
             rrIntervals: rrIntervals,
             motion: motion,
             skinTemperature: skinTemperature,
-            steps: 0,
+            steps: steps,
             spo2: spo2,
             isInSpO2Window: spo2Window == 1,
             rawBytes: []

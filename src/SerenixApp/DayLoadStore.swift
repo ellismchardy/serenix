@@ -17,6 +17,9 @@ final class StoredDayLoad {
     /// `DayHeartRate` as JSON (spec 006); nil for a Day without one, including every Day stored
     /// before spec 006 (optional, so the store migrates by itself).
     var heartRate: Data?
+    /// The Day's Resting HR, bpm (spec 007); nil for a Day without one, including every Day stored
+    /// before spec 007 (optional, so the store migrates by itself).
+    var restingHR: Double?
 
     init(_ dayLoad: DayLoad) {
         dateKey = StoredNight.dateKey(dayLoad.day)
@@ -25,6 +28,7 @@ final class StoredDayLoad {
         dayOfMonth = dayLoad.day.dayOfMonth
         load = dayLoad.load
         missingReason = dayLoad.missingReason?.rawValue
+        restingHR = dayLoad.restingHR
         heartRate = dayLoad.heartRate.flatMap { heartRate in
             do {
                 return try JSONEncoder().encode(heartRate)
@@ -52,13 +56,15 @@ final class StoredDayLoad {
                     )
                     return nil
                 }
-            }
+            },
+            restingHR: restingHR
         )
     }
 }
 
-/// Works out each Day's Load from stored History Records and keeps it (spec 005), one Day at a
-/// time so at most a Day of History Records (~86,000) is in memory. Run it off the main thread.
+/// Works out each Day's Resting HR (spec 007) and Load (spec 005) from stored History Records and
+/// keeps them, one Day at a time so at most a Day of History Records (~86,000) is in memory. Run
+/// it off the main thread.
 enum DayLoadStore {
     /// Every stored Day Load, oldest first.
     static func dayLoads(in container: ModelContainer) throws -> [DayLoad] {
@@ -68,8 +74,9 @@ enum DayLoadStore {
             .sorted { $0.day < $1.day }
     }
 
-    /// Works out the Load of `rebuild.day` again from the History Records `rebuild` names, the
-    /// stored `nights` and `profile`, and replaces the stored one.
+    /// Works out the Resting HR of `rebuild.day` again from the History Records `rebuild` names and
+    /// the stored `nights` (spec 007), then its Load from those records, the stored Days with this
+    /// Resting HR, and `profile`, and replaces the stored Day.
     static func apply(
         _ rebuild: DayRebuild,
         nights: [Night],
@@ -80,10 +87,27 @@ enum DayLoadStore {
         let context = ModelContext(container)
         context.autosaveEnabled = false
         let records = try NightStore.historyRecords(in: rebuild.records, context: context)
-        let dayLoad = SerenixCore.load(
+        let restingHR = SerenixCore.restingHR(
             of: rebuild.day,
             records: records,
             nights: nights,
+            in: timeZone
+        )
+        // Load reads only the Days' Resting HR, so neither fetch nor decode their HR Zones.
+        var storedDaysDescriptor = FetchDescriptor<StoredDayLoad>()
+        storedDaysDescriptor.propertiesToFetch = [\.year, \.month, \.dayOfMonth, \.restingHR]
+        let storedDays = try context.fetch(storedDaysDescriptor).map { stored in
+            DayLoad(
+                day: Day(year: stored.year, month: stored.month, day: stored.dayOfMonth),
+                load: nil,
+                restingHR: stored.restingHR
+            )
+        }
+        // The new entry comes last, so it replaces the stored one for this Day.
+        let dayLoad = SerenixCore.load(
+            of: rebuild.day,
+            records: records,
+            days: storedDays + [DayLoad(day: rebuild.day, load: nil, restingHR: restingHR)],
             profile: profile,
             in: timeZone
         )

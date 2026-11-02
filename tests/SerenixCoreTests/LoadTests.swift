@@ -2,9 +2,9 @@ import Foundation
 import SerenixCore
 import Testing
 
-// Spec 005, success criteria for Load of a Day with an entered Max HR and no Nights, so Resting
-// HR is the 60 bpm fallback. Expected Loads are the spec's literals for a man with Max HR 190 and
-// Resting HR 60 unless a test says otherwise. Europe/London is UTC on 4 Nov 2026.
+// Spec 005, success criteria for Load of a Day with an entered Max HR and no Days with a Resting
+// HR, so Resting HR is the 60 bpm fallback. Expected Loads are the spec's literals for a man with
+// Max HR 190 and Resting HR 60 unless a test says otherwise. Europe/London is UTC on 4 Nov 2026.
 
 private let london = TimeZone(identifier: "Europe/London")!
 
@@ -23,12 +23,12 @@ private let tenAM = Date(timeIntervalSince1970: 1_793_786_400)
 private let oneHour = 3_600
 private let man = Profile(name: nil, sex: .male, maxHR: 190)
 
-/// The Load of 4 Nov 2026 in London from `records`, with no Nights.
+/// The Load of 4 Nov 2026 in London from `records`, with no Days with a Resting HR.
 private func loadOfFourthOfNovember(
     _ records: [HistoryRecord],
     profile: Profile = man
 ) -> DayLoad {
-    load(of: fourthOfNovember, records: records, nights: [], profile: profile, in: london)
+    load(of: fourthOfNovember, records: records, days: [], profile: profile, in: london)
 }
 
 @Test func anHourAt164BpmGivesLoad57ForAMan() {
@@ -176,9 +176,10 @@ private func loadOfFourthOfNovember(
 // Which records (spec 005): a Day's Load uses only the History Records in that Day, local
 // midnight to local midnight. An hour at 164 bpm split 30 minutes per Day gives 49 to each Day.
 
-/// The Load of `day` in London from `records`, with no Nights, for a man with Max HR 190.
+/// The Load of `day` in London from `records`, with no Days with a Resting HR, for a man with
+/// Max HR 190.
 private func loadOf(_ day: Day, _ records: [HistoryRecord]) -> DayLoad {
-    load(of: day, records: records, nights: [], profile: man, in: london)
+    load(of: day, records: records, days: [], profile: man, in: london)
 }
 
 @Test func anHourAcrossMidnightCountsHalfTowardEachDay() {
@@ -283,104 +284,119 @@ private func loadOf(_ day: Day, _ records: [HistoryRecord]) -> DayLoad {
     #expect(result.missingReason == nil)
 }
 
-// Resting HR (spec 005): the median Resting HR of up to 14 of the most recent Nights dated on or
-// before the Day, skipping Nights without one. Expected Loads are the spec's literals for an hour
-// at 120 bpm, a man with Max HR 190.
+// Resting HR (spec 005): the median Resting HR of up to 14 of the most recent Days dated on or
+// before the Day (the Day itself counts), skipping Days without one. Expected Loads are the spec's
+// literals for an hour at 120 bpm, a man with Max HR 190.
 
-/// A Night dated `day` of November 2026 with `restingHR`.
-private func night(onNovember day: Int, restingHR: Double?) -> Night {
-    Night(day: Day(year: 2026, month: 11, day: day), restingHR: restingHR)
+/// A Day of November 2026 with `restingHR` and no Load of its own.
+private func day(onNovember dayOfMonth: Int, restingHR: Double?) -> DayLoad {
+    DayLoad(day: Day(year: 2026, month: 11, day: dayOfMonth), load: nil, restingHR: restingHR)
 }
 
-/// The Load of 4 Nov 2026 in London from `records` and `nights`.
+/// A Day of October 2026 with `restingHR` and no Load of its own.
+private func day(onOctober dayOfMonth: Int, restingHR: Double?) -> DayLoad {
+    DayLoad(day: Day(year: 2026, month: 10, day: dayOfMonth), load: nil, restingHR: restingHR)
+}
+
+/// The Load of 4 Nov 2026 in London from `records` and `days`.
 private func loadOfFourthOfNovember(
     _ records: [HistoryRecord],
-    nights: [Night],
+    days: [DayLoad],
     profile: Profile = man
 ) -> DayLoad {
-    load(of: fourthOfNovember, records: records, nights: nights, profile: profile, in: london)
+    load(of: fourthOfNovember, records: records, days: days, profile: profile, in: london)
 }
 
-/// Nights dated 1, 2 and 3 Nov 2026 with Resting HR 50, 52 and 54.
-private let threeNightsBefore = [
-    night(onNovember: 1, restingHR: 50),
-    night(onNovember: 2, restingHR: 52),
-    night(onNovember: 3, restingHR: 54),
+/// Days dated 1, 2 and 3 Nov 2026 with Resting HR 50, 52 and 54.
+private let threeDaysBefore = [
+    day(onNovember: 1, restingHR: 50),
+    day(onNovember: 2, restingHR: 52),
+    day(onNovember: 3, restingHR: 54),
 ]
 
-@Test func restingHRIsTheMedianOfTheNightsBeforeTheDay() {
+@Test func restingHRIsTheMedianOfTheDaysBeforeTheDay() {
     let result = loadOfFourthOfNovember(
         historyRecords(at: 120, for: oneHour, from: tenAM),
-        nights: threeNightsBefore
+        days: threeDaysBefore
     )
 
     #expect(result.load == 45)
 }
 
-@Test func aNightDatedTheDayAfterDoesNotCountTowardRestingHR() {
-    let withTheDayAfter = threeNightsBefore + [night(onNovember: 5, restingHR: 90)]
+@Test func theDayAfterDoesNotCountTowardRestingHR() {
+    let withTheDayAfter = threeDaysBefore + [day(onNovember: 5, restingHR: 90)]
 
     let result = loadOfFourthOfNovember(
         historyRecords(at: 120, for: oneHour, from: tenAM),
-        nights: withTheDayAfter
+        days: withTheDayAfter
     )
 
     #expect(result.load == 45)
 }
 
-@Test func theNightThatEndedOnTheDayCountsTowardRestingHR() {
+@Test func theDayItselfCountsTowardRestingHR() {
     let result = loadOfFourthOfNovember(
         historyRecords(at: 120, for: oneHour, from: tenAM),
-        nights: [night(onNovember: 4, restingHR: 70)]
+        days: [day(onNovember: 4, restingHR: 70)]
     )
 
     #expect(result.load == 41)
 }
 
-@Test func onlyTheFourteenMostRecentNightsCountTowardRestingHR() {
-    // 15 Nights dated 21 Oct to 4 Nov 2026: 21 Oct at 20, 22–28 Oct at 50, 29 Oct–4 Nov at 70.
-    let oldest = Night(day: Day(year: 2026, month: 10, day: 21), restingHR: 20)
-    let middle = (22...28).map { Night(day: Day(year: 2026, month: 10, day: $0), restingHR: 50) }
-    let recentOctober = (29...31).map {
-        Night(day: Day(year: 2026, month: 10, day: $0), restingHR: 70)
-    }
-    let recentNovember = (1...4).map { night(onNovember: $0, restingHR: 70) }
-    let fifteenNights = [oldest] + middle + recentOctober + recentNovember
+@Test func onlyTheFourteenMostRecentDaysCountTowardRestingHR() {
+    // 15 Days dated 21 Oct to 4 Nov 2026: 21 Oct at 20, 22–28 Oct at 50, 29 Oct–4 Nov at 70.
+    let oldest = day(onOctober: 21, restingHR: 20)
+    let middle = (22...28).map { day(onOctober: $0, restingHR: 50) }
+    let recentOctober = (29...31).map { day(onOctober: $0, restingHR: 70) }
+    let recentNovember = (1...4).map { day(onNovember: $0, restingHR: 70) }
+    let fifteenDays = [oldest] + middle + recentOctober + recentNovember
 
     let result = loadOfFourthOfNovember(
         historyRecords(at: 120, for: oneHour, from: tenAM),
-        nights: fifteenNights
+        days: fifteenDays
     )
 
     #expect(result.load == 43)
 }
 
-@Test func aNightWithoutARestingHRIsSkipped() {
-    let withNoRestingHR = threeNightsBefore + [night(onNovember: 4, restingHR: nil)]
+@Test func aDayWithoutARestingHRIsSkipped() {
+    let withNoRestingHR = threeDaysBefore + [day(onNovember: 4, restingHR: nil)]
 
     let result = loadOfFourthOfNovember(
         historyRecords(at: 120, for: oneHour, from: tenAM),
-        nights: withNoRestingHR
+        days: withNoRestingHR
     )
 
     #expect(result.load == 45)
 }
 
-@Test func onlyNightsWithoutARestingHRGiveTheFallbackNotZero() {
+@Test func onlyDaysWithoutARestingHRGiveTheFallbackNotZero() {
     // Resting HR is the 60 bpm fallback; counted as 0 it would give 50.
     let result = loadOfFourthOfNovember(
         historyRecords(at: 120, for: oneHour, from: tenAM),
-        nights: [night(onNovember: 4, restingHR: nil)]
+        days: [day(onNovember: 4, restingHR: nil)]
     )
 
     #expect(result.load == 43)
 }
 
-@Test func aHeartRateOverTheFloorButUnderARestingHRFromNightsAddsNothing() {
+@Test func nightsAloneGiveTheRestingHRFallback() {
+    // Resting HR comes only from Days (spec 007): Load of a Day no longer takes Nights, so the
+    // signature keeps a Sleeping HR of 40 out. This pins what's left: with no Days with a Resting
+    // HR it's the 60 bpm fallback, so an hour at 120 bpm gives 43.
+    let result = loadOfFourthOfNovember(
+        historyRecords(at: 120, for: oneHour, from: tenAM),
+        days: []
+    )
+
+    #expect(result.load == 43)
+}
+
+@Test func aHeartRateOverTheFloorButUnderARestingHRFromDaysAddsNothing() {
     // Max HR 190 puts the floor at 95 bpm, so 96 bpm counts but is under the 100 bpm Resting HR.
     let result = loadOfFourthOfNovember(
         historyRecords(at: 96, for: oneHour, from: tenAM),
-        nights: [night(onNovember: 4, restingHR: 100)]
+        days: [day(onNovember: 4, restingHR: 100)]
     )
 
     #expect(result.load == 0)
@@ -392,10 +408,35 @@ private let threeNightsBefore = [
 
     let result = loadOfFourthOfNovember(
         historyRecords(at: 164, for: oneHour, from: tenAM),
-        nights: [night(onNovember: 4, restingHR: 100)],
+        days: [day(onNovember: 4, restingHR: 100)],
         profile: maxHR100
     )
 
     #expect(result.load == nil)
     #expect(result.missingReason == .maxHRNotAboveRestingHR)
+}
+
+@Test func theDayLoadCarriesTheDaysOwnRestingHR() {
+    let records = historyRecords(at: 120, for: oneHour, from: tenAM)
+
+    let withTheDay = loadOfFourthOfNovember(
+        records,
+        days: threeDaysBefore + [day(onNovember: 4, restingHR: 70)]
+    )
+    let withoutTheDay = loadOfFourthOfNovember(records, days: threeDaysBefore)
+
+    #expect(withTheDay.restingHR == 70)
+    #expect(withoutTheDay.restingHR == nil)
+}
+
+@Test func aLaterEntryForTheSameDayReplacesTheStoredOne() {
+    // As when a rebuild passes the stored Days plus the Day's new Resting HR: only the Day itself
+    // at 70 counts, which gives 41; counting the stale 90 as well would give a median of 80.
+    let result = loadOfFourthOfNovember(
+        historyRecords(at: 120, for: oneHour, from: tenAM),
+        days: [day(onNovember: 4, restingHR: 90), day(onNovember: 4, restingHR: 70)]
+    )
+
+    #expect(result.load == 41)
+    #expect(result.restingHR == 70)
 }

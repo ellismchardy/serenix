@@ -120,6 +120,13 @@ final class StrapConnection: NSObject, ObservableObject {
             queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current))
             defaults.set(true, forKey: heartRateZonesBackfilledKey)
         }
+        // Days worked out before spec 007 have no Resting HR, and their Load used Nights' Sleeping
+        // HR: work out every Day whose History Records may still be here once, on the first launch
+        // with Resting HR (spec 007, Updating the app).
+        if !defaults.bool(forKey: restingHRBackfilledKey) {
+            queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current))
+            defaults.set(true, forKey: restingHRBackfilledKey)
+        }
         rebuildNights()
     }
 
@@ -429,7 +436,8 @@ final class StrapConnection: NSObject, ObservableObject {
                 }
             }
             let nights = await showStoredNights(in: container)
-            // Without the stored Nights, Resting HR would be wrong, so the Days stay queued.
+            // Resting HR leaves out the Nights' Sleep Periods, so without the stored Nights it
+            // would be wrong and the Days stay queued.
             var queuedDays: [DayRebuild] = []
             if nights != nil {
                 queuedDays = await MainActor.run { DayLoadStore.pendingRebuilds }
@@ -976,6 +984,8 @@ private let dataRangeOldestKey = "dataRangeOldest"
 private let dataRangeNewestKey = "dataRangeNewest"
 /// Set once every due Day has been queued to gain HR Zones (spec 006).
 private let heartRateZonesBackfilledKey = "heartRateZonesBackfilled"
+/// Set once every due Day has been queued to gain a Resting HR (spec 007).
+private let restingHRBackfilledKey = "restingHRBackfilled"
 
 /// Seconds to look for or connect to the Strap before the attempt fails (spec 001: "can't be
 /// found or connected"). An assumption: a Strap in range connects within a second or two.

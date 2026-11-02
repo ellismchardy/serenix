@@ -288,7 +288,7 @@ struct TodayScreen: View {
         }
     }
 
-    /// HRV and Resting HR against Baseline, or the one Calibrating line; nothing on a Day without
+    /// HRV and Sleeping HR against Baseline, or the one Calibrating line; nothing on a Day without
     /// a Night.
     @ViewBuilder
     private func vsBaseline(_ today: TodayView) -> some View {
@@ -315,29 +315,37 @@ struct TodayScreen: View {
         }
     }
 
-    /// Under "Last night" or the date: Time Asleep, then the Nightly Metric tiles, in a 2-column
-    /// grid; none on a Day without a Night.
+    /// Under "Last night" or the date: Time Asleep across the full width, then the Nightly Metric
+    /// tiles and the Resting HR tile in a 2-column grid (spec 007); none on a Day without a Night.
     private func tiles(_ today: TodayView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             if today.noNightMessage == nil {
                 Text(today.tilesHeading)
                     .font(.headline)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    if let timeAsleep = today.timeAsleepTile {
-                        Button {
-                            open(.sleep, in: today)
-                        } label: {
-                            TimeAsleepTileView(tile: timeAsleep)
-                        }
-                        .buttonStyle(.plain)
+                if let timeAsleep = today.timeAsleepTile {
+                    Button {
+                        open(.sleep, in: today)
+                    } label: {
+                        TimeAsleepTileView(tile: timeAsleep)
                     }
-                    ForEach(today.tiles, id: \.metric) { tile in
-                        Button {
-                            open(.metric(tile.metric), in: today)
-                        } label: {
-                            MetricTileView(tile: tile)
+                    .buttonStyle(.plain)
+                    // Matches the grid's 12pt gap, after the stack's 8.
+                    .padding(.bottom, 4)
+                }
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    ForEach(today.gridTiles) { gridTile in
+                        switch gridTile {
+                        case .metric(let tile):
+                            Button {
+                                open(.metric(tile.metric), in: today)
+                            } label: {
+                                MetricTileView(tile: tile)
+                            }
+                            .buttonStyle(.plain)
+                        case .restingHR(let tile):
+                            // Not a button: the Resting HR tile opens no popup.
+                            RestingHRTileView(tile: tile)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
