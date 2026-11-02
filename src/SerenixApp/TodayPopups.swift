@@ -95,6 +95,24 @@ private struct SleepPopupView: View {
     var body: some View {
         Text("Sleep").font(.headline)
         LabeledContent("Sleep Score", value: popup.sleepScoreText)
+        // Sleep Score's parts as three small rings, each with what it came from (spec 010).
+        HStack(alignment: .top) {
+            ForEach(popup.parts, id: \.name) { part in
+                VStack(spacing: 4) {
+                    ScoreRing(
+                        text: part.scoreText,
+                        fill: part.fill,
+                        label: part.name,
+                        diameter: 64
+                    )
+                    Text(part.detailText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
         LabeledContent("Time in Bed") {
             Text("\(popup.timeInBedText) · \(popup.timeInBedDurationText)")
         }

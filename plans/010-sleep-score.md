@@ -60,7 +60,7 @@ view with its own private `todayView` helper, as `SleepNeedTests.swift` does.
    - Seam: Today view · Files: `SleepScore.swift`, `SleepScoreTests.swift`
    - Done when: the Sleep Score numbers of the six Sleep Consistency criteria (100, 94, 80, the
      midnight 98, the two/three-Nights cases at 100, and the 8 Nov / 7 Nov window).
-4. [ ] **Slice:** the Sleep popup's part rings — `SleepPopup` gains the three parts, each with
+4. [x] **Slice:** the Sleep popup's part rings — `SleepPopup` gains the three parts, each with
    its whole-number score text (or "—"), ring fill and detail ("6h 0m of 8h 0m", "89% asleep",
    "35m off your usual", "Needs 3 Nights", "—"); with Sleep Score missing all three read "—".
    The shell's Sleep popup view draws three small `ScoreRing`s in the accent colour under the

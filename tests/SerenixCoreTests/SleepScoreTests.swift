@@ -116,6 +116,8 @@ private func earlierNights(_ timesAsleep: [TimeInterval]) -> [Night] {
     let view = todayView(nights: [nightOn15Nov(sleepOnset: at(14, 23, 30))])
 
     #expect(view.sleepScoreText == "100")
+    #expect(part("Sleep Efficiency", of: view)?.scoreText == "\u{2014}")
+    #expect(part("Sleep Efficiency", of: view)?.detailText == "\u{2014}")
 }
 
 // MARK: Sleep Consistency
@@ -194,6 +196,8 @@ private let usualEarlierNights = [14, 13, 12].map { day in
     )
 
     #expect(view.sleepScoreText == "100")
+    #expect(part("Sleep Consistency", of: view)?.scoreText == "\u{2014}")
+    #expect(part("Sleep Consistency", of: view)?.detailText == "Needs 3 Nights")
 }
 
 @Test func anEarlierNightDated8NovCountsForSleepConsistency() {
@@ -209,6 +213,7 @@ private let usualEarlierNights = [14, 13, 12].map { day in
     )
 
     #expect(view.sleepScoreText == "80")
+    #expect(part("Sleep Consistency", of: view)?.scoreText == "0")
 }
 
 @Test func anEarlierNightDated7NovDoesNotCountForSleepConsistency() {
@@ -222,6 +227,7 @@ private let usualEarlierNights = [14, 13, 12].map { day in
     )
 
     #expect(view.sleepScoreText == "100")
+    #expect(part("Sleep Consistency", of: view)?.scoreText == "\u{2014}")
 }
 
 @Test func withNoSleepOnsetTonightSleepConsistencyIsLeftOutAndSleepSufficiencyAloneReads100() {
@@ -256,4 +262,173 @@ private let usualEarlierNights = [14, 13, 12].map { day in
     let popup = todayView(nights: earlier + [shown]).readinessPopup
 
     #expect(popup?.sleepScoreText == "96")
+}
+
+// MARK: Sleep popup
+
+/// The Sleep popup's part called `name` ("Sleep Sufficiency", "Sleep Efficiency" or "Sleep
+/// Consistency") on `view`.
+private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
+    view.sleepPopup?.parts.first { $0.name == name }
+}
+
+@Test func theSleepPopupShowsSleepSufficiencySleepEfficiencyAndSleepConsistencyInOrder() {
+    let popup = todayView(nights: [nightOn15Nov()]).sleepPopup
+
+    #expect(
+        popup?.parts.map(\.name) == ["Sleep Sufficiency", "Sleep Efficiency", "Sleep Consistency"]
+    )
+}
+
+@Test func theDefaultNightsSleepPopupShowsEachPartAndWhatItCameFrom() {
+    let view = todayView(nights: [nightOn15Nov()])
+
+    let sufficiency = part("Sleep Sufficiency", of: view)
+    #expect(sufficiency?.scoreText == "100")
+    #expect(sufficiency?.fill == 1.0)
+    #expect(sufficiency?.detailText == "8h 0m of 8h 0m")
+
+    let efficiency = part("Sleep Efficiency", of: view)
+    #expect(efficiency?.scoreText == "100")
+    #expect(efficiency?.fill == 1.0)
+    #expect(efficiency?.detailText == "100% asleep")
+
+    let consistency = part("Sleep Consistency", of: view)
+    #expect(consistency?.scoreText == "\u{2014}")
+    #expect(consistency?.fill == 0)
+    #expect(consistency?.detailText == "Needs 3 Nights")
+}
+
+@Test func sixHoursAsleepShowsSleepSufficiency75Of8Hours() {
+    let view = todayView(nights: [nightOn15Nov(finalWake: at(15, 5, 18), timeAsleep: 6 * oneHour)])
+
+    let sufficiency = part("Sleep Sufficiency", of: view)
+    #expect(sufficiency?.scoreText == "75")
+    #expect(sufficiency?.fill == 0.75)
+    #expect(sufficiency?.detailText == "6h 0m of 8h 0m")
+    #expect(part("Sleep Efficiency", of: view)?.scoreText == "100")
+}
+
+@Test func aSleepNeedOf9HoursShowsSleepSufficiency89() {
+    let view = todayView(
+        nights: [nightOn15Nov()] + earlierNights(Array(repeating: 6 * oneHour, count: 4))
+    )
+
+    let sufficiency = part("Sleep Sufficiency", of: view)
+    #expect(sufficiency?.scoreText == "89")
+    #expect(sufficiency?.fill == 0.89)
+    #expect(sufficiency?.detailText == "8h 0m of 9h 0m")
+}
+
+@Test func eightHoursAsleepInNineShowsSleepEfficiency69And89PercentAsleep() {
+    let view = todayView(nights: [nightOn15Nov(sleepOnset: at(14, 22))])
+
+    let efficiency = part("Sleep Efficiency", of: view)
+    #expect(efficiency?.scoreText == "69")
+    #expect(efficiency?.fill == 0.69)
+    #expect(efficiency?.detailText == "89% asleep")
+}
+
+@Test func eightHoursAsleepInElevenShowsSleepEfficiency0And73PercentAsleep() {
+    // 8 h of 11 h is 72.7%, which rounds to 73%.
+    let view = todayView(nights: [nightOn15Nov(sleepOnset: at(14, 20))])
+
+    let efficiency = part("Sleep Efficiency", of: view)
+    #expect(efficiency?.scoreText == "0")
+    #expect(efficiency?.fill == 0)
+    #expect(efficiency?.detailText == "73% asleep")
+}
+
+@Test func withNoSleepOnsetTheSleepPopupShowsSleepEfficiencyLeftOut() {
+    let view = todayView(nights: [nightOn15Nov(sleepOnset: nil, timeAsleep: 6 * oneHour)])
+
+    let efficiency = part("Sleep Efficiency", of: view)
+    #expect(efficiency?.scoreText == "\u{2014}")
+    #expect(efficiency?.fill == 0)
+    #expect(efficiency?.detailText == "\u{2014}")
+}
+
+@Test func sleepingAtTheUsualTimesShowsSleepConsistency100And0MinutesOff() {
+    let view = todayView(nights: [nightOn15Nov()] + usualEarlierNights)
+
+    let consistency = part("Sleep Consistency", of: view)
+    #expect(consistency?.scoreText == "100")
+    #expect(consistency?.fill == 1.0)
+    #expect(consistency?.detailText == "0m off your usual")
+}
+
+@Test func thirtyFiveMinutesOffShowsSleepConsistency71() {
+    let view = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(14, 23, 30), finalWake: at(15, 7, 40))]
+            + usualEarlierNights
+    )
+
+    let consistency = part("Sleep Consistency", of: view)
+    #expect(consistency?.scoreText == "71")
+    #expect(consistency?.fill == 0.71)
+    #expect(consistency?.detailText == "35m off your usual")
+}
+
+@Test func twoHoursOffShowsSleepConsistency0And2HoursOff() {
+    let view = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 1), finalWake: at(15, 9))] + usualEarlierNights
+    )
+
+    let consistency = part("Sleep Consistency", of: view)
+    #expect(consistency?.scoreText == "0")
+    #expect(consistency?.fill == 0)
+    #expect(consistency?.detailText == "2h 0m off your usual")
+}
+
+@Test func sleepOnsetsAroundMidnightShowSleepConsistency92And10MinutesOff() {
+    let earlier = [
+        nightOnNov(14, onset: at(13, 23, 50), wake: at(14, 8, 10)),
+        nightOnNov(13, onset: at(12, 23, 40), wake: at(13, 8, 10)),
+        nightOnNov(12, onset: at(12, 0, 20), wake: at(12, 8, 10)),
+    ]
+    let view = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 0, 10), finalWake: at(15, 8, 10))] + earlier
+    )
+
+    let consistency = part("Sleep Consistency", of: view)
+    #expect(consistency?.scoreText == "92")
+    #expect(consistency?.fill == 0.92)
+    #expect(consistency?.detailText == "10m off your usual")
+}
+
+@Test func withOnlyTwoEarlierNightsTheSleepPopupShowsSleepConsistencyNeeds3Nights() {
+    let view = todayView(
+        nights: [
+            nightOn15Nov(),
+            nightOnNov(14, onset: at(14, 1), wake: at(14, 9)),
+            nightOnNov(13, onset: at(13, 1), wake: at(13, 9)),
+        ]
+    )
+
+    let consistency = part("Sleep Consistency", of: view)
+    #expect(consistency?.scoreText == "\u{2014}")
+    #expect(consistency?.fill == 0)
+    #expect(consistency?.detailText == "Needs 3 Nights")
+}
+
+@Test func withNoTimeAsleepTheSleepPopupsThreeRingsReadDashAndAreEmpty() {
+    let popup = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup
+
+    #expect(popup?.parts.count == 3)
+    #expect(popup?.parts.map(\.scoreText) == ["\u{2014}", "\u{2014}", "\u{2014}"])
+    #expect(popup?.parts.map(\.fill) == [0, 0, 0])
+    #expect(popup?.parts.map(\.detailText) == ["\u{2014}", "\u{2014}", "\u{2014}"])
+}
+
+@Test func anHourAndTenMinutesOffShowsSleepConsistency42() {
+    // Tonight 00:10 to 08:10 against 23:00 to 07:00: 70 minutes off both, Sleep Consistency
+    // 100 × (1 − 70/120) = 41.7; 60 + 20 + 8.33 = 88.3 reads 88.
+    let view = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 0, 10), finalWake: at(15, 8, 10))]
+            + usualEarlierNights
+    )
+
+    #expect(view.sleepScoreText == "88")
+    #expect(part("Sleep Consistency", of: view)?.scoreText == "42")
+    #expect(part("Sleep Consistency", of: view)?.detailText == "1h 10m off your usual")
 }

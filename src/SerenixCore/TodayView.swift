@@ -147,11 +147,10 @@ public struct TodayView: Equatable, Sendable {
         }
         // Worked out each time, never stored, so it follows the Nights (spec 010).
         let sleepScore = night.flatMap {
-            SleepScore(of: $0, among: nights, sleepNeed: sleepNeed.sleepNeed, timeZone: timeZone)?
-                .score
+            SleepScore(of: $0, among: nights, sleepNeed: sleepNeed.sleepNeed, timeZone: timeZone)
         }
-        sleepScoreText = scoreText(sleepScore)
-        sleepScoreFill = ringFill(sleepScore)
+        sleepScoreText = scoreText(sleepScore?.score)
+        sleepScoreFill = ringFill(sleepScore?.score)
 
         let dayLoad = dayLoads.first { $0.day == day }
         loadOpensProfileMenu = dayLoad?.missingReason == .noMaxHR
@@ -259,6 +258,7 @@ public struct TodayView: Equatable, Sendable {
                 SleepPopup(
                     night,
                     sleepNeed: sleepNeed,
+                    sleepScore: sleepScore,
                     sleepScoreText: sleepScoreText,
                     timeZone: timeZone
                 )
@@ -292,11 +292,11 @@ public struct TodayView: Equatable, Sendable {
 let missingText = "—"
 
 /// A 0–100 score as a whole number, or "—" when it's missing.
-private func scoreText(_ score: Int?) -> String {
+func scoreText(_ score: Int?) -> String {
     score.map(String.init) ?? missingText
 }
 
 /// A 0–100 score as a ring's fill, 0 to 1; an empty ring when it's missing.
-private func ringFill(_ score: Int?) -> Double {
+func ringFill(_ score: Int?) -> Double {
     score.map { Double($0) / 100 } ?? 0
 }

@@ -25,9 +25,15 @@ struct SleepScore: Equatable, Sendable {
     /// 75%, bracketing the NSF's "85% or more is good"). Unitless.
     static let zeroEfficiency = 0.75
 
+    /// The Night's Time Asleep, seconds.
+    let timeAsleep: TimeInterval
+    /// The Night's Sleep Need it's measured against, seconds (spec 009).
+    let sleepNeed: TimeInterval
     /// How much of the Night's Sleep Need its Time Asleep met, 0–100, unrounded.
     let sufficiency: Double
-    /// The share of the Sleep Period asleep, scored 0–100 and unrounded; nil when left out.
+    /// The share of the Sleep Period asleep, 0 to 1; nil when Sleep Efficiency is left out.
+    let asleepShare: Double?
+    /// `asleepShare` scored 0–100 and unrounded: Sleep Efficiency; nil when left out.
     let efficiency: Double?
     /// How far tonight's Sleep Onset and Final Wake were from the week before's, in minutes,
     /// unrounded; nil when Sleep Consistency is left out.
@@ -43,22 +49,20 @@ struct SleepScore: Equatable, Sendable {
     /// Nights, from which the week before is taken.
     init?(of night: Night, among nights: [Night], sleepNeed: TimeInterval, timeZone: TimeZone) {
         guard let timeAsleep = night.plausibleTimeAsleep else { return nil }
+        self.timeAsleep = timeAsleep
+        self.sleepNeed = sleepNeed
         sufficiency = min(timeAsleep / sleepNeed, 1) * 100
         // Left out without both ends of the Sleep Period, or when Time Asleep is longer than it
         // (spec 010, Missing and left out).
         let period = night.sleepOnset.flatMap { onset in
             night.finalWake.map { $0.timeIntervalSince(onset) }
         }
-        efficiency =
-            if let period, period > 0, timeAsleep <= period {
-                Self.scaled(
-                    timeAsleep / period,
-                    zeroAt: Self.zeroEfficiency,
-                    fullAt: Self.fullEfficiency
-                )
-            } else {
-                nil
-            }
+        let asleepShare: Double? =
+            if let period, period > 0, timeAsleep <= period { timeAsleep / period } else { nil }
+        self.asleepShare = asleepShare
+        efficiency = asleepShare.map {
+            Self.scaled($0, zeroAt: Self.zeroEfficiency, fullAt: Self.fullEfficiency)
+        }
         let minutesOff = Self.minutesOff(of: night, among: nights, timeZone: timeZone)
         self.minutesOff = minutesOff
         // 100 at 0 minutes off, down to 0 at `zeroConsistencyMinutes`.
