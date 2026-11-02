@@ -29,10 +29,10 @@ The app is split in two (ADR 0002):
 | Sync logic | The History Sync state machine: which commands to send, when to acknowledge, when a sync is complete. Transport-agnostic | `src/SerenixCore/` |
 | Live HR link | When Live HR runs and on which connection (in a sync or its own), quiet failures and retries, and the sync pill's phase meanwhile (ADR 0007) | `src/SerenixCore/` |
 | Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records | `src/SerenixCore/` |
-| Metrics & scores | Nightly Metrics, Baseline, Sleep Score, Readiness, Load | `src/SerenixCore/` |
+| Metrics & scores | Nightly Metrics, Baseline, Sleep Score, Readiness, Resting HR, Load | `src/SerenixCore/` |
 | BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |
 | Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever) | `src/SerenixApp/` |
-| Health export | Writes Resting HR, HRV, SpO2, respiratory rate and sleep to Apple Health | `src/SerenixApp/` |
+| Health export | Writes Resting HR (Sleeping HR never as resting heart rate), HRV, SpO2, respiratory rate and sleep to Apple Health | `src/SerenixApp/` |
 | UI | SwiftUI screens | `src/SerenixApp/` |
 
 ## Data model
@@ -41,11 +41,11 @@ The app is split in two (ADR 0002):
   then pruned.
 - **Night**: one Sleep Period, dated by the local date of its Final Wake. It holds Sleep Onset,
   Final Wake, Time in Bed, Nightly Metrics, Sleep Score and Readiness. Kept forever.
-- **Day**: a local calendar day with its Load and its HR Zones, hour by hour, Highest HR and the
-  Max HR used (spec 006). Kept forever.
+- **Day**: a local calendar day with its Resting HR (spec 007), its Load, and its HR Zones hour
+  by hour, Highest HR and Max HR used (spec 006). Kept forever.
 - **Baseline**: not stored. Each Nightly Metric's median, and HRV's and respiratory rate's
-  Spread (spec 004; Resting HR's comes with Readiness), come from the last 14 Nights; typical Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights
-  exist.
+  Spread (spec 004; Sleeping HR's comes with Readiness), come from the last 14 Nights; typical
+  Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights exist.
 - **Sync Cursor**: kept by the Strap, not the phone. The phone echoes it to acknowledge each
   Batch, so each sync only gets newer records.
 

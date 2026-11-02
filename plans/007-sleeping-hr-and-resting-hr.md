@@ -44,7 +44,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Merge `main` and reconcile docs:** wait for the user's bug-fix push, then
+1. [x] **Merge `main` and reconcile docs:** wait for the user's bug-fix push, then
    `git fetch origin` and `git merge origin/main` (a merge, no force-push). Then update the docs:
    - `specs/006-load-popup.md`: the default becomes "no Days with a Resting HR (Resting HR 60)"
    - `docs/architecture.md`: the Day "with its Load, Resting HR, HR Zones…", "Sleeping HR's

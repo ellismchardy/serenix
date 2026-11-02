@@ -1,7 +1,7 @@
 # 007 — Sleeping HR and Resting HR
 
 **Status:** approved
-**Last updated:** 2026-11-01 (approved)
+**Last updated:** 2026-11-02 (Notes: 006 shipped)
 
 ## Problem
 Serenix calls the lowest sustained heart rate during a Sleep Period "Resting HR", as WHOOP and Oura
@@ -190,7 +190,7 @@ second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55
   the whole Day).
 - Changes specs 002 (tile layout, names, advice), 003 and 004 (name only) and 005 (Load's Resting
   HR from Days).
-- Spec 006 (Load popup, on `feat/load-popup`) should ship first; its "no Nights (Resting HR 60)"
-  default becomes "no Days with a Resting HR" when this is planned.
-- The plan's first task is capturing the real fixture Day: the owner shares a Sync Log from a
-  sync covering a full Day, trimmed per docs/conventions.md, with a `steps` column added.
+- Spec 006 (Load popup) shipped first (#25); its "no Nights (Resting HR 60)" default now reads
+  "no Days with a Resting HR".
+- The real fixture Day: the owner shares a Sync Log from a sync covering a full Day, trimmed per
+  docs/conventions.md, with a `steps` column added.
