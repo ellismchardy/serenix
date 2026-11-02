@@ -128,6 +128,11 @@ phone checks from spec 006's PR are repeated by hand.
    and `swift build` green; CI green (both jobs); on the phone (by hand, sideloaded), spec 006
    PR checks 3–6 behave as before, and the known-limit case (fail a sync by taking the Strap
    out of range, open today's Load popup) keeps "Sync paused" while Live HR reconnects.
+   - **Local result (2 Nov 2026):** `swift test` 424 passed (80 new: 6 StrapPhase, 74 Live HR
+     link), `swift format lint --strict` and `swift build` clean; `swiftc -parse` clean on
+     `StrapConnection.swift`. Still to do: the macOS CI job (first compile of the shell, on the
+     PR) and the phone checks above, including coming back from the background with the popup
+     open while a sync had gone silent.
 
 ## Done when
 - All tasks checked, suite green, CI builds the app, Live HR on the phone behaves as spec 006
