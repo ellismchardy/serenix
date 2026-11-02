@@ -56,6 +56,10 @@ control. This is the opposite of "approve the plan and watch it run the whole li
 - Don't edit the spec; planning/desired-behavior changes don't belong here (see CLAUDE.md).
 - If a task can't be done as written — it reveals a design problem or needs files outside the
   plan — **stop and surface it** rather than improvising or expanding scope.
+- **Edit by exact match, never by line number.** Change source, tests and plans with the Edit
+  tool (old text → new text), not `sed -i '<N>s…'` or a blind scripted rewrite: line numbers
+  drift, and a wrong one silently replaces a real line (a test assertion was lost this way).
+  Before staging, read `git diff` for any test file you touched and check no `#expect` was lost.
 
 ## Finishing the plan
 When the last box is ticked:

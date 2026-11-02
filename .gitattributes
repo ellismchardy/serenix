@@ -5,3 +5,6 @@
 *.yml text eol=lf
 .swift-format text eol=lf
 .githooks/* text eol=lf
+# Specs, plans, docs and skills stay LF too: scripted edits on Windows then match the same
+# bytes as everywhere else, and commits stop warning "LF will be replaced by CRLF".
+*.md text eol=lf
