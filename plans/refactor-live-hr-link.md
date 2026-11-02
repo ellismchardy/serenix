@@ -104,7 +104,7 @@ phone checks from spec 006's PR are repeated by hand.
      - A link still closing: retry instead of connecting.
      - Bluetooth off drops the session (log kept), forgets the attempt, "—"; Bluetooth on while
        wanted starts it again.
-5. [ ] **Slice:** late callbacks (and the known-limit fix)
+5. [x] **Slice:** late callbacks (and the known-limit fix)
    - Seam: `LiveHRLink` · Files: `src/SerenixCore/LiveHRLink.swift`,
      `tests/SerenixCoreTests/LiveHRLinkTests.swift`
    - Done when tests show:

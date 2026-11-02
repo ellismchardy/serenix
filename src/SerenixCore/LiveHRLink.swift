@@ -105,10 +105,10 @@ public struct LiveHRLink: Sendable {
     private var log: [SyncLogEntry] = []
     /// Whether Live HR is on within the running sync.
     private var onInSync = false
-    /// Connecting only for Live HR. It stays set until the attempt resolves (ready, failed or
+    /// Connecting only for Live HR. It lasts until the attempt resolves (ready, failed or
     /// disconnected), even once Live HR is no longer wanted, so a late callback never reads as a
     /// sync failing.
-    private var connecting = false
+    private var attempt: Attempt?
     /// Live HR is to start once another connection in progress (not a sync, e.g. pairing) is
     /// ready. That connection stays the user's: its failures are not made quiet.
     private var startWhenReady = false
@@ -151,23 +151,29 @@ public struct LiveHRLink: Sendable {
         return update(facts, at: time)
     }
 
+    /// The link connected (before pairing and subscribing). Only noted, for telling the end of
+    /// Live HR's own attempt from the link before it closing late.
+    public mutating func linkConnected() {
+        if attempt == .pending { attempt = .connected }
+    }
+
     /// The link is ready, and no sync was asked for on it.
     public mutating func linkReady(at time: Date) -> [LiveHRAction] {
-        guard connecting || startWhenReady else { return [] }
+        guard attempt != nil || startWhenReady else { return [] }
         startWhenReady = false
         if isWanted { return beginSession(at: time) }
-        guard connecting else { return [] }
-        connecting = false
+        guard attempt != nil else { return [] }
+        attempt = nil
         return endConnection()
     }
 
     /// Finding, connecting to or setting up the link failed. Live HR's own attempt fails
     /// quietly: the pill shows "—" and the sync pill keeps what it showed (spec 006).
     public mutating func linkFailed(facts: StrapLinkFacts) -> LiveHRLinkResponse {
-        guard connecting, !facts.syncRunning, !facts.syncWanted else {
+        guard attempt != nil, !facts.syncRunning, !facts.syncWanted else {
             return LiveHRLinkResponse(actions: [], wasLiveHRConnection: false)
         }
-        connecting = false
+        attempt = nil
         var actions: [LiveHRAction] = [.stopScanning]
         actions += endConnection()
         if lastReading == nil { connection = .unavailable }
@@ -177,21 +183,30 @@ public struct LiveHRLink: Sendable {
 
     /// The link disconnected.
     public mutating func linkDisconnected(facts: StrapLinkFacts) -> LiveHRLinkResponse {
-        if !facts.syncRunning, facts.syncWanted, connecting, !isWanted {
+        if attempt == .pending {
+            // The link before this attempt closing late: the attempt carries on, and the phase
+            // it stands in for stays.
+            return LiveHRLinkResponse(actions: [], wasLiveHRConnection: true)
+        }
+        var actions: [LiveHRAction] = []
+        if session != nil {
+            // The Strap went out of range or off: the pill shows "—" until it's back.
+            actions += dropSession()
+            connection = .unavailable
+        }
+        if !facts.syncRunning, facts.syncWanted, attempt != nil, !isWanted {
             // "Sync now" while a Live HR attempt that was cancelled was still closing: that
             // close isn't the sync's failure, so connect for the sync now.
-            connecting = false
+            attempt = nil
             heldPhase = nil
-            return LiveHRLinkResponse(
-                actions: [.showPhase(.idle), .connect],
-                wasLiveHRConnection: true
-            )
+            actions += [.showPhase(.idle), .connect]
+            return LiveHRLinkResponse(actions: actions, wasLiveHRConnection: true)
         }
-        if !facts.syncRunning, !facts.syncWanted, connecting || heldPhase != nil {
+        if !facts.syncRunning, !facts.syncWanted, attempt != nil || heldPhase != nil {
             // A connection only for Live HR ended: back to the phase it stood in for, and Live
             // HR tries again while it's wanted.
-            connecting = false
-            var actions: [LiveHRAction] = [.stopConnectTimeout, .showPhase(heldPhase ?? .idle)]
+            attempt = nil
+            actions += [.stopConnectTimeout, .showPhase(heldPhase ?? .idle)]
             heldPhase = nil
             actions += scheduleRetry()
             return LiveHRLinkResponse(actions: actions, wasLiveHRConnection: true)
@@ -199,7 +214,8 @@ public struct LiveHRLink: Sendable {
         // Not Live HR's own connection (a sync's, or the user's): the shell deals with it, and
         // Live HR carries on after it.
         onInSync = false
-        return LiveHRLinkResponse(actions: scheduleRetry(), wasLiveHRConnection: false)
+        actions += scheduleRetry()
+        return LiveHRLinkResponse(actions: actions, wasLiveHRConnection: false)
     }
 
     /// A History Sync is starting on the ready link. It takes over Live HR: a stream on this
@@ -224,8 +240,10 @@ public struct LiveHRLink: Sendable {
         return scheduleRetry()
     }
 
-    /// Notes Live HR readings a running sync passed out.
+    /// Notes Live HR readings a running sync passed out. Readings that arrive once Live HR is off in
+    /// the sync are stale.
     public mutating func noteReadings(_ readings: [LiveHRReading], at time: Date) {
+        guard onInSync else { return }
         note(readings, at: time)
     }
 
@@ -278,7 +296,7 @@ public struct LiveHRLink: Sendable {
             return actions + [.setLiveHRInSync(true)]
         }
         // An attempt already under way carries on: once it resolves, Live HR starts or retries.
-        guard session == nil, !connecting else { return actions }
+        guard session == nil, attempt == nil else { return actions }
         if facts.syncWanted || facts.phase.isBusy {
             // A sync on its way turns Live HR on as it starts; any other connection starts it
             // once ready.
@@ -293,7 +311,7 @@ public struct LiveHRLink: Sendable {
         if facts.linkClosing { return actions + scheduleRetry() }
         if facts.linkReady { return actions + beginSession(at: time) }
         heldPhase = facts.phase
-        connecting = true
+        attempt = .pending
         return actions + [.connect]
     }
 
@@ -314,14 +332,15 @@ public struct LiveHRLink: Sendable {
             actions += keepLog()
             // Disconnecting also stops the stream, should Live HR off not get out first.
             actions += endConnection()
-        } else if connecting, !facts.syncWanted {
+        } else if attempt != nil, !facts.syncWanted {
             if facts.phase == .searching {
                 // Nothing found yet, so nothing to call back: stop here.
-                connecting = false
+                attempt = nil
                 actions.append(.stopScanning)
                 actions += endConnection()
             } else {
                 // The attempt resolves through a callback or the connect timeout, quietly.
+                attempt = .cancelled
                 actions.append(.cancelConnecting)
             }
         }
@@ -329,7 +348,7 @@ public struct LiveHRLink: Sendable {
     }
 
     private mutating func beginSession(at time: Date) -> [LiveHRAction] {
-        connecting = false
+        attempt = nil
         var session = LiveHRSession()
         log = []
         let output = session.start(at: time)
@@ -375,7 +394,7 @@ public struct LiveHRLink: Sendable {
 
     /// Forgets a connection attempt and the phase it stood in for.
     private mutating func forgetAttempt() {
-        connecting = false
+        attempt = nil
         heldPhase = nil
         startWhenReady = false
     }
@@ -392,5 +411,15 @@ public struct LiveHRLink: Sendable {
         guard retryPending else { return [] }
         retryPending = false
         return [.cancelRetry]
+    }
+
+    /// Where Live HR's own connection attempt has got to. A disconnect while it's still pending
+    /// is the link before it closing late, not this attempt ending: CoreBluetooth reports a
+    /// failed connect with `didFailToConnect`, and a disconnect before `didConnect` only follows
+    /// a cancel.
+    private enum Attempt {
+        case pending
+        case connected
+        case cancelled
     }
 }
