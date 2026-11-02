@@ -4,6 +4,10 @@ import SerenixCore
 /// A fixture night in `Fixtures/`: untrimmed real History Records from the project owner's own
 /// nights, one CSV row per second (docs/conventions.md, Testing).
 enum NightFixture {
+    /// The night of 28–29 Oct 2026, Europe/London: its night window, 12:00 on 28 Oct to 12:00 on
+    /// 29 Oct (UTC, London time on those dates); the records end at 05:00:23 on 29 Oct.
+    static let night20261029: [HistoryRecord] = records(fixture: "Night-2026-10-29")
+
     /// The night of 29–30 Oct 2026, Europe/London.
     static let night20261030: [HistoryRecord] = records(fixture: "Night-2026-10-30")
 

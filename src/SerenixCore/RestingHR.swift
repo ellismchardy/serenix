@@ -1,8 +1,9 @@
 import Foundation
 
 /// The Resting HR of `day` (spec 007), bpm: the lowest mean heart rate over 5 settled still
-/// minutes, or nil when there's no settled window. Only records from the Day's local midnight to
-/// the next local midnight count; their order and any repeats don't matter.
+/// minutes. Only records from the Day's local midnight to the next local midnight count, leaving
+/// out those inside any Night's Sleep Period; their order and any repeats don't matter. Nil when
+/// the rest have fewer than 480 worn minutes, or no settled window.
 public func restingHR(
     of day: Day,
     records: [HistoryRecord],
@@ -10,15 +11,25 @@ public func restingHR(
     in timeZone: TimeZone
 ) -> Double? {
     let span = day.span(in: timeZone)
+    // A Night without a Sleep Period, or with one that ends before it starts, holds no record.
+    let sleepPeriods = nights.compactMap { night -> Range<Date>? in
+        guard let onset = night.sleepOnset, let wake = night.finalWake, onset < wake else {
+            return nil
+        }
+        return onset..<wake
+    }
     var seen = Set<String>()
     let unique =
         records
-        .filter {
-            span.start <= $0.timestamp && $0.timestamp < span.end
-                && seen.insert($0.identity).inserted
+        .filter { record in
+            span.start <= record.timestamp && record.timestamp < span.end
+                && !sleepPeriods.contains { $0.contains(record.timestamp) }
+                && seen.insert(record.identity).inserted
         }
         .sorted { ($0.timestamp, $0.recordCounter) < ($1.timestamp, $1.recordCounter) }
-    let still = RestingHRMethod.stillMinutes(in: unique)
+    let worn = RestingHRMethod.wornMinutes(in: unique)
+    guard worn.count >= RestingHRMethod.fewestWornMinutes else { return nil }
+    let still = RestingHRMethod.stillMinutes(in: unique, worn: worn)
     return RestingHRMethod.stillRuns(among: still.keys)
         .flatMap { RestingHRMethod.settledWindows(of: $0) }
         .map { window in
@@ -38,29 +49,36 @@ enum RestingHRMethod {
     /// The last minute of a still run a settled window may reach; after it the user may have
     /// fallen asleep (spec 007, Settled window).
     static let lastWindowMinute = 15
+    /// Worn minutes a Day needs outside Sleep Periods to have a Resting HR: 8 hours (Speed et al.
+    /// 2023's daytime wear; docs/research/awake-resting-hr.md, Answer).
+    static let fewestWornMinutes = 480
 
-    /// The heart rates above 0 of each still minute (by `MotionMinutes.minuteIndex`): a minute
-    /// with at least `MotionMinutes.fewestRecordsPerMinute` of them, no step and fewer than
-    /// `MotionMinutes.wakeActiveSeconds` active seconds (docs/research/awake-resting-hr.md,
-    /// Answer). A step is a record whose step count is above the previous record's; a drop is a
-    /// Strap reboot, not a step. The first record has none before it, so it's no step; after a
-    /// gap, steps taken in it count against the first minute after. `records` must be oldest
-    /// first, without repeats.
-    static func stillMinutes(in records: [HistoryRecord]) -> [Int: [Int]] {
-        let activeSeconds = MotionMinutes.activeSeconds(in: records)
+    /// The heart rates above 0 of each worn minute (by `MotionMinutes.minuteIndex`): a minute with
+    /// at least `MotionMinutes.fewestRecordsPerMinute` of them.
+    static func wornMinutes(in records: [HistoryRecord]) -> [Int: [Int]] {
         var heartRates: [Int: [Int]] = [:]
+        for record in records where record.heartRate > 0 {
+            let minute = MotionMinutes.minuteIndex(record.timestamp.timeIntervalSince1970)
+            heartRates[minute, default: []].append(record.heartRate)
+        }
+        return heartRates.filter { $0.value.count >= MotionMinutes.fewestRecordsPerMinute }
+    }
+
+    /// The `worn` minutes of `records` with no step. Wrist movement doesn't count: at a desk the
+    /// Strap turns in most seconds of every minute (spec 007, Notes). A step is a record whose
+    /// step count is above the previous record's; a drop is a Strap reboot, not a step. The first
+    /// record has none before it, so it's no step; after a gap, steps taken in it count against
+    /// the first minute after. `records` must be oldest first, without repeats.
+    static func stillMinutes(in records: [HistoryRecord], worn: [Int: [Int]]) -> [Int: [Int]] {
         var stepped = Set<Int>()
         var previousSteps: Int?
         for record in records {
-            let minute = MotionMinutes.minuteIndex(record.timestamp.timeIntervalSince1970)
-            if record.heartRate > 0 { heartRates[minute, default: []].append(record.heartRate) }
-            if let previousSteps, record.steps > previousSteps { stepped.insert(minute) }
+            if let previousSteps, record.steps > previousSteps {
+                stepped.insert(MotionMinutes.minuteIndex(record.timestamp.timeIntervalSince1970))
+            }
             previousSteps = record.steps
         }
-        return heartRates.filter { minute, rates in
-            rates.count >= MotionMinutes.fewestRecordsPerMinute && !stepped.contains(minute)
-                && activeSeconds[minute, default: 0] < MotionMinutes.wakeActiveSeconds
-        }
+        return worn.filter { !stepped.contains($0.key) }
     }
 
     /// Runs of consecutive minutes, oldest first.

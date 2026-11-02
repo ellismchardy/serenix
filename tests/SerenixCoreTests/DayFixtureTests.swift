@@ -47,3 +47,28 @@ private func londonTime(_ time: (hour: Int, minute: Int)) -> Date {
     #expect(last.steps == 2244)
     #expect(last.steps > first.steps)
 }
+
+/// Spec 007, real-fixture-Day criterion (Resting HR half): the fixture Day's Resting HR is
+/// present, at least that morning's Night's Sleeping HR and no more than 15 bpm above it. No
+/// capture holds the Night of 27–28 Oct, so the owner agreed the reference Night is the one of
+/// 28–29 Oct (dated 29 Oct), the Night after the fixture Day. Its Sleep Period starts late on 28
+/// Oct, so it overlaps the fixture Day and leaves out the records after its Sleep Onset.
+@Test func fixtureDayRestingHRIsWithin15BpmAboveTheNextNightsSleepingHR() throws {
+    let night = try #require(
+        nights(from: NightFixture.night20261029, in: london)
+            .first { $0.day == Day(year: 2026, month: 10, day: 29) }
+    )
+    let sleepingHR = try #require(night.sleepingHR)
+
+    let restingHR = try #require(
+        restingHR(
+            of: Day(year: 2026, month: 10, day: 28),
+            records: DayFixture.day20261028,
+            nights: [night],
+            in: london
+        )
+    )
+
+    #expect(restingHR >= sleepingHR)
+    #expect(restingHR <= sleepingHR + 15)
+}

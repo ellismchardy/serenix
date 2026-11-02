@@ -111,13 +111,14 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
      `tests/SerenixCoreTests/RestingHRTests.swift`, `HistoryRecordBuilder.swift`
    - Done when: the desk Day gives 62, and with minutes 5–9 at 66 it gives 64.
 
-6. [x] **Still-minute rules.** Active seconds (10 means none, 9 gives 62), a step breaking a run
+6. [x] **Still-minute rules.** Active seconds (10 means none, 9 gives 62; since amended in spec
+   007 to steps only, so wrist movement with no steps gives 62), a step breaking a run
    (50), a step-count drop counting as no step (62), and worn records (29 gives 55.6, 30 gives
    62).
    - Seam: Resting HR of a Day · Files: `RestingHR.swift`, `RestingHRTests.swift`
    - Done when: those four spec 007 criteria pass.
 
-7. [ ] **Day rules.** The 8-hour rule (479 worn minutes means none, 480 gives 62), leaving out the
+7. [x] **Day rules.** The 8-hour rule (479 worn minutes means none, 480 gives 62), leaving out the
    Sleep Period of an overlapping Night (45 without it, 62 with it, still none at 479), Day
    boundaries and the 25 Oct 2026 clock change, and repeats and order. Then the real fixture
    Day: Resting HR present, at least that morning's Sleeping HR, and no more than 15 bpm above

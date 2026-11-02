@@ -11,9 +11,6 @@ enum MotionMinutes {
     /// Seconds: the longest gap between two records whose turn still counts. sleep.py
     /// `minutes()`.
     static let longestActiveGap = 2.0
-    /// Active seconds in one minute that alone make it a wake minute, and so never a still one.
-    /// sleep.py `WAKE_ACTIVE`.
-    static let wakeActiveSeconds = 10
     /// Records a minute needs to count; fewer means off-wrist or not recorded. Not used here:
     /// kept beside the active-second rule for every caller that bins minutes. sleep.py
     /// `MIN_SAMPLES`.

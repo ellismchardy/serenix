@@ -3,6 +3,9 @@
 **Date:** 2026-11-01 · **Unblocks:** spec 007 (Sleeping HR and Resting HR): the awake Resting HR method's constants
 
 ## Answer
+> **Since amended:** spec 007 counts a still minute by steps alone. On the 28 Oct 2026 fixture
+> Day, desk minutes had 22–59 active seconds (see Open / uncertain).
+
 - **Still minute = no steps and few active seconds, with HR present.** Count a minute as still when
   it has at least 30 History Records with heart rate > 0 (the existing `fewestRecordsPerMinute`),
   **0 steps** (the "non-movement" cadence band, 0 steps/min), and fewer active seconds than a wake
