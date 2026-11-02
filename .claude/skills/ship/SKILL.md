@@ -61,12 +61,14 @@ to go ahead in this session.
    them for good instead of retargeting. Then `gh pr merge --squash --delete-branch`, `git
    checkout main`, `git pull --ff-only`. Report the squash commit on `main`, and tell the user
    any retargeted PR now needs `main` merged in (its next `/ship` step 2 does that).
-   **In a git worktree** (`git rev-parse --git-dir` ≠ `--git-common-dir`), `main` is usually
-   checked out in the main folder, so `--delete-branch` merges and then fails before deleting
-   anything. There, run `gh pr merge --squash`, then `git push origin --delete <branch>`, then
-   — only if `git -C <main folder> status --short` is empty and it's on `main` —
-   `git -C <main folder> pull --ff-only`. The squash-merged local branch looks unmerged to git,
-   so leave deleting it to the user (the git hook blocks `git branch -D`).
+   **In a git worktree** (the two lines of `git rev-parse --path-format=absolute --git-dir
+   --git-common-dir` differ), `main` is usually checked out in the main folder, so
+   `--delete-branch` merges and then fails before deleting anything. There, after retargeting,
+   instead of the merge, checkout and pull above: `gh pr merge --squash`, then
+   `git push origin --delete <branch>`, then — only if the main folder (the first path in
+   `git worktree list`) is on `main` with an empty `git -C <it> status --short` —
+   `git -C <it> pull --ff-only`. Keep the worktree. The squash-merged local branch looks
+   unmerged to git, so leave deleting it to the user (the git hook blocks `git branch -D`).
 
 ## Rules
 - Never force-push, never push directly to `main`, never `--no-verify`, never merge with red

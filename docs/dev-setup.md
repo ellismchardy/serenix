@@ -21,6 +21,12 @@ git config core.hooksPath .githooks
 The pre-commit hook lints staged Swift files with `swift format lint --strict` and then runs
 `swift build`, so a commit fails on lint errors or if `swift` isn't on the `PATH`.
 
+`.gitattributes` keeps Swift, YAML, shell and Markdown files LF on Windows too. A checkout made
+before a rule was added keeps CRLF copies until they're checked out again; with a clean tree,
+refresh the Markdown ones once, in Git Bash: `git ls-files -z '*.md' | xargs -0 rm && git
+checkout -- '*.md'` (it deletes the copies on disk and rewrites them from the last commit, so
+commit or stash any Markdown change first).
+
 ## 2. Check it works
 ```bash
 swift format lint --strict --recursive src tests Package.swift
