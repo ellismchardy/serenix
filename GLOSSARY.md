@@ -60,6 +60,11 @@ The record of every Frame exchanged with the Strap, in order, with direction and
 the phone and shared only when the user chooses to.
 _Avoid_: debug log, trace
 
+**Live HR**:
+The user's heart rate as the Strap measures it right now, streamed only while it is on screen.
+Never stored, and never a History Record.
+_Avoid_: realtime HR, current HR, streaming HR
+
 ## Sleep
 
 **Sleep Period**:
@@ -157,6 +162,12 @@ _Avoid_: recovery (WHOOP's term)
 **Load**:
 Serenix's measure of how much cardiovascular exertion the user accumulated over a Day.
 _Avoid_: strain (WHOOP's term), effort, exertion score
+
+**HR Zone**:
+One of five bands of heart rate by share of Max HR, from HR Zone 1 (50–60%) to HR Zone 5
+(90–100%); heart rate under 50% is in no HR Zone. Always "HR Zone" in full, never bare "Zone",
+which means a Nightly Metric against its Baseline.
+_Avoid_: heart rate zone (in code), training zone, Zone (alone)
 
 **Stress**:
 Serenix's measure of physiological stress through a Day.

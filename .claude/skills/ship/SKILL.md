@@ -17,7 +17,8 @@ to go ahead in this session.
      or explicitly by the user, not swept in here.
    - The branch's plan has no unchecked tasks (it should be in `plans/done/`), and — if the plan
      has a spec — the spec's `Status` is `built`. Bug and refactor plans have no spec; pure
-     chores have neither — skip what doesn't exist.
+     chores have neither — skip what doesn't exist. CI and by-hand phone checks aren't plan
+     tasks (they need the PR): step 5 puts them in the PR's checklist, unticked.
    - `gh auth status` succeeds and `origin` exists. If not, tell the user to run
      `gh auth login` in their own terminal (it's interactive), or add the remote, and stop.
 2. **Sync with main.** `git fetch origin`. If `origin/main` has moved past the merge-base,
@@ -45,6 +46,8 @@ to go ahead in this session.
      migrations, data deletion, public API changes, and sent emails are one-way) and the
      *blast radius* (who/what breaks if it's wrong).
    - Link the spec, the archived plan, any ADRs, and `Closes #<issue>` if there is one.
+   - List what can only be checked once the PR exists, unticked: the macOS CI job, and each
+     by-hand phone check with its steps (ADR 0002).
    Use `GLOSSARY.md` terms. Show the title and body to the user.
 6. **Push and open** (after confirmation): `git push -u origin <branch>`. If the branch
    already has an open PR (`gh pr list --head <branch> --state open` — `gh pr view` also finds
@@ -58,6 +61,14 @@ to go ahead in this session.
    them for good instead of retargeting. Then `gh pr merge --squash --delete-branch`, `git
    checkout main`, `git pull --ff-only`. Report the squash commit on `main`, and tell the user
    any retargeted PR now needs `main` merged in (its next `/ship` step 2 does that).
+   **In a git worktree** (the two lines of `git rev-parse --path-format=absolute --git-dir
+   --git-common-dir` differ), `main` is usually checked out in the main folder, so
+   `--delete-branch` merges and then fails before deleting anything. There, after retargeting,
+   instead of the merge, checkout and pull above: `gh pr merge --squash`, then
+   `git push origin --delete <branch>`, then — only if the main folder (the first path in
+   `git worktree list`) is on `main` with an empty `git -C <it> status --short` —
+   `git -C <it> pull --ff-only`. Keep the worktree. The squash-merged local branch looks
+   unmerged to git, so leave deleting it to the user (the git hook blocks `git branch -D`).
 
 ## Rules
 - Never force-push, never push directly to `main`, never `--no-verify`, never merge with red

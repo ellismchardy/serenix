@@ -36,6 +36,10 @@ public struct Frame: Equatable, Sendable {
     }
 }
 
+/// Hello (hr-tracker `docs/protocol.md`): the first command on each connection, in a History
+/// Sync and for Live HR.
+let helloOp: UInt8 = 0x91
+
 /// A command for the Strap, before it's given a sequence number.
 public struct Command: Equatable, Sendable {
     public let op: UInt8
@@ -80,6 +84,9 @@ enum FrameType {
     static let command: UInt8 = 0x23
     /// The Strap's reply to a command.
     static let reply: UInt8 = 0x24
+    /// A Live HR reading, once a second while Live HR is on (spec 006); hr-tracker's "realtime"
+    /// type, named as the protocol names it.
+    static let realtimeData: UInt8 = 0x28
     /// History Records (and optical bursts) during a History Sync.
     static let historicalData: UInt8 = 0x2f
     /// Batch start, Batch end and sync complete during a History Sync.
@@ -111,4 +118,9 @@ private let crc32Table: [UInt32] = (0..<256).map { index in
         value = value & 1 == 1 ? 0xedb8_8320 ^ (value >> 1) : value >> 1
     }
     return value
+}
+
+extension Command {
+    /// Hello / device info (`0x91 01`).
+    static let hello = Command(op: helloOp, arguments: [0x01])
 }
