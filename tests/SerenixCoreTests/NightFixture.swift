@@ -8,7 +8,8 @@ enum NightFixture {
     static let night20261030: [HistoryRecord] = records(fixture: "Night-2026-10-30")
 
     /// Reads `Fixtures/<name>.csv`, whose header is
-    /// `counter,utc,hr,rr_ms,q0,q1,q2,q3,temp_c,spo2_window,spo2`.
+    /// `counter,utc,hr,rr_ms,q0,q1,q2,q3,temp_c,spo2_window,spo2`, optionally followed by
+    /// `steps` (Day CSVs). Without it, steps read 0.
     static func records(fixture name: String) -> [HistoryRecord] {
         guard
             let url = Bundle.module.url(
@@ -30,14 +31,15 @@ enum NightFixture {
         -> HistoryRecord
     {
         let fields = line.split(separator: ",", omittingEmptySubsequences: false)
-        guard fields.count == 11,
+        guard fields.count == 11 || fields.count == 12,
             let counter = UInt32(fields[0]),
             let timestamp = formatter.date(from: String(fields[1])),
             let heartRate = Int(fields[2]),
             let motion = Optional(fields[4...7].compactMap { Float($0) }), motion.count == 4,
             let skinTemperature = Double(fields[8]),
             let spo2Window = Int(fields[9]),
-            let spo2 = Int(fields[10])
+            let spo2 = Int(fields[10]),
+            let steps = fields.count == 12 ? Int(fields[11]) : 0
         else {
             fatalError("malformed fixture line: \(line)")
         }
@@ -52,7 +54,7 @@ enum NightFixture {
             rrIntervals: rrIntervals,
             motion: motion,
             skinTemperature: skinTemperature,
-            steps: 0,
+            steps: steps,
             spo2: spo2,
             isInSpO2Window: spo2Window == 1,
             rawBytes: []

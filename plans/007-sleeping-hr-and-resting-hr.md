@@ -85,7 +85,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
      - vs your Baseline and the Readiness popup name Sleeping HR.
      - Searching src for `restingHR` finds only Load's.
 
-4. [ ] **Real fixture Day and the step-counter check.**
+4. [x] **Real fixture Day and the step-counter check.**
    - The owner shares a Sync Log from a sync covering a full Day.
    - Convert it to `tests/SerenixCoreTests/Fixtures/Day-<date>.csv`:
      - decode it with the Whoop 5 History Record decoder (a one-off script, not committed)
