@@ -15,8 +15,6 @@ enum Readiness {
     /// Load points above typical Load that cost one score unit (spec 008, Inputs), on the 0–100
     /// Load scale.
     static let loadPerScoreUnit = 20.0
-    /// Time Asleep at or above this costs nothing, seconds (spec 008: 7 h, until Sleep Need).
-    static let timeAsleepMark: TimeInterval = 7 * secondsPerHour
     /// Seconds in an hour, for Time Asleep in hours.
     static let secondsPerHour: TimeInterval = 60 * 60
     /// Each input's score is clamped to this far either side of usual (spec 008), in score units:
@@ -31,12 +29,15 @@ enum Readiness {
 
     /// The Night's Readiness, 0–100, rounded with halves up; nil when the Night has no HRV or
     /// HRV's Baseline has no median or Spread (spec 008). An HRV or Baseline of 0 ms counts as no
-    /// HRV, as ln 0 gives no score. Calibrating is the caller's to decide. `previousDayLoad` is
-    /// the Load of the Day before the Night's, and `typicalLoad` that Day's typical Load.
+    /// HRV, as ln 0 gives no score. Calibrating is the caller's to decide. `sleepNeed` is the
+    /// Night's Sleep Need in seconds (spec 009): Time Asleep at or above it costs nothing.
+    /// `previousDayLoad` is the Load of the Day before the Night's, and `typicalLoad` that Day's
+    /// typical Load.
     static func score(
         of night: Night,
         hrv: Baseline,
         sleepingHR: Baseline,
+        sleepNeed: TimeInterval,
         previousDayLoad: Int?,
         typicalLoad: TypicalLoad
     ) -> Int? {
@@ -54,7 +55,7 @@ enum Readiness {
             inputs.append((-(value - median) / spread, sleepingHRWeight))
         }
         if let timeAsleep = night.plausibleTimeAsleep {
-            let hoursShort = max(timeAsleepMark - timeAsleep, 0) / secondsPerHour
+            let hoursShort = max(sleepNeed - timeAsleep, 0) / secondsPerHour
             inputs.append((-hoursShort, timeAsleepWeight))
         }
         // The previous Day's Load costs only above its typical Load; dropped while either is

@@ -192,3 +192,44 @@ private func earlierNights(_ timesAsleep: [TimeInterval?]) -> [Night] {
     #expect(todayView(nights: nights).sleepPopup?.sleepNeedText == "8h 0m")
     #expect(todayView(nights: nights, birthYear: 1961).sleepPopup?.sleepNeedText == "7h 30m")
 }
+
+// MARK: Readiness against Sleep Need
+
+/// Earlier Nights dated 14 Nov, 13 Nov and so on back, each with spec 008's usual HRV 60 ms and
+/// Sleeping HR 52 bpm, and the given Time Asleep in that order.
+private func usualEarlierNights(_ timesAsleep: [TimeInterval]) -> [Night] {
+    timesAsleep.enumerated().map { offset, timeAsleep in
+        Night(
+            day: Day(year: 2026, month: 11, day: 14 - offset),
+            sleepingHR: 52,
+            hrv: 60,
+            timeAsleep: timeAsleep
+        )
+    }
+}
+
+/// The Night shown, dated 15 Nov: spec 008's usual Night (HRV 60 ms, Sleeping HR 52 bpm) with
+/// Time Asleep 8 h.
+private let usualNightOn15Nov = Night(day: nov15, sleepingHR: 52, hrv: 60, timeAsleep: 8 * oneHour)
+
+@Test func readinessJudgesTimeAsleepAgainstARaisedSleepNeed() {
+    let view = todayView(
+        nights: usualEarlierNights(Array(repeating: 6 * oneHour, count: 4)) + [usualNightOn15Nov]
+    )
+    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+
+    #expect(view.readinessText == "62")
+    #expect(row?.valueText == "8h 0m")
+    #expect(row?.referenceText == "9h 0m")
+    #expect(row?.differenceText == "\u{2212}1h 0m")
+}
+
+@Test func readinessAgainstSleepNeedOf8Hours30ReadsSteady() {
+    let view = todayView(
+        nights: usualEarlierNights([6 * oneHour, 8 * oneHour, 8 * oneHour, 8 * oneHour])
+            + [usualNightOn15Nov]
+    )
+
+    #expect(view.readinessText == "66")
+    #expect(view.readinessBand == .steady)
+}

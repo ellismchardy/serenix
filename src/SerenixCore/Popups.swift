@@ -23,8 +23,8 @@ public struct ReadinessPopupRow: Equatable, Sendable {
     /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.
     public let valueText: String
     /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
-    /// ms" ("Calibrating" while it is), "7h" for Time Asleep, or "Typical 45" ("Calibrating"
-    /// while typical Load is) for Yesterday's Load.
+    /// ms" ("Calibrating" while it is), the Night's Sleep Need for Time Asleep ("8h 0m"), or
+    /// "Typical 45" ("Calibrating" while typical Load is) for Yesterday's Load.
     public let referenceText: String
     /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep; a signed whole
     /// number ("+40", "−5", "±0") for Yesterday's Load.
@@ -37,13 +37,13 @@ public struct ReadinessPopupRow: Equatable, Sendable {
         differenceText = tile.differenceText
     }
 
-    /// The Night's Time Asleep against Readiness's 7 h mark, e.g. "6h 30m", "7h", "−30m".
-    init(timeAsleep: TimeInterval?) {
+    /// The Night's Time Asleep against its Sleep Need (spec 009), e.g. "7h 30m", "8h 0m", "−30m".
+    init(timeAsleep: TimeInterval?, sleepNeed: TimeInterval) {
         name = "Time Asleep"
         valueText = timeAsleep.map(durationText) ?? missingText
-        referenceText = "\(Int(Readiness.timeAsleepMark / Readiness.secondsPerHour))h"
+        referenceText = durationText(sleepNeed)
         differenceText =
-            timeAsleep.map { Self.differenceText($0 - Readiness.timeAsleepMark) }
+            timeAsleep.map { Self.differenceText($0 - sleepNeed) }
             ?? missingText
     }
 

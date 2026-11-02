@@ -55,7 +55,7 @@ view with its own private `todayView` helper, as `ReadinessTests.swift` does.
    - Done when: spec 009 criteria "Birth year 1961 … '7h 30m'; 1962 … '8h 0m'", "Birth year
      1961 with one earlier Night of 6 h 30 m … '1h 0m' … '7h 45m'", and "The same Nights give
      Sleep Need '8h 0m' with no birth year and '7h 30m' with birth year 1961".
-4. [ ] **Slice:** Readiness against Sleep Need — `Readiness.score` takes the Night's Sleep Need
+4. [x] **Slice:** Readiness against Sleep Need — `Readiness.score` takes the Night's Sleep Need
    in place of `timeAsleepMark` (constant removed); the Readiness popup's Time Asleep row shows
    Sleep Need as its reference ("8h 0m") and the difference against it. Rewrites the tests that
    used the 7 h mark, as described in Approach.
