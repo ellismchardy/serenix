@@ -1,7 +1,7 @@
 # 008 — Readiness
 
-**Status:** approved
-**Last updated:** 2026-11-02
+**Status:** built
+**Last updated:** 2026-11-02 (built)
 **Issue:** https://github.com/ellismchardy/serenix/issues/18 (map: https://github.com/ellismchardy/serenix/issues/12)
 
 ## Problem
@@ -123,45 +123,45 @@ HR 52 (so typical Spreads: HRV 0.15, Sleeping HR 2.5 bpm); and no Days, so the L
 dropped. Expected values worked by hand from the formula above.
 
 Score:
-- [ ] The usual Night reads 70, Ready. With four Days before 14 Nov at Load 45 and 14 Nov at 40
+- [x] The usual Night reads 70, Ready. With four Days before 14 Nov at Load 45 and 14 Nov at 40
       (at or below typical), it still reads 70.
-- [ ] HRV 50 reads 38, Steady; HRV 72 reads 90, Ready.
-- [ ] HRV 20 is clamped at −3 and reads 8, Take it easy.
-- [ ] Sleeping HR 57 reads 43; Sleeping HR 48 (better than usual) reads 85.
-- [ ] Time Asleep 5 h reads 54; 6 h 59 m reads 70; 9 h reads 70.
-- [ ] With four Days before 14 Nov at Load 45: 14 Nov at Load 65 reads 65, Steady; at 85, 61; at
+- [x] HRV 50 reads 38, Steady; HRV 72 reads 90, Ready.
+- [x] HRV 20 is clamped at −3 and reads 8, Take it easy.
+- [x] Sleeping HR 57 reads 43; Sleeping HR 48 (better than usual) reads 85.
+- [x] Time Asleep 5 h reads 54; 6 h 59 m reads 70; 9 h reads 70.
+- [x] With four Days before 14 Nov at Load 45: 14 Nov at Load 65 reads 65, Steady; at 85, 61; at
       200, clamped at −3, 56.
-- [ ] All four off at once (HRV 50, Sleeping HR 57, Time Asleep 5 h 30 m, 14 Nov at Load 85 over
+- [x] All four off at once (HRV 50, Sleeping HR 57, Time Asleep 5 h 30 m, 14 Nov at Load 85 over
       typical 45) reads 10, Take it easy.
 
 Sleeping HR's Spread:
-- [ ] Sleeping HR 54 against four earlier Nights of 52 (typical 2.5 bpm) reads 60; against seven
+- [x] Sleeping HR 54 against four earlier Nights of 52 (typical 2.5 bpm) reads 60; against seven
       earlier Nights of 52 (Spread floored to 1 bpm) it reads 43.
-- [ ] Against seven earlier Nights of 50, 51, 52, 52, 52, 53, 54 (Baseline 52, Spread 1.4826 bpm),
+- [x] Against seven earlier Nights of 50, 51, 52, 52, 52, 53, 54 (Baseline 52, Spread 1.4826 bpm),
       Sleeping HR 56 reads 34.
-- [ ] Zones don't change: against seven earlier Nights of 52, Sleeping HR 54 is still In range and
+- [x] Zones don't change: against seven earlier Nights of 52, Sleeping HR 54 is still In range and
       56 still Watch.
 
 Missing, dropped and Calibrating:
-- [ ] A Night with no HRV reads "—", with no band and no Readiness message.
-- [ ] HRV 50 with no Sleeping HR reads 26 (HRV and Time Asleep re-weighted).
-- [ ] With only three Days before 14 Nov at Load 45 (typical Load calibrating), 14 Nov at 85
+- [x] A Night with no HRV reads "—", with no band and no Readiness message.
+- [x] HRV 50 with no Sleeping HR reads 26 (HRV and Time Asleep re-weighted).
+- [x] With only three Days before 14 Nov at Load 45 (typical Load calibrating), 14 Nov at 85
       changes nothing: 70. With four but no Load on 14 Nov, also 70.
-- [ ] With one earlier Night, Readiness is Calibrating, "2/4", and with two, "3/4" (unchanged:
+- [x] With one earlier Night, Readiness is Calibrating, "2/4", and with two, "3/4" (unchanged:
       the count includes the Night shown); with three, it reads a number.
-- [ ] Readiness follows the Days: the same Nights give 70 with no Day for 14 Nov and 61 once
+- [x] Readiness follows the Days: the same Nights give 70 with no Day for 14 Nov and 61 once
       14 Nov has Load 85 over typical 45.
 
 Popup:
-- [ ] The Readiness popup lists HRV, Sleeping HR, Time Asleep and Yesterday's Load, in that
+- [x] The Readiness popup lists HRV, Sleeping HR, Time Asleep and Yesterday's Load, in that
       order. Time Asleep 6 h 30 m reads "6h 30m", "7h", "−30m"; 8 h 10 m reads "+1h 10m"; 7 h
       reads "±0".
-- [ ] Yesterday's Load 85 over typical 45 reads "85", "Typical 45", "+40"; 40 reads "−5"; with no
+- [x] Yesterday's Load 85 over typical 45 reads "85", "Typical 45", "+40"; 40 reads "−5"; with no
       Load on 14 Nov, "—", "Typical 45", "—"; with typical Load calibrating (14 Nov at 85),
       "85", "Calibrating", "—".
 
 Build and phone:
-- [ ] No `SerenixCore` type still carries a stored Readiness on a Night.
+- [x] No `SerenixCore` type still carries a stored Readiness on a Night.
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
 - [ ] On the phone (by hand): installed over the previous build, past Nights with 4 or more

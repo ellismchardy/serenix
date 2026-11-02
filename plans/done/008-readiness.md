@@ -77,7 +77,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
    - Seam: Today view · Files: `Popups.swift`, `TodayView.swift`, `ReadinessTests.swift`
    - Done when: popup criteria: the four rows in order, and "Yesterday's Load 85 over typical 45
      … +40 … −5 … '—' … 'Calibrating'".
-8. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+8. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; every automated success criterion in spec 008 checked and ticked.
    - Carried to the PR checklist (need the PR / the phone): the macOS CI job builds the app;
      installed over the previous build, past Nights show a Readiness, band colour and message;
