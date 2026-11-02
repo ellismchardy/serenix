@@ -2,9 +2,9 @@ import Foundation
 import SerenixCore
 import Testing
 
-// Sleep Score on the Today view's Sleep Score ring (spec 010, Behavior: Sleep Sufficiency,
-// Sleep Efficiency, Sleep Consistency, Sleep Score, Missing and left out). Expected values are spec 010's success
-// criteria, worked by hand from its rules.
+// Sleep Score on the Today view's Sleep Score ring and in the Sleep popup (spec 010, Behavior:
+// Sleep Sufficiency, Sleep Efficiency, Sleep Consistency, Sleep Score, Missing and left out,
+// Sleep popup). Expected values are spec 010's success criteria, worked by hand from its rules.
 
 /// 14–15 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
 private let london = TimeZone(identifier: "Europe/London")!

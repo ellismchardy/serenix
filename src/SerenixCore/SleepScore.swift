@@ -17,7 +17,7 @@ struct SleepScore: Equatable, Sendable {
     /// (spec 010: 3; a median of fewer is noise).
     static let fewestConsistencyNights = 3
     /// Minutes in a day, for clock times.
-    static let minutesPerDay = 24.0 * 60
+    private static let minutesPerDay = 24.0 * 60
     /// The share of the Sleep Period asleep at or above which Sleep Efficiency is 100 (spec 010:
     /// 95%). Unitless.
     static let fullEfficiency = 0.95
@@ -76,8 +76,7 @@ struct SleepScore: Equatable, Sendable {
         if let consistency { parts.append((consistency, Self.consistencyWeight)) }
         let totalWeight = parts.reduce(0) { $0 + $1.weight }
         let weighted = parts.reduce(0) { $0 + $1.score * $1.weight / totalWeight }
-        // Never negative, so rounding away from zero is rounding halves up.
-        score = Int(weighted.rounded(.toNearestOrAwayFromZero))
+        score = halvesUp(weighted)
     }
 
     /// How far `night`'s Sleep Onset and Final Wake were from those of the Nights dated D − 7 to

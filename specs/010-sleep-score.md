@@ -184,4 +184,6 @@ Build and phone:
   Sufficiency, Sleep Efficiency, Sleep Consistency (GLOSSARY.md).
 - Builds on spec 002 (ring, Sleep popup, Readiness popup's Sleep Score row) and spec 009 (Sleep
   Need, the 7-Night window).
+- Changes spec 002: its Sleep popup gains the three part rings under Sleep Score, and the stored
+  Nights no longer carry a Sleep Score (worked out here, as spec 008 did for Readiness).
 - Map: issue #31. This is the map's last spec.

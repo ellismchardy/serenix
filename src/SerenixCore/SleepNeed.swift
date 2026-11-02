@@ -31,14 +31,14 @@ struct SleepNeed: Equatable, Sendable {
     /// How many Nights counted toward Sleep Debt.
     let nightsCounted: Int
 
-    /// The Sleep Need of the Night dated `day`, from the Nights before it. Age is `day`'s year
-    /// minus `birthYear`; with no birth year, Usual Need is the adult one.
     /// The Days of the week before the Night dated `day`, D − 7 to D − 1, the Night itself left
     /// out: Sleep Debt's look-back (spec 009), also Sleep Consistency's (spec 010).
     static func window(before day: Day) -> ClosedRange<Day> {
         day.adding(days: -debtWindowDays)...day.adding(days: -1)
     }
 
+    /// The Sleep Need of the Night dated `day`, from the Nights before it. Age is `day`'s year
+    /// minus `birthYear`; with no birth year, Usual Need is the adult one.
     init(for day: Day, among nights: [Night], birthYear: Int?) {
         let isOlder = birthYear.map { day.year - $0 >= Self.olderAge } ?? false
         let usualNeed = isOlder ? Self.olderUsualNeed : Self.adultUsualNeed

@@ -1,7 +1,8 @@
 import Foundation
 
 /// One stored Night (GLOSSARY): a Sleep Period with the Nightly Metrics drawn from it. Its scores
-/// (Sleep Score, Readiness) are worked out from the Nights when shown, never stored (specs 008, 010).
+/// (Sleep Score, Readiness) are worked out from the Nights when shown, never stored (specs 008,
+/// 010).
 public struct Night: Equatable, Sendable {
     /// The local date of its Final Wake.
     public var day: Day

@@ -259,7 +259,6 @@ public struct TodayView: Equatable, Sendable {
                     night,
                     sleepNeed: sleepNeed,
                     sleepScore: sleepScore,
-                    sleepScoreText: sleepScoreText,
                     timeZone: timeZone
                 )
             } else {

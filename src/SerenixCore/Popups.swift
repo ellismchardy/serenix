@@ -141,8 +141,9 @@ public struct SleepScorePart: Equatable, Sendable {
     private static let consistencyName = "Sleep Consistency"
 }
 
-/// `value` rounded to a whole number with halves up; `value` is never negative here.
-private func halvesUp(_ value: Double) -> Int {
+/// `value` rounded to a whole number with halves up, for scores and their parts, which are never
+/// negative (rounding away from zero is then rounding halves up).
+func halvesUp(_ value: Double) -> Int {
     Int(value.rounded(.toNearestOrAwayFromZero))
 }
 
@@ -174,10 +175,9 @@ public struct SleepPopup: Equatable, Sendable {
         _ night: Night,
         sleepNeed: SleepNeed,
         sleepScore: SleepScore?,
-        sleepScoreText: String,
         timeZone: TimeZone
     ) {
-        self.sleepScoreText = sleepScoreText
+        sleepScoreText = scoreText(sleepScore?.score)
         parts = SleepScorePart.parts(of: sleepScore)
         sleepNeedText = durationText(sleepNeed.sleepNeed)
         sleepDebtText = durationText(sleepNeed.sleepDebt)
