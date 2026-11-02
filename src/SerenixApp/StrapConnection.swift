@@ -1,6 +1,7 @@
 import CoreBluetooth
 import Foundation
 import SerenixCore
+import SwiftData
 import os
 
 /// Moves bytes between the Strap and a `HistorySync` session, and carries out the `LiveHRLink`'s
@@ -402,22 +403,8 @@ final class StrapConnection: NSObject, ObservableObject {
             await previous?.value
             // What's stored shows first: a queue left by a run that was swiped away or ended by
             // iOS takes minutes to work out at launch, and the screen would be blank until then.
-            do {
-                let storedNights = try NightStore.nights(in: container)
-                await MainActor.run { self.nights = storedNights }
-            } catch {
-                storeLog.error(
-                    "Couldn't read stored Nights: \(error.localizedDescription, privacy: .public)"
-                )
-            }
-            do {
-                let storedLoads = try DayLoadStore.dayLoads(in: container)
-                await MainActor.run { self.dayLoads = storedLoads }
-            } catch {
-                storeLog.error(
-                    "Couldn't read stored Day Loads: \(error.localizedDescription, privacy: .public)"
-                )
-            }
+            await showStoredNights(in: container)
+            await showStoredDayLoads(in: container)
             let now = Date()
             let queued = await MainActor.run { NightStore.pendingRebuilds }
             for rebuild in queued {
@@ -441,17 +428,7 @@ final class StrapConnection: NSObject, ObservableObject {
                     }
                 }
             }
-            let nights: [Night]?
-            do {
-                let stored = try NightStore.nights(in: container)
-                nights = stored
-                await MainActor.run { self.nights = stored }
-            } catch {
-                nights = nil
-                storeLog.error(
-                    "Couldn't read stored Nights: \(error.localizedDescription, privacy: .public)"
-                )
-            }
+            let nights = await showStoredNights(in: container)
             // Without the stored Nights, Resting HR would be wrong, so the Days stay queued.
             var queuedDays: [DayRebuild] = []
             if nights != nil {
@@ -488,14 +465,34 @@ final class StrapConnection: NSObject, ObservableObject {
                     }
                 }
             }
-            do {
-                let dayLoads = try DayLoadStore.dayLoads(in: container)
-                await MainActor.run { self.dayLoads = dayLoads }
-            } catch {
-                storeLog.error(
-                    "Couldn't read stored Day Loads: \(error.localizedDescription, privacy: .public)"
-                )
-            }
+            await showStoredDayLoads(in: container)
+        }
+    }
+
+    /// Reads every stored Night off the main thread and shows it; nil if they can't be read.
+    @discardableResult
+    nonisolated private func showStoredNights(in container: ModelContainer) async -> [Night]? {
+        do {
+            let stored = try NightStore.nights(in: container)
+            await MainActor.run { self.nights = stored }
+            return stored
+        } catch {
+            storeLog.error(
+                "Couldn't read stored Nights: \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
+    }
+
+    /// Reads every stored Day Load off the main thread and shows it.
+    nonisolated private func showStoredDayLoads(in container: ModelContainer) async {
+        do {
+            let stored = try DayLoadStore.dayLoads(in: container)
+            await MainActor.run { self.dayLoads = stored }
+        } catch {
+            storeLog.error(
+                "Couldn't read stored Day Loads: \(error.localizedDescription, privacy: .public)"
+            )
         }
     }
 
