@@ -99,7 +99,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
      the new fixture CSV, a new fixture test
    - Done when: the steps criterion of spec 007's real-fixture-Day criterion passes.
 
-5. [ ] **Tracer: Resting HR of a Day.**
+5. [x] **Tracer: Resting HR of a Day.**
    - Add a builder for minute-by-minute records (bpm, steps rising or flat, active seconds per
      minute, worn records per minute).
    - Add `restingHR(of day:records:nights:in:) -> Double?`, covering:

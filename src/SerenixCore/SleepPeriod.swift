@@ -39,10 +39,9 @@ struct SleepPeriod: Equatable, Sendable {
 }
 
 // Constants from hr-tracker `tools/sleep.py`, which set them by eye on two nights. The
-// active-second rule and the fewest records a minute needs are in `MotionMinutes`.
+// active-second rule, the active seconds of a wake minute and the fewest records a minute needs
+// are in `MotionMinutes`.
 
-/// Active seconds in one minute that alone make it a wake minute. sleep.py `WAKE_ACTIVE`.
-private let wakeActiveSeconds = 10
 /// Median active seconds over the 5 minutes centred on a minute that make it a wake minute.
 /// sleep.py `WAKE_MEDIAN5`.
 private let wakeMedianActiveSeconds = 6.0
@@ -111,7 +110,9 @@ private func labelled(_ minutes: [Minute?]) -> [Label?] {
     var labels: [Label?] = active.indices.map { index in
         guard let seconds = active[index] else { return nil }
         let near = window(active, around: index, reach: wakeMedianReach).map(Double.init)
-        let isWake = seconds >= wakeActiveSeconds || median(of: near) >= wakeMedianActiveSeconds
+        let isWake =
+            seconds >= MotionMinutes.wakeActiveSeconds
+            || median(of: near) >= wakeMedianActiveSeconds
         return isWake ? .wake : .sleep
     }
     let heartRates = minutes.map { $0?.meanHeartRate }
