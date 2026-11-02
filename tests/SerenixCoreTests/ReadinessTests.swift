@@ -286,10 +286,62 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
 
 // MARK: Readiness popup
 
-@Test func readinessPopupListsHRVThenSleepingHRThenTimeAsleep() {
+@Test func readinessPopupListsHRVThenSleepingHRThenTimeAsleepThenYesterdaysLoad() {
     let view = readinessView(for: nightOn15Nov())
 
-    #expect(view.readinessPopup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep"])
+    #expect(
+        view.readinessPopup?.rows.map(\.name) == [
+            "HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load",
+        ]
+    )
+}
+
+@Test func readinessPopupShowsYesterdaysLoadAboveTypicalLoad() {
+    let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoadsWith14NovAt(85))
+    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+
+    #expect(row?.valueText == "85")
+    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.differenceText == "+40")
+}
+
+@Test func readinessPopupShowsYesterdaysLoadBelowTypicalLoad() {
+    let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoadsWith14NovAt(40))
+    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+
+    #expect(row?.valueText == "40")
+    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.differenceText == "\u{2212}5")
+}
+
+@Test func readinessPopupShowsYesterdaysLoadAtTypicalLoad() {
+    let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoadsWith14NovAt(45))
+    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+
+    #expect(row?.valueText == "45")
+    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.differenceText == "\u{00B1}0")
+}
+
+@Test func readinessPopupShowsNoYesterdaysLoadAgainstTypicalLoad() {
+    let view = readinessView(for: nightOn15Nov(), dayLoads: daysBefore14NovAtLoad45())
+    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+
+    #expect(row?.valueText == "\u{2014}")
+    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.differenceText == "\u{2014}")
+}
+
+@Test func readinessPopupShowsYesterdaysLoadWithTypicalLoadCalibrating() {
+    let view = readinessView(
+        for: nightOn15Nov(),
+        dayLoads: daysBefore14NovAtLoad45(count: 3) + [DayLoad(day: nov14, load: 85)]
+    )
+    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+
+    #expect(row?.valueText == "85")
+    #expect(row?.baselineText == "Calibrating")
+    #expect(row?.differenceText == "\u{2014}")
 }
 
 @Test func readinessPopupShowsTimeAsleepShortOfSevenHours() {

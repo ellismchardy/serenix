@@ -72,7 +72,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
      `src/SerenixApp/TodayPopups.swift`
    - Done when: popup criterion "lists HRV, Sleeping HR, Time Asleep … 6h 30m … +1h 10m … ±0"
      (the Time Asleep part).
-7. [ ] **Slice:** the Readiness popup's Yesterday's Load row — the previous Day's Load,
+7. [x] **Slice:** the Readiness popup's Yesterday's Load row — the previous Day's Load,
    "Typical N" or "Calibrating", signed difference as in spec 006; "—" when the Load is missing.
    - Seam: Today view · Files: `Popups.swift`, `TodayView.swift`, `ReadinessTests.swift`
    - Done when: popup criteria: the four rows in order, and "Yesterday's Load 85 over typical 45

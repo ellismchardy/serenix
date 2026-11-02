@@ -6,7 +6,7 @@ public struct ReadinessPopup: Equatable, Sendable {
     /// As on the ring: the number, or "n/4" while Calibrating.
     public let readinessText: String
     public let band: ReadinessBand?
-    /// HRV, Sleeping HR, then Time Asleep; none while Calibrating.
+    /// HRV, Sleeping HR, Time Asleep, then Yesterday's Load; none while Calibrating.
     public let rows: [ReadinessPopupRow]
     /// Nil while Calibrating.
     public let sleepScoreText: String?
@@ -18,14 +18,16 @@ public struct ReadinessPopup: Equatable, Sendable {
 
 /// One input to Readiness in the Readiness popup (spec 008, Readiness popup).
 public struct ReadinessPopupRow: Equatable, Sendable {
-    /// e.g. "HRV", "Time Asleep".
+    /// e.g. "HRV", "Time Asleep", "Yesterday's Load".
     public let name: String
-    /// As on the tile.
+    /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.
     public let valueText: String
     /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
-    /// ms" ("Calibrating" while it is), or "7h" for Time Asleep.
+    /// ms" ("Calibrating" while it is), "7h" for Time Asleep, or "Typical 45" ("Calibrating"
+    /// while typical Load is) for Yesterday's Load.
     public let baselineText: String
-    /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep.
+    /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep; a signed whole
+    /// number ("+40", "−5", "±0") for Yesterday's Load.
     public let differenceText: String
 
     init(_ tile: MetricTile) {
@@ -43,6 +45,22 @@ public struct ReadinessPopupRow: Equatable, Sendable {
         differenceText =
             timeAsleep.map { Self.differenceText($0 - Readiness.timeAsleepMark) }
             ?? missingText
+    }
+
+    /// The previous Day's Load against its typical Load (spec 006), e.g. "85", "Typical 45",
+    /// "+40", or "85", "Calibrating", "—" while typical Load is calibrating; "—" for a missing
+    /// Load.
+    init(previousDayLoad load: Int?, typical: TypicalLoad) {
+        name = "Yesterday's Load"
+        valueText = load.map(String.init) ?? missingText
+        switch typical {
+        case .value(let typical):
+            baselineText = "Typical \(typical)"
+            differenceText = load.map { signedText($0 - typical) } ?? missingText
+        case .calibrating:
+            baselineText = "Calibrating"
+            differenceText = missingText
+        }
     }
 
     /// A signed difference in whole minutes: "−30m", "+1h 10m", "±0".

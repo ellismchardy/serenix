@@ -175,10 +175,14 @@ public struct TodayView: Equatable, Sendable {
             return [.metric(tile), .restingHR(restingHRTile)]
         }
 
+        // The Day before the Day shown: "yesterday" in the Readiness advice and popup (spec 008,
+        // Inputs).
+        let previousDay = day.adding(days: -1)
+        let previousDayLoad = dayLoads.first { $0.day == previousDay }?.load
         readinessAdvice = readinessBand.map { band in
             ReadinessAdvice.text(
                 for: band,
-                yesterdayLoad: dayLoads.first { $0.day == day.adding(days: -1) }?.load,
+                yesterdayLoad: previousDayLoad,
                 hrv: tiles.first { $0.metric == .hrv },
                 sleepingHR: tiles.first { $0.metric == .sleepingHR }
             )
@@ -219,7 +223,13 @@ public struct TodayView: Equatable, Sendable {
                         band: readinessBand,
                         rows: VsBaseline.metrics.compactMap { metric in
                             tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
-                        } + [ReadinessPopupRow(timeAsleep: night?.plausibleTimeAsleep)],
+                        } + [
+                            ReadinessPopupRow(timeAsleep: night?.plausibleTimeAsleep),
+                            ReadinessPopupRow(
+                                previousDayLoad: previousDayLoad,
+                                typical: typicalLoad(for: previousDay, among: dayLoads)
+                            ),
+                        ],
                         sleepScoreText: sleepScoreText,
                         baselineNote:
                             "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",
