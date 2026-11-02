@@ -3,42 +3,11 @@ import Foundation
 import SerenixCore
 import os
 
-/// Where the Strap connection and its History Sync have got to, for display.
-enum StrapPhase: Equatable {
-    case idle
-    case bluetoothUnavailable(String)
-    case searching
-    case connecting
-    case connected
-    case syncing
-    case synced
-    case failed(String, SyncFailureCause)
-
-    var isBusy: Bool {
-        switch self {
-        case .searching, .connecting, .syncing: true
-        default: false
-        }
-    }
-
-    var displayText: String {
-        switch self {
-        case .idle: "Not connected"
-        case .bluetoothUnavailable(let reason): reason
-        case .searching: "Looking for your Strap…"
-        case .connecting: "Connecting…"
-        case .connected: "Connected"
-        case .syncing: "Syncing…"
-        case .synced: "Up to date"
-        case .failed(let reason, _): "Failed: \(reason)"
-        }
-    }
-}
-
-/// Moves bytes between the Strap and a `HistorySync` session over CoreBluetooth.
+/// Moves bytes between the Strap and a `HistorySync` session, and carries out the `LiveHRLink`'s
+/// decisions, over CoreBluetooth.
 ///
 /// Every decision about what to send lives in `SerenixCore`: this class scans, connects,
-/// subscribes, writes what the session asks for and feeds back what the Strap sends. All state
+/// subscribes, writes what the session and the link ask for and feeds back what the Strap sends. All state
 /// lives on the main actor: SwiftUI calls in there, and the central manager delivers its
 /// callbacks on the main queue (`queue: nil`), which the `@preconcurrency` delegate
 /// conformances check at run time.
@@ -73,30 +42,14 @@ final class StrapConnection: NSObject, ObservableObject {
     /// The running sync's progress (0 to 1) and seconds left, from the session; nil before
     /// they're known. `syncTimer` redraws the screen to show them.
     var syncProgress: Double? { session?.progress }
-    /// The last Live HR reading, when it arrived on the phone, and how the Live HR connection
-    /// stands, for the pill on today's Load popup (spec 006).
-    @Published private(set) var liveHRReading: LiveHRReading?
-    @Published private(set) var liveHRArrivedAt: Date?
-    @Published private(set) var liveHRConnection: LiveHRConnection = .unavailable
+    /// What the Live HR pill on today's Load popup shows at `now` (spec 006).
+    func liveHRPill(at now: Date) -> LiveHRPill { liveHRLink.pill(at: now) }
     var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
-    /// The phase as the Today view's sync pill reads it (spec 002): looking for or connecting
-    /// to the Strap counts as syncing, and Bluetooth being unavailable as the Strap being
-    /// unreachable.
+    /// The phase as the Today view's sync pill reads it (spec 002). A connection only for Live
+    /// HR isn't a sync: the pill keeps showing what it showed before (spec 006).
     var syncStatus: SyncStatus {
-        // A connection only for Live HR isn't a sync: the pill keeps showing what it showed
-        // before (spec 006: nothing else about syncing changes).
-        let phase = session == nil && !wantsSync ? phaseBeforeLiveHR ?? self.phase : self.phase
-        return switch phase {
-        case .searching, .connecting, .syncing: .syncing
-        case .synced: .justFinished
-        case .idle, .connected: .idle
-        // Bluetooth being off only pauses a sync that was wanted; otherwise there's nothing
-        // to say (spec 002, Sync pill).
-        case .bluetoothUnavailable(let reason):
-            wantsSync || wantsConnection
-                ? .failed(reason: reason, cause: .strapUnreachable) : .idle
-        case .failed(let reason, let cause): .failed(reason: reason, cause: cause)
-        }
+        liveHRLink.phaseForSyncPill(linkFacts)
+            .syncStatus(connectionWanted: wantsSync || wantsConnection)
     }
 
     private var central: CBCentralManager!
@@ -136,27 +89,11 @@ final class StrapConnection: NSObject, ObservableObject {
     /// the Strap went silent.
     private var syncTimer: Timer?
 
-    /// Whether the Live HR pill is on screen, and Serenix in the foreground: Live HR runs while
-    /// both are (spec 006; ADR 0007).
-    private var liveHRShown = false
-    private var isInForeground = true
-    /// Live HR on a connection of its own, when no sync is running.
-    private var liveSession: LiveHRSession?
-    /// Whether Live HR is on within the running sync.
-    private var liveHROnInSync = false
-    /// Connecting only for Live HR: a failure then stays quiet (spec 006, The pill). It stays set
-    /// until the attempt resolves (ready, failed, timed out or disconnected), even once Live HR
-    /// is no longer wanted, so a late callback never reads as a sync failing.
-    private var connectingForLiveHR = false
-    /// The phase a connection only for Live HR stands in for: the sync pill shows it, and it
-    /// comes back when that connection ends.
-    private var phaseBeforeLiveHR: StrapPhase?
-    /// Live HR is to start once another connection in progress (not a sync, e.g. pairing) is
-    /// ready. That connection stays the user's: its failures are not made quiet.
-    private var startLiveHRWhenReady = false
-    /// The Live HR session's messages, kept as the one "Live HR" Sync Log when it ends.
-    private var liveHRLog: [SyncLogEntry] = []
-    /// Tries Live HR again a moment after its connection fails or drops, while it's wanted.
+    /// Every Live HR decision (spec 006; ADR 0007): this class only carries out its actions.
+    /// `@Published`, so the pill redraws as readings arrive. Each Frame on Live HR's own
+    /// connection changes it (about one a second); during a sync only readings do.
+    @Published private var liveHRLink = LiveHRLink()
+    /// Calls the Live HR link back when the retry it asked for falls due.
     private var liveHRRetry: Timer?
 
     override init() {
@@ -190,9 +127,9 @@ final class StrapConnection: NSObject, ObservableObject {
     /// returning from Control Center or a notification, which is the app staying open (spec 001
     /// non-goals).
     func sceneBecameActive(fromBackground: Bool) {
-        isInForeground = true
-        // Coming back with the Load popup open reconnects Live HR (spec 006).
-        defer { updateLiveHR() }
+        // Coming back with the Load popup open reconnects Live HR (spec 006). Last, so it sees a
+        // sync this starts (and turns Live HR on in it) or the result of one that went silent.
+        defer { apply(liveHRLink.setForeground(true, facts: linkFacts, at: Date())) }
         // A sync that went silent while Serenix was in the background shows as failed now.
         failIfStrapWentSilent(at: Date())
         let syncWasUnderway = syncWasUnderwayInBackground
@@ -207,111 +144,78 @@ final class StrapConnection: NSObject, ObservableObject {
     /// Notes whether a sync is underway as Serenix goes to the background, where it carries on
     /// (ADR 0006).
     func sceneWentToBackground() {
-        syncWasUnderwayInBackground = phase.isBusy && phaseBeforeLiveHR == nil
-        isInForeground = false
-        updateLiveHR()
+        syncWasUnderwayInBackground = phase.isBusy && liveHRLink.heldPhase == nil
+        apply(liveHRLink.setForeground(false, facts: linkFacts, at: Date()))
     }
 
     /// Shows or hides the Live HR pill, as today's Load popup opens or closes (spec 006).
     func setLiveHRShown(_ shown: Bool) {
-        liveHRShown = shown
-        updateLiveHR()
+        apply(liveHRLink.setShown(shown, facts: linkFacts, at: Date()))
     }
 
-    private var wantsLiveHR: Bool { liveHRShown && isInForeground }
-
-    private func updateLiveHR() {
-        if wantsLiveHR { startLiveHR() } else { stopLiveHR() }
+    /// What only this class knows about the link, for the Live HR link's decisions.
+    private var linkFacts: StrapLinkFacts {
+        StrapLinkFacts(
+            phase: phase,
+            syncRunning: session != nil,
+            syncWanted: wantsSync,
+            bluetoothOn: central.state == .poweredOn,
+            hasStrap: rememberedStrap != nil,
+            linkReady: isReady,
+            linkClosing: peripheral?.state == .disconnecting
+        )
     }
 
-    /// Turns Live HR on: within the running sync, on the connection if it's idle, or on a new
-    /// connection of its own (ADR 0007). Opening the popup never starts a sync. A retry after a
-    /// failed attempt keeps the pill on "—" until a reading arrives.
-    private func startLiveHR(retrying: Bool = false) {
-        liveHRRetry?.invalidate()
-        liveHRRetry = nil
-        if liveHRReading == nil { liveHRConnection = retrying ? .unavailable : .connecting }
-        if phase == .syncing, var session {
-            guard !liveHROnInSync else { return }
-            let output = session.setLiveHR(true, at: Date())
-            self.session = session
-            liveHROnInSync = true
-            handle(output, state: session.state)
-            return
-        }
-        // An attempt already under way carries on: once it resolves, Live HR starts or retries.
-        guard liveSession == nil, !connectingForLiveHR else { return }
-        if wantsSync || phase.isBusy {
-            // A sync on its way turns Live HR on as it starts (`startSync`); any other connection
-            // starts it once ready.
-            if !wantsSync { startLiveHRWhenReady = true }
-            return
-        }
-        guard rememberedStrap != nil, central.state == .poweredOn else {
-            liveHRConnection = .unavailable
-            return
-        }
-        // A link still closing can't be used yet: try again once it has closed.
-        if peripheral?.state == .disconnecting {
-            scheduleLiveHRRetry()
-            return
-        }
-        if isReady {
-            beginLiveSession()
-        } else {
-            phaseBeforeLiveHR = phase
-            connectingForLiveHR = true
-            startConnecting()
-        }
-    }
-
-    /// Turns Live HR off: within the running sync, which carries on (ADR 0006), or by ending
-    /// its own connection.
-    private func stopLiveHR() {
-        liveHRRetry?.invalidate()
-        liveHRRetry = nil
-        // The pill starts from "…" the next time it shows.
-        liveHRReading = nil
-        liveHRArrivedAt = nil
-        if liveHROnInSync, phase == .syncing, var session {
-            let output = session.setLiveHR(false, at: Date())
-            self.session = session
-            handle(output, state: session.state)
-        }
-        liveHROnInSync = false
-        if var live = liveSession {
-            handleLive(live.stop(at: Date()))
-            liveSession = nil
-            keepLiveHRLog()
-            // Disconnecting also stops the stream, should Live HR off not get out first.
-            endLiveHRConnection()
-        } else if connectingForLiveHR, !wantsSync {
-            if phase == .searching {
-                // Nothing found yet, so nothing to call back: stop here.
+    /// Carries out what the Live HR link decided, in order. `.setLiveHRInSync` can end the sync
+    /// (and so call back in here); the actions after it then find no link and do nothing.
+    private func apply(_ actions: [LiveHRAction]) {
+        for action in actions {
+            switch action {
+            case .setLiveHRInSync(let on):
+                guard phase == .syncing, var session else { continue }
+                let output = session.setLiveHR(on, at: Date())
+                self.session = session
+                handle(output, state: session.state)
+            case .connect:
+                startConnecting()
+            case .write(let frames):
+                write(frames)
+            case .stopScanning:
                 central.stopScan()
-                connectingForLiveHR = false
-                endLiveHRConnection()
-            } else if let peripheral {
-                // The attempt resolves through a callback or the connect timeout, quietly.
-                central.cancelPeripheralConnection(peripheral)
+            case .cancelConnecting:
+                if let peripheral { central.cancelPeripheralConnection(peripheral) }
+            case .disconnect:
+                connectTimer?.invalidate()
+                connectTimer = nil
+                commandCharacteristic = nil
+                subscribed = []
+                if let peripheral { central.cancelPeripheralConnection(peripheral) }
+            case .stopConnectTimeout:
+                connectTimer?.invalidate()
+                connectTimer = nil
+            case .showPhase(let shown):
+                phase = shown
+            case .scheduleRetry(let delay):
+                liveHRRetry?.invalidate()
+                liveHRRetry = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) {
+                    [weak self] _ in
+                    // Scheduled on the main run loop, so it fires on the main actor.
+                    MainActor.assumeIsolated { self?.liveHRRetryDue() }
+                }
+            case .cancelRetry:
+                liveHRRetry?.invalidate()
+                liveHRRetry = nil
+            case .keepLog(let entries):
+                keepLiveHRLog(entries)
+            case .logSkipped(let skipped):
+                logSkippedLiveHR(skipped)
             }
         }
     }
 
-    private func beginLiveSession() {
-        connectingForLiveHR = false
-        var live = LiveHRSession()
-        liveHRLog = []
-        let output = live.start(at: Date())
-        liveSession = live
-        handleLive(output)
-    }
-
-    private func handleLive(_ output: LiveHRSessionOutput) {
-        liveHRLog += output.syncLog
-        logSkippedLiveHR(output.skipped)
-        write(output.framesToSend)
-        noteLiveHR(output.readings)
+    private func liveHRRetryDue() {
+        liveHRRetry = nil
+        apply(liveHRLink.retryDue(facts: linkFacts, at: Date()))
     }
 
     /// Logs Live HR Frames that gave no reading, and why.
@@ -321,57 +225,9 @@ final class StrapConnection: NSObject, ObservableObject {
         }
     }
 
-    private func noteLiveHR(_ readings: [LiveHRReading]) {
-        guard let last = readings.last else { return }
-        liveHRReading = last
-        liveHRArrivedAt = Date()
-        liveHRConnection = .connected
-    }
-
-    /// Disconnects a connection that was only for Live HR, back to the phase it stood in for.
-    private func endLiveHRConnection() {
-        connectTimer?.invalidate()
-        connectTimer = nil
-        commandCharacteristic = nil
-        subscribed = []
-        if let peripheral { central.cancelPeripheralConnection(peripheral) }
-        phase = phaseBeforeLiveHR ?? .idle
-        phaseBeforeLiveHR = nil
-    }
-
-    /// While Live HR is wanted, tries again a moment after its connection failed or dropped
-    /// (a failed attempt itself takes up to `connectTimeout`).
-    private func scheduleLiveHRRetry() {
-        guard wantsLiveHR, liveHRRetry == nil else { return }
-        liveHRRetry = Timer.scheduledTimer(withTimeInterval: liveHRRetryDelay, repeats: false) {
-            [weak self] _ in
-            // Scheduled on the main run loop, so it fires on the main actor.
-            MainActor.assumeIsolated {
-                self?.liveHRRetry = nil
-                if self?.wantsLiveHR == true { self?.startLiveHR(retrying: true) }
-            }
-        }
-    }
-
-    /// Ends the Live HR session, if any, keeping its Sync Log; the caller deals with the link.
-    private func dropLiveSession() {
-        guard liveSession != nil else { return }
-        liveSession = nil
-        keepLiveHRLog()
-    }
-
-    /// Forgets a Live HR connection attempt and the phase it stood in for.
-    private func resetLiveHRConnectionState() {
-        connectingForLiveHR = false
-        phaseBeforeLiveHR = nil
-        startLiveHRWhenReady = false
-    }
-
-    /// Keeps the Live HR session's messages as the "Live HR" Sync Log, off the main thread.
-    private func keepLiveHRLog() {
-        guard !liveHRLog.isEmpty, case .success(let archive) = logArchive else { return }
-        let entries = liveHRLog
-        liveHRLog = []
+    /// Keeps a Live HR session's messages as the "Live HR" Sync Log, off the main thread.
+    private func keepLiveHRLog(_ entries: [SyncLogEntry]) {
+        guard case .success(let archive) = logArchive else { return }
         let previous = syncLogSave
         syncLogSave = Task.detached(priority: .utility) {
             await previous?.value
@@ -664,9 +520,10 @@ final class StrapConnection: NSObject, ObservableObject {
 
     private func startSync() {
         wantsSync = false
-        resetLiveHRConnectionState()
-        // The sync takes over Live HR on this connection: the stream carries on into it.
-        dropLiveSession()
+        // The sync takes over Live HR on this connection: the stream carries on into it. Live
+        // HR is turned on in it once it has started (`.setLiveHRInSync` needs a running sync).
+        let liveHRActions = liveHRLink.syncStarting()
+        defer { apply(liveHRActions) }
         if case .failure(let error) = store {
             fail("Couldn't open the History Record store: \(error.localizedDescription)", .other)
             return
@@ -676,13 +533,7 @@ final class StrapConnection: NSObject, ObservableObject {
         unsavedRecordTimes = []
         var session = HistorySync()
         let now = Date()
-        var output = session.start(at: now)
-        if wantsLiveHR {
-            let liveHROn = session.setLiveHR(true, at: now)
-            output.framesToSend += liveHROn.framesToSend
-            output.syncLog += liveHROn.syncLog
-            liveHROnInSync = true
-        }
+        let output = session.start(at: now)
         self.session = session
         syncStartedAt = now
         phase = .syncing
@@ -721,7 +572,6 @@ final class StrapConnection: NSObject, ObservableObject {
         if let session { keepSyncResults(of: session) }
         session = nil
         syncStartedAt = nil
-        liveHROnInSync = false
         syncTimer?.invalidate()
         syncTimer = nil
         // Anything still unsaved was never acknowledged, so the Strap sends it again; drop it
@@ -738,7 +588,11 @@ final class StrapConnection: NSObject, ObservableObject {
     /// sync if the session completed or failed.
     private func handle(_ output: HistorySyncOutput, state: HistorySyncState) {
         syncLog += output.syncLog
-        noteLiveHR(output.liveHRReadings)
+        // Only when there are readings: each change to the link redraws the screen, and a sync
+        // is ~100,000 Frames.
+        if !output.liveHRReadings.isEmpty {
+            liveHRLink.noteReadings(output.liveHRReadings, at: Date())
+        }
         logSkippedLiveHR(output.liveHRSkipped)
         historyRecordsReceived += output.historyRecords.count
         unsavedRecordTimes += output.historyRecords.map(\.timestamp)
@@ -791,7 +645,6 @@ final class StrapConnection: NSObject, ObservableObject {
         endSession()
         wantsSync = false
         wantsConnection = false
-        resetLiveHRConnectionState()
         phase = newPhase
         // Forget the link now, not when iOS reports the disconnect, so a quick "Sync now"
         // reconnects instead of writing to a connection that's closing.
@@ -801,23 +654,15 @@ final class StrapConnection: NSObject, ObservableObject {
             central.cancelPeripheralConnection(peripheral)
         }
         // Live HR, while still wanted, carries on on a connection of its own (spec 006).
-        if wantsLiveHR, liveSession == nil {
-            if liveHRReading == nil { liveHRConnection = .unavailable }
-            scheduleLiveHRRetry()
-        }
+        apply(liveHRLink.syncFinished())
     }
 
     private func fail(_ reason: String, _ cause: SyncFailureCause) {
-        if connectingForLiveHR, session == nil, !wantsSync {
-            // Live HR fails quietly: the pill shows "—" and the sync pill keeps what it showed
-            // (spec 006). No sync ran, so there's nothing of one to end.
-            connectingForLiveHR = false
-            central.stopScan()
-            endLiveHRConnection()
-            if liveHRReading == nil { liveHRConnection = .unavailable }
-            scheduleLiveHRRetry()
-            return
-        }
+        // Live HR's own attempt fails quietly: the pill shows "—" and the sync pill keeps what
+        // it showed (spec 006). No sync ran, so there's nothing of one to end.
+        let liveHR = liveHRLink.linkFailed(facts: linkFacts)
+        apply(liveHR.actions)
+        guard !liveHR.handled else { return }
         finish(as: .failed(reason, cause))
     }
 }
@@ -830,15 +675,13 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
             if wantsConnection {
                 wantsConnection = false
                 startConnecting()
-            } else if wantsLiveHR {
-                startLiveHR()
+            } else {
+                apply(liveHRLink.bluetoothOn(facts: linkFacts, at: Date()))
             }
         case .poweredOff, .resetting:
             // iOS may not report the disconnect, and the peripheral objects are no longer valid.
             let wasSyncing = phase == .syncing
-            dropLiveSession()
-            resetLiveHRConnectionState()
-            liveHRConnection = .unavailable
+            apply(liveHRLink.bluetoothOff())
             endSession()
             commandCharacteristic = nil
             subscribed = []
@@ -874,6 +717,7 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
         // Connected: pairing, if iOS needs it, happens next and isn't timed.
         connectTimer?.invalidate()
         connectTimer = nil
+        liveHRLink.linkConnected()
         peripheral.discoverServices([StrapGATT.service, StrapGATT.deviceInfoService])
     }
 
@@ -895,33 +739,11 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
     ) {
         commandCharacteristic = nil
         subscribed = []
-        if liveSession != nil {
-            // The Strap went out of range or off: the pill shows "—" until it's back.
-            dropLiveSession()
-            liveHRConnection = .unavailable
-        }
-        if session == nil, wantsSync, connectingForLiveHR, !wantsLiveHR {
-            // "Sync now" while a Live HR attempt Serenix had cancelled was still closing: that
-            // close isn't the sync's failure, so connect for the sync now.
-            connectingForLiveHR = false
-            phaseBeforeLiveHR = nil
-            phase = .idle
-            startConnecting()
-            return
-        }
-        if session == nil, !wantsSync, connectingForLiveHR || phaseBeforeLiveHR != nil {
-            // A connection only for Live HR ended: back to the phase it stood in for, and Live
-            // HR tries again while it's wanted.
-            connectingForLiveHR = false
-            connectTimer?.invalidate()
-            connectTimer = nil
-            phase = phaseBeforeLiveHR ?? .idle
-            phaseBeforeLiveHR = nil
-            scheduleLiveHRRetry()
-            return
-        }
-        // Live HR carries on after a sync ends, which disconnects (spec 001).
-        defer { if session == nil, liveSession == nil { scheduleLiveHRRetry() } }
+        // Live HR's own connection (or the link before it closing late) ends there; Live HR
+        // carries on after any other, e.g. a sync's, which disconnects (spec 001).
+        let liveHR = liveHRLink.linkDisconnected(facts: linkFacts)
+        apply(liveHR.actions)
+        guard !liveHR.handled else { return }
         switch phase {
         case .syncing:
             endSession()
@@ -1031,14 +853,8 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
         phase = .connected
         if wantsSync {
             startSync()
-        } else if connectingForLiveHR || startLiveHRWhenReady {
-            startLiveHRWhenReady = false
-            if wantsLiveHR {
-                beginLiveSession()
-            } else if connectingForLiveHR {
-                connectingForLiveHR = false
-                endLiveHRConnection()
-            }
+        } else {
+            apply(liveHRLink.linkReady(at: Date()))
         }
     }
 
@@ -1052,11 +868,9 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
         // A long gap means nothing arrived, whether the Strap went silent or iOS held Serenix
         // up; either way it counts as the Strap not responding (spec 001).
         if failIfStrapWentSilent(at: now) { return }
-        if phase != .syncing, var live = liveSession {
+        if phase != .syncing, liveHRLink.isStreaming {
             guard error == nil, let value = characteristic.value else { return }
-            let output = live.receive(Array(value), at: now)
-            liveSession = live
-            handleLive(output)
+            apply(liveHRLink.receive(Array(value), at: now))
             return
         }
         guard phase == .syncing, var session else { return }
@@ -1130,10 +944,6 @@ private enum StrapGATT {
         ]
     }
 }
-
-/// Seconds after Live HR's connection fails or drops before trying again, while the pill is on
-/// screen. An assumption: soon enough that a Strap back in range shows again within seconds.
-private let liveHRRetryDelay: TimeInterval = 1
 
 /// Seconds between screen redraws (and timeout checks) during a sync: often enough to watch the
 /// counts move, rare enough that drawing never competes with Bluetooth on the main thread.

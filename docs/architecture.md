@@ -27,6 +27,7 @@ The app is split in two (ADR 0002):
 |-----------|----------------|----------|
 | Protocol | Build command frames and decode Strap frames (CRC, header check, History Record layout). One decoder per Strap model | `src/SerenixCore/` |
 | Sync logic | The History Sync state machine: which commands to send, when to acknowledge, when a sync is complete. Transport-agnostic | `src/SerenixCore/` |
+| Live HR link | When Live HR runs and on which connection (in a sync or its own), quiet failures and retries, and the sync pill's phase meanwhile (ADR 0007) | `src/SerenixCore/` |
 | Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records | `src/SerenixCore/` |
 | Metrics & scores | Nightly Metrics, Baseline, Sleep Score, Readiness, Load | `src/SerenixCore/` |
 | BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |
