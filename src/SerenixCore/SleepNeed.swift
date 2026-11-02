@@ -7,6 +7,15 @@ struct SleepNeed: Equatable, Sendable {
     /// Usual Need for an adult, seconds (spec 009: 8 h; Garmin's figure under 65, within the
     /// NSF's 7–9 h).
     static let adultUsualNeed: TimeInterval = 8 * 60 * 60
+    /// How many Days before the Night's own Sleep Debt looks back (spec 009: the Nights dated
+    /// D − 7 to D − 1).
+    static let debtWindowDays = 7
+    /// The share of Sleep Debt added to Usual Need (spec 009: ¼; Kitamura 2016, 1 h of shortfall
+    /// took about 4 days to clear). Unitless.
+    static let debtShare = 0.25
+    /// The most Sleep Need may exceed Usual Need, seconds (spec 009: 1 h, holding an 8 h Usual
+    /// Need at the NSF's 9 h ceiling).
+    static let maxExtraNeed: TimeInterval = 60 * 60
 
     /// The Time Asleep the user needs with no Sleep Debt to repay, seconds.
     let usualNeed: TimeInterval
@@ -19,9 +28,19 @@ struct SleepNeed: Equatable, Sendable {
 
     /// The Sleep Need of the Night dated `day`, from the Nights before it.
     init(for day: Day, among nights: [Night]) {
-        usualNeed = Self.adultUsualNeed
-        sleepDebt = 0
-        sleepNeed = usualNeed
-        nightsCounted = 0
+        let usualNeed = Self.adultUsualNeed
+        self.usualNeed = usualNeed
+        // The Nights in the week before, the Night itself left out. One with no plausible Time
+        // Asleep is skipped, as if the Strap wasn't worn.
+        let window = day.adding(days: -Self.debtWindowDays)...day.adding(days: -1)
+        let timesAsleep =
+            nights
+            .filter { window.contains($0.day) }
+            .compactMap(\.plausibleTimeAsleep)
+        // Long Nights pay short ones back; no sleep is banked ahead.
+        let shortfall = timesAsleep.reduce(0) { $0 + usualNeed - $1 }
+        sleepDebt = max(shortfall, 0)
+        sleepNeed = usualNeed + min(Self.debtShare * sleepDebt, Self.maxExtraNeed)
+        nightsCounted = timesAsleep.count
     }
 }

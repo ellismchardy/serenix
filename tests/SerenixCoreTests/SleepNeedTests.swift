@@ -42,3 +42,120 @@ private func nightOn15Nov(timeAsleep: TimeInterval? = 8 * oneHour) -> Night {
     #expect(popup?.sleepDebtText == "0h 0m")
     #expect(popup?.sleepDebtCaption == "No earlier Nights")
 }
+
+/// A Night dated `day` Nov 2026 with Time Asleep `timeAsleep`.
+private func nightOnNov(_ day: Int, timeAsleep: TimeInterval?) -> Night {
+    Night(day: Day(year: 2026, month: 11, day: day), timeAsleep: timeAsleep)
+}
+
+/// Earlier Nights dated 14 Nov, 13 Nov and so on back, with the given Time Asleep in that order.
+private func earlierNights(_ timesAsleep: [TimeInterval?]) -> [Night] {
+    timesAsleep.enumerated().map { offset, timeAsleep in
+        nightOnNov(14 - offset, timeAsleep: timeAsleep)
+    }
+}
+
+@Test func aLongNightPaysBackAShortOneAndSleepNeedAddsAQuarterOfSleepDebt() {
+    let popup = todayView(nights: [nightOn15Nov()] + earlierNights([6 * oneHour, 9 * oneHour]))
+        .sleepPopup
+
+    #expect(popup?.sleepDebtText == "1h 0m")
+    #expect(popup?.sleepNeedText == "8h 15m")
+}
+
+@Test func sleepNeedIsCappedAtOneHourOverUsualNeed() {
+    let popup = todayView(
+        nights: [nightOn15Nov()] + earlierNights(Array(repeating: 6 * oneHour, count: 4))
+    )
+    .sleepPopup
+
+    #expect(popup?.sleepDebtText == "8h 0m")
+    #expect(popup?.sleepNeedText == "9h 0m")
+}
+
+@Test func sleepDebtIsNeverBelowZero() {
+    let popup = todayView(
+        nights: [nightOn15Nov()] + earlierNights([9 * oneHour, 9 * oneHour, 9 * oneHour])
+    )
+    .sleepPopup
+
+    #expect(popup?.sleepDebtText == "0h 0m")
+    #expect(popup?.sleepNeedText == "8h 0m")
+}
+
+@Test func theNightShownWithNoTimeAsleepStillHasASleepNeed() {
+    let popup = todayView(
+        nights: [nightOn15Nov(timeAsleep: nil)] + earlierNights([6 * oneHour, 9 * oneHour])
+    ).sleepPopup
+
+    #expect(popup?.sleepNeedText == "8h 15m")
+}
+
+// MARK: Window and skipping
+
+@Test func aNightDated8NovIsInsideTheWindow() {
+    let popup = todayView(nights: [nightOn15Nov(), nightOnNov(8, timeAsleep: 6 * oneHour)])
+        .sleepPopup
+
+    #expect(popup?.sleepDebtText == "2h 0m")
+    #expect(popup?.sleepNeedText == "8h 30m")
+    #expect(popup?.sleepDebtCaption == "Your last 1 Night")
+}
+
+@Test func aNightDated7NovIsOutsideTheWindow() {
+    let popup = todayView(nights: [nightOn15Nov(), nightOnNov(7, timeAsleep: 4 * oneHour)])
+        .sleepPopup
+
+    #expect(popup?.sleepDebtText == "0h 0m")
+    #expect(popup?.sleepNeedText == "8h 0m")
+    #expect(popup?.sleepDebtCaption == "No earlier Nights")
+}
+
+@Test func theShownNightsOwnTimeAsleepDoesNotCount() {
+    let popup = todayView(nights: [nightOn15Nov(timeAsleep: 4 * oneHour)]).sleepPopup
+
+    #expect(popup?.sleepDebtText == "0h 0m")
+    #expect(popup?.sleepNeedText == "8h 0m")
+    #expect(popup?.sleepDebtCaption == "No earlier Nights")
+}
+
+@Test func anEarlierNightWithNoPlausibleTimeAsleepIsSkipped() {
+    let popup = todayView(
+        nights: [
+            nightOn15Nov(),
+            nightOnNov(14, timeAsleep: 6 * oneHour),
+            nightOnNov(13, timeAsleep: nil),
+            nightOnNov(12, timeAsleep: -oneHour),
+            nightOnNov(11, timeAsleep: 6 * oneHour),
+        ]
+    ).sleepPopup
+
+    #expect(popup?.sleepDebtText == "4h 0m")
+    #expect(popup?.sleepNeedText == "9h 0m")
+    #expect(popup?.sleepDebtCaption == "Your last 2 Nights")
+}
+
+@Test func oneEarlierNightReadsYourLast1Night() {
+    let popup = todayView(nights: [nightOn15Nov()] + earlierNights([8 * oneHour])).sleepPopup
+
+    #expect(popup?.sleepDebtCaption == "Your last 1 Night")
+}
+
+@Test func sevenEarlierNightsReadYourLast7Nights() {
+    let popup = todayView(
+        nights: [nightOn15Nov()] + earlierNights(Array(repeating: 8 * oneHour, count: 7))
+    )
+    .sleepPopup
+
+    #expect(popup?.sleepDebtCaption == "Your last 7 Nights")
+}
+
+// MARK: Always current
+
+@Test func anEarlierNightAddedBySyncRaisesSleepNeed() {
+    let before = [nightOn15Nov()]
+    let after = before + [nightOnNov(14, timeAsleep: 6 * oneHour)]
+
+    #expect(todayView(nights: before).sleepPopup?.sleepNeedText == "8h 0m")
+    #expect(todayView(nights: after).sleepPopup?.sleepNeedText == "8h 30m")
+}

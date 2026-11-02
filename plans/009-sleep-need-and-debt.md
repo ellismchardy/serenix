@@ -38,7 +38,7 @@ view with its own private `todayView` helper, as `ReadinessTests.swift` does.
      `TodayView.swift`, `SleepNeedTests.swift` (new), `src/SerenixApp/TodayPopups.swift`
    - Done when: spec 009 criterion "With no earlier Nights, the Sleep popup shows Sleep Need
      '8h 0m', Sleep Debt '0h 0m' and 'No earlier Nights'".
-2. [ ] **Slice:** Sleep Debt — the Nights dated D − 7 to D − 1 (D left out), skipping Nights with
+2. [x] **Slice:** Sleep Debt — the Nights dated D − 7 to D − 1 (D left out), skipping Nights with
    no plausible Time Asleep; the sum of (Usual Need − Time Asleep), floored at 0; Sleep Need =
    Usual Need + ¼ of Sleep Debt, capped at +1 h; the caption "Your last N Nights" / "Your last
    1 Night".
