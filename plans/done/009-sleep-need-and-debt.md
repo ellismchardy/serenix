@@ -67,7 +67,7 @@ view with its own private `todayView` helper, as `ReadinessTests.swift` does.
      all four off → 7; the popup's Time Asleep row "7h 30m", "8h 0m", "−30m" / "+1h 10m" /
      "±0"); spec 009's Readiness criteria (62 with "8h 0m", "9h 0m", "−1h 0m"; 66, Steady);
      whole suite green.
-5. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+5. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; every automated success criterion in specs 009 and 008 checked.
    - Done when: the above pass and the criteria are ticked. Carried to the PR checklist (they
      need the PR): the macOS CI build, and by hand on the phone — the Sleep popup's Sleep Need
