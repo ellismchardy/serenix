@@ -55,7 +55,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
    - Files: `specs/006-load-popup.md`, `docs/architecture.md`, `specs/007-…md` (Notes only)
    - Done when: the merge is committed; `swift test`, lint and build are green.
 
-2. [ ] **Prefactor: shared motion minutes.** Move the minute binning and turn helpers out of
+2. [x] **Prefactor: shared motion minutes.** Move the minute binning and turn helpers out of
    `SleepPeriod.swift` into an internal type (e.g. `MotionMinutes`) without changing Sleep
    Period behaviour.
    - Files: `src/SerenixCore/SleepPeriod.swift`, new `src/SerenixCore/MotionMinutes.swift`

@@ -38,13 +38,9 @@ struct SleepPeriod: Equatable, Sendable {
     }
 }
 
-// Constants from hr-tracker `tools/sleep.py`, which set them by eye on two nights.
+// Constants from hr-tracker `tools/sleep.py`, which set them by eye on two nights. The
+// active-second rule and the fewest records a minute needs are in `MotionMinutes`.
 
-/// Degrees the Strap must turn in one second for that second to count as active (resting noise
-/// is ~0.2°). sleep.py `ACTIVE_DEG`.
-private let activeDegrees = 2.0
-/// Seconds: the longest gap between two records whose turn still counts. sleep.py `minutes()`.
-private let longestActiveGap = 2.0
 /// Active seconds in one minute that alone make it a wake minute. sleep.py `WAKE_ACTIVE`.
 private let wakeActiveSeconds = 10
 /// Median active seconds over the 5 minutes centred on a minute that make it a wake minute.
@@ -62,16 +58,13 @@ private let longestHeartRateExtension = 10
 private let shortestSleepRun = 7
 /// Minutes: wake shorter than this stays inside one Sleep Period. sleep.py `MERGE_GAP`.
 private let longestMergedWake = 60
-/// Records a minute needs to count; fewer means off-wrist or not recorded. sleep.py
-/// `MIN_SAMPLES`.
-private let fewestRecordsPerMinute = 30
 /// Active seconds in a minute of being up and about. sleep.py `UP_ACTIVE`.
 private let upActiveSeconds = 30
 /// Minutes in a row of being up that mean out of bed. sleep.py `UP_RUN`.
 private let upMinutes = 3
 
 /// Seconds in a minute, for minute starts and Time Asleep.
-private let secondsPerMinute = 60.0
+private let secondsPerMinute = MotionMinutes.secondsPerMinute
 
 /// One UTC minute that has enough records.
 private struct Minute {
@@ -92,24 +85,16 @@ private enum Label: Equatable {
 private func minuteTable(_ records: [HistoryRecord]) -> [Minute?] {
     guard let first = records.first, let last = records.last else { return [] }
     var heartRates: [Int: [Int]] = [:]
-    var activeSeconds: [Int: Int] = [:]
-    var previous: (time: TimeInterval, motion: [Double])?
     for record in records {
-        let time = record.timestamp.timeIntervalSince1970
-        let motion = normalised(record.motion)
-        let minute = minuteIndex(time)
+        let minute = MotionMinutes.minuteIndex(record.timestamp.timeIntervalSince1970)
         heartRates[minute, default: []].append(record.heartRate)
-        if let previous, time - previous.time > 0, time - previous.time <= longestActiveGap,
-            turn(from: previous.motion, to: motion) > activeDegrees
-        {
-            activeSeconds[minute, default: 0] += 1
-        }
-        previous = (time, motion)
     }
-    let firstMinute = minuteIndex(first.timestamp.timeIntervalSince1970)
-    let lastMinute = minuteIndex(last.timestamp.timeIntervalSince1970)
+    let activeSeconds = MotionMinutes.activeSeconds(in: records)
+    let firstMinute = MotionMinutes.minuteIndex(first.timestamp.timeIntervalSince1970)
+    let lastMinute = MotionMinutes.minuteIndex(last.timestamp.timeIntervalSince1970)
     return (firstMinute...lastMinute).map { minute in
-        guard let rates = heartRates[minute], rates.count >= fewestRecordsPerMinute else {
+        guard let rates = heartRates[minute], rates.count >= MotionMinutes.fewestRecordsPerMinute
+        else {
             return nil
         }
         return Minute(
@@ -118,23 +103,6 @@ private func minuteTable(_ records: [HistoryRecord]) -> [Minute?] {
             activeSeconds: activeSeconds[minute, default: 0]
         )
     }
-}
-
-private func minuteIndex(_ time: TimeInterval) -> Int {
-    Int((time / secondsPerMinute).rounded(.down))
-}
-
-/// The four motion values scaled to unit length (left as they are when all are 0).
-private func normalised(_ motion: [Float]) -> [Double] {
-    let values = motion.map(Double.init)
-    let length = values.map { $0 * $0 }.reduce(0, +).squareRoot()
-    return values.map { $0 / (length == 0 ? 1 : length) }
-}
-
-/// Degrees turned between two unit quaternions: 2·acos(|q₁·q₂|).
-private func turn(from previous: [Double], to current: [Double]) -> Double {
-    let dot = min(1, abs(zip(current, previous).map { $0 * $1 }.reduce(0, +)))
-    return 2 * acos(dot) * 180 / .pi
 }
 
 /// Each minute labelled sleep or wake (nil without data). sleep.py `classify()`.
