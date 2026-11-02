@@ -283,3 +283,58 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
 
     #expect(view.tile(.sleepingHR)?.zone == zone)
 }
+
+// MARK: Readiness popup
+
+@Test func readinessPopupListsHRVThenSleepingHRThenTimeAsleep() {
+    let view = readinessView(for: nightOn15Nov())
+
+    #expect(view.readinessPopup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep"])
+}
+
+@Test func readinessPopupShowsTimeAsleepShortOfSevenHours() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 6 * oneHour + 30 * 60))
+    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+
+    #expect(row?.valueText == "6h 30m")
+    #expect(row?.baselineText == "7h")
+    #expect(row?.differenceText == "\u{2212}30m")
+}
+
+@Test func readinessPopupShowsTimeAsleepPastSevenHours() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 8 * oneHour + 10 * 60))
+    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+
+    #expect(row?.valueText == "8h 10m")
+    #expect(row?.baselineText == "7h")
+    #expect(row?.differenceText == "+1h 10m")
+}
+
+@Test func readinessPopupShowsTimeAsleepOfExactlySevenHours() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 7 * oneHour))
+    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+
+    #expect(row?.valueText == "7h 0m")
+    #expect(row?.baselineText == "7h")
+    #expect(row?.differenceText == "\u{00B1}0")
+}
+
+// MARK: Bad stored values (docs/architecture.md, Errors)
+
+@Test func aNegativeTimeAsleepCountsAsMissingInReadinessAndThePopup() {
+    // Dropped, so HRV and Sleeping HR at their Baselines give the usual 70.
+    let view = readinessView(for: nightOn15Nov(timeAsleep: -8 * oneHour))
+    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+
+    #expect(view.readinessText == "70")
+    #expect(row?.valueText == "—")
+    #expect(row?.baselineText == "7h")
+    #expect(row?.differenceText == "—")
+}
+
+@Test func anInfiniteHRVCountsAsNoHRV() {
+    let view = readinessView(for: nightOn15Nov(hrv: .infinity))
+
+    #expect(view.readinessText == "—")
+    #expect(view.readinessBand == nil)
+}

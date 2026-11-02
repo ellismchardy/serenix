@@ -67,7 +67,7 @@ private struct ReadinessPopupView: View {
         }
     }
 
-    /// HRV and Sleeping HR: last night, Baseline and the difference.
+    /// Readiness's inputs: last night, what it's measured against, and the difference.
     private var rows: some View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
             GridRow {
@@ -77,9 +77,9 @@ private struct ReadinessPopupView: View {
                 Text("")
             }
             .font(.footnote)
-            ForEach(popup.rows, id: \.metric) { row in
+            ForEach(popup.rows, id: \.name) { row in
                 GridRow {
-                    Text(row.metric.name)
+                    Text(row.name)
                     Text(row.valueText).monospacedDigit()
                     Text(row.baselineText).monospacedDigit()
                     Text(row.differenceText).monospacedDigit()

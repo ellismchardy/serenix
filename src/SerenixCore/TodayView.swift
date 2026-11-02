@@ -219,7 +219,7 @@ public struct TodayView: Equatable, Sendable {
                         band: readinessBand,
                         rows: VsBaseline.metrics.compactMap { metric in
                             tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
-                        },
+                        } + [ReadinessPopupRow(timeAsleep: night?.plausibleTimeAsleep)],
                         sleepScoreText: sleepScoreText,
                         baselineNote:
                             "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",

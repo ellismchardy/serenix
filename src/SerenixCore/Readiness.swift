@@ -16,7 +16,9 @@ enum Readiness {
     /// Load scale.
     static let loadPerScoreUnit = 20.0
     /// Time Asleep at or above this costs nothing, seconds (spec 008: 7 h, until Sleep Need).
-    static let timeAsleepMark: TimeInterval = 7 * 60 * 60
+    static let timeAsleepMark: TimeInterval = 7 * secondsPerHour
+    /// Seconds in an hour, for Time Asleep in hours.
+    static let secondsPerHour: TimeInterval = 60 * 60
     /// Each input's score is clamped to this far either side of usual (spec 008), in score units:
     /// Spreads, hours for Time Asleep, or `loadPerScoreUnit` Load points for the previous Day's
     /// Load.
@@ -37,20 +39,21 @@ enum Readiness {
         sleepingHR: Baseline,
         dayLoads: [DayLoad]
     ) -> Int? {
-        guard let hrvValue = night.hrv, hrvValue > 0,
+        // Bad stored values count as missing (docs/architecture.md, Errors).
+        guard let hrvValue = night.value(of: .hrv), hrvValue > 0,
             let hrvMedian = hrv.median, hrvMedian > 0, let hrvSpread = hrv.spread
         else { return nil }
         // Each input's score is positive when better than usual. Missing inputs are left out.
         var inputs: [(score: Double, weight: Double)] = [
             ((log(hrvValue) - log(hrvMedian)) / hrvSpread, hrvWeight)
         ]
-        if let value = night.sleepingHR, let median = sleepingHR.median,
+        if let value = night.value(of: .sleepingHR), let median = sleepingHR.median,
             let spread = sleepingHR.spread
         {
             inputs.append((-(value - median) / spread, sleepingHRWeight))
         }
-        if let timeAsleep = night.timeAsleep {
-            let hoursShort = max(timeAsleepMark - timeAsleep, 0) / (60 * 60)
+        if let timeAsleep = night.plausibleTimeAsleep {
+            let hoursShort = max(timeAsleepMark - timeAsleep, 0) / secondsPerHour
             inputs.append((-hoursShort, timeAsleepWeight))
         }
         // The previous Day's Load costs only above its typical Load; dropped while either is

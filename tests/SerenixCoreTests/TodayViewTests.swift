@@ -1420,10 +1420,13 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 
     #expect(popup?.readinessText == "81")
     #expect(popup?.band == .ready)
-    #expect(popup?.rows.map(\.metric) == [.hrv, .sleepingHR])
-    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm"])
-    #expect(popup?.rows.map(\.baselineText) == ["60 ms", "52 bpm"])
-    #expect(popup?.rows.map(\.differenceText) == ["+14%", "\u{2212}3 bpm"])
+    #expect(popup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep"])
+    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "4h 0m"])
+    #expect(popup?.rows.map(\.baselineText) == ["60 ms", "52 bpm", "7h"])
+    // A whole-hour difference keeps its minutes, as the Time Asleep tile does ("7h 0m").
+    #expect(
+        popup?.rows.map(\.differenceText) == ["+14%", "\u{2212}3 bpm", "\u{2212}3h 0m"]
+    )
     #expect(popup?.sleepScoreText == "84")
     #expect(popup?.baselineNote == "Baseline: your last 3 Nights")
     #expect(popup?.calibratingText == nil)
@@ -1435,7 +1438,13 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(baselineComparisons(view)?.map(\.metric.name) == ["HRV", "Sleeping HR"])
-    #expect(view.readinessPopup?.rows.map(\.metric.name) == ["HRV", "Sleeping HR"])
+    #expect(view.readinessPopup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep"])
+    // This Night has no Time Asleep, so its row reads "—" against 7 h.
+    #expect(view.readinessPopup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "\u{2014}"])
+    #expect(view.readinessPopup?.rows.map(\.baselineText) == ["60 ms", "52 bpm", "7h"])
+    #expect(
+        view.readinessPopup?.rows.map(\.differenceText) == ["+14%", "\u{2212}3 bpm", "\u{2014}"]
+    )
 }
 
 @Test func readinessPopupBaselineNoteCountsAtMostFourteenNights() {

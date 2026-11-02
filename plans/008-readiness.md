@@ -63,7 +63,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
      65 … 85, 61 … 200 … 56", "All four off at once … 10"; criteria "only three Days … 70 … no
      Load on 14 Nov, also 70" and "Readiness follows the Days … 70 … 61". Time Asleep "6 h 59 m
      reads 70; 9 h reads 70" if not already covered in task 1.
-6. [ ] **Slice:** the Readiness popup's Time Asleep row — rows no longer tied to a Nightly
+6. [x] **Slice:** the Readiness popup's Time Asleep row — rows no longer tied to a Nightly
    Metric (each carries its own name), HRV and Sleeping HR unchanged, then Time Asleep with
    reference "7h" and an h/m difference ("−30m", "+1h 10m", "±0"). The shell's popup view shows
    the row name from `SerenixCore`.

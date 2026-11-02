@@ -6,7 +6,7 @@ public struct ReadinessPopup: Equatable, Sendable {
     /// As on the ring: the number, or "n/4" while Calibrating.
     public let readinessText: String
     public let band: ReadinessBand?
-    /// HRV, then Sleeping HR; none while Calibrating.
+    /// HRV, Sleeping HR, then Time Asleep; none while Calibrating.
     public let rows: [ReadinessPopupRow]
     /// Nil while Calibrating.
     public let sleepScoreText: String?
@@ -16,21 +16,51 @@ public struct ReadinessPopup: Equatable, Sendable {
     public let calibratingText: String?
 }
 
-/// One metric in the Readiness popup.
+/// One input to Readiness in the Readiness popup (spec 008, Readiness popup).
 public struct ReadinessPopupRow: Equatable, Sendable {
-    public let metric: NightlyMetric
+    /// e.g. "HRV", "Time Asleep".
+    public let name: String
     /// As on the tile.
     public let valueText: String
-    /// The Baseline as a whole number with its unit, e.g. "60 ms"; "Calibrating" while it is.
+    /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
+    /// ms" ("Calibrating" while it is), or "7h" for Time Asleep.
     public let baselineText: String
-    /// As on the tile.
+    /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep.
     public let differenceText: String
 
     init(_ tile: MetricTile) {
-        metric = tile.metric
+        name = tile.metric.name
         valueText = tile.valueText
         baselineText = tile.baseline.map { formattedValue(of: tile.metric, $0) } ?? "Calibrating"
         differenceText = tile.differenceText
+    }
+
+    /// The Night's Time Asleep against Readiness's 7 h mark, e.g. "6h 30m", "7h", "−30m".
+    init(timeAsleep: TimeInterval?) {
+        name = "Time Asleep"
+        valueText = timeAsleep.map(durationText) ?? missingText
+        baselineText = "\(Int(Readiness.timeAsleepMark / Readiness.secondsPerHour))h"
+        differenceText =
+            timeAsleep.map { Self.differenceText($0 - Readiness.timeAsleepMark) }
+            ?? missingText
+    }
+
+    /// A signed difference in whole minutes: "−30m", "+1h 10m", "±0".
+    private static func differenceText(_ seconds: TimeInterval) -> String {
+        guard let minutes = Int(exactly: (seconds / 60).rounded()) else { return missingText }
+        let (hours, rest) = (abs(minutes) / 60, abs(minutes) % 60)
+        return signedText(minutes, magnitude: hours > 0 ? "\(hours)h \(rest)m" : "\(rest)m")
+    }
+}
+
+/// A signed difference for a popup: "+12", "−5" or "±0" (spec 006 and 008), with `magnitude`
+/// as the size shown after the sign (by default the number itself).
+func signedText(_ difference: Int, magnitude: String? = nil) -> String {
+    let shown = magnitude ?? "\(abs(difference))"
+    return switch difference {
+    case 1...: "+\(shown)"
+    case 0: "\u{00B1}0"
+    default: "\u{2212}\(shown)"
     }
 }
 
@@ -224,14 +254,7 @@ public struct LoadPopup: Equatable, Sendable {
             return "Typical Load after \(TypicalLoad.minimumDays) Days (\(soFar) so far)"
         case .value(let typical):
             guard let load else { return "Typical: \(typical)" }
-            let difference = load - typical
-            let signed =
-                switch difference {
-                case 1...: "+\(difference)"
-                case 0: "\u{00B1}0"
-                default: "\u{2212}\(-difference)"
-                }
-            return "Typical: \(typical) \u{00B7} \(dayWord) \(signed)"
+            return "Typical: \(typical) \u{00B7} \(dayWord) \(signedText(load - typical))"
         }
     }
 }
