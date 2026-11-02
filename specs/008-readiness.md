@@ -81,7 +81,8 @@ a reference and a difference:
   hours and minutes ("−30m", "+1h 10m", "±0").
 - **Yesterday's Load:** the previous Day's Load ("85"), its typical Load ("Typical 45"), and the
   signed difference ("+40", "−5", "±0"), as in spec 006. With the Load missing, the value and
-  difference read "—"; with typical Load calibrating, the reference reads "Calibrating".
+  difference read "—"; with typical Load calibrating, the reference reads "Calibrating" and the
+  difference "—", as there's nothing to measure against.
 
 Sleep Score stays as it is. While Readiness is Calibrating the popup keeps its Calibrating
 explanation.
@@ -156,8 +157,8 @@ Popup:
       order. Time Asleep 6 h 30 m reads "6h 30m", "7h", "−30m"; 8 h 10 m reads "+1h 10m"; 7 h
       reads "±0".
 - [ ] Yesterday's Load 85 over typical 45 reads "85", "Typical 45", "+40"; 40 reads "−5"; with no
-      Load on 14 Nov, "—", "Typical 45", "—"; with typical Load calibrating, the reference reads
-      "Calibrating".
+      Load on 14 Nov, "—", "Typical 45", "—"; with typical Load calibrating (14 Nov at 85),
+      "85", "Calibrating", "—".
 
 Build and phone:
 - [ ] No `SerenixCore` type still carries a stored Readiness on a Night.
