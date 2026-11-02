@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-02 · **Unblocks:** the Sleep Need and Sleep Debt rules (issue #34), which
 also move Readiness's Time Asleep input from a fixed 7 h mark to the Night's Sleep Need
-(question: issue #32)
+(issue #34; research for issue #32)
 
 ## Answer
 - **Typical need comes from one of two sources: the person's own Nights, or a fixed figure by
@@ -11,8 +11,8 @@ also move Readiness's Time Asleep input from a fixed 7 h mark to the Night's Sle
   long nights. Garmin starts from an age figure (about 8 h under 35, about 7.5 h over 65) and
   keeps every recommendation between 7 h and 9 h. The guidelines give the fixed fallback:
   AASM/SRS say 7 h or more for adults, and NSF says 7–9 h (7–8 h for adults 65 and over). In the
-  research, need differs from person to person by about ±1 h around 8.4 h (Kitamura 2016: 7.3–9.3
-  h in 15 young men). Nobody publishes the exact estimator.
+  research, need averages about 8.4 h and ranges about 7.3–9.3 h from person to person (Kitamura 2016,
+  15 young men). Nobody publishes the exact estimator.
 - **Debt looks back days to two weeks. Oura and the research show that it is repaid slowly.**
   Oura adds up the shortfall against need over the **past 14 days, with recent days weighted
   more**. Garmin says the three previous nights "can play a role", and also counts extra sleep
@@ -28,15 +28,14 @@ also move Readiness's Time Asleep input from a fixed 7 h mark to the Night's Sle
   amount of extra need per unit of Load.
 - **Vendors that see naps take them off the need (WHOOP, Garmin) or count them as sleep (Oura).**
   WHOOP's API shows nap need as zero or negative, and Garmin says naps "will never increase"
-  need. Serenix doesn't detect Naps, so it can only leave them out. A user who naps will then
-  look as if they owe more Sleep Debt than they do.
-- **New users get population defaults or nothing.** Oura shows Sleep Debt only after 5 Nights in
+  need. Serenix doesn't detect Naps today. While it doesn't, a user who naps will look as if they
+  owe more Sleep Debt than they do.
+- **New users get population defaults or nothing.** Oura shows Sleep Debt only after 5 nights in
   the past 14 days. Its Readiness takes up to 2 weeks to learn averages. Fitbit's Labs feature
   asks for at least 5 days of wear. Garmin always has its age figure to fall back on. WHOOP
   calibrates its baselines over the first weeks of wear (2–4 weeks, depending on the source).
-  A rule that would match these: use a fixed figure (say 8 h, kept within 7–9 h) until enough
-  Nights exist, then use the person's own figure. That rule is an inference from the sources, not
-  something any of them publishes.
+  The pattern across them: Garmin and the guidelines fall back on a fixed figure, while Oura and
+  WHOOP switch to a learned one once they have enough nights.
 
 ## Findings
 
@@ -201,10 +200,10 @@ also move Readiness's Time Asleep input from a fixed 7 h mark to the Night's Sle
 | | Typical need | Debt look-back | Repayment / decay | Exertion | Naps | New user |
 |---|---|---|---|---|---|---|
 | WHOOP | learned from own sleep (~28 days cited) | unpublished | unpublished | adds need | subtract | population figures while calibrating |
-| Oura | own last 90 days, outliers dropped | 14 days, recent weighted more | "a few consistent nights"; unpublished | not used | count as sleep | Sleep Debt needs 5 Nights in 14 days |
+| Oura | own last 90 days, outliers dropped | 14 days, recent weighted more | "a few consistent nights"; unpublished | not used | count as sleep | Sleep Debt needs 5 nights in 14 days |
 | Garmin | by age (8 h → 7.5 h), adjusted | about 3 nights | banks extra sleep; unpublished | adds or subtracts | subtract, never add | age figure; 7–9 h bounds |
 | Fitbit (Labs) | sleep + daytime surveys | unpublished | unpublished | unpublished | unpublished | ~5 days of wear |
-| Research | ~8.4 ± ~1 h (young adults); less with age | n/a | exponential; 1 h takes ~4 days; one 10 h night not enough | small effect | n/a | guideline 7–9 h |
+| Research | ~8.4 h, range ~7.3–9.3 h (young adults); less with age | n/a | exponential; 1 h takes ~4 days; one 10 h night not enough | small effect | n/a | guideline 7–9 h |
 
 ## Open / uncertain
 - **No vendor publishes a formula.** None gives the debt look-back for WHOOP and Garmin, the
@@ -217,8 +216,8 @@ also move Readiness's Time Asleep input from a fixed 7 h mark to the Night's Sle
   couldn't be read, and the main-app sleep need and debt metrics seemed unreleased as of January
   2026.
 - **Learning need from free-living sleep is biased.** Kitamura's habitual sleep was about 1 h
-  under the need measured under lab conditions. A median of the user's own Time Asleep (as Oura
-  does) may learn a chronically short sleeper's habit, not their need. Garmin's 7 h floor and the
+  under the need measured under lab conditions. A typical value of the user's own Time Asleep (as Oura
+  uses) may learn a chronically short sleeper's habit, not their need. Garmin's 7 h floor and the
   guideline floor of 7 h are one guard against that. This is an inference.
 - **Repayment dynamics come from small lab studies** (n = 15 to about 160, mostly young). The
   "4 days per hour" figure is a single study's estimate, and Banks 2010 measured one recovery
@@ -228,7 +227,7 @@ also move Readiness's Time Asleep input from a fixed 7 h mark to the Night's Sle
   so adding it to Sleep Need too would count it twice in Readiness. That is a design point, not a
   finding.
 - **Naps:** Serenix doesn't detect Naps (and a Nap never makes a Night), so napping users will
-  show more Sleep Debt than they carry. This limitation should be stated in the spec.
+  show more Sleep Debt than they carry.
 - **Age:** need falls with age (NSF 7–8 h for 65 and over; Klerman & Dijk; Garmin). The Profile's
   optional birth year could set the fixed fallback, but no source publishes a curve beyond these
   points.

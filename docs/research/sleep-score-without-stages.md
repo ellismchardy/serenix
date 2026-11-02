@@ -25,12 +25,12 @@ issue #33)
   reached little or no consensus that sleep architecture (stages) does. Sleep regularity, as
   measured by the Sleep Regularity Index, predicted all-cause mortality more strongly than
   sleep duration in about 61,000 UK Biobank participants.
-- **Serenix can compute every non-stage input.** These are Time Asleep against Sleep Need;
+- **Serenix could compute every non-stage input from data it already has.** These are Time Asleep against Sleep Need;
   efficiency (Time Asleep ÷ Time in Bed); wake bouts inside the Sleep Period, as a count over
   5 minutes and total minutes; latency (from the start of Time in Bed to Sleep Onset);
   regularity of Sleep Onset and Final Wake over recent Nights; and Sleeping HR against its
   Baseline as a restoration signal. What it loses without stages is the REM and deep sleep
-  share, which is 25 of 100 points in Fitbit's widely reported split, 2 of 6 averaged
+  share, which is 25 of 100 points in Fitbit's widely reported (unverified) split, 2 of 6 averaged
   components at Polar, and 2 of 7 contributors at Oura.
 - **Few weights are published, and bands differ by vendor.** Fitbit's 50/25/25 split (time
   asleep / deep and REM / restoration) comes from Fitbit community moderators, not official
