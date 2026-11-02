@@ -161,6 +161,15 @@ Heart-rate variability during a Sleep Period, expressed as RMSSD in milliseconds
 Serenix's rating of how well the user slept in one Sleep Period.
 _Avoid_: sleep performance, sleep quality
 
+**Sleep Sufficiency**:
+The part of Sleep Score that rates how much of their Sleep Need the user's Time Asleep met.
+_Avoid_: hours vs needed, duration score
+
+**Sleep Consistency**:
+The part of Sleep Score that rates how close the user's Sleep Onset and Final Wake came to their
+usual times over recent Nights.
+_Avoid_: regularity, sleep timing
+
 **Calibrating**:
 The state of Readiness while too few Nights exist to form an HRV or Sleeping HR Baseline.
 
