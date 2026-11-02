@@ -137,16 +137,21 @@ public struct DayLoad: Equatable, Codable, Sendable {
     /// HR, and for a Day worked out before spec 006 whose records are gone. There even when Load
     /// is missing because Max HR isn't above Resting HR: HR Zones need only Max HR.
     public var heartRate: DayHeartRate?
+    /// The Day's Resting HR (spec 007), bpm; nil when the Day has none, including every Day
+    /// stored before spec 007 until it's rebuilt.
+    public var restingHR: Double?
 
     public init(
         day: Day,
         load: Int?,
         missingReason: LoadMissing? = nil,
-        heartRate: DayHeartRate? = nil
+        heartRate: DayHeartRate? = nil,
+        restingHR: Double? = nil
     ) {
         self.day = day
         self.load = load
         self.missingReason = missingReason
         self.heartRate = heartRate
+        self.restingHR = restingHR
     }
 }

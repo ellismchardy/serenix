@@ -127,7 +127,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
      test
    - Done when: those spec 007 criteria pass, and the real-fixture-Day criterion passes in full.
 
-8. [ ] **Load reads Days' Resting HR.**
+8. [x] **Load reads Days' Resting HR.**
    - `DayLoad` gains `restingHR: Double?`.
    - `load(of:records:…)` takes the Days (`[DayLoad]`) in place of the Nights.
    - `LoadMethod.restingHR(for:among:)` takes the median of up to 14 Days on or before the Day,

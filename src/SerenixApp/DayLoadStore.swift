@@ -80,10 +80,12 @@ enum DayLoadStore {
         let context = ModelContext(container)
         context.autosaveEnabled = false
         let records = try NightStore.historyRecords(in: rebuild.records, context: context)
+        // Stored Days have no Resting HR until task 9 of plan 007 stores it, so Load uses the
+        // 60 bpm fallback meanwhile.
         let dayLoad = SerenixCore.load(
             of: rebuild.day,
             records: records,
-            nights: nights,
+            days: try dayLoads(in: container),
             profile: profile,
             in: timeZone
         )

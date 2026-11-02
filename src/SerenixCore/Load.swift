@@ -4,40 +4,49 @@ import Foundation
 /// counting only heart rates at or over the floor, scaled to 0–100. Max HR is the one entered,
 /// else estimated from age in the Day's year. Missing with no History Records or no Max HR. Only
 /// records from the Day's local midnight to the next local midnight count; their order and any
-/// repeats don't matter. Resting HR comes from the Nights; missing too when Max HR isn't above it.
+/// repeats don't matter. Resting HR comes from `days`; missing too when Max HR isn't above it.
 /// With records and a Max HR, it also carries the Day's HR Zones and the Max HR used (spec 006).
+/// It always carries the Day's own Resting HR from `days` (spec 007), nil when it has none. When
+/// `days` holds a Day more than once, its last entry wins, so a rebuild can pass the stored Days
+/// followed by this Day's new Resting HR.
 public func load(
     of day: Day,
     records: [HistoryRecord],
-    nights: [Night],
+    days: [DayLoad],
     profile: Profile,
     in timeZone: TimeZone
 ) -> DayLoad {
+    let latest = Array(Dictionary(days.map { ($0.day, $0) }) { _, later in later }.values)
+    var dayLoad = DayLoad(
+        day: day,
+        load: nil,
+        restingHR: latest.first { $0.day == day }?.restingHR
+    )
     let span = day.span(in: timeZone)
     var seen = Set<String>()
     let unique = records.filter {
         span.start <= $0.timestamp && $0.timestamp < span.end && seen.insert($0.identity).inserted
     }
-    guard !unique.isEmpty else { return DayLoad(day: day, load: nil, missingReason: .noRecords) }
+    guard !unique.isEmpty else {
+        dayLoad.missingReason = .noRecords
+        return dayLoad
+    }
     let maxHRUsed: MaxHRUsed
     if let entered = profile.maxHR {
         maxHRUsed = MaxHRUsed(bpm: Double(entered), source: .entered)
     } else if let estimated = profile.estimatedMaxHR(in: day.year) {
         maxHRUsed = MaxHRUsed(bpm: estimated, source: .estimated)
     } else {
-        return DayLoad(day: day, load: nil, missingReason: .noMaxHR)
+        dayLoad.missingReason = .noMaxHR
+        return dayLoad
     }
     let maxHR = maxHRUsed.bpm
     let heartRates = unique.map(\.heartRate)
-    let heartRate = DayHeartRate(records: unique, span: span, maxHRUsed: maxHRUsed)
-    let restingHR = LoadMethod.restingHR(for: day, among: nights)
+    dayLoad.heartRate = DayHeartRate(records: unique, span: span, maxHRUsed: maxHRUsed)
+    let restingHR = LoadMethod.restingHR(for: day, among: latest)
     guard maxHR > restingHR else {
-        return DayLoad(
-            day: day,
-            load: nil,
-            missingReason: .maxHRNotAboveRestingHR,
-            heartRate: heartRate
-        )
+        dayLoad.missingReason = .maxHRNotAboveRestingHR
+        return dayLoad
     }
     let constants = LoadMethod.BanisterConstants(for: profile.sex)
     let sum = LoadMethod.trimp(
@@ -46,11 +55,8 @@ public func load(
         maxHR: maxHR,
         constants: constants
     )
-    return DayLoad(
-        day: day,
-        load: LoadMethod.scaled(sum, constants: constants),
-        heartRate: heartRate
-    )
+    dayLoad.load = LoadMethod.scaled(sum, constants: constants)
+    return dayLoad
 }
 
 /// The pieces of Load's method (spec 005; issue 16; docs/research/cardio-load-methods.md).
@@ -71,21 +77,21 @@ enum LoadMethod {
         }
     }
 
-    /// Resting HR with no Nights, bpm. Assumption: a typical adult value (issue 16).
+    /// Resting HR with no Days that have one, bpm. Assumption: a typical adult value (issue 16).
     static let fallbackRestingHR = 60.0
-    /// At most this many of the most recent Nights give Resting HR (issue 16; as Baseline's 14).
-    static let restingHRNights = 14
+    /// At most this many of the most recent Days give Resting HR (issue 16; as Baseline's 14).
+    static let restingHRDays = 14
 
-    /// The median Resting HR of up to `restingHRNights` of the most recent Nights dated on or
-    /// before `day`, so the Night that ended that morning counts; Nights without one are skipped.
+    /// The median Resting HR (spec 007) of up to `restingHRDays` of the most recent Days on or
+    /// before `day`, so the Day's own Resting HR so far counts; Days without one are skipped.
     /// With none, `fallbackRestingHR`.
-    static func restingHR(for day: Day, among nights: [Night]) -> Double {
+    static func restingHR(for day: Day, among days: [DayLoad]) -> Double {
         let recent =
-            nights
+            days
             .filter { $0.day <= day }
             .sorted { $0.day > $1.day }
-            .compactMap(\.sleepingHR)
-            .prefix(restingHRNights)
+            .compactMap(\.restingHR)
+            .prefix(restingHRDays)
         return recent.isEmpty ? fallbackRestingHR : median(of: Array(recent))
     }
 

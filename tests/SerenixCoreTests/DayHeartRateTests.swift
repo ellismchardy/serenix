@@ -24,12 +24,12 @@ private let oneHour = 3_600
 private let tenMinutes = 600
 private let man = Profile(name: nil, sex: .male, maxHR: 190)
 
-/// The Load of 4 Nov 2026 in London from `records`, with no Nights.
+/// The Load of 4 Nov 2026 in London from `records`, with no Days with a Resting HR.
 private func loadOfFourthOfNovember(
     _ records: [HistoryRecord],
     profile: Profile = man
 ) -> DayLoad {
-    load(of: fourthOfNovember, records: records, nights: [], profile: profile, in: london)
+    load(of: fourthOfNovember, records: records, days: [], profile: profile, in: london)
 }
 
 @Test func anHourAt164BpmIsAnHourInHRZone4WithTheEnteredMaxHR() {
@@ -113,12 +113,12 @@ private func loadOfFourthOfNovember(
 
 @Test func withMaxHRNotAboveRestingHRTheHRZonesAreStillThere() {
     let maxHR100 = Profile(name: nil, sex: .male, maxHR: 100)
-    let restingHR100 = Night(day: fourthOfNovember, sleepingHR: 100)
+    let restingHR100 = DayLoad(day: fourthOfNovember, load: nil, restingHR: 100)
 
     let result = load(
         of: fourthOfNovember,
         records: historyRecords(at: 164, for: oneHour, from: tenAM),
-        nights: [restingHR100],
+        days: [restingHR100],
         profile: maxHR100,
         in: london
     )
@@ -144,9 +144,9 @@ private let noonUTCOn29March = Date(timeIntervalSince1970: 1_774_785_600)
 /// 2026-10-25 12:00:00 UTC, which is 12:00 GMT in London (clocks went back at 02:00 BST).
 private let noonUTCOn25October = Date(timeIntervalSince1970: 1_792_929_600)
 
-/// The Load of `day` in London from `records`, with no Nights.
+/// The Load of `day` in London from `records`, with no Days with a Resting HR.
 private func loadInLondon(of day: Day, _ records: [HistoryRecord]) -> DayLoad {
-    load(of: day, records: records, nights: [], profile: man, in: london)
+    load(of: day, records: records, days: [], profile: man, in: london)
 }
 
 @Test func anHourAt164BpmAcrossMidnightIsSplitBetweenEachDaysHours() {
@@ -208,7 +208,7 @@ private func loadInLondon(of day: Day, _ records: [HistoryRecord]) -> DayLoad {
     let october4 = Day(year: 2026, month: 10, day: 4)
     let records = historyRecords(at: 164, for: tenMinutes, from: utcDate(2026, 10, 4, 12, 40))
 
-    let result = load(of: october4, records: records, nights: [], profile: man, in: lordHowe)
+    let result = load(of: october4, records: records, days: [], profile: man, in: lordHowe)
 
     let hours = result.heartRate?.hourlyZoneSeconds
     #expect(hours?.count == 24)
