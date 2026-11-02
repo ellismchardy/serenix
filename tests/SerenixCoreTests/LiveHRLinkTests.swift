@@ -301,3 +301,194 @@ private func streamingLink(standingInFor phase: StrapPhase = .idle) -> LiveHRLin
     #expect(link.pill(at: shownAt) == .unavailable)
     #expect(link.heldPhase == nil)
 }
+
+// MARK: Live HR during a History Sync
+
+/// A History Sync running on the ready link: the shell shows "Syncing".
+private let syncingFacts = StrapLinkFacts(phase: .syncing, syncRunning: true, linkReady: true)
+private let syncEndedAt = shownAt.addingTimeInterval(20)
+private let retryAt = syncEndedAt.addingTimeInterval(1)
+
+/// A link shown while a History Sync runs, so Live HR is on within that sync.
+private func linkOnInSync() -> LiveHRLink {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: syncingFacts, at: shownAt)
+    return link
+}
+
+@Test func liveHRLinkShownDuringASyncTurnsLiveHROnInTheSync() {
+    var link = LiveHRLink()
+    let actions = link.setShown(true, facts: syncingFacts, at: shownAt)
+    #expect(actions == [.setLiveHRInSync(true)])
+    #expect(link.pill(at: shownAt) == .connecting)
+    #expect(!link.isStreaming)
+    #expect(link.heldPhase == nil)
+}
+
+@Test func liveHRLinkShownAgainDuringASyncTurnsLiveHROnOnlyOnce() {
+    var link = linkOnInSync()
+    let actions = link.setForeground(true, facts: syncingFacts, at: firstFrameAt)
+    #expect(actions == [])
+}
+
+@Test func liveHRLinkHiddenDuringASyncTurnsLiveHROffAndTheSyncCarriesOn() {
+    var link = linkOnInSync()
+    let actions = link.setShown(false, facts: syncingFacts, at: hiddenAt)
+    #expect(actions == [.setLiveHRInSync(false)])
+}
+
+@Test func liveHRLinkReadingsFromASyncShowTheirBpmOnThePill() {
+    var link = linkOnInSync()
+    link.noteReadings(
+        [LiveHRReading(heartRate: 72, strapTime: Date(timeIntervalSince1970: 1_793_130_245))],
+        at: firstFrameAt
+    )
+    #expect(link.pill(at: firstFrameAt) == .bpm(72))
+    #expect(link.arrivedAt == firstFrameAt)
+    #expect(link.connection == .connected)
+}
+
+@Test func liveHRLinkSyncStartingWhileStreamingTakesTheStreamOver() {
+    var link = streamingLink(standingInFor: failedPhase)
+    let actions = link.syncStarting()
+    guard actions.count == 2, case .keepLog(let log) = actions[0] else {
+        Issue.record("expected keepLog, setLiveHRInSync(true): \(actions)")
+        return
+    }
+    #expect(log.map(\.bytes) == [helloFrame, liveHROnFrame])
+    #expect(actions[1] == .setLiveHRInSync(true))
+    #expect(!link.isStreaming)
+    #expect(link.heldPhase == nil)
+    #expect(link.phaseForSyncPill(syncingFacts) == .syncing)
+}
+
+@Test func liveHRLinkSyncStartingWhenNotWantedLeavesLiveHROff() {
+    var link = LiveHRLink()
+    #expect(link.syncStarting() == [])
+}
+
+@Test func liveHRLinkSyncEndingWithThePopupOpenAndNoReadingShowsUnavailableAndRetries() {
+    var link = linkOnInSync()
+    let actions = link.syncFinished()
+    #expect(actions == [.scheduleRetry(after: 1)])
+    #expect(link.pill(at: syncEndedAt) == .unavailable)
+}
+
+@Test func liveHRLinkSyncEndingWithAReadingKeepsItsBpmAndRetries() {
+    var link = linkOnInSync()
+    link.noteReadings(
+        [LiveHRReading(heartRate: 72, strapTime: Date(timeIntervalSince1970: 1_793_130_245))],
+        at: firstFrameAt
+    )
+    let actions = link.syncFinished()
+    #expect(actions == [.scheduleRetry(after: 1)])
+    #expect(link.connection == .connected)
+    #expect(link.pill(at: firstFrameAt) == .bpm(72))
+}
+
+@Test func liveHRLinkSyncEndingWithThePopupClosedSchedulesNoRetry() {
+    var link = linkOnInSync()
+    _ = link.setShown(false, facts: syncingFacts, at: hiddenAt)
+    #expect(link.syncFinished() == [])
+}
+
+@Test func liveHRLinkSyncEndingTwiceSchedulesOneRetry() {
+    var link = linkOnInSync()
+    _ = link.syncFinished()
+    #expect(link.syncFinished() == [])
+}
+
+@Test func liveHRLinkRetryAfterASyncEndsConnectsHoldingTheSyncsResult() {
+    var link = linkOnInSync()
+    _ = link.syncFinished()
+    let actions = link.retryDue(facts: StrapLinkFacts(phase: failedPhase), at: retryAt)
+    #expect(actions == [.connect])
+    #expect(link.heldPhase == failedPhase)
+    #expect(link.phaseForSyncPill(StrapLinkFacts(phase: .connecting)) == failedPhase)
+}
+
+@Test func liveHRLinkRetryDueWhenNoLongerWantedDoesNothing() {
+    var link = linkOnInSync()
+    _ = link.syncFinished()
+    _ = link.setShown(false, facts: StrapLinkFacts(phase: failedPhase), at: syncEndedAt)
+    let actions = link.retryDue(facts: StrapLinkFacts(phase: failedPhase), at: retryAt)
+    #expect(actions == [])
+    #expect(link.heldPhase == nil)
+}
+
+@Test func liveHRLinkShownWhilePairingWaitsAndStartsWhenThatLinkIsReady() {
+    var link = LiveHRLink()
+    let shown = link.setShown(true, facts: StrapLinkFacts(phase: .connecting), at: shownAt)
+    #expect(shown == [])
+    #expect(link.pill(at: shownAt) == .connecting)
+    let ready = link.linkReady(at: readyAt)
+    #expect(ready == [.write([helloFrame, liveHROnFrame])])
+    #expect(link.isStreaming)
+}
+
+@Test func liveHRLinkHiddenWhilePairingLeavesThatLinkAlone() {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: .connecting), at: shownAt)
+    _ = link.setShown(false, facts: StrapLinkFacts(phase: .connecting), at: hiddenAt)
+    #expect(link.linkReady(at: readyAt) == [])
+    #expect(!link.isStreaming)
+}
+
+@Test func liveHRLinkShownWithASyncOnItsWayLetsTheSyncTurnLiveHROn() {
+    var link = LiveHRLink()
+    let shown = link.setShown(
+        true,
+        facts: StrapLinkFacts(phase: .connecting, syncWanted: true),
+        at: shownAt
+    )
+    #expect(shown == [])
+    #expect(link.syncStarting() == [.setLiveHRInSync(true)])
+}
+
+@Test func liveHRLinkSyncNowDuringACancelledAttemptShowsIdleAndConnectsForTheSync() {
+    var link = LiveHRLink()
+    #expect(link.setShown(true, facts: StrapLinkFacts(phase: .synced), at: shownAt) == [.connect])
+    let hidden = link.setShown(false, facts: StrapLinkFacts(phase: .connecting), at: hiddenAt)
+    #expect(hidden == [.cancelConnecting])
+    let response = link.linkDisconnected(
+        facts: StrapLinkFacts(phase: .connecting, syncWanted: true)
+    )
+    #expect(response.wasLiveHRConnection)
+    #expect(response.actions == [.showPhase(.idle), .connect])
+    #expect(link.heldPhase == nil)
+}
+
+@Test func liveHRLinkSyncsLinkDisconnectingWithThePopupOpenSchedulesARetry() {
+    var link = linkOnInSync()
+    let response = link.linkDisconnected(facts: syncingFacts)
+    #expect(!response.wasLiveHRConnection)
+    #expect(response.actions == [.scheduleRetry(after: 1)])
+}
+
+@Test func liveHRLinkSyncsLinkDisconnectingWithThePopupClosedSchedulesNoRetry() {
+    var link = linkOnInSync()
+    _ = link.setShown(false, facts: syncingFacts, at: hiddenAt)
+    let response = link.linkDisconnected(facts: syncingFacts)
+    #expect(!response.wasLiveHRConnection)
+    #expect(response.actions == [])
+}
+
+@Test func liveHRLinkSyncStartingDuringALiveHRAttemptForgetsTheAttempt() {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    // "Sync now" rides on the attempt, and the shell starts the sync once the link is ready.
+    #expect(link.syncStarting() == [.setLiveHRInSync(true)])
+    #expect(link.heldPhase == nil)
+    #expect(link.linkReady(at: readyAt) == [])
+    let response = link.linkDisconnected(facts: syncingFacts)
+    #expect(!response.wasLiveHRConnection)
+}
+
+@Test func liveHRLinkSyncFinishingDuringALiveHRAttemptForgetsTheHeldPhase() {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    _ = link.syncFinished()
+    #expect(link.heldPhase == nil)
+    #expect(link.phaseForSyncPill(StrapLinkFacts(phase: .idle)) == .idle)
+    #expect(link.linkReady(at: readyAt) == [])
+}

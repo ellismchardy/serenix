@@ -72,7 +72,7 @@ phone checks from spec 006's PR are repeated by hand.
      - Closing while still searching stops scanning and ends at once; closing while connecting
        cancels the attempt, which then resolves quietly (ready → disconnect, restoring the phase).
      - No remembered Strap, or Bluetooth off: the pill reads "—" and nothing connects.
-3. [ ] **Slice:** Live HR during a History Sync
+3. [x] **Slice:** Live HR during a History Sync
    - Seam: `LiveHRLink` · Files: `src/SerenixCore/LiveHRLink.swift`,
      `tests/SerenixCoreTests/LiveHRLinkTests.swift`
    - Done when tests show:

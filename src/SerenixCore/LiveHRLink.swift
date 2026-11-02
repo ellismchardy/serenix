@@ -38,6 +38,8 @@ public struct StrapLinkFacts: Equatable, Sendable {
 
 /// One thing the shell does for Live HR, in the order given.
 public enum LiveHRAction: Equatable, Sendable {
+    /// Turns Live HR on or off within the running History Sync.
+    case setLiveHRInSync(Bool)
     /// Starts connecting to the remembered Strap.
     case connect
     /// Writes these whole Frames to the Strap, in order.
@@ -52,6 +54,8 @@ public enum LiveHRAction: Equatable, Sendable {
     case stopConnectTimeout
     /// Sets the shell's phase back to the one a connection only for Live HR stood in for.
     case showPhase(StrapPhase)
+    /// Calls `retryDue` after this many seconds.
+    case scheduleRetry(after: TimeInterval)
     /// Keeps these messages as the one "Live HR" Sync Log (spec 006).
     case keepLog([SyncLogEntry])
     /// Logs Live HR Frames that gave no reading, and why.
@@ -69,6 +73,10 @@ public struct LiveHRLinkResponse: Equatable, Sendable {
         self.wasLiveHRConnection = wasLiveHRConnection
     }
 }
+
+/// Seconds after Live HR's connection fails or drops before trying again, while the pill is on
+/// screen. An assumption: soon enough that a Strap back in range shows again within seconds.
+let liveHRRetryDelay: TimeInterval = 1
 
 /// Every Live HR decision for the shell's Strap link (spec 006; ADR 0007), as a pure state
 /// machine.
@@ -93,10 +101,17 @@ public struct LiveHRLink: Sendable {
     /// Live HR on a connection of its own, and its messages for the "Live HR" Sync Log.
     private var session: LiveHRSession?
     private var log: [SyncLogEntry] = []
+    /// Whether Live HR is on within the running sync.
+    private var onInSync = false
     /// Connecting only for Live HR. It stays set until the attempt resolves (ready, failed or
     /// disconnected), even once Live HR is no longer wanted, so a late callback never reads as a
     /// sync failing.
     private var connecting = false
+    /// Live HR is to start once another connection in progress (not a sync, e.g. pairing) is
+    /// ready. That connection stays the user's: its failures are not made quiet.
+    private var startWhenReady = false
+    /// A retry is scheduled and hasn't fallen due.
+    private var retryPending = false
 
     public init() {}
 
@@ -136,14 +151,26 @@ public struct LiveHRLink: Sendable {
 
     /// The link is ready, and no sync was asked for on it.
     public mutating func linkReady(at time: Date) -> [LiveHRAction] {
-        guard connecting else { return [] }
+        guard connecting || startWhenReady else { return [] }
+        startWhenReady = false
         if isWanted { return beginSession(at: time) }
+        guard connecting else { return [] }
         connecting = false
         return endConnection()
     }
 
     /// The link disconnected.
     public mutating func linkDisconnected(facts: StrapLinkFacts) -> LiveHRLinkResponse {
+        if !facts.syncRunning, facts.syncWanted, connecting, !isWanted {
+            // "Sync now" while a Live HR attempt that was cancelled was still closing: that
+            // close isn't the sync's failure, so connect for the sync now.
+            connecting = false
+            heldPhase = nil
+            return LiveHRLinkResponse(
+                actions: [.showPhase(.idle), .connect],
+                wasLiveHRConnection: true
+            )
+        }
         if !facts.syncRunning, !facts.syncWanted, connecting || heldPhase != nil {
             // A connection only for Live HR ended: back to the phase it stood in for.
             connecting = false
@@ -151,8 +178,43 @@ public struct LiveHRLink: Sendable {
             heldPhase = nil
             return LiveHRLinkResponse(actions: actions, wasLiveHRConnection: true)
         }
-        // A sync's link: the shell ends it (spec 001).
-        return LiveHRLinkResponse(actions: [], wasLiveHRConnection: false)
+        // Not Live HR's own connection (a sync's, or the user's): the shell deals with it, and
+        // Live HR carries on after it.
+        onInSync = false
+        return LiveHRLinkResponse(actions: scheduleRetry(), wasLiveHRConnection: false)
+    }
+
+    /// A History Sync is starting on the ready link. It takes over Live HR: a stream on this
+    /// connection carries on into it.
+    public mutating func syncStarting() -> [LiveHRAction] {
+        forgetAttempt()
+        var actions = dropSession()
+        if isWanted {
+            onInSync = true
+            actions.append(.setLiveHRInSync(true))
+        }
+        return actions
+    }
+
+    /// The shell finished a sync, or the connection attempt for one, and disconnected (spec
+    /// 001). Live HR, while still wanted, carries on on a connection of its own (spec 006).
+    public mutating func syncFinished() -> [LiveHRAction] {
+        onInSync = false
+        forgetAttempt()
+        guard isWanted, session == nil else { return [] }
+        if lastReading == nil { connection = .unavailable }
+        return scheduleRetry()
+    }
+
+    /// Notes Live HR readings a running sync passed out.
+    public mutating func noteReadings(_ readings: [LiveHRReading], at time: Date) {
+        note(readings, at: time)
+    }
+
+    /// The retry `scheduleRetry` asked for fell due.
+    public mutating func retryDue(facts: StrapLinkFacts, at time: Date) -> [LiveHRAction] {
+        retryPending = false
+        return isWanted ? start(facts, at: time) : []
     }
 
     /// Feeds one message the Strap sent on Live HR's own connection.
@@ -167,13 +229,24 @@ public struct LiveHRLink: Sendable {
         isWanted ? start(facts, at: time) : stop(facts, at: time)
     }
 
-    /// Turns Live HR on: on the link if it's ready, or on a new connection of its own (ADR
-    /// 0007). It never starts a sync.
+    /// Turns Live HR on: within the running sync, on the link if it's ready, or on a new
+    /// connection of its own (ADR 0007). It never starts a sync.
     private mutating func start(_ facts: StrapLinkFacts, at time: Date) -> [LiveHRAction] {
         var actions: [LiveHRAction] = []
         if lastReading == nil { connection = .connecting }
+        if facts.phase == .syncing, facts.syncRunning {
+            guard !onInSync else { return actions }
+            onInSync = true
+            return actions + [.setLiveHRInSync(true)]
+        }
         // An attempt already under way carries on: once it resolves, Live HR starts.
         guard session == nil, !connecting else { return actions }
+        if facts.syncWanted || facts.phase.isBusy {
+            // A sync on its way turns Live HR on as it starts; any other connection starts it
+            // once ready.
+            if !facts.syncWanted { startWhenReady = true }
+            return actions
+        }
         guard facts.hasStrap, facts.bluetoothOn else {
             connection = .unavailable
             return actions
@@ -184,12 +257,17 @@ public struct LiveHRLink: Sendable {
         return actions + [.connect]
     }
 
-    /// Turns Live HR off by ending its own connection.
+    /// Turns Live HR off: within the running sync, which carries on (ADR 0006), or by ending its
+    /// own connection.
     private mutating func stop(_ facts: StrapLinkFacts, at time: Date) -> [LiveHRAction] {
         var actions: [LiveHRAction] = []
         // The pill starts from "…" the next time it shows.
         lastReading = nil
         arrivedAt = nil
+        if onInSync, facts.phase == .syncing, facts.syncRunning {
+            actions.append(.setLiveHRInSync(false))
+        }
+        onInSync = false
         if var session {
             actions += handle(session.stop(at: time), at: time)
             self.session = nil
@@ -242,9 +320,31 @@ public struct LiveHRLink: Sendable {
         return [.disconnect, .showPhase(phase)]
     }
 
+    /// Ends the session, if any, keeping its Sync Log; the caller deals with the link.
+    private mutating func dropSession() -> [LiveHRAction] {
+        guard session != nil else { return [] }
+        session = nil
+        return keepLog()
+    }
+
     private mutating func keepLog() -> [LiveHRAction] {
         guard !log.isEmpty else { return [] }
         defer { log = [] }
         return [.keepLog(log)]
+    }
+
+    /// Forgets a connection attempt and the phase it stood in for.
+    private mutating func forgetAttempt() {
+        connecting = false
+        heldPhase = nil
+        startWhenReady = false
+    }
+
+    /// While Live HR is wanted, tries again a moment after its connection failed or dropped (a
+    /// failed attempt itself takes up to the shell's connect timeout).
+    private mutating func scheduleRetry() -> [LiveHRAction] {
+        guard isWanted, !retryPending else { return [] }
+        retryPending = true
+        return [.scheduleRetry(after: liveHRRetryDelay)]
     }
 }
