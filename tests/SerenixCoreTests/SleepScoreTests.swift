@@ -118,11 +118,27 @@ private func earlierNights(_ timesAsleep: [TimeInterval]) -> [Night] {
     #expect(view.sleepScoreText == "100")
 }
 
-// MARK: Missing
+// MARK: Missing and where it shows
 
 @Test func aNightWithNoTimeAsleepHasNoSleepScoreAndAnEmptyRing() {
     let view = todayView(nights: [nightOn15Nov(timeAsleep: nil)])
 
     #expect(view.sleepScoreText == "\u{2014}")
     #expect(view.sleepScoreFill == 0)
+}
+
+@Test func theReadinessPopupsSleepScoreRowShowsTheNightsSleepScore() {
+    // Spec 008's usual HRV 60 ms and Sleeping HR 52 bpm on four earlier Nights (14 to 11 Nov),
+    // with no Time Asleep, Sleep Onset or Final Wake, so Readiness is past Calibrating and Sleep
+    // Need stays 8 h. Time Asleep 7 h 36 m in 23:00 to 07:00 reads 96.
+    let earlier = (11...14).map { day in
+        Night(day: Day(year: 2026, month: 11, day: day), sleepingHR: 52, hrv: 60)
+    }
+    var shown = nightOn15Nov(timeAsleep: 7 * oneHour + 36 * oneMinute)
+    shown.sleepingHR = 52
+    shown.hrv = 60
+
+    let popup = todayView(nights: earlier + [shown]).readinessPopup
+
+    #expect(popup?.sleepScoreText == "96")
 }

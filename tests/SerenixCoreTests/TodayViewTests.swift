@@ -73,9 +73,17 @@ private let oct27 = Day(year: 2026, month: 10, day: 27)
 private let oct28 = Day(year: 2026, month: 10, day: 28)
 private let oct29 = Day(year: 2026, month: 10, day: 29)
 
+/// Two Nights with distinct Sleep Scores (spec 010), so showing the wrong one would fail. 30 Oct:
+/// Time Asleep 5 h 40 m against Sleep Need 8 h, 70.83, so 71. 1 Nov: 30 Oct's 2 h 20 m short
+/// raises its Sleep Need by a quarter, 35 min, to 8 h 35 m (spec 009); Time Asleep 7 h 13 m
+/// (433 min) against 515 min is 84.08, so 84.
+private let nightsOct30AndNov1 = [
+    Night(day: oct30, timeAsleep: 20_400),
+    Night(day: nov1, timeAsleep: 25_980),
+]
+
 @Test func todayShowsItsNightInAWeekStripEndingOnToday() {
-    // A distinct Sleep Score on each Night, so showing the wrong one would fail.
-    let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
+    let nights = nightsOct30AndNov1
     let view = todayView(nights: nights, showing: nov1)
 
     #expect(view.noNightMessage == nil)
@@ -95,7 +103,7 @@ private let oct29 = Day(year: 2026, month: 10, day: 29)
 }
 
 @Test func anEarlierDayWithoutANightSaysNoNightRecordedWithItsLoad() {
-    let nights = [Night(day: oct30, sleepScore: 71), Night(day: nov1, sleepScore: 84)]
+    let nights = nightsOct30AndNov1
 
     let oneEarlier = todayView(nights: nights, showing: oct31)
     #expect(oneEarlier.noNightMessage == "No Night recorded")
@@ -142,10 +150,10 @@ private let nightsOct1ToNov1 =
 }
 
 @Test func todayWithoutANightSaysNoNightYetAndShowsTodaysLoad() {
-    // Yesterday's Night has every value, so any of them leaking onto today would show.
+    // Yesterday's Night has every value, so any of them leaking onto today would show. Its Time
+    // Asleep, 7 h 40 m against 8 h, gives it a Sleep Score of 96 (spec 010).
     let yesterday = Night(
         day: oct31,
-        sleepScore: 84,
         sleepingHR: 50,
         hrv: 62,
         respiratoryRate: 14.1,
@@ -326,7 +334,8 @@ func readinessShowsItsNumberAndBand(
 }
 
 @Test func sleepScoreShowsItsNumber() {
-    let view = todayView(nights: [Night(day: nov1, sleepScore: 84)], showing: nov1)
+    // Time Asleep 6 h 43 m (403 min) against Sleep Need 8 h: 83.96, so 84 (spec 010).
+    let view = todayView(nights: [Night(day: nov1, timeAsleep: 24_180)], showing: nov1)
 
     #expect(view.sleepScoreText == "84")
 }
@@ -342,12 +351,16 @@ func readinessShowsItsNumberAndBand(
 }
 
 @Test func aDayWithoutANightShowsNoOtherDaysScores() {
-    // 1 Nov has three earlier Nights, so it has a Readiness (70) that 31 Oct mustn't show.
+    // 1 Nov has three earlier Nights, so it has a Readiness (60) that 31 Oct mustn't show. Sleep
+    // Scores (spec 010): 30 Oct's Time Asleep 6 h 29 m against 8 h is 81.04, so 81; its 1 h 31 m
+    // short raises 1 Nov's Sleep Need to 8 h 22 m 45 s (spec 009), and 1 Nov's Time Asleep
+    // 7 h 2 m against it is 83.94, so 84. Readiness: 1 Nov is 1.35 h short of its Sleep Need, HRV
+    // and Sleeping HR at Baseline, so (−1.35 × 0.15) ÷ 0.9 = −0.224 gives 59.7, so 60 (spec 008).
     let nights = [
         Night(day: oct28, sleepingHR: 50, hrv: 60),
         Night(day: oct29, sleepingHR: 50, hrv: 60),
-        Night(day: oct30, sleepScore: 81, sleepingHR: 50, hrv: 60),
-        Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 60),
+        Night(day: oct30, sleepingHR: 50, hrv: 60, timeAsleep: 23_340),
+        Night(day: nov1, sleepingHR: 50, hrv: 60, timeAsleep: 25_320),
     ]
     let view = todayView(nights: nights, showing: oct31)
 
@@ -356,11 +369,25 @@ func readinessShowsItsNumberAndBand(
     #expect(view.readinessBand == nil)
 }
 
+/// 2026-10-31T21:16:00Z.
+private let onsetOct31At2116 = Date(timeIntervalSince1970: 1_793_481_360)
+/// 2026-11-01T07:00:00Z.
+private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
+
 @Test func eachRingFillsToItsScoreOutOf100() {
     let view = todayView(
-        // HRV 59 against 60 with Time Asleep 8 h, its Sleep Need: Readiness 67.
+        // HRV 59 against 60 with Time Asleep 8 h, its Sleep Need: Readiness 67. Sleep Score
+        // (spec 010): Sleep Sufficiency 100; 8 h asleep in a 9 h 44 m Sleep Period (21:16 to
+        // 07:00) is 82.19%, so Sleep Efficiency 35.96; 0.75 × 100 + 0.25 × 35.96 = 83.99, so 84.
         nights: calibratedNightsBeforeNov1 + [
-            Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 59, timeAsleep: 28_800)
+            Night(
+                day: nov1,
+                sleepingHR: 50,
+                hrv: 59,
+                sleepOnset: onsetOct31At2116,
+                finalWake: finalWakeNov1At0700,
+                timeAsleep: 28_800
+            )
         ],
         showing: nov1
     )
@@ -1409,10 +1436,10 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 @Test func readinessPopupShowsEachInputAgainstItsReferenceAndHowManyNightsFormTheBaseline() {
     // Time Asleep 5 h, 3 h short of Sleep Need 8 h, the most it can cost: Readiness 81.
     // The previous Day, 31 Oct, has Load 12, but only 30 Oct comes before it, so typical Load
-    // is calibrating.
+    // is calibrating. Sleep Score (spec 010): Time Asleep 5 h against Sleep Need 8 h, with no
+    // Sleep Onset or Final Wake, is Sleep Sufficiency alone, 62.5, so 63 (halves up).
     let night = Night(
         day: nov1,
-        sleepScore: 84,
         sleepingHR: 49,
         hrv: 68.4,
         timeAsleep: 18_000
@@ -1433,14 +1460,14 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
             "+14%", "\u{2212}3 bpm", "\u{2212}3h 0m", "\u{2014}",
         ]
     )
-    #expect(popup?.sleepScoreText == "84")
+    #expect(popup?.sleepScoreText == "63")
     #expect(popup?.baselineNote == "Baseline: your last 3 Nights")
     #expect(popup?.calibratingText == nil)
 }
 
 /// Spec 007: vs your Baseline and the Readiness popup name the Night's metric "Sleeping HR".
 @Test func vsBaselineAndTheReadinessPopupNameSleepingHR() {
-    let night = Night(day: nov1, sleepScore: 84, sleepingHR: 49, hrv: 68.4)
+    let night = Night(day: nov1, sleepingHR: 49, hrv: 68.4)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(baselineComparisons(view)?.map(\.metric.name) == ["HRV", "Sleeping HR"])
@@ -1486,7 +1513,9 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 }
 
 @Test func readinessPopupExplainsCalibratingWithTheNightsSoFar() {
-    let night = Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 60)
+    // Time Asleep 6 h 43 m against Sleep Need 8 h gives a Sleep Score, 84 (spec 010), that the
+    // popup mustn't show while Calibrating.
+    let night = Night(day: nov1, sleepingHR: 50, hrv: 60, timeAsleep: 24_180)
     let popup = todayView(
         nights: nightsBeforeNov1(hrv: [60, 60], sleepingHR: [50, 50]) + [night],
         showing: nov1
@@ -1512,10 +1541,11 @@ private let timeInBedStartOct31At2230 = Date(timeIntervalSince1970: 1_793_485_80
 private let timeInBedEndNov1At0705 = Date(timeIntervalSince1970: 1_793_516_700)
 
 @Test func sleepPopupMinutesAwakeAreFinalWakeMinusSleepOnsetMinusTimeAsleep() {
-    // 22:45 to 06:57 is 492 min; Time Asleep 27 600 s is 460 min; so 32 min awake.
+    // 22:45 to 06:57 is 492 min; Time Asleep 27 600 s is 460 min; so 32 min awake. Sleep Score
+    // (spec 010): Sleep Sufficiency 460 ÷ 480 = 95.83; 93.50% asleep is Sleep Efficiency 92.48;
+    // 0.75 × 95.83 + 0.25 × 92.48 = 94.99, so 95.
     let night = Night(
         day: nov1,
-        sleepScore: 84,
         sleepOnset: onsetOct31At2245,
         finalWake: finalWakeNov1At0657,
         timeAsleep: 27_600,
@@ -1524,7 +1554,7 @@ private let timeInBedEndNov1At0705 = Date(timeIntervalSince1970: 1_793_516_700)
     )
     let popup = todayView(nights: [night], showing: nov1).sleepPopup
 
-    #expect(popup?.sleepScoreText == "84")
+    #expect(popup?.sleepScoreText == "95")
     #expect(popup?.timeInBedText == "22:30\u{2013}07:05")
     #expect(popup?.timeInBedDurationText == "8h 35m")
     #expect(popup?.sleepOnsetText == "22:45")

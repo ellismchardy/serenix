@@ -1,12 +1,10 @@
 import Foundation
 
-/// One stored Night (GLOSSARY): a Sleep Period with the Nightly Metrics and scores drawn from it.
-/// Each value is missing until the spec that computes it has shipped.
+/// One stored Night (GLOSSARY): a Sleep Period with the Nightly Metrics drawn from it. Its scores
+/// (Sleep Score, Readiness) are worked out from the Nights when shown, never stored (specs 008, 010).
 public struct Night: Equatable, Sendable {
     /// The local date of its Final Wake.
     public var day: Day
-    /// 0–100 (ADR 0005).
-    public var sleepScore: Int?
     /// bpm.
     public var sleepingHR: Double?
     /// RMSSD, ms.
@@ -30,7 +28,6 @@ public struct Night: Equatable, Sendable {
 
     public init(
         day: Day,
-        sleepScore: Int? = nil,
         sleepingHR: Double? = nil,
         hrv: Double? = nil,
         respiratoryRate: Double? = nil,
@@ -43,7 +40,6 @@ public struct Night: Equatable, Sendable {
         timeInBedEnd: Date? = nil
     ) {
         self.day = day
-        self.sleepScore = sleepScore
         self.sleepingHR = sleepingHR
         self.hrv = hrv
         self.respiratoryRate = respiratoryRate

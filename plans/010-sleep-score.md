@@ -42,7 +42,7 @@ view with its own private `todayView` helper, as `SleepNeedTests.swift` does.
      ring fills to 0.96", "four earlier Nights of Time Asleep 6 h … reads 92", the four Sleep
      Efficiency criteria (92, 75, 75, 100), and "A Night with no Time Asleep reads '—' with the
      ring empty".
-2. [ ] **Migrate and contract:** remove `Night.sleepScore` and the bridge. Every test that set
+2. [x] **Migrate and contract:** remove `Night.sleepScore` and the bridge. Every test that set
    `sleepScore:` now builds a Night whose Time Asleep / Sleep Onset / Final Wake give the Sleep
    Score it needs, each input worked by hand and committed as a literal; the Readiness popup's
    Sleep Score row reads the worked-out score.

@@ -145,11 +145,8 @@ public struct TodayView: Equatable, Sendable {
             readinessBand = readiness.map(ReadinessBand.init)
             readinessFill = ringFill(readiness)
         }
-        // Worked out each time, never stored, so it follows the Nights (spec 010). A stored Sleep
-        // Score still wins until the field goes (plan 010, task 2).
-        let sleepScore =
-            night?.sleepScore
-            ?? night.flatMap { SleepScore(of: $0, sleepNeed: sleepNeed.sleepNeed)?.score }
+        // Worked out each time, never stored, so it follows the Nights (spec 010).
+        let sleepScore = night.flatMap { SleepScore(of: $0, sleepNeed: sleepNeed.sleepNeed)?.score }
         sleepScoreText = scoreText(sleepScore)
         sleepScoreFill = ringFill(sleepScore)
 
