@@ -55,9 +55,16 @@ listed in the PR's manual steps.
      `prototype/reopen-probe` branch, after the user confirms. Confirm that grepping
      `DEBUG-n7r4` on `fix/saved-metrics-on-reopen` finds nothing.
    - Done when: no `[DEBUG-n7r4]` lines exist on this branch, and #24 is closed.
-3. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+3. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build` all green. The PR body lists the manual phone steps from task 1.
    - Blocked by: 1, 2
+
+## Manual check on the phone (for the PR body)
+1. Open Serenix and let it sync until the metrics show.
+2. Swipe it away as soon as the sync completes, then reopen it: the rings, tiles and Load ring
+   show at once, while the sync on open is still running.
+3. When that sync and its rebuild finish, the values update in place (no blank in between).
+4. Sync, wait a few minutes, swipe away, reopen: the metrics show at once, as before.
 
 ## Done when
 - All tasks checked. After a cut-off post-sync rebuild, reopening shows the stored Nights and
