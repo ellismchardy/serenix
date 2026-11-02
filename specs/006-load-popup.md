@@ -1,7 +1,7 @@
 # 006 — Load popup
 
-**Status:** approved
-**Last updated:** 2026-11-01
+**Status:** built
+**Last updated:** 2026-11-02 (built; CI and the phone checks open in the PR)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -145,37 +145,37 @@ Unless a criterion says otherwise: Europe/London, sex Male, Max HR 190 entered, 
 HR 60), and one History Record per second. HR Zone lower edges for Max HR 190: 95, 114, 133,
 152 and 171 bpm.
 
-- [ ] An hour at 164 bpm gives 3600 s in HR Zone 4 and none in the others; its hour bars hold
+- [x] An hour at 164 bpm gives 3600 s in HR Zone 4 and none in the others; its hour bars hold
       HR Zone 4 only; Highest HR is 164 at the hour's first record; Max HR used is 190, entered.
-- [ ] 10 minutes each at 94, 95, 113, 114, 133, 152, 170, 171 and 200 bpm give HR Zone 1 1200 s
+- [x] 10 minutes each at 94, 95, 113, 114, 133, 152, 170, 171 and 200 bpm give HR Zone 1 1200 s
       (95, 113), HR Zone 2 600 s (114), HR Zone 3 600 s (133), HR Zone 4 1200 s (152, 170) and
       HR Zone 5 1200 s (171, 200); 94 bpm counts in none; Highest HR is 200.
-- [ ] The seconds in all HR Zones equal the seconds over Load's floor: an hour at 164 bpm plus an
+- [x] The seconds in all HR Zones equal the seconds over Load's floor: an hour at 164 bpm plus an
       hour at HR 0 and an hour at 94 bpm gives 3600 s; the same records repeated or reordered
       give the same HR Zones and Highest HR.
-- [ ] With no Max HR and birth year 1986 on a Day in 2026, an hour at 162 bpm (90% of 180) is in
+- [x] With no Max HR and birth year 1986 on a Day in 2026, an hour at 162 bpm (90% of 180) is in
       HR Zone 5 and Max HR used is 180, estimated.
-- [ ] Hourly: an hour at 164 bpm from 23:30 to 00:30 on the night 31 Oct to 1 Nov 2026 puts
+- [x] Hourly: an hour at 164 bpm from 23:30 to 00:30 on the night 31 Oct to 1 Nov 2026 puts
       1800 s of HR Zone 4 in 31 Oct's 23:00 hour and 1800 s in 1 Nov's 00:00 hour; 29 Mar 2026
       has 23 hours and 25 Oct 2026 has 25.
-- [ ] Highest HR: records at 150 bpm at 09:00 and 18:40 and 120 bpm elsewhere give "Highest HR
+- [x] Highest HR: records at 150 bpm at 09:00 and 18:40 and 120 bpm elsewhere give "Highest HR
       150 bpm at 09:00"; a Day of only HR 0 gives "—".
-- [ ] Typical Load: Loads 30, 40, 50 and 60 on the 4 Days before, and 90 on the Day, give
+- [x] Typical Load: Loads 30, 40, 50 and 60 on the 4 Days before, and 90 on the Day, give
       "Typical: 45 · today +45"; 30, 40, 51 and 60 give 46; a missing Load among them is skipped
       and a 0 counts; a Day 29 Days before isn't counted; with 3 Days, "Typical Load after 4 Days
       (3 so far)"; an earlier Day reads "that Day", a Load below typical "−", equal "±0"; with
       the Day's Load missing, just "Typical: 45".
-- [ ] Protocol: the real `0x28` fixture Frames decode to their HR and Strap time, the
+- [x] Protocol: the real `0x28` fixture Frames decode to their HR and Strap time, the
       acquiring ones to HR 0; one with a changed byte and the old CRC is a bad-CRC error; Live HR
       on and off build the same bytes hr-tracker's `whoop5.py` sends, committed as literals.
-- [ ] Live HR pill: connecting with no reading shows "…"; a reading of 72 that arrived 4.9 s ago
+- [x] Live HR pill: connecting with no reading shows "…"; a reading of 72 that arrived 4.9 s ago
       shows "72"; 5.0 s ago shows "—"; a reading of 0 shows "—"; no Strap, Bluetooth off or a
       failed connection shows "—".
-- [ ] Today view: a Day with Load 57, or with missing Load for no records, marks the ring as
+- [x] Today view: a Day with Load 57, or with missing Load for no records, marks the ring as
       opening the Load popup; missing Load for no Max HR marks it as opening the profile menu.
-- [ ] Today view: today's popup has the pill and "As of your last sync at 08:12" for a sync
+- [x] Today view: today's popup has the pill and "As of your last sync at 08:12" for a sync
       that ended at 08:12; an earlier Day's has neither.
-- [ ] Today view: a Day with no records shows "No heart rate recorded this Day" and no zones,
+- [x] Today view: a Day with no records shows "No heart rate recorded this Day" and no zones,
       bars, Highest HR or Max HR used; a Day with a Load but no stored HR Zones shows "Heart
       rate zones aren't available for this Day"; zone times show "42m" and "1h 05m".
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job

@@ -179,7 +179,7 @@ ignored, and nothing holds a connection between syncs.
     - Seam: shell (by hand) · Files: `src/SerenixApp/StrapConnection.swift`, `src/SerenixApp/SyncLogArchive.swift`, `src/SerenixApp/TodayPopups.swift`, `src/SerenixApp/SerenixApp.swift`
     - Done when: CI builds, and the Live HR manual criteria (pill, off-wrist and out of range,
       during a sync, leaving and coming back, the shared log) are listed with steps for the PR.
-14. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+14. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
     and `swift build` are green. The macOS CI job builds. Every spec 006 criterion is checked,
     with the manual ones done on the phone.
     - Blocked by: 13
