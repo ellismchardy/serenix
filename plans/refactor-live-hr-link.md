@@ -116,7 +116,7 @@ phone checks from spec 006's PR are repeated by hand.
      - A failure or disconnect arriving after the popup closed mid-connect still resolves
        quietly, never as a sync failing, and schedules no retry.
      - Bytes or readings after Live HR stopped change nothing.
-6. [ ] **Migrate + contract (shell):** `StrapConnection` delegates every Live HR decision to
+6. [x] **Migrate + contract (shell):** `StrapConnection` delegates every Live HR decision to
    `LiveHRLink`
    - Files: `src/SerenixApp/StrapConnection.swift`
    - Done when: the seven flags, `liveHRLog`, `liveHRRetryDelay` and the Live HR helpers are

@@ -219,7 +219,8 @@ public struct LiveHRLink: Sendable {
     }
 
     /// A History Sync is starting on the ready link. It takes over Live HR: a stream on this
-    /// connection carries on into it.
+    /// connection carries on into it. Carry the actions out once the sync is running, so
+    /// `.setLiveHRInSync` has a sync to go to.
     public mutating func syncStarting() -> [LiveHRAction] {
         forgetAttempt()
         var actions = dropSession()
