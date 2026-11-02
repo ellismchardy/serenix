@@ -41,3 +41,54 @@ private func restingHROfTenthOfNovember(_ records: [HistoryRecord]) -> Double? {
 @Test func theDeskDayWithMinutes5To9At66GivesRestingHR64FromMinutes10To14() {
     #expect(restingHROfTenthOfNovember(deskDay(still: stillStretch(minutes5To9: 66))) == 64)
 }
+
+/// The still stretch with its minute `number` (1 to 20) changed by `change`.
+private func stillStretch(minute number: Int, _ change: (inout RecordMinute) -> Void)
+    -> [RecordMinute]
+{
+    var still = stillStretch()
+    change(&still[number - 1])
+    return still
+}
+
+/// The still stretch with every minute turning in its first `activeSeconds` seconds.
+private func stillStretch(activeSeconds: Int) -> [RecordMinute] {
+    stillStretch().map { minute in
+        var minute = minute
+        minute.activeSeconds = activeSeconds
+        return minute
+    }
+}
+
+@Test func tenActiveSecondsInEachStillMinuteLeaveTheDeskDayWithNoRestingHR() {
+    #expect(restingHROfTenthOfNovember(deskDay(still: stillStretch(activeSeconds: 10))) == nil)
+}
+
+@Test func nineActiveSecondsInEachStillMinuteStillGiveRestingHR62() {
+    #expect(restingHROfTenthOfNovember(deskDay(still: stillStretch(activeSeconds: 9))) == 62)
+}
+
+@Test func oneStepInMinute7BreaksTheRunSoTheRunFromMinute8GivesRestingHR50() {
+    let still = stillStretch(minute: 7) { $0.steps = .oneStep }
+    #expect(restingHROfTenthOfNovember(deskDay(still: still)) == 50)
+}
+
+@Test func aDropInTheStepCountIsAStrapRebootNotAStepSoRestingHRIs62() {
+    // The step count has risen to 14,400 over the 240 walking minutes before the still stretch,
+    // so the drop to 0 in minute 7 is a real drop; it stays flat at 0 for the rest of the stretch.
+    // Minute 7, as for one step, because a run broken there gives 50, not 62.
+    let still = stillStretch(minute: 7) { $0.steps = .reset }
+    #expect(restingHROfTenthOfNovember(deskDay(still: still)) == 62)
+}
+
+@Test func only29WornRecordsInMinute3RestartTheRunAtMinute4SoRestingHRIs55Point6() throws {
+    let still = stillStretch(minute: 3) { $0.wornRecords = 29 }
+    let restingHR = try #require(restingHROfTenthOfNovember(deskDay(still: still)))
+    // Minutes 14–18: 64, 64, 50, 50, 50.
+    #expect(abs(restingHR - 55.6) < 1e-9)
+}
+
+@Test func thirtyWornRecordsInMinute3KeepTheRunSoRestingHRIs62() {
+    let still = stillStretch(minute: 3) { $0.wornRecords = 30 }
+    #expect(restingHROfTenthOfNovember(deskDay(still: still)) == 62)
+}
