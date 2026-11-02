@@ -93,7 +93,16 @@ enum DayLoadStore {
             nights: nights,
             in: timeZone
         )
-        let storedDays = try context.fetch(FetchDescriptor<StoredDayLoad>()).map(\.dayLoad)
+        // Load reads only the Days' Resting HR, so neither fetch nor decode their HR Zones.
+        var storedDaysDescriptor = FetchDescriptor<StoredDayLoad>()
+        storedDaysDescriptor.propertiesToFetch = [\.year, \.month, \.dayOfMonth, \.restingHR]
+        let storedDays = try context.fetch(storedDaysDescriptor).map { stored in
+            DayLoad(
+                day: Day(year: stored.year, month: stored.month, day: stored.dayOfMonth),
+                load: nil,
+                restingHR: stored.restingHR
+            )
+        }
         // The new entry comes last, so it replaces the stored one for this Day.
         let dayLoad = SerenixCore.load(
             of: rebuild.day,

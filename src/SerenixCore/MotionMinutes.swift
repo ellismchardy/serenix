@@ -1,9 +1,9 @@
 import Foundation
 
-/// History Records taken a UTC minute at a time, with how many seconds of each minute the Strap
-/// turned in: spec 003's rule, shared by the Sleep Period and anything else that needs to know
-/// when the user was moving. Constants from hr-tracker `tools/sleep.py`, which set them by eye on
-/// two nights.
+/// History Records taken a UTC minute at a time: the minute a record falls in and the fewest
+/// records a minute needs, shared by the Sleep Period and Resting HR, and how many seconds of
+/// each minute the Strap turned in (spec 003's rule, used by the Sleep Period). Constants from
+/// hr-tracker `tools/sleep.py`, which set them by eye on two nights.
 enum MotionMinutes {
     /// Degrees the Strap must turn in one second for that second to count as active (resting
     /// noise is ~0.2°). sleep.py `ACTIVE_DEG`.

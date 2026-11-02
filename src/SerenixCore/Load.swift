@@ -23,10 +23,7 @@ public func load(
         restingHR: latest.first { $0.day == day }?.restingHR
     )
     let span = day.span(in: timeZone)
-    var seen = Set<String>()
-    let unique = records.filter {
-        span.start <= $0.timestamp && $0.timestamp < span.end && seen.insert($0.identity).inserted
-    }
+    let unique = records.unique(in: span)
     guard !unique.isEmpty else {
         dayLoad.missingReason = .noRecords
         return dayLoad
@@ -43,7 +40,7 @@ public func load(
     let maxHR = maxHRUsed.bpm
     let heartRates = unique.map(\.heartRate)
     dayLoad.heartRate = DayHeartRate(records: unique, span: span, maxHRUsed: maxHRUsed)
-    let restingHR = LoadMethod.restingHR(for: day, among: latest)
+    let restingHR = LoadMethod.typicalRestingHR(for: day, among: latest)
     guard maxHR > restingHR else {
         dayLoad.missingReason = .maxHRNotAboveRestingHR
         return dayLoad
@@ -85,7 +82,7 @@ enum LoadMethod {
     /// The median Resting HR (spec 007) of up to `restingHRDays` of the most recent Days on or
     /// before `day`, so the Day's own Resting HR so far counts; Days without one are skipped.
     /// With none, `fallbackRestingHR`.
-    static func restingHR(for day: Day, among days: [DayLoad]) -> Double {
+    static func typicalRestingHR(for day: Day, among days: [DayLoad]) -> Double {
         let recent =
             days
             .filter { $0.day <= day }

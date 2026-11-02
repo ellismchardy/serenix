@@ -132,8 +132,9 @@ the full width, then the metric tiles in a 2-column grid (Sleeping HR and Restin
 by spec 007). Tiles have no trend line; a metric's history is in its popup.
 - **Time Asleep:** shows "7h 40m" and Sleep Onset → Final Wake ("22:45 → 06:57"). It has no
   Zone and no gauge. Tapping it opens the Sleep popup.
-- **One tile per Nightly Metric**, in this order: Sleeping HR, then (after spec 007's Resting HR
-  tile) HRV, respiratory rate, skin temperature, SpO2. Each shows the metric's name with an icon, the value with its unit, a
+- **One tile per Nightly Metric**, in this order: Sleeping HR, HRV, respiratory rate, skin
+  temperature, SpO2, with spec 007's Resting HR tile after Sleeping HR. Each shows the metric's
+  name with an icon, the value with its unit, a
   status word with a ✓, and a vertical gauge. The status word and the gauge take the colour of
   the metric's Zone.
   - **Status word:** "Normal" when In range. Otherwise "Low" or "High", by which side of the

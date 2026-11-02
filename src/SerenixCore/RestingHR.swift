@@ -10,7 +10,6 @@ public func restingHR(
     nights: [Night],
     in timeZone: TimeZone
 ) -> Double? {
-    let span = day.span(in: timeZone)
     // A Night without a Sleep Period, or with one that ends before it starts, holds no record.
     let sleepPeriods = nights.compactMap { night -> Range<Date>? in
         guard let onset = night.sleepOnset, let wake = night.finalWake, onset < wake else {
@@ -18,14 +17,8 @@ public func restingHR(
         }
         return onset..<wake
     }
-    var seen = Set<String>()
-    let unique =
-        records
-        .filter { record in
-            span.start <= record.timestamp && record.timestamp < span.end
-                && !sleepPeriods.contains { $0.contains(record.timestamp) }
-                && seen.insert(record.identity).inserted
-        }
+    let unique = records.unique(in: day.span(in: timeZone))
+        .filter { record in !sleepPeriods.contains { $0.contains(record.timestamp) } }
         .sorted { ($0.timestamp, $0.recordCounter) < ($1.timestamp, $1.recordCounter) }
     let worn = RestingHRMethod.wornMinutes(in: unique)
     guard worn.count >= RestingHRMethod.fewestWornMinutes else { return nil }
