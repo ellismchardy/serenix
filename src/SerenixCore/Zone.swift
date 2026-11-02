@@ -15,10 +15,10 @@ public enum Zone: Equatable, Sendable {
     private static let hrvZInRangeFrom = -1.5
     private static let hrvZInRangeUpTo = 2.5
     private static let hrvZWatchFrom = -2.5
-    /// Resting HR above Baseline, bpm, up only (spec 004): Watch from +3, Out of range from +5.
-    /// A lower Resting HR is never a warning. The Watch cut-off is also the band's upper limit.
-    private static let restingHRWatchFrom = 3.0
-    private static let restingHROutOfRangeFrom = 5.0
+    /// Sleeping HR above Baseline, bpm, up only (spec 004): Watch from +3, Out of range from +5.
+    /// A lower Sleeping HR is never a warning. The Watch cut-off is also the band's upper limit.
+    private static let sleepingHRWatchFrom = 3.0
+    private static let sleepingHROutOfRangeFrom = 5.0
     /// Respiratory rate's |z|, its distance from Baseline in Spreads, either side (spec 004): In
     /// range up to 1.5, Watch up to 2.5.
     private static let respiratoryRateZInRangeUpTo = 1.5
@@ -47,11 +47,11 @@ public enum Zone: Equatable, Sendable {
                 z > Self.hrvZInRangeUpTo + Self.boundaryTolerance
                 ? .watch
                 : Self.atLeast(z, inRange: Self.hrvZInRangeFrom, watch: Self.hrvZWatchFrom)
-        case (.restingHR, let median?):
+        case (.sleepingHR, let median?):
             self = Self.risingFrom(
                 value - median,
-                watch: Self.restingHRWatchFrom,
-                outOfRange: Self.restingHROutOfRangeFrom
+                watch: Self.sleepingHRWatchFrom,
+                outOfRange: Self.sleepingHROutOfRangeFrom
             )
         case (.respiratoryRate, _):
             guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
@@ -82,8 +82,8 @@ public enum Zone: Equatable, Sendable {
         return switch (metric, baseline.spread) {
         case (.hrv, let spread?) where median > 0:
             (median * exp(hrvZInRangeFrom * spread), median * exp(hrvZInRangeUpTo * spread))
-        case (.restingHR, _):
-            (nil, median + restingHRWatchFrom)
+        case (.sleepingHR, _):
+            (nil, median + sleepingHRWatchFrom)
         case (.respiratoryRate, let spread?):
             (
                 median - respiratoryRateZInRangeUpTo * spread,
@@ -98,9 +98,9 @@ public enum Zone: Equatable, Sendable {
 
     /// Where `value` sits on its tile's gauge, 0 (bottom) to 1 (top), clamped (spec 004, Gauge):
     /// the Baseline at 0.5 and, on each side, where Watch turns into Out of range at the ends, or
-    /// for SpO2 a fixed scale. Resting HR's ends are symmetric though only a rise changes its Zone.
-    /// Nil when the metric needs a Baseline and has none, HRV's Baseline is 0 or less, or an HRV
-    /// or respiratory rate Baseline has no Spread.
+    /// for SpO2 a fixed scale. Sleeping HR's ends are symmetric though only a rise changes its
+    /// Zone. Nil when the metric needs a Baseline and has none, HRV's Baseline is 0 or less, or an
+    /// HRV or respiratory rate Baseline has no Spread.
     static func gaugePosition(_ metric: NightlyMetric, value: Double, baseline: Baseline?)
         -> Double?
     {
@@ -111,8 +111,8 @@ public enum Zone: Equatable, Sendable {
         case (.hrv, _):
             guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
             position = centred(z, limit: -hrvZWatchFrom)
-        case (.restingHR, let median?):
-            position = centred(value - median, limit: restingHROutOfRangeFrom)
+        case (.sleepingHR, let median?):
+            position = centred(value - median, limit: sleepingHROutOfRangeFrom)
         case (.respiratoryRate, _):
             guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
             position = centred(z, limit: respiratoryRateZWatchUpTo)
@@ -135,7 +135,7 @@ public enum Zone: Equatable, Sendable {
             return median > 0 ? (log(value) - log(median)) / spread : nil
         case .respiratoryRate:
             return (value - median) / spread
-        case .restingHR, .skinTemperature, .spo2:
+        case .sleepingHR, .skinTemperature, .spo2:
             return nil
         }
     }

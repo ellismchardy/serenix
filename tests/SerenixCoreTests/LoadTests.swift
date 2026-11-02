@@ -289,7 +289,7 @@ private func loadOf(_ day: Day, _ records: [HistoryRecord]) -> DayLoad {
 
 /// A Night dated `day` of November 2026 with `restingHR`.
 private func night(onNovember day: Int, restingHR: Double?) -> Night {
-    Night(day: Day(year: 2026, month: 11, day: day), restingHR: restingHR)
+    Night(day: Day(year: 2026, month: 11, day: day), sleepingHR: restingHR)
 }
 
 /// The Load of 4 Nov 2026 in London from `records` and `nights`.
@@ -339,10 +339,10 @@ private let threeNightsBefore = [
 
 @Test func onlyTheFourteenMostRecentNightsCountTowardRestingHR() {
     // 15 Nights dated 21 Oct to 4 Nov 2026: 21 Oct at 20, 22–28 Oct at 50, 29 Oct–4 Nov at 70.
-    let oldest = Night(day: Day(year: 2026, month: 10, day: 21), restingHR: 20)
-    let middle = (22...28).map { Night(day: Day(year: 2026, month: 10, day: $0), restingHR: 50) }
+    let oldest = Night(day: Day(year: 2026, month: 10, day: 21), sleepingHR: 20)
+    let middle = (22...28).map { Night(day: Day(year: 2026, month: 10, day: $0), sleepingHR: 50) }
     let recentOctober = (29...31).map {
-        Night(day: Day(year: 2026, month: 10, day: $0), restingHR: 70)
+        Night(day: Day(year: 2026, month: 10, day: $0), sleepingHR: 70)
     }
     let recentNovember = (1...4).map { night(onNovember: $0, restingHR: 70) }
     let fifteenNights = [oldest] + middle + recentOctober + recentNovember

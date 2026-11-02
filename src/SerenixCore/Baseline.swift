@@ -73,7 +73,7 @@ struct Baseline: Equatable, Sendable {
         case .respiratoryRate:
             (typical, minSpread) = (respiratoryRateTypicalSpread, respiratoryRateSpreadFloor)
             (scaled, centre) = (values, median)
-        case .restingHR, .skinTemperature, .spo2:
+        case .sleepingHR, .skinTemperature, .spo2:
             return nil
         }
         guard earlierNights >= minEarlierNightsForMeasuredSpread else { return typical }

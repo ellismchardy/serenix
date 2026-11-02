@@ -10,7 +10,7 @@ public struct Night: Equatable, Sendable {
     /// 0–100 (ADR 0005).
     public var readiness: Int?
     /// bpm.
-    public var restingHR: Double?
+    public var sleepingHR: Double?
     /// RMSSD, ms.
     public var hrv: Double?
     /// br/min.
@@ -34,7 +34,7 @@ public struct Night: Equatable, Sendable {
         day: Day,
         sleepScore: Int? = nil,
         readiness: Int? = nil,
-        restingHR: Double? = nil,
+        sleepingHR: Double? = nil,
         hrv: Double? = nil,
         respiratoryRate: Double? = nil,
         skinTemperature: Double? = nil,
@@ -48,7 +48,7 @@ public struct Night: Equatable, Sendable {
         self.day = day
         self.sleepScore = sleepScore
         self.readiness = readiness
-        self.restingHR = restingHR
+        self.sleepingHR = sleepingHR
         self.hrv = hrv
         self.respiratoryRate = respiratoryRate
         self.skinTemperature = skinTemperature
@@ -63,7 +63,7 @@ public struct Night: Equatable, Sendable {
 
 /// One of the Nightly Metrics (GLOSSARY).
 public enum NightlyMetric: Equatable, Sendable {
-    case restingHR
+    case sleepingHR
     case hrv
     case respiratoryRate
     case skinTemperature
@@ -71,13 +71,13 @@ public enum NightlyMetric: Equatable, Sendable {
 
     /// The tiles' order (spec 002, Tiles).
     static let tileOrder: [NightlyMetric] = [
-        .restingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2,
+        .sleepingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2,
     ]
 
     /// The name on its tile (GLOSSARY terms).
     public var name: String {
         switch self {
-        case .restingHR: "Resting HR"
+        case .sleepingHR: "Sleeping HR"
         case .hrv: "HRV"
         case .respiratoryRate: "Respiratory rate"
         case .skinTemperature: "Skin temperature"
@@ -94,7 +94,7 @@ extension Night {
     func value(of metric: NightlyMetric) -> Double? {
         let value =
             switch metric {
-            case .restingHR: restingHR
+            case .sleepingHR: sleepingHR
             case .hrv: hrv
             case .respiratoryRate: respiratoryRate
             case .skinTemperature: skinTemperature

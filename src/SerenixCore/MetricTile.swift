@@ -22,7 +22,7 @@ public struct MetricTile: Equatable, Sendable {
     /// no difference to show.
     let differenceDirection: BaselineDirection?
     /// The difference from Baseline in the whole units it's shown in: a percentage for HRV, bpm
-    /// for Resting HR, tenths for respiratory rate and skin temperature; nil when there's none.
+    /// for Sleeping HR, tenths for respiratory rate and skin temperature; nil when there's none.
     let differenceAsShown: Int?
     /// The Baseline the value is compared against, Calibrating or not; nil for SpO2.
     let comparedBaseline: Baseline?
@@ -70,7 +70,7 @@ public struct MetricTile: Equatable, Sendable {
 /// The value with its unit (spec 002, Formats).
 func formattedValue(of metric: NightlyMetric, _ value: Double) -> String {
     switch metric {
-    case .restingHR: "\(wholeText(value)) bpm"
+    case .sleepingHR: "\(wholeText(value)) bpm"
     case .hrv: "\(wholeText(value)) ms"
     case .respiratoryRate: "\(tenthsText(value)) br/min"
     case .skinTemperature: "\(tenthsText(value)) °C"
@@ -79,7 +79,7 @@ func formattedValue(of metric: NightlyMetric, _ value: Double) -> String {
 }
 
 /// The difference from Baseline in the whole units it's shown in (spec 002, Tiles): HRV as a
-/// percentage of Baseline, Resting HR in bpm, respiratory rate and skin temperature in tenths.
+/// percentage of Baseline, Sleeping HR in bpm, respiratory rate and skin temperature in tenths.
 /// Nil for SpO2, for HRV against a Baseline of 0 or less, and when it's too large to show.
 private func shownDifference(of metric: NightlyMetric, _ difference: Double, _ baseline: Double)
     -> Int?
@@ -87,7 +87,7 @@ private func shownDifference(of metric: NightlyMetric, _ difference: Double, _ b
     let shown: Double? =
         switch metric {
         case .hrv: baseline > 0 ? difference / baseline * 100 : nil
-        case .restingHR: difference
+        case .sleepingHR: difference
         case .respiratoryRate, .skinTemperature: difference * 10
         case .spo2: nil
         }
@@ -101,7 +101,7 @@ private func formattedDifference(of metric: NightlyMetric, _ shown: Int) -> Stri
     let size = abs(shown)
     return switch metric {
     case .hrv: "\(sign)\(size)%"
-    case .restingHR: "\(sign)\(size) bpm"
+    case .sleepingHR: "\(sign)\(size) bpm"
     case .respiratoryRate, .skinTemperature: "\(sign)\(size / 10).\(size % 10)"
     case .spo2: missingText
     }

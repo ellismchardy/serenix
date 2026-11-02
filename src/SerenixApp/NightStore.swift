@@ -13,7 +13,8 @@ final class StoredNight {
     var year: Int
     var month: Int
     var dayOfMonth: Int
-    var restingHR: Double?
+    /// Stored as `restingHR` before spec 007 renamed it, so Nights stored then keep their value.
+    @Attribute(originalName: "restingHR") var sleepingHR: Double?
     var hrv: Double?
     var respiratoryRate: Double?
     var skinTemperature: Double?
@@ -29,7 +30,7 @@ final class StoredNight {
         year = night.day.year
         month = night.day.month
         dayOfMonth = night.day.dayOfMonth
-        restingHR = night.restingHR
+        sleepingHR = night.sleepingHR
         hrv = night.hrv
         respiratoryRate = night.respiratoryRate
         skinTemperature = night.skinTemperature
@@ -44,7 +45,7 @@ final class StoredNight {
     var night: Night {
         Night(
             day: Day(year: year, month: month, day: dayOfMonth),
-            restingHR: restingHR,
+            sleepingHR: sleepingHR,
             hrv: hrv,
             respiratoryRate: respiratoryRate,
             skinTemperature: skinTemperature,

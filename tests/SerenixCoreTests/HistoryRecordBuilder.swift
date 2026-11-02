@@ -14,7 +14,7 @@ enum RecordStretch {
 }
 
 /// Heart rate of every hand-built record, bpm. Constant, so heart rate never extends a wake bout
-/// and Resting HR is exactly this.
+/// and Sleeping HR is exactly this.
 private let builtHeartRate = 55
 
 /// History Records for `stretches`, back to back from `start` (which should be a whole UTC

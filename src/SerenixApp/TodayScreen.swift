@@ -288,7 +288,7 @@ struct TodayScreen: View {
         }
     }
 
-    /// HRV and Resting HR against Baseline, or the one Calibrating line; nothing on a Day without
+    /// HRV and Sleeping HR against Baseline, or the one Calibrating line; nothing on a Day without
     /// a Night.
     @ViewBuilder
     private func vsBaseline(_ today: TodayView) -> some View {

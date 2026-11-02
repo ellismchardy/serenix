@@ -100,12 +100,12 @@ public struct TodayView: Equatable, Sendable {
         let readinessBaselines = night.map { night in
             (
                 hrv: Baseline(.hrv, for: night, among: nights),
-                restingHR: Baseline(.restingHR, for: night, among: nights)
+                sleepingHR: Baseline(.sleepingHR, for: night, among: nights)
             )
         }
         let calibratingNightsSoFar = readinessBaselines.flatMap { baselines in
-            baselines.hrv.isCalibrating || baselines.restingHR.isCalibrating
-                ? 1 + min(baselines.hrv.earlierNights, baselines.restingHR.earlierNights) : nil
+            baselines.hrv.isCalibrating || baselines.sleepingHR.isCalibrating
+                ? 1 + min(baselines.hrv.earlierNights, baselines.sleepingHR.earlierNights) : nil
         }
         let nightsForBaseline = Baseline.minEarlierNights + 1
         if let calibratingNightsSoFar {
@@ -155,7 +155,7 @@ public struct TodayView: Equatable, Sendable {
                 for: band,
                 yesterdayLoad: dayLoads.first { $0.day == day.adding(days: -1) }?.load,
                 hrv: tiles.first { $0.metric == .hrv },
-                restingHR: tiles.first { $0.metric == .restingHR }
+                sleepingHR: tiles.first { $0.metric == .sleepingHR }
             )
         }
 
@@ -216,10 +216,10 @@ public struct TodayView: Equatable, Sendable {
             } ?? []
     }
 
-    /// How many Nights Readiness's Baselines are taken over: the fewer of HRV's and Resting HR's,
+    /// How many Nights Readiness's Baselines are taken over: the fewer of HRV's and Sleeping HR's,
     /// at most `Baseline.maxNights`.
-    private static func baselineNights(_ baselines: (hrv: Baseline, restingHR: Baseline)) -> Int {
-        min(Baseline.maxNights, baselines.hrv.earlierNights, baselines.restingHR.earlierNights)
+    private static func baselineNights(_ baselines: (hrv: Baseline, sleepingHR: Baseline)) -> Int {
+        min(Baseline.maxNights, baselines.hrv.earlierNights, baselines.sleepingHR.earlierNights)
     }
 
     /// A Nightly Metric's popup; nil on a Day without a Night.

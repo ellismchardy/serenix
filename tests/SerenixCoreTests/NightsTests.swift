@@ -30,17 +30,17 @@ private let london = TimeZone(identifier: "Europe/London")!
 /// same fixture night (units: bpm, ms, br/min, °C).
 private let hrTrackerTolerance = 0.05
 
-/// Spec 003, success criterion 2 (Resting HR, HRV and skin temperature). Expected values are
+/// Spec 003, success criterion 2 (Sleeping HR, HRV and skin temperature). Expected values are
 /// hr-tracker's unrounded output on the same fixture night.
-@Test func fixtureNightHasRestingHRHRVAndSkinTemperatureMatchingHRTracker() throws {
+@Test func fixtureNightHasSleepingHRHRVAndSkinTemperatureMatchingHRTracker() throws {
     let found = nights(from: NightFixture.night20261030, in: london)
 
     try #require(found.count == 1)
     let night = found[0]
-    let restingHR = try #require(night.restingHR)
+    let sleepingHR = try #require(night.sleepingHR)
     let hrv = try #require(night.hrv)
     let skinTemperature = try #require(night.skinTemperature)
-    #expect(abs(restingHR - 48.11506392440245) <= hrTrackerTolerance)
+    #expect(abs(sleepingHR - 48.11506392440245) <= hrTrackerTolerance)
     #expect(abs(hrv - 85.40044373112873) <= hrTrackerTolerance)
     #expect(abs(skinTemperature - 32.58730047441119) <= hrTrackerTolerance)
 }
@@ -117,14 +117,14 @@ private func fixtureRecordsWithoutRRIntervals() -> [HistoryRecord] {
     try #require(found.count == 1)
     let night = found[0]
     #expect(night.spo2 == nil)
-    #expect(try #require(night.restingHR) == (try #require(unmodified.restingHR)))
+    #expect(try #require(night.sleepingHR) == (try #require(unmodified.sleepingHR)))
     #expect(try #require(night.hrv) == (try #require(unmodified.hrv)))
     #expect(try #require(night.respiratoryRate) == (try #require(unmodified.respiratoryRate)))
     #expect(try #require(night.skinTemperature) == (try #require(unmodified.skinTemperature)))
 }
 
 /// Spec 003: the fixture night with every RR interval removed has HRV and respiratory rate
-/// missing and Resting HR, skin temperature and SpO2 unchanged.
+/// missing and Sleeping HR, skin temperature and SpO2 unchanged.
 @Test func fixtureNightWithoutRRIntervalsHasHRVAndRespiratoryRateMissingAndOtherMetricsUnchanged()
     throws
 {
@@ -136,7 +136,7 @@ private func fixtureRecordsWithoutRRIntervals() -> [HistoryRecord] {
     let night = found[0]
     #expect(night.hrv == nil)
     #expect(night.respiratoryRate == nil)
-    #expect(try #require(night.restingHR) == (try #require(unmodified.restingHR)))
+    #expect(try #require(night.sleepingHR) == (try #require(unmodified.sleepingHR)))
     #expect(try #require(night.skinTemperature) == (try #require(unmodified.skinTemperature)))
     #expect(try #require(night.spo2) == (try #require(unmodified.spo2)))
 }
@@ -339,9 +339,9 @@ private func fixtureRecordsWithoutRRIntervals() -> [HistoryRecord] {
     #expect(found[0].timeAsleep == sixtyMinutes)
 }
 
-/// Spec 003: Resting HR is missing when the Sleep Period has under 30 minutes of records; the
+/// Spec 003: Sleeping HR is missing when the Sleep Period has under 30 minutes of records; the
 /// Night is still made.
-@Test func sleepPeriodWithUnderThirtyMinutesOfRecordsHasRestingHRMissing() throws {
+@Test func sleepPeriodWithUnderThirtyMinutesOfRecordsHasSleepingHRMissing() throws {
     let records = historyRecords(
         startingAt: utcDate(2026, 11, 15, 0, 30),
         [.moving(minutes: 30), .still(minutes: 20), .moving(minutes: 30)]
@@ -350,12 +350,12 @@ private func fixtureRecordsWithoutRRIntervals() -> [HistoryRecord] {
     let found = nights(from: records, in: london)
 
     try #require(found.count == 1)
-    #expect(found[0].restingHR == nil)
+    #expect(found[0].sleepingHR == nil)
 }
 
-/// Spec 003: a Sleep Period with 30 minutes of records or more has a Resting HR: here the
+/// Spec 003: a Sleep Period with 30 minutes of records or more has a Sleeping HR: here the
 /// constant 55 bpm of every record.
-@Test func sleepPeriodWithFortyMinutesOfRecordsHasRestingHR() throws {
+@Test func sleepPeriodWithFortyMinutesOfRecordsHasSleepingHR() throws {
     let records = historyRecords(
         startingAt: utcDate(2026, 11, 15, 0, 30),
         [.moving(minutes: 30), .still(minutes: 40), .moving(minutes: 30)]
@@ -364,6 +364,6 @@ private func fixtureRecordsWithoutRRIntervals() -> [HistoryRecord] {
     let found = nights(from: records, in: london)
 
     try #require(found.count == 1)
-    let restingHR = try #require(found[0].restingHR)
-    #expect(restingHR == 55)
+    let sleepingHR = try #require(found[0].sleepingHR)
+    #expect(sleepingHR == 55)
 }

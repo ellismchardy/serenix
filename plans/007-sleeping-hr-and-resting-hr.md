@@ -62,7 +62,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
    - Done when: the existing suite is green, including the NightsTests fixture night (spec 003's
      values unchanged).
 
-3. [ ] **Rename the Night metric to Sleeping HR.** This covers:
+3. [x] **Rename the Night metric to Sleeping HR.** This covers:
    - `Night.sleepingHR` and `NightlyMetric.sleepingHR` (name "Sleeping HR")
    - `NightlyMetrics.sleepingHR(of:)`
    - Zone, Baseline, MetricTile, VsBaseline, ReadinessAdvice ("Sleeping HR is up N bpm"),

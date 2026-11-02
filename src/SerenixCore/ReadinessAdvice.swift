@@ -13,13 +13,13 @@ enum ReadinessAdvice {
     /// 0–100 (ADR 0005; spec 005, Readiness advice). Assumption: tune with real Days.
     static let takeItEasyLoadCap = 33
 
-    /// `yesterdayLoad` is the Load of the Day before the Day shown; `hrv` and `restingHR` are the
+    /// `yesterdayLoad` is the Load of the Day before the Day shown; `hrv` and `sleepingHR` are the
     /// Night's tiles.
     static func text(
         for band: ReadinessBand,
         yesterdayLoad: Int?,
         hrv: MetricTile?,
-        restingHR: MetricTile?
+        sleepingHR: MetricTile?
     ) -> String {
         let sentence =
             switch band {
@@ -34,12 +34,12 @@ enum ReadinessAdvice {
                     + "Load under \(takeItEasyLoadCap) today."
             }
         guard band != .ready else { return sentence }
-        let reasons = reasons(yesterdayLoad: yesterdayLoad, hrv: hrv, restingHR: restingHR)
+        let reasons = reasons(yesterdayLoad: yesterdayLoad, hrv: hrv, sleepingHR: sleepingHR)
         return reasons.isEmpty ? sentence : "\(joined(reasons)). \(sentence)"
     }
 
-    /// What applies, in order: a high Load yesterday, HRV below Baseline, Resting HR above it.
-    private static func reasons(yesterdayLoad: Int?, hrv: MetricTile?, restingHR: MetricTile?)
+    /// What applies, in order: a high Load yesterday, HRV below Baseline, Sleeping HR above it.
+    private static func reasons(yesterdayLoad: Int?, hrv: MetricTile?, sleepingHR: MetricTile?)
         -> [String]
     {
         var reasons: [String] = []
@@ -49,10 +49,10 @@ enum ReadinessAdvice {
         if let hrv, hrv.differenceDirection == .down, let percent = hrv.differenceAsShown {
             reasons.append("HRV is \(abs(percent))% below your Baseline")
         }
-        if let restingHR, restingHR.differenceDirection == .up,
-            let bpm = restingHR.differenceAsShown
+        if let sleepingHR, sleepingHR.differenceDirection == .up,
+            let bpm = sleepingHR.differenceAsShown
         {
-            reasons.append("Resting HR is up \(bpm) bpm")
+            reasons.append("Sleeping HR is up \(bpm) bpm")
         }
         return reasons
     }

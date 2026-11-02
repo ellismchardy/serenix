@@ -42,16 +42,16 @@ private func todayView(
 /// and so on. A nil (or absent) entry is a Night without that Nightly Metric.
 private func nightsBeforeNov1(
     hrv: [Double?] = [],
-    restingHR: [Double?] = [],
+    sleepingHR: [Double?] = [],
     respiratoryRate: [Double?] = [],
     skinTemperature: [Double?] = [],
     spo2: [Double?] = []
 ) -> [Night] {
-    let count = [hrv, restingHR, respiratoryRate, skinTemperature, spo2].map(\.count).max()!
+    let count = [hrv, sleepingHR, respiratoryRate, skinTemperature, spo2].map(\.count).max()!
     return (0..<count).map { index in
         Night(
             day: Day(year: 2026, month: 10, day: 31 - index),
-            restingHR: index < restingHR.count ? restingHR[index] : nil,
+            sleepingHR: index < sleepingHR.count ? sleepingHR[index] : nil,
             hrv: index < hrv.count ? hrv[index] : nil,
             respiratoryRate: index < respiratoryRate.count ? respiratoryRate[index] : nil,
             skinTemperature: index < skinTemperature.count ? skinTemperature[index] : nil,
@@ -60,10 +60,10 @@ private func nightsBeforeNov1(
     }
 }
 
-/// Three earlier Nights with HRV and Resting HR, so Readiness on 1 Nov is past Calibrating.
+/// Three earlier Nights with HRV and Sleeping HR, so Readiness on 1 Nov is past Calibrating.
 private let calibratedNightsBeforeNov1 = nightsBeforeNov1(
     hrv: [60, 60, 60],
-    restingHR: [50, 50, 50]
+    sleepingHR: [50, 50, 50]
 )
 
 // MARK: Which Day is shown and the week strip
@@ -147,7 +147,7 @@ private let nightsOct1ToNov1 =
         day: oct31,
         sleepScore: 84,
         readiness: 80,
-        restingHR: 50,
+        sleepingHR: 50,
         hrv: 62,
         respiratoryRate: 14.1,
         skinTemperature: 34.0,
@@ -371,10 +371,10 @@ func readinessShowsItsNumberAndBand(
 // MARK: Readiness Calibrating
 
 @Test func readinessIsCalibratingUntilThreeEarlierNightsFormBothBaselines() {
-    let shown = Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)
+    let shown = Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)
 
     let twoEarlier = todayView(
-        nights: nightsBeforeNov1(hrv: [60, 60], restingHR: [50, 50]) + [shown],
+        nights: nightsBeforeNov1(hrv: [60, 60], sleepingHR: [50, 50]) + [shown],
         showing: nov1
     )
     #expect(twoEarlier.readinessText == "3/4")
@@ -388,7 +388,7 @@ func readinessShowsItsNumberAndBand(
 
 @Test func theFirstNightIsOneOfFourNightsWhileReadinessIsCalibrating() {
     let view = todayView(
-        nights: [Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)],
+        nights: [Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)],
         showing: nov1
     )
 
@@ -399,8 +399,8 @@ func readinessShowsItsNumberAndBand(
 
 @Test func calibratingCountsNightsByTheMetricWithFewestEarlierValues() {
     let nights =
-        nightsBeforeNov1(hrv: [60, 60, 60], restingHR: [50])
-        + [Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)]
+        nightsBeforeNov1(hrv: [60, 60, 60], sleepingHR: [50])
+        + [Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)]
     let view = todayView(nights: nights, showing: nov1)
 
     #expect(view.readinessText == "2/4")
@@ -561,11 +561,11 @@ func readinessShowsItsNumberAndBand(
 
 // MARK: Zones
 
-/// Three earlier Nights at the same values, so 1 Nov's Baselines are exactly Resting HR 52 bpm,
+/// Three earlier Nights at the same values, so 1 Nov's Baselines are exactly Sleeping HR 52 bpm,
 /// HRV 60 ms, respiratory rate 14.0 br/min and skin temperature 34.0 °C.
 private let exactBaselinesBeforeNov1 = nightsBeforeNov1(
     hrv: [60, 60, 60],
-    restingHR: [52, 52, 52],
+    sleepingHR: [52, 52, 52],
     respiratoryRate: [14.0, 14.0, 14.0],
     skinTemperature: [34.0, 34.0, 34.0]
 )
@@ -591,17 +591,17 @@ func hrvZoneAgainstABaselineOf60(hrv: Double, zone: Zone) {
     #expect(tile?.zone == zone)
 }
 
-// Values from spec 004. Resting HR uses a fixed gap, not a Spread, and only upward: with
+// Values from spec 004. Sleeping HR uses a fixed gap, not a Spread, and only upward: with
 // d = v − 52, In range while d < 3, Watch while 3 ≤ d < 5, Out of range from d ≥ 5. So 54.9 is
-// In range, 55 and 56.9 are Watch, and 57 is Out of range. A lower Resting HR is never a warning,
+// In range, 55 and 56.9 are Watch, and 57 is Out of range. A lower Sleeping HR is never a warning,
 // however low (40).
 @Test(
     arguments: [
         (54.9, .inRange), (55, .watch), (56.9, .watch), (57, .outOfRange), (40, .inRange),
     ] as [(Double, Zone)]
 )
-func restingHRZoneAgainstABaselineOf52(restingHR: Double, zone: Zone) {
-    let tile = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: restingHR))
+func sleepingHRZoneAgainstABaselineOf52(sleepingHR: Double, zone: Zone) {
+    let tile = nov1Tile(.sleepingHR, of: Night(day: nov1, sleepingHR: sleepingHR))
 
     #expect(tile?.baseline == 52)
     #expect(tile?.zone == zone)
@@ -817,14 +817,14 @@ func respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights(
 
 // MARK: Tile text
 
-@Test func restingHRDifferenceIsInWholeSignedBpm() {
-    let down = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: 49))
+@Test func sleepingHRDifferenceIsInWholeSignedBpm() {
+    let down = nov1Tile(.sleepingHR, of: Night(day: nov1, sleepingHR: 49))
     #expect(down?.differenceText == "\u{2212}3 bpm")
 
-    let up = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: 54))
+    let up = nov1Tile(.sleepingHR, of: Night(day: nov1, sleepingHR: 54))
     #expect(up?.differenceText == "+2 bpm")
 
-    let none = nov1Tile(.restingHR, of: Night(day: nov1, restingHR: 51.6))
+    let none = nov1Tile(.sleepingHR, of: Night(day: nov1, sleepingHR: 51.6))
     #expect(none?.differenceText == "0 bpm")
 }
 
@@ -870,7 +870,7 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 @Test func eachMetricsValueShowsWithItsUnit() {
     let night = Night(
         day: nov1,
-        restingHR: 52,
+        sleepingHR: 52,
         hrv: 62,
         respiratoryRate: 14.2,
         skinTemperature: 34.1,
@@ -878,7 +878,7 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
     )
     let view = todayView(nights: [night], showing: nov1)
 
-    #expect(view.tile(.restingHR)?.valueText == "52 bpm")
+    #expect(view.tile(.sleepingHR)?.valueText == "52 bpm")
     #expect(view.tile(.hrv)?.valueText == "62 ms")
     #expect(view.tile(.respiratoryRate)?.valueText == "14.2 br/min")
     #expect(view.tile(.skinTemperature)?.valueText == "34.1 °C")
@@ -888,14 +888,14 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 @Test func valuesRoundToWholeNumbersOrOneDecimal() {
     let night = Night(
         day: nov1,
-        restingHR: 51.6,
+        sleepingHR: 51.6,
         respiratoryRate: 14.0,
         skinTemperature: 34.06,
         spo2: 95.6
     )
     let view = todayView(nights: [night], showing: nov1)
 
-    #expect(view.tile(.restingHR)?.valueText == "52 bpm")
+    #expect(view.tile(.sleepingHR)?.valueText == "52 bpm")
     #expect(view.tile(.respiratoryRate)?.valueText == "14.0 br/min")
     #expect(view.tile(.skinTemperature)?.valueText == "34.1 °C")
     #expect(view.tile(.spo2)?.valueText == "96%")
@@ -906,14 +906,14 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 @Test func aCalibratingMetricHasNoZoneButSpO2HasOne() {
     let earlier = nightsBeforeNov1(
         hrv: [60, 60],
-        restingHR: [52, 52],
+        sleepingHR: [52, 52],
         respiratoryRate: [14.0, 14.0],
         skinTemperature: [34.0, 34.0],
         spo2: [97, 97]
     )
     let night = Night(
         day: nov1,
-        restingHR: 60,
+        sleepingHR: 60,
         hrv: 40,
         respiratoryRate: 16.0,
         skinTemperature: 35.0,
@@ -921,7 +921,7 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
     )
     let view = todayView(nights: earlier + [night], showing: nov1)
 
-    for metric in [NightlyMetric.restingHR, .hrv, .respiratoryRate, .skinTemperature] {
+    for metric in [NightlyMetric.sleepingHR, .hrv, .respiratoryRate, .skinTemperature] {
         #expect(view.tile(metric)?.baseline == nil, "\(metric)")
         #expect(view.tile(metric)?.zone == nil, "\(metric)")
         #expect(view.tile(metric)?.differenceText == "Calibrating", "\(metric)")
@@ -933,7 +933,7 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 @Test func aNightMissingEveryNightlyMetricShowsDashesWithNoZone() {
     let earlier = nightsBeforeNov1(
         hrv: [60, 60, 60],
-        restingHR: [52, 52, 52],
+        sleepingHR: [52, 52, 52],
         respiratoryRate: [14.0, 14.0, 14.0],
         skinTemperature: [34.0, 34.0, 34.0],
         spo2: [97, 97, 97]
@@ -949,36 +949,36 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
 }
 
 @Test func aNightWithoutSpO2ShowsADashWhileItsOtherMetricsShow() {
-    let view = todayView(nights: [Night(day: nov1, restingHR: 52)], showing: nov1)
+    let view = todayView(nights: [Night(day: nov1, sleepingHR: 52)], showing: nov1)
 
     #expect(view.tile(.spo2)?.valueText == "—")
     #expect(view.tile(.spo2)?.differenceText == "—")
     #expect(view.tile(.spo2)?.zone == nil)
-    #expect(view.tile(.restingHR)?.valueText == "52 bpm")
+    #expect(view.tile(.sleepingHR)?.valueText == "52 bpm")
 }
 
 // MARK: Tile order and names
 
-@Test func tilesRunRestingHRHRVRespiratoryRateSkinTemperatureSpO2() {
+@Test func tilesRunSleepingHRHRVRespiratoryRateSkinTemperatureSpO2() {
     let view = todayView(nights: [Night(day: nov1)], showing: nov1)
 
     #expect(
-        view.tiles.map(\.metric) == [.restingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2]
+        view.tiles.map(\.metric) == [.sleepingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2]
     )
     #expect(
         view.tiles.map(\.metric.name) == [
-            "Resting HR", "HRV", "Respiratory rate", "Skin temperature", "SpO2",
+            "Sleeping HR", "HRV", "Respiratory rate", "Skin temperature", "SpO2",
         ]
     )
 }
 
 // MARK: Status words and gauges
 
-// Values from spec 004, against Baselines HRV 60, Resting HR 52, respiratory rate 14.0 and skin
+// Values from spec 004, against Baselines HRV 60, Sleeping HR 52, respiratory rate 14.0 and skin
 // temperature 34.0 with typical Spreads (HRV 0.15 on ln, respiratory rate 0.5).
 // HRV: z = ln(v / 60) / 0.15, so 70 → +1.03 (In range, "Normal"), 90 → +2.70 (Watch, "High"),
 // 41 → −2.54 (Out of range, "Low").
-// Resting HR: 45 is below the Baseline, always In range ("Normal"); 55 is +3 (Watch, "High").
+// Sleeping HR: 45 is below the Baseline, always In range ("Normal"); 55 is +3 (Watch, "High").
 // Respiratory rate: 15.0 → z = +2 ("High"), 13.0 → z = −2 ("Low").
 // Skin temperature: 34.5 is +0.5 ("High"), 33.5 is −0.5 ("Low").
 // SpO2 keeps its fixed level words.
@@ -987,8 +987,8 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
         (.hrv, Night(day: nov1, hrv: 70), "Normal"),
         (.hrv, Night(day: nov1, hrv: 90), "High"),
         (.hrv, Night(day: nov1, hrv: 41), "Low"),
-        (.restingHR, Night(day: nov1, restingHR: 45), "Normal"),
-        (.restingHR, Night(day: nov1, restingHR: 55), "High"),
+        (.sleepingHR, Night(day: nov1, sleepingHR: 45), "Normal"),
+        (.sleepingHR, Night(day: nov1, sleepingHR: 55), "High"),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), "High"),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.0), "Low"),
         (.skinTemperature, Night(day: nov1, skinTemperature: 34.5), "High"),
@@ -1009,7 +1009,7 @@ func tileStatusWordAgainstExactBaselines(metric: NightlyMetric, night: Night, wo
 // (unclamped, so it pins the ln and Spread scale).
 // Respiratory rate, 0.5 + z / 5 with z = (v − 14.0) / 0.5: 15.0 → z = 2, 0.9; 13.5 → z = −1, 0.3;
 // 16 → z = 4, 1.3, clamped to 1.
-// Resting HR, 0.5 + d / (2 × 5): 54.5 → d = 2.5, 0.75; 47 → d = −5, 0.
+// Sleeping HR, 0.5 + d / (2 × 5): 54.5 → d = 2.5, 0.75; 47 → d = −5, 0.
 // Skin temperature, 0.5 + d / (2 × 0.6): 33.7 → d = −0.3, 0.25.
 // SpO2, fixed 88–100: 97 → 9 / 12 = 0.75; 85 → below 88, clamped to 0.
 @Test(
@@ -1021,8 +1021,8 @@ func tileStatusWordAgainstExactBaselines(metric: NightlyMetric, night: Night, wo
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 15.0), 0.9),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 13.5), 0.3),
         (.respiratoryRate, Night(day: nov1, respiratoryRate: 16), 1),
-        (.restingHR, Night(day: nov1, restingHR: 54.5), 0.75),
-        (.restingHR, Night(day: nov1, restingHR: 47), 0),
+        (.sleepingHR, Night(day: nov1, sleepingHR: 54.5), 0.75),
+        (.sleepingHR, Night(day: nov1, sleepingHR: 47), 0),
         (.skinTemperature, Night(day: nov1, skinTemperature: 33.7), 0.25),
         (.spo2, Night(day: nov1, spo2: 97), 0.75),
         (.spo2, Night(day: nov1, spo2: 85), 0),
@@ -1037,14 +1037,14 @@ func tileGaugePositionAgainstExactBaselines(metric: NightlyMetric, night: Night,
 @Test func aCalibratingMetricSaysCalibratingAndHasNoGaugeButSpO2Has() throws {
     let earlier = nightsBeforeNov1(
         hrv: [60, 60],
-        restingHR: [52, 52],
+        sleepingHR: [52, 52],
         respiratoryRate: [14.0, 14.0],
         skinTemperature: [34.0, 34.0],
         spo2: [97, 97]
     )
     let night = Night(
         day: nov1,
-        restingHR: 55,
+        sleepingHR: 55,
         hrv: 54,
         respiratoryRate: 15.0,
         skinTemperature: 34.5,
@@ -1052,7 +1052,7 @@ func tileGaugePositionAgainstExactBaselines(metric: NightlyMetric, night: Night,
     )
     let view = todayView(nights: earlier + [night], showing: nov1)
 
-    for metric in [NightlyMetric.restingHR, .hrv, .respiratoryRate, .skinTemperature] {
+    for metric in [NightlyMetric.sleepingHR, .hrv, .respiratoryRate, .skinTemperature] {
         let tile = try #require(view.tile(metric), "\(metric)")
         #expect(tile.statusText == "Calibrating", "\(metric)")
         #expect(tile.gauge == nil, "\(metric)")
@@ -1065,7 +1065,7 @@ func tileGaugePositionAgainstExactBaselines(metric: NightlyMetric, night: Night,
 @Test func aMissingNightlyMetricHasADashForItsStatusWordAndNoGauge() {
     let earlier = nightsBeforeNov1(
         hrv: [60, 60, 60],
-        restingHR: [52, 52, 52],
+        sleepingHR: [52, 52, 52],
         respiratoryRate: [14.0, 14.0, 14.0],
         skinTemperature: [34.0, 34.0, 34.0],
         spo2: [97, 97, 97]
@@ -1181,20 +1181,20 @@ func timeAsleepRoundsToTheNearestMinute(timeAsleep: TimeInterval, text: String) 
 
 // MARK: vs your Baseline
 
-/// vs your Baseline's HRV and Resting HR comparisons; nil when it's Calibrating or absent.
+/// vs your Baseline's HRV and Sleeping HR comparisons; nil when it's Calibrating or absent.
 private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     guard case .comparisons(let comparisons) = view.vsBaseline else { return nil }
     return comparisons
 }
 
-@Test func hrvUp14PercentAndRestingHRDown3BpmAreBothMarkedTheGoodWay() {
+@Test func hrvUp14PercentAndSleepingHRDown3BpmAreBothMarkedTheGoodWay() {
     let view = todayView(
-        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 49, hrv: 68.4)],
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 49, hrv: 68.4)],
         showing: nov1
     )
     let comparisons = baselineComparisons(view)
 
-    #expect(comparisons?.map(\.metric) == [.hrv, .restingHR])
+    #expect(comparisons?.map(\.metric) == [.hrv, .sleepingHR])
 
     let hrv = comparisons?.first
     #expect(hrv?.valueText == "68 ms")
@@ -1202,16 +1202,16 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(hrv?.direction == .up)
     #expect(hrv?.movedTheGoodWay == true)
 
-    let restingHR = comparisons?.last
-    #expect(restingHR?.valueText == "49 bpm")
-    #expect(restingHR?.differenceText == "\u{2212}3 bpm")
-    #expect(restingHR?.direction == .down)
-    #expect(restingHR?.movedTheGoodWay == true)
+    let sleepingHR = comparisons?.last
+    #expect(sleepingHR?.valueText == "49 bpm")
+    #expect(sleepingHR?.differenceText == "\u{2212}3 bpm")
+    #expect(sleepingHR?.direction == .down)
+    #expect(sleepingHR?.movedTheGoodWay == true)
 }
 
-@Test func hrvDownAndRestingHRUpAreBothMarkedTheBadWay() {
+@Test func hrvDownAndSleepingHRUpAreBothMarkedTheBadWay() {
     let view = todayView(
-        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 55, hrv: 54)],
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 55, hrv: 54)],
         showing: nov1
     )
     let comparisons = baselineComparisons(view)
@@ -1222,16 +1222,16 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(hrv?.direction == .down)
     #expect(hrv?.movedTheGoodWay == false)
 
-    let restingHR = comparisons?.last
-    #expect(restingHR?.metric == .restingHR)
-    #expect(restingHR?.differenceText == "+3 bpm")
-    #expect(restingHR?.direction == .up)
-    #expect(restingHR?.movedTheGoodWay == false)
+    let sleepingHR = comparisons?.last
+    #expect(sleepingHR?.metric == .sleepingHR)
+    #expect(sleepingHR?.differenceText == "+3 bpm")
+    #expect(sleepingHR?.direction == .up)
+    #expect(sleepingHR?.movedTheGoodWay == false)
 }
 
 @Test func aDifferenceThatRoundsToZeroHasNoDirection() {
     let view = todayView(
-        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 52.2, hrv: 60.1)],
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 52.2, hrv: 60.1)],
         showing: nov1
     )
     let comparisons = baselineComparisons(view)
@@ -1241,20 +1241,20 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(hrv?.direction == nil)
     #expect(hrv?.movedTheGoodWay == nil)
 
-    let restingHR = comparisons?.last
-    #expect(restingHR?.differenceText == "0 bpm")
-    #expect(restingHR?.direction == nil)
-    #expect(restingHR?.movedTheGoodWay == nil)
+    let sleepingHR = comparisons?.last
+    #expect(sleepingHR?.differenceText == "0 bpm")
+    #expect(sleepingHR?.direction == nil)
+    #expect(sleepingHR?.movedTheGoodWay == nil)
 }
 
 @Test func aNightWithoutHRVComparesItAsDashesWithNoDirection() {
     let view = todayView(
-        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, restingHR: 49)],
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 49)],
         showing: nov1
     )
     let comparisons = baselineComparisons(view)
 
-    #expect(comparisons?.map(\.metric) == [.hrv, .restingHR])
+    #expect(comparisons?.map(\.metric) == [.hrv, .sleepingHR])
 
     let hrv = comparisons?.first
     #expect(hrv?.valueText == "—")
@@ -1262,13 +1262,13 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(hrv?.direction == nil)
     #expect(hrv?.movedTheGoodWay == nil)
 
-    let restingHR = comparisons?.last
-    #expect(restingHR?.differenceText == "\u{2212}3 bpm")
-    #expect(restingHR?.movedTheGoodWay == true)
+    let sleepingHR = comparisons?.last
+    #expect(sleepingHR?.differenceText == "\u{2212}3 bpm")
+    #expect(sleepingHR?.movedTheGoodWay == true)
 }
 
 @Test func vsBaselineIsTheCalibratingLineWithTheNightsToGo() {
-    let shown = Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)
+    let shown = Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)
 
     let firstNight = todayView(nights: [shown], showing: nov1)
     #expect(firstNight.readinessText == "1/4")
@@ -1280,7 +1280,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     )
 
     let twoEarlier = todayView(
-        nights: nightsBeforeNov1(hrv: [60, 60], restingHR: [50, 50]) + [shown],
+        nights: nightsBeforeNov1(hrv: [60, 60], sleepingHR: [50, 50]) + [shown],
         showing: nov1
     )
     #expect(twoEarlier.readinessText == "3/4")
@@ -1294,8 +1294,8 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 
 @Test func vsBaselineIsCalibratingWhileEitherBaselineIs() {
     let nights =
-        nightsBeforeNov1(hrv: [60, 60, 60], restingHR: [50])
-        + [Night(day: nov1, readiness: 80, restingHR: 50, hrv: 60)]
+        nightsBeforeNov1(hrv: [60, 60, 60], sleepingHR: [50])
+        + [Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)]
     let view = todayView(nights: nights, showing: nov1)
 
     #expect(view.readinessText == "2/4")
@@ -1316,14 +1316,14 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 
 // MARK: Readiness popup
 
-@Test func readinessPopupShowsHRVAndRestingHRAgainstTheirBaselinesAndHowManyNightsFormThem() {
-    let night = Night(day: nov1, sleepScore: 84, readiness: 80, restingHR: 49, hrv: 68.4)
+@Test func readinessPopupShowsHRVAndSleepingHRAgainstTheirBaselinesAndHowManyNightsFormThem() {
+    let night = Night(day: nov1, sleepScore: 84, readiness: 80, sleepingHR: 49, hrv: 68.4)
     let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
         .readinessPopup
 
     #expect(popup?.readinessText == "80")
     #expect(popup?.band == .ready)
-    #expect(popup?.rows.map(\.metric) == [.hrv, .restingHR])
+    #expect(popup?.rows.map(\.metric) == [.hrv, .sleepingHR])
     #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm"])
     #expect(popup?.rows.map(\.baselineText) == ["60 ms", "52 bpm"])
     #expect(popup?.rows.map(\.differenceText) == ["+14%", "\u{2212}3 bpm"])
@@ -1332,29 +1332,38 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(popup?.calibratingText == nil)
 }
 
+/// Spec 007: vs your Baseline and the Readiness popup name the Night's metric "Sleeping HR".
+@Test func vsBaselineAndTheReadinessPopupNameSleepingHR() {
+    let night = Night(day: nov1, sleepScore: 84, readiness: 80, sleepingHR: 49, hrv: 68.4)
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(baselineComparisons(view)?.map(\.metric.name) == ["HRV", "Sleeping HR"])
+    #expect(view.readinessPopup?.rows.map(\.metric.name) == ["HRV", "Sleeping HR"])
+}
+
 @Test func readinessPopupBaselineNoteCountsAtMostFourteenNights() {
     let earlier = nightsBeforeNov1(
         hrv: Array(repeating: 60, count: 20),
-        restingHR: Array(repeating: 52, count: 20)
+        sleepingHR: Array(repeating: 52, count: 20)
     )
-    let night = Night(day: nov1, readiness: 80, restingHR: 49, hrv: 68.4)
+    let night = Night(day: nov1, readiness: 80, sleepingHR: 49, hrv: 68.4)
     let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
 
     #expect(popup?.baselineNote == "Baseline: your last 14 Nights")
 }
 
 @Test func readinessPopupBaselineNoteCountsByTheMetricWithFewerEarlierNights() {
-    let earlier = nightsBeforeNov1(hrv: [60, 60, 60, 60, 60], restingHR: [52, 52, 52, 52])
-    let night = Night(day: nov1, readiness: 80, restingHR: 49, hrv: 68.4)
+    let earlier = nightsBeforeNov1(hrv: [60, 60, 60, 60, 60], sleepingHR: [52, 52, 52, 52])
+    let night = Night(day: nov1, readiness: 80, sleepingHR: 49, hrv: 68.4)
     let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
 
     #expect(popup?.baselineNote == "Baseline: your last 4 Nights")
 }
 
 @Test func readinessPopupExplainsCalibratingWithTheNightsSoFar() {
-    let night = Night(day: nov1, sleepScore: 84, readiness: 80, restingHR: 50, hrv: 60)
+    let night = Night(day: nov1, sleepScore: 84, readiness: 80, sleepingHR: 50, hrv: 60)
     let popup = todayView(
-        nights: nightsBeforeNov1(hrv: [60, 60], restingHR: [50, 50]) + [night],
+        nights: nightsBeforeNov1(hrv: [60, 60], sleepingHR: [50, 50]) + [night],
         showing: nov1
     ).readinessPopup
 
@@ -1513,11 +1522,11 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
 // Values from spec 004, with typical Spreads (three earlier Nights). HRV: Spread 0.15 on ln(RMSSD),
 // so the band is 60 × e^(−1.5 × 0.15) = 60 × e^−0.225 = 47.91097 to 60 × e^(2.5 × 0.15) =
 // 60 × e^0.375 = 87.29948 ms. Respiratory rate: Spread 0.5, so 14.0 ∓ 1.5 × 0.5 = 13.25 to 14.75.
-// Resting HR: no lower limit, upper 52 + 3 = 55. Skin temperature: 34.0 ± 0.3.
+// Sleeping HR: no lower limit, upper 52 + 3 = 55. Skin temperature: 34.0 ± 0.3.
 @Test func metricPopupShowsTheBaselineAndItsInRangeLimits() {
     let night = Night(
         day: nov1,
-        restingHR: 52,
+        sleepingHR: 52,
         hrv: 60,
         respiratoryRate: 14.0,
         skinTemperature: 34.0,
@@ -1530,10 +1539,10 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
     #expect(isClose(hrv?.inRangeLow, to: 47.910_973_125_562_62))
     #expect(isClose(hrv?.inRangeHigh, to: 87.299_484_877_092_07))
 
-    let restingHR = view.metricPopup(.restingHR)
-    #expect(isClose(restingHR?.baseline, to: 52))
-    #expect(restingHR != nil && restingHR?.inRangeLow == nil)
-    #expect(isClose(restingHR?.inRangeHigh, to: 55))
+    let sleepingHR = view.metricPopup(.sleepingHR)
+    #expect(isClose(sleepingHR?.baseline, to: 52))
+    #expect(sleepingHR != nil && sleepingHR?.inRangeLow == nil)
+    #expect(isClose(sleepingHR?.inRangeHigh, to: 55))
 
     let respiratoryRate = view.metricPopup(.respiratoryRate)
     #expect(isClose(respiratoryRate?.baseline, to: 14.0))
@@ -1580,7 +1589,7 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
 
     #expect(view.readinessPopup == nil)
     #expect(view.sleepPopup == nil)
-    for metric in [NightlyMetric.restingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2] {
+    for metric in [NightlyMetric.sleepingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2] {
         #expect(view.metricPopup(metric) == nil)
     }
 }
@@ -1731,7 +1740,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 // MARK: Readiness advice
 
 @Test func readyAdviceSaysItsAGoodDayToPush() {
-    let night = Night(day: nov1, readiness: 80, restingHR: 52, hrv: 60)
+    let night = Night(day: nov1, readiness: 80, sleepingHR: 52, hrv: 60)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(
@@ -1741,7 +1750,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func steadyAdviceWithNothingOffIsJustTheBandSentence() {
-    let night = Night(day: nov1, readiness: 50, restingHR: 52, hrv: 60)
+    let night = Night(day: nov1, readiness: 50, sleepingHR: 52, hrv: 60)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(
@@ -1751,7 +1760,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func takeItEasyAdviceSaysWhyFromTheNightsNumbers() {
-    let night = Night(day: nov1, readiness: 25, restingHR: 56, hrv: 51.6)
+    let night = Night(day: nov1, readiness: 25, sleepingHR: 56, hrv: 51.6)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 82)],
@@ -1760,14 +1769,14 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 
     #expect(
         view.readinessAdvice
-            == "Yesterday's Load was high (82), HRV is 14% below your Baseline and Resting HR is up "
-            + "4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep "
+            == "Yesterday's Load was high (82), HRV is 14% below your Baseline and "
+            + "Sleeping HR is up 4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep "
             + "your Load under 33 today."
     )
 }
 
 @Test func aLoadBelowTheHighMarkYesterdayIsNotMentioned() {
-    let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
+    let night = Night(day: nov1, readiness: 25, sleepingHR: 52, hrv: 60)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 54)],
@@ -1782,7 +1791,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func aLoadAtTheHighMarkYesterdayIsMentioned() {
-    let night = Night(day: nov1, readiness: 25, restingHR: 52, hrv: 60)
+    let night = Night(day: nov1, readiness: 25, sleepingHR: 52, hrv: 60)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 55)],
@@ -1803,7 +1812,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff() {
-    let night = Night(day: nov1, readiness: 80, restingHR: 56, hrv: 51.6)
+    let night = Night(day: nov1, readiness: 80, sleepingHR: 56, hrv: 51.6)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 82)],
@@ -1817,12 +1826,12 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func twoReasonsAreJoinedWithAnd() {
-    let night = Night(day: nov1, readiness: 50, restingHR: 56, hrv: 51.6)
+    let night = Night(day: nov1, readiness: 50, sleepingHR: 56, hrv: 51.6)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(
         view.readinessAdvice
-            == "HRV is 14% below your Baseline and Resting HR is up 4 bpm. You're part-way "
+            == "HRV is 14% below your Baseline and Sleeping HR is up 4 bpm. You're part-way "
             + "recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }

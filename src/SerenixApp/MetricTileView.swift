@@ -125,7 +125,7 @@ extension NightlyMetric {
     /// The SF Symbol on its tile.
     var icon: String {
         switch self {
-        case .restingHR: "heart"
+        case .sleepingHR: "heart"
         case .hrv: "waveform.path.ecg"
         case .respiratoryRate: "lungs"
         case .skinTemperature: "thermometer.medium"

@@ -84,7 +84,7 @@ enum LoadMethod {
             nights
             .filter { $0.day <= day }
             .sorted { $0.day > $1.day }
-            .compactMap(\.restingHR)
+            .compactMap(\.sleepingHR)
             .prefix(restingHRNights)
         return recent.isEmpty ? fallbackRestingHR : median(of: Array(recent))
     }

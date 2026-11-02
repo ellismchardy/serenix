@@ -1,14 +1,14 @@
 import Foundation
 
-/// The "vs your Baseline" section (spec 002): HRV and Resting HR against their Baselines, or one
+/// The "vs your Baseline" section (spec 002): HRV and Sleeping HR against their Baselines, or one
 /// line while either Baseline is Calibrating.
 public enum VsBaseline: Equatable, Sendable {
-    /// HRV, then Resting HR.
+    /// HRV, then Sleeping HR.
     case comparisons([BaselineComparison])
     case calibrating(String)
 
     /// The metrics compared, in order.
-    static let metrics: [NightlyMetric] = [.hrv, .restingHR]
+    static let metrics: [NightlyMetric] = [.hrv, .sleepingHR]
 }
 
 /// Which way a metric moved from its Baseline.
@@ -26,7 +26,7 @@ public struct BaselineComparison: Equatable, Sendable {
     public let differenceText: String
     /// Nil when the value is missing or the difference shows as zero.
     public let direction: BaselineDirection?
-    /// HRV up and Resting HR down are the good way; nil without a direction.
+    /// HRV up and Sleeping HR down are the good way; nil without a direction.
     public let movedTheGoodWay: Bool?
 
     init(_ tile: MetricTile) {
@@ -34,7 +34,7 @@ public struct BaselineComparison: Equatable, Sendable {
         valueText = tile.valueText
         differenceText = tile.differenceText
         direction = tile.differenceDirection
-        let goodWay: BaselineDirection = tile.metric == .restingHR ? .down : .up
+        let goodWay: BaselineDirection = tile.metric == .sleepingHR ? .down : .up
         movedTheGoodWay = direction.map { $0 == goodWay }
     }
 }

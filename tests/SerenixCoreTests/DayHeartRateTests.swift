@@ -113,7 +113,7 @@ private func loadOfFourthOfNovember(
 
 @Test func withMaxHRNotAboveRestingHRTheHRZonesAreStillThere() {
     let maxHR100 = Profile(name: nil, sex: .male, maxHR: 100)
-    let restingHR100 = Night(day: fourthOfNovember, restingHR: 100)
+    let restingHR100 = Night(day: fourthOfNovember, sleepingHR: 100)
 
     let result = load(
         of: fourthOfNovember,
