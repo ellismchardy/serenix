@@ -165,6 +165,11 @@ _Avoid_: sleep performance, sleep quality
 The part of Sleep Score that rates how much of their Sleep Need the user's Time Asleep met.
 _Avoid_: hours vs needed, duration score
 
+**Sleep Efficiency**:
+The part of Sleep Score that rates the share of the Sleep Period the user spent asleep. Unlike
+the common measure of the same name, it leaves out Time in Bed outside the Sleep Period.
+_Avoid_: continuity, restfulness
+
 **Sleep Consistency**:
 The part of Sleep Score that rates how close the user's Sleep Onset and Final Wake came to their
 usual times over recent Nights.
