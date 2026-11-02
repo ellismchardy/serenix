@@ -123,7 +123,7 @@ _Avoid_: cycle
 The user's typical Sleeping HR, HRV, respiratory rate and skin temperature, and the Spread of
 each, taken over their most recent Nights. It also holds their typical Load, taken over their
 most recent Days. SpO2 has no Baseline.
-_Avoid_: norm, average, usual (when the personal reference is meant)
+_Avoid_: norm, average, usual (alone, when the Baseline is meant)
 
 **Spread**:
 How much one Nightly Metric usually varies from Night to Night for the user; part of that
