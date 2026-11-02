@@ -31,13 +31,14 @@ enum Readiness {
 
     /// The Night's Readiness, 0–100, rounded with halves up; nil when the Night has no HRV or
     /// HRV's Baseline has no median or Spread (spec 008). An HRV or Baseline of 0 ms counts as no
-    /// HRV, as ln 0 gives no score. Calibrating is the caller's to decide. `dayLoads` holds each
-    /// Day at most once.
+    /// HRV, as ln 0 gives no score. Calibrating is the caller's to decide. `previousDayLoad` is
+    /// the Load of the Day before the Night's, and `typicalLoad` that Day's typical Load.
     static func score(
         of night: Night,
         hrv: Baseline,
         sleepingHR: Baseline,
-        dayLoads: [DayLoad]
+        previousDayLoad: Int?,
+        typicalLoad: TypicalLoad
     ) -> Int? {
         // Bad stored values count as missing (docs/architecture.md, Errors).
         guard let hrvValue = night.value(of: .hrv), hrvValue > 0,
@@ -58,10 +59,7 @@ enum Readiness {
         }
         // The previous Day's Load costs only above its typical Load; dropped while either is
         // missing.
-        let previousDay = night.day.adding(days: -1)
-        if let load = dayLoads.first(where: { $0.day == previousDay })?.load,
-            case .value(let typical) = typicalLoad(for: previousDay, among: dayLoads)
-        {
+        if let load = previousDayLoad, case .value(let typical) = typicalLoad {
             // Whole numbers both: typical Load is rounded by its own definition (spec 006).
             let above = max(Double(load - typical), 0)
             inputs.append((-above / loadPerScoreUnit, loadWeight))

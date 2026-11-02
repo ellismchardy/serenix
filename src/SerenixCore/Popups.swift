@@ -1,7 +1,7 @@
 import Foundation
 
-/// The Readiness popup (spec 002, Popups): Readiness with HRV and Sleeping HR against their
-/// Baselines and Sleep Score, or instead, while Calibrating, why there's no Readiness yet.
+/// The Readiness popup (specs 002 and 008): Readiness with each of its inputs against what it's
+/// measured against, and Sleep Score, or instead, while Calibrating, why there's no Readiness yet.
 public struct ReadinessPopup: Equatable, Sendable {
     /// As on the ring: the number, or "n/4" while Calibrating.
     public let readinessText: String
@@ -25,7 +25,7 @@ public struct ReadinessPopupRow: Equatable, Sendable {
     /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
     /// ms" ("Calibrating" while it is), "7h" for Time Asleep, or "Typical 45" ("Calibrating"
     /// while typical Load is) for Yesterday's Load.
-    public let baselineText: String
+    public let referenceText: String
     /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep; a signed whole
     /// number ("+40", "−5", "±0") for Yesterday's Load.
     public let differenceText: String
@@ -33,7 +33,7 @@ public struct ReadinessPopupRow: Equatable, Sendable {
     init(_ tile: MetricTile) {
         name = tile.metric.name
         valueText = tile.valueText
-        baselineText = tile.baseline.map { formattedValue(of: tile.metric, $0) } ?? "Calibrating"
+        referenceText = tile.baseline.map { formattedValue(of: tile.metric, $0) } ?? "Calibrating"
         differenceText = tile.differenceText
     }
 
@@ -41,7 +41,7 @@ public struct ReadinessPopupRow: Equatable, Sendable {
     init(timeAsleep: TimeInterval?) {
         name = "Time Asleep"
         valueText = timeAsleep.map(durationText) ?? missingText
-        baselineText = "\(Int(Readiness.timeAsleepMark / Readiness.secondsPerHour))h"
+        referenceText = "\(Int(Readiness.timeAsleepMark / Readiness.secondsPerHour))h"
         differenceText =
             timeAsleep.map { Self.differenceText($0 - Readiness.timeAsleepMark) }
             ?? missingText
@@ -55,10 +55,10 @@ public struct ReadinessPopupRow: Equatable, Sendable {
         valueText = load.map(String.init) ?? missingText
         switch typical {
         case .value(let typical):
-            baselineText = "Typical \(typical)"
+            referenceText = "Typical \(typical)"
             differenceText = load.map { signedText($0 - typical) } ?? missingText
         case .calibrating:
-            baselineText = "Calibrating"
+            referenceText = "Calibrating"
             differenceText = missingText
         }
     }

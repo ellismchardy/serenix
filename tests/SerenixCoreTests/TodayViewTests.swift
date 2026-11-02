@@ -1426,7 +1426,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
         popup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load"]
     )
     #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "4h 0m", "12"])
-    #expect(popup?.rows.map(\.baselineText) == ["60 ms", "52 bpm", "7h", "Calibrating"])
+    #expect(popup?.rows.map(\.referenceText) == ["60 ms", "52 bpm", "7h", "Calibrating"])
     // A whole-hour difference keeps its minutes, as the Time Asleep tile does ("7h 0m").
     #expect(
         popup?.rows.map(\.differenceText) == [
@@ -1455,7 +1455,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
         view.readinessPopup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "\u{2014}", "12"]
     )
     #expect(
-        view.readinessPopup?.rows.map(\.baselineText) == [
+        view.readinessPopup?.rows.map(\.referenceText) == [
             "60 ms", "52 bpm", "7h", "Calibrating",
         ]
     )

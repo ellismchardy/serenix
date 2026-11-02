@@ -88,13 +88,14 @@ Sleep Score stays as it is. While Readiness is Calibrating the popup keeps its C
 explanation.
 
 **Unchanged.** The Readiness message's advice and reasons ("Yesterday's Load was high (82)" at 55
-or more, HRV and Sleeping HR when they moved the bad way) and its Load caps (spec 002, spec 005).
-vs your Baseline. The ring, band colours and Calibrating count.
+or more, HRV and Sleeping HR when they moved the bad way) and its Load caps (spec 002, spec 005);
+vs your Baseline; the ring, band colours and Calibrating count.
 
 ## Design decisions
-- **`SerenixCore`: Readiness (new).** A pure function: given a Night, the Nights and the Days
-  with their Load, it returns Readiness as Calibrating (with Nights so far), missing, or a whole
-  number. Weights, the 7 h mark, the Load divisor 20, the ±3 clamp, the curve's slope 2 and
+- **`SerenixCore`: Readiness (new).** A pure function: given a Night, its HRV and Sleeping HR
+  Baselines, and the previous Day's Load and typical Load, it returns Readiness as a whole
+  number, or missing. The Today view decides Calibrating, as before, and works out the previous
+  Day once for Readiness, its advice and its popup. Weights, the 7 h mark, the Load divisor 20, the ±3 clamp, the curve's slope 2 and
   offset 0.42 are named constants, each citing issue #18 and
   `docs/research/readiness-composite-scores.md` ("assumption: tune with real Nights").
 - **`SerenixCore`: Baseline** gains Sleeping HR's Spread (floor and typical value as named

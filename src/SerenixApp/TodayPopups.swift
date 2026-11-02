@@ -72,8 +72,8 @@ private struct ReadinessPopupView: View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
             GridRow {
                 Text("")
-                Text("Night").foregroundStyle(.secondary)
-                Text("Baseline").foregroundStyle(.secondary)
+                Text("Value").foregroundStyle(.secondary)
+                Text("Against").foregroundStyle(.secondary)
                 Text("")
             }
             .font(.footnote)
@@ -81,7 +81,7 @@ private struct ReadinessPopupView: View {
                 GridRow {
                     Text(row.name)
                     Text(row.valueText).monospacedDigit()
-                    Text(row.baselineText).monospacedDigit()
+                    Text(row.referenceText).monospacedDigit()
                     Text(row.differenceText).monospacedDigit()
                 }
             }

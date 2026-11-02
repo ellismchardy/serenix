@@ -113,6 +113,11 @@ public struct TodayView: Equatable, Sendable {
                 ? 1 + min(baselines.hrv.earlierNights, baselines.sleepingHR.earlierNights) : nil
         }
         let nightsForBaseline = Baseline.minEarlierNights + 1
+        // The Day before the Day shown: "yesterday" in Readiness, its advice and its popup (spec
+        // 008, Inputs), worked out once so they can't disagree.
+        let previousDay = day.adding(days: -1)
+        let previousDayLoad = dayLoads.first { $0.day == previousDay }?.load
+        let previousDayTypicalLoad = typicalLoad(for: previousDay, among: dayLoads)
         if let calibratingNightsSoFar {
             readinessText = "\(calibratingNightsSoFar)/\(nightsForBaseline)"
             readinessBand = nil
@@ -125,7 +130,8 @@ public struct TodayView: Equatable, Sendable {
                         of: night,
                         hrv: readinessBaselines.hrv,
                         sleepingHR: readinessBaselines.sleepingHR,
-                        dayLoads: dayLoads
+                        previousDayLoad: previousDayLoad,
+                        typicalLoad: previousDayTypicalLoad
                     )
                 } else {
                     nil
@@ -175,10 +181,6 @@ public struct TodayView: Equatable, Sendable {
             return [.metric(tile), .restingHR(restingHRTile)]
         }
 
-        // The Day before the Day shown: "yesterday" in the Readiness advice and popup (spec 008,
-        // Inputs).
-        let previousDay = day.adding(days: -1)
-        let previousDayLoad = dayLoads.first { $0.day == previousDay }?.load
         readinessAdvice = readinessBand.map { band in
             ReadinessAdvice.text(
                 for: band,
@@ -227,7 +229,7 @@ public struct TodayView: Equatable, Sendable {
                             ReadinessPopupRow(timeAsleep: night?.plausibleTimeAsleep),
                             ReadinessPopupRow(
                                 previousDayLoad: previousDayLoad,
-                                typical: typicalLoad(for: previousDay, among: dayLoads)
+                                typical: previousDayTypicalLoad
                             ),
                         ],
                         sleepScoreText: sleepScoreText,

@@ -301,7 +301,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "85")
-    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.referenceText == "Typical 45")
     #expect(row?.differenceText == "+40")
 }
 
@@ -310,7 +310,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "40")
-    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.referenceText == "Typical 45")
     #expect(row?.differenceText == "\u{2212}5")
 }
 
@@ -319,7 +319,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "45")
-    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.referenceText == "Typical 45")
     #expect(row?.differenceText == "\u{00B1}0")
 }
 
@@ -328,7 +328,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "\u{2014}")
-    #expect(row?.baselineText == "Typical 45")
+    #expect(row?.referenceText == "Typical 45")
     #expect(row?.differenceText == "\u{2014}")
 }
 
@@ -340,7 +340,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "85")
-    #expect(row?.baselineText == "Calibrating")
+    #expect(row?.referenceText == "Calibrating")
     #expect(row?.differenceText == "\u{2014}")
 }
 
@@ -349,7 +349,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
 
     #expect(row?.valueText == "6h 30m")
-    #expect(row?.baselineText == "7h")
+    #expect(row?.referenceText == "7h")
     #expect(row?.differenceText == "\u{2212}30m")
 }
 
@@ -358,7 +358,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
 
     #expect(row?.valueText == "8h 10m")
-    #expect(row?.baselineText == "7h")
+    #expect(row?.referenceText == "7h")
     #expect(row?.differenceText == "+1h 10m")
 }
 
@@ -367,7 +367,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
 
     #expect(row?.valueText == "7h 0m")
-    #expect(row?.baselineText == "7h")
+    #expect(row?.referenceText == "7h")
     #expect(row?.differenceText == "\u{00B1}0")
 }
 
@@ -380,7 +380,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
 
     #expect(view.readinessText == "70")
     #expect(row?.valueText == "—")
-    #expect(row?.baselineText == "7h")
+    #expect(row?.referenceText == "7h")
     #expect(row?.differenceText == "—")
 }
 
