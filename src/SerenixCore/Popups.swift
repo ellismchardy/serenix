@@ -92,12 +92,21 @@ public struct SleepPopup: Equatable, Sendable {
     public let sleepOnsetText: String
     public let finalWakeText: String
     public let timeAsleepText: String
+    /// The Night's Sleep Need (spec 009), e.g. "8h 15m".
+    public let sleepNeedText: String
+    /// The Sleep Debt behind it, e.g. "1h 0m".
+    public let sleepDebtText: String
+    /// Which Nights the Sleep Debt is from: "No earlier Nights" when none counted.
+    public let sleepDebtCaption: String
     /// Minutes awake within the Sleep Period: Final Wake − Sleep Onset − Time Asleep, e.g.
     /// "32 min"; "—" if any is missing or it comes out negative.
     public let minutesAwakeText: String
 
-    init(_ night: Night, sleepScoreText: String, timeZone: TimeZone) {
+    init(_ night: Night, sleepNeed: SleepNeed, sleepScoreText: String, timeZone: TimeZone) {
         self.sleepScoreText = sleepScoreText
+        sleepNeedText = durationText(sleepNeed.sleepNeed)
+        sleepDebtText = durationText(sleepNeed.sleepDebt)
+        sleepDebtCaption = "No earlier Nights"
         let timeInBed = night.timeInBedStart.flatMap { start in
             night.timeInBedEnd.map { (start: start, end: $0) }
         }

@@ -243,7 +243,13 @@ public struct TodayView: Equatable, Sendable {
             }
         sleepPopup =
             if let night {
-                SleepPopup(night, sleepScoreText: sleepScoreText, timeZone: timeZone)
+                SleepPopup(
+                    night,
+                    // Worked out each time, never stored, so it follows the Nights (spec 009).
+                    sleepNeed: SleepNeed(for: day, among: nights),
+                    sleepScoreText: sleepScoreText,
+                    timeZone: timeZone
+                )
             } else {
                 nil
             }

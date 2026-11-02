@@ -31,7 +31,7 @@ view with its own private `todayView` helper, as `ReadinessTests.swift` does.
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice (tracer):** Sleep Need from Usual Need alone — Usual Need 8 h, Sleep Debt 0, Sleep
+1. [x] **Slice (tracer):** Sleep Need from Usual Need alone — Usual Need 8 h, Sleep Debt 0, Sleep
    Need 8 h; the Sleep popup gains Sleep Need and Sleep Debt rows after Time Asleep, with the
    caption "No earlier Nights"; the shell's Sleep popup view draws the two rows.
    - Seam: Today view · Files: `SleepNeed.swift` (new), `Popups.swift` (`SleepPopup`),

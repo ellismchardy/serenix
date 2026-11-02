@@ -101,6 +101,13 @@ private struct SleepPopupView: View {
         LabeledContent("Sleep Onset", value: popup.sleepOnsetText)
         LabeledContent("Final Wake", value: popup.finalWakeText)
         LabeledContent("Time Asleep", value: popup.timeAsleepText)
+        LabeledContent("Sleep Need", value: popup.sleepNeedText)
+        LabeledContent("Sleep Debt") {
+            VStack(alignment: .trailing) {
+                Text(popup.sleepDebtText)
+                Text(popup.sleepDebtCaption).font(.footnote).foregroundStyle(.secondary)
+            }
+        }
         LabeledContent("Awake in the night", value: popup.minutesAwakeText)
     }
 }
