@@ -62,6 +62,31 @@ func historyRecords(
     return records
 }
 
+/// One History Record a second at `bpm`, from `start`, with increasing Record Counters (spec
+/// 005's Load and spec 006's HR Zones).
+func historyRecords(
+    at bpm: Int,
+    for seconds: Int,
+    from start: Date,
+    firstRecordCounter: UInt32 = 1
+) -> [HistoryRecord] {
+    (0..<seconds).map { offset in
+        HistoryRecord(
+            recordCounter: firstRecordCounter + UInt32(offset),
+            timestamp: start.addingTimeInterval(TimeInterval(offset)),
+            heartRate: bpm,
+            rrIntervals: [],
+            // Motion is ignored by Load and HR Zones.
+            motion: [1, 0, 0, 0],
+            skinTemperature: 33,
+            steps: 0,
+            spo2: 0,
+            isInSpO2Window: false,
+            rawBytes: []
+        )
+    }
+}
+
 /// The resting orientation quaternion.
 private let stillMotion: [Float] = [0, 0, 0, 1]
 /// `stillMotion` turned 10° about one axis: (sin 5°, 0, 0, cos 5°), well over the 2° that makes

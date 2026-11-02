@@ -35,7 +35,8 @@ struct TodayScreen: View {
             now: now,
             timeZone: .current,
             sync: connection.syncStatus,
-            profileName: profile.name
+            profileName: profile.name,
+            lastSyncEnded: connection.lastSyncCompleted
         )
         NavigationStack {
             ScrollView {
@@ -85,7 +86,7 @@ struct TodayScreen: View {
                 Text(pill.detail ?? "")
             }
             .sheet(item: $openPopup) { popup in
-                TodayPopupView(popup: popup, today: today)
+                TodayPopupView(popup: popup, today: today, connection: connection)
             }
             .alert("No notifications yet.", isPresented: $showsNotifications) {
                 Button("OK", role: .cancel) {}
@@ -219,21 +220,21 @@ struct TodayScreen: View {
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
-            // The Load ring opens the profile menu only while it asks for the age (spec 005, Add
-            // your age); otherwise it isn't a button and does nothing (spec 002).
-            Group {
+            // The Load ring opens the profile menu while it asks for the age (spec 005, Add your
+            // age), and the Load popup otherwise (spec 006).
+            Button {
                 if today.loadOpensProfileMenu {
-                    Button {
-                        showsProfileMenu = true
-                    } label: {
-                        loadRing(today).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("Opens your profile")
+                    showsProfileMenu = true
                 } else {
-                    loadRing(today)
+                    open(.load, in: today)
                 }
+            } label: {
+                loadRing(today).contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityHint(
+                today.loadOpensProfileMenu ? "Opens your profile" : "Shows your Load"
+            )
             .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity)
@@ -350,6 +351,7 @@ struct TodayScreen: View {
             case .readiness: today.readinessPopup != nil
             case .sleep: today.sleepPopup != nil
             case .metric(let metric): today.metricPopup(metric) != nil
+            case .load: today.loadPopup != nil
             }
         if hasContent { openPopup = popup }
     }

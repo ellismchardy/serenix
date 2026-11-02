@@ -133,10 +133,20 @@ public struct DayLoad: Equatable, Codable, Sendable {
     public var load: Int?
     /// Nil when `load` is there.
     public var missingReason: LoadMissing?
+    /// The Day's HR Zones and the Max HR used (spec 006). Nil with no History Records or no Max
+    /// HR, and for a Day worked out before spec 006 whose records are gone. There even when Load
+    /// is missing because Max HR isn't above Resting HR: HR Zones need only Max HR.
+    public var heartRate: DayHeartRate?
 
-    public init(day: Day, load: Int?, missingReason: LoadMissing? = nil) {
+    public init(
+        day: Day,
+        load: Int?,
+        missingReason: LoadMissing? = nil,
+        heartRate: DayHeartRate? = nil
+    ) {
         self.day = day
         self.load = load
         self.missingReason = missingReason
+        self.heartRate = heartRate
     }
 }
