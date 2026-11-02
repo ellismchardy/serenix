@@ -36,7 +36,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
    - Done when: Score criteria "usual Night reads 70, Ready" (first sentence), "HRV 50 … 38 …
      HRV 72 … 90", "HRV 20 … 8", "Sleeping HR 57 … 43 … 48 … 85", "Time Asleep 5 h … 54 …";
      criterion "A Night with no HRV reads '—'"; "with three [earlier Nights], it reads a number".
-2. [ ] **Migrate and contract:** remove `Night.readiness` and the bridge. Every test that set
+2. [x] **Migrate and contract:** remove `Night.readiness` and the bridge. Every test that set
    `readiness:` now builds a Night whose HRV / Sleeping HR / Time Asleep give the Readiness it
    needs (e.g. the band table's 100, 67, 66, 34, 33, 0; the advice tests' Ready / Steady /
    Take it easy), with each input value worked by hand and committed as a literal. Same
