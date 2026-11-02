@@ -162,7 +162,7 @@ Serenix's rating of how well the user slept in one Sleep Period.
 _Avoid_: sleep performance, sleep quality
 
 **Sleep Sufficiency**:
-The part of Sleep Score that rates how much of their Sleep Need the user's Time Asleep met.
+The part of Sleep Score that rates how much of the user's Sleep Need their Time Asleep met.
 _Avoid_: hours vs needed, duration score
 
 **Sleep Efficiency**:
@@ -171,8 +171,8 @@ the common measure of the same name, it leaves out Time in Bed outside the Sleep
 _Avoid_: continuity, restfulness
 
 **Sleep Consistency**:
-The part of Sleep Score that rates how close the user's Sleep Onset and Final Wake came to their
-usual times over recent Nights.
+The part of Sleep Score that rates how close the user's Sleep Onset and Final Wake came to the
+times they fell asleep and woke on recent Nights.
 _Avoid_: regularity, sleep timing
 
 **Calibrating**:
