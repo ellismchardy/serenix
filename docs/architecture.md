@@ -40,7 +40,8 @@ The app is split in two (ADR 0002):
   then pruned.
 - **Night**: one Sleep Period, dated by the local date of its Final Wake. It holds Sleep Onset,
   Final Wake, Time in Bed, Nightly Metrics, Sleep Score and Readiness. Kept forever.
-- **Day**: a local calendar day with its Load. Kept forever.
+- **Day**: a local calendar day with its Load and its HR Zones, hour by hour, Highest HR and the
+  Max HR used (spec 006). Kept forever.
 - **Baseline**: not stored. Each Nightly Metric's median, and HRV's and respiratory rate's
   Spread (spec 004; Resting HR's comes with Readiness), come from the last 14 Nights; typical Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights
   exist.
@@ -78,6 +79,7 @@ starting a sync in the background, iCloud sync, and the Whoop 4.0 and MG.
 - Config/secrets: none at runtime. Signing for TestFlight or the App Store needs the Apple
   Developer Program; until then there are no secrets.
 - Sync: History Sync starts when the app opens or on "Sync now", and a sync that has started
-  finishes in the background (ADR 0006).
+  finishes in the background (ADR 0006). Between syncs Serenix stays disconnected, except while
+  Live HR is on screen (ADR 0007).
 - Privacy: test fixtures are the owner's real nights, published in this public repo by choice;
   rules in `docs/conventions.md` (Testing).

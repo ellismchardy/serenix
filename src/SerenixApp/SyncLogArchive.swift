@@ -29,6 +29,15 @@ struct SyncLogArchive: Sendable {
         }
     }
 
+    /// Keeps the Sync Log of Live HR outside a sync (spec 006), replacing the last one. It isn't
+    /// one of the `keptSyncs`, so it never pushes out a sync's Sync Log.
+    func saveLiveHR(_ entries: [SyncLogEntry]) throws {
+        try Data(syncLogText(entries).utf8).write(
+            to: directory.appendingPathComponent(liveHRFileName),
+            options: .atomic
+        )
+    }
+
     /// Writes every kept sync into `url`, oldest first, each headed by a `# sync` line, then
     /// `running` (a sync still under way, not yet kept). File by file, so a few large logs are
     /// never in memory together.
@@ -41,6 +50,11 @@ struct SyncLogArchive: Sendable {
             try output.write(contentsOf: Data("# sync \(name)\n".utf8))
             try output.write(contentsOf: Data(contentsOf: file))
         }
+        let liveHR = directory.appendingPathComponent(liveHRFileName)
+        if FileManager.default.fileExists(atPath: liveHR.path) {
+            try output.write(contentsOf: Data("# Live HR\n".utf8))
+            try output.write(contentsOf: Data(contentsOf: liveHR))
+        }
         if !running.isEmpty {
             try output.write(contentsOf: Data(("# sync running\n" + syncLogText(running)).utf8))
         }
@@ -49,10 +63,13 @@ struct SyncLogArchive: Sendable {
     /// Oldest first: names are `sync-<Unix seconds>`, all the same length for centuries.
     private func logFiles() throws -> [URL] {
         try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "txt" }
+            .filter { $0.pathExtension == "txt" && $0.lastPathComponent.hasPrefix("sync-") }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 }
+
+/// The one Live HR Sync Log (spec 006).
+private let liveHRFileName = "livehr.txt"
 
 /// How many syncs' Sync Logs the phone keeps (spec 001).
 private let keptSyncs = 5

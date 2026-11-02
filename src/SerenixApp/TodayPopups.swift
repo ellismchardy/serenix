@@ -7,6 +7,7 @@ enum TodayPopup: Identifiable, Hashable {
     case readiness
     case sleep
     case metric(NightlyMetric)
+    case load
 
     var id: Self { self }
 }
@@ -16,6 +17,9 @@ enum TodayPopup: Identifiable, Hashable {
 struct TodayPopupView: View {
     let popup: TodayPopup
     let today: TodayView
+    /// For the Live HR pill on today's Load popup, which observes it; the popup itself doesn't,
+    /// so it isn't redrawn on every sync tick.
+    let connection: StrapConnection
 
     var body: some View {
         ScrollView {
@@ -27,6 +31,10 @@ struct TodayPopupView: View {
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
                 case .metric(let metric):
                     if let content = today.metricPopup(metric) { MetricPopupView(popup: content) }
+                case .load:
+                    if let load = today.loadPopup {
+                        LoadPopupView(popup: load, connection: connection)
+                    }
                 }
             }
             .padding()
@@ -141,5 +149,109 @@ private struct MetricPopupView: View {
         let low = popup.inRangeLow ?? min(lowest, popup.inRangeHigh ?? lowest)
         let high = popup.inRangeHigh ?? max(highest, popup.inRangeLow ?? highest)
         return (low, high)
+    }
+}
+
+/// The Load popup (spec 006): the Day's Load against typical Load, its time in each HR Zone, hour
+/// by hour, its Highest HR and the Max HR used, with the Live HR pill at the top left on today.
+private struct LoadPopupView: View {
+    let popup: LoadPopup
+    let connection: StrapConnection
+
+    var body: some View {
+        if popup.showsLiveHR { LiveHRPillView(connection: connection) }
+        Text("Load").font(.headline)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(popup.loadText).font(.largeTitle.bold()).monospacedDigit()
+            Text(popup.dateText).foregroundStyle(.secondary)
+        }
+        if let lastSync = popup.lastSyncText {
+            Text(lastSync).font(.footnote).foregroundStyle(.secondary)
+        }
+        Text(popup.typicalText)
+        if let note = popup.note {
+            Text(note).foregroundStyle(.secondary)
+        } else {
+            Text("Heart rate zones").font(.headline)
+            ForEach(popup.zoneRows, id: \.zone) { row in
+                VStack(alignment: .leading, spacing: 4) {
+                    LabeledContent(row.label) { Text(row.timeText).monospacedDigit() }
+                    ProgressView(value: row.share).tint(row.zone.colour)
+                }
+            }
+            hourlyBars.frame(height: 160)
+            if let highest = popup.highestHRText { Text(highest) }
+            if let maxHR = popup.maxHRText {
+                Text(maxHR).font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Minutes in each HR Zone, hour by hour from local midnight, stacked HR Zone 1 at the
+    /// bottom, on a 0–60 minute scale.
+    private var hourlyBars: some View {
+        Chart {
+            ForEach(Array(popup.hourlyZoneSeconds.enumerated()), id: \.offset) { hour, seconds in
+                ForEach(HRZone.allCases, id: \.self) { zone in
+                    BarMark(
+                        x: .value("Hour", hour),
+                        y: .value("Minutes", Double(seconds[zone] ?? 0) / 60)
+                    )
+                    .foregroundStyle(zone.colour)
+                }
+            }
+        }
+        .chartYScale(domain: 0...60)
+        // Half an hour either side, so the first and last bars aren't cut in half.
+        .chartXScale(domain: -0.5...(Double(popup.hourlyZoneSeconds.count) - 0.5))
+        // Bars count hours from local midnight, so clock labels would be an hour out after a
+        // clock change.
+        .chartXAxis(.hidden)
+        .accessibilityLabel("Minutes in each heart rate zone, hour by hour")
+    }
+}
+
+extension HRZone {
+    /// Cool to hot, HR Zone 1 to 5; no yellow, which is hard to see on the light background.
+    var colour: Color {
+        switch self {
+        case .one: .blue
+        case .two: .teal
+        case .three: .green
+        case .four: .orange
+        case .five: .red
+        }
+    }
+}
+
+/// The Live HR pill (spec 006): a heart and the bpm, "…" while connecting, a grey "—" when
+/// there's nothing to show. Live HR runs while it's on screen; it's worked out again every
+/// second, so a reading going stale shows.
+private struct LiveHRPillView: View {
+    @ObservedObject var connection: StrapConnection
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let pill = liveHRPill(
+                connection: connection.liveHRConnection,
+                last: connection.liveHRReading,
+                arrivedAt: connection.liveHRArrivedAt,
+                now: context.date
+            )
+            HStack(spacing: 4) {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(pill == .unavailable ? Color.secondary : Color.red)
+                    .symbolEffect(.pulse, isActive: pill == .connecting)
+                Text(pill.text).monospacedDigit()
+            }
+            .font(.subheadline.bold())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .themeCard(Capsule())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Live heart rate \(pill.text)")
+        }
+        .onAppear { connection.setLiveHRShown(true) }
+        .onDisappear { connection.setLiveHRShown(false) }
     }
 }

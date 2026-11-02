@@ -783,3 +783,247 @@ private func sessionsReplayingConnection2() -> [HistorySync] {
 func aFailureReadsAsItsReason(failure: HistorySyncFailure, reason: String) {
     #expect(failure.reason == reason)
 }
+
+// MARK: - Live HR during a History Sync (spec 006)
+
+/// Index in `strapMessages` of the Strap's final reply to the session's `0x61` (19:50:17.391).
+/// The session answers it with `0x45`, numbered 5.
+private let reply61Index = 4
+
+/// The first `0x28` Frame in the capture (connection 1, 19:44:06.162), as captured: HR 0x4d (77),
+/// Strap time 0x6ae0ff05 (2026-10-27 19:44:05 UTC).
+private let firstLiveHRFrame: [UInt8] = [
+    0xaa, 0x01, 0x18, 0x00, 0x01, 0x00, 0x22, 0xe1,
+    0x28, 0x02, 0x05, 0xff, 0xe0, 0x6a, 0x85, 0x4b,
+    0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x01, 0x00, 0x32, 0x3c, 0xc8, 0xaa,
+]
+
+/// The first captured `0x28` Frame cut short after `d[15]`, before its heart rate, with the
+/// length (0x0c) and the CRC (44 1a 42 76) recomputed for the shorter body.
+private let shortLiveHRFrame: [UInt8] = [
+    0xaa, 0x01, 0x0c, 0x00, 0x01, 0x00, 0x22, 0xe1,
+    0x28, 0x02, 0x05, 0xff, 0xe0, 0x6a, 0x85, 0x4b,
+    0x44, 0x1a, 0x42, 0x76,
+]
+
+/// The Strap's reply to the captured app's Live HR on (connection 1, 19:44:06.088), body
+/// `24 4d 03 02 01 00 00 00`, with its status, Frame byte 12 (body byte 4), changed from 0x01
+/// (done) to 0x03 (as the Strap answers a command it can't handle), and the CRC recomputed
+/// (zlib CRC-32 of the body, little-endian) from `d7 e1 2a 79` to `5c 29 23 d3`.
+private let liveHRErrorReply: [UInt8] = [
+    0xaa, 0x01, 0x0c, 0x00, 0x01, 0x00, 0x27, 0x11,
+    0x24, 0x4d, 0x03, 0x02, 0x03, 0x00, 0x00, 0x00,
+    0x5c, 0x29, 0x23, 0xd3,
+]
+
+/// Live HR on (`0x03 01`) numbered 6; CRC = zlib CRC-32 of `23 06 03 01`, little-endian.
+private let liveHROnSequence6: [UInt8] = [
+    0xaa, 0x01, 0x08, 0x00, 0x00, 0x01, 0xe6, 0x71,
+    0x23, 0x06, 0x03, 0x01, 0x2b, 0xc0, 0x64, 0xcb,
+]
+
+/// Live HR off (`0x03 00`) numbered 9; CRC = zlib CRC-32 of `23 09 03 00`, little-endian.
+private let liveHROffSequence9: [UInt8] = [
+    0xaa, 0x01, 0x08, 0x00, 0x00, 0x01, 0xe6, 0x71,
+    0x23, 0x09, 0x03, 0x00, 0x80, 0xb7, 0x3f, 0xb7,
+]
+
+/// One thing that happens to a session in a Live HR replay.
+private enum LiveHREvent {
+    /// The Strap sends these bytes.
+    case strap([UInt8])
+    /// The user turns Live HR on or off.
+    case liveHR(Bool)
+}
+
+/// One event of a Live HR replay and what the session did with it.
+private struct LiveHRStep {
+    let time: Date
+    let output: HistorySyncOutput
+    let stateAfter: HistorySyncState
+    let progressAfter: Double?
+}
+
+/// Starts a fresh session at `capturedPhoneTime`, then plays `events` in order, one second
+/// apart, as `replaySession` does. Step 0 is `start`'s; step `i + 1` is `events[i]`'s.
+private func replayWithLiveHR(_ events: [LiveHREvent]) -> [LiveHRStep] {
+    var session = HistorySync()
+    let started = session.start(at: capturedPhoneTime)
+    var steps = [
+        LiveHRStep(
+            time: capturedPhoneTime,
+            output: started,
+            stateAfter: session.state,
+            progressAfter: session.progress
+        )
+    ]
+    for (index, event) in events.enumerated() {
+        let time = capturedPhoneTime.addingTimeInterval(Double(index + 1))
+        let output: HistorySyncOutput
+        switch event {
+        case .strap(let bytes): output = session.receive(bytes, at: time)
+        case .liveHR(let on): output = session.setLiveHR(on, at: time)
+        }
+        steps.append(
+            LiveHRStep(
+                time: time,
+                output: output,
+                stateAfter: session.state,
+                progressAfter: session.progress
+            )
+        )
+    }
+    return steps
+}
+
+/// Connection 2's Strap messages in `range` of `strapMessages`, as events.
+private func strapEvents(_ range: some RangeExpression<Int>) -> [LiveHREvent] {
+    strapMessages[range].map { .strap($0.bytes) }
+}
+
+/// Whether `syncLog` holds exactly one entry: `bytes`, going `direction`, at `time`.
+private func isOneEntry(
+    _ syncLog: [SyncLogEntry],
+    _ bytes: [UInt8],
+    going direction: SyncDirection,
+    at time: Date
+) -> Bool {
+    syncLog.map(\.bytes) == [bytes] && syncLog.map(\.direction) == [direction]
+        && syncLog.map(\.time) == [time]
+}
+
+/// Whether a step sent, yielded and logged nothing.
+private func sentOrYieldedNothing(_ output: HistorySyncOutput) -> Bool {
+    output.framesToSend.isEmpty && output.historyRecords.isEmpty && output.syncLog.isEmpty
+        && output.liveHRReadings.isEmpty && output.liveHRSkipped.isEmpty
+}
+
+@Test func turningLiveHROnMidSyncSendsLiveHROnWithTheSyncsNextSequenceNumber() throws {
+    let steps = replayWithLiveHR(
+        strapEvents(...reply61Index) + [.liveHR(true)] + strapEvents((reply61Index + 1)...)
+    )
+    let onStep = steps[reply61Index + 2]
+    // The session sent 0x45 numbered 5 in answer to the 0x61 reply, so Live HR on is 6.
+    #expect(onStep.output.framesToSend == [liveHROnSequence6])
+    #expect(isOneEntry(onStep.output.syncLog, liveHROnSequence6, going: .toStrap, at: onStep.time))
+    let sent = steps.flatMap(\.output.framesToSend)
+    #expect(
+        sent.map(op(of:)) == [
+            0x91, 0x0a, 0x0a, 0x0b, 0x61, 0x45, 0x03, 0x1a, 0x22, 0x16, 0x17, 0x17, 0x17, 0x17,
+            0x17,
+        ]
+    )
+    // The commands after Live HR on are numbered on from it.
+    #expect(sent.map { $0[sequenceOffset] } == [1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+    #expect(try #require(steps.last).stateAfter == .completed)
+}
+
+@Test func turningLiveHROffMidSyncSendsLiveHROffAndTheSyncCarriesOn() throws {
+    // The battery reply is answered with 0x22 numbered 8 (after 0x45 5, Live HR on 6, 0x1a 7),
+    // so Live HR off is 9.
+    let steps = replayWithLiveHR(
+        strapEvents(...reply61Index) + [.liveHR(true)]
+            + strapEvents((reply61Index + 1)...batteryReplyIndex) + [.liveHR(false)]
+            + strapEvents((batteryReplyIndex + 1)...)
+    )
+    let offStep = steps[batteryReplyIndex + 3]
+    #expect(offStep.output.framesToSend == [liveHROffSequence9])
+    #expect(
+        isOneEntry(offStep.output.syncLog, liveHROffSequence9, going: .toStrap, at: offStep.time)
+    )
+    #expect(offStep.stateAfter == .running)
+    #expect(try #require(steps.last).stateAfter == .completed)
+    #expect(steps.flatMap(\.output.historyRecords) == replay.flatMap(\.output.historyRecords))
+}
+
+@Test func aLiveHRFrameMidSyncYieldsItsReadingAndLeavesTheSyncAsItWas() throws {
+    // Connection 1's first 0x28 Frame, fed inside connection 2's first Batch, straight after
+    // its 10th History Record.
+    let steps = replayWithLiveHR(
+        strapEvents(...reply61Index) + [.liveHR(true)]
+            + strapEvents((reply61Index + 1)...tenthRecordOfFirstBatchIndex)
+            + [.strap(firstLiveHRFrame)] + strapEvents((tenthRecordOfFirstBatchIndex + 1)...)
+    )
+    let before = steps[tenthRecordOfFirstBatchIndex + 2]
+    let fed = steps[tenthRecordOfFirstBatchIndex + 3]
+    #expect(
+        fed.output.liveHRReadings == [
+            LiveHRReading(heartRate: 77, strapTime: Date(timeIntervalSince1970: 1_793_130_245))
+        ]
+    )
+    #expect(fed.output.liveHRSkipped.isEmpty)
+    #expect(fed.output.framesToSend.isEmpty)
+    #expect(fed.output.historyRecords.isEmpty)
+    #expect(isOneEntry(fed.output.syncLog, firstLiveHRFrame, going: .fromStrap, at: fed.time))
+    #expect(before.stateAfter == .running)
+    #expect(fed.stateAfter == .running)
+    #expect(fed.progressAfter == before.progressAfter)
+    // The sync completes on the rest of the capture with the same History Records as without
+    // Live HR.
+    #expect(try #require(steps.last).stateAfter == .completed)
+    #expect(steps.flatMap(\.output.historyRecords) == replay.flatMap(\.output.historyRecords))
+}
+
+@Test func liveHRFramesTheStrapSendsDuringASyncYieldTheirReadingsInOrder() throws {
+    let steps = replayWithLiveHR([.liveHR(true)] + strapEvents(0...))
+    // Connection 2's seven 0x28 Frames before its complete Frame (strapMessages 8, 13, 14, 49,
+    // 114, 201, 297): HR 0x5e (94) each, Strap times 0x6ae10079 (1793130617) to 0x6ae1007f
+    // (1793130623), one second apart.
+    let strapTimes: [TimeInterval] = [
+        1_793_130_617, 1_793_130_618, 1_793_130_619, 1_793_130_620, 1_793_130_621,
+        1_793_130_622, 1_793_130_623,
+    ]
+    let expected = strapTimes.map {
+        LiveHRReading(heartRate: 94, strapTime: Date(timeIntervalSince1970: $0))
+    }
+    #expect(steps.flatMap(\.output.liveHRReadings) == expected)
+    #expect(try #require(steps.last).stateAfter == .completed)
+}
+
+@Test func anErrorStatusInTheReplyToLiveHROnDoesNotFailTheSync() throws {
+    let steps = replayWithLiveHR(
+        strapEvents(...reply61Index) + [.liveHR(true), .strap(liveHRErrorReply)]
+            + strapEvents((reply61Index + 1)...)
+    )
+    #expect(steps[reply61Index + 3].stateAfter == .running)
+    #expect(try #require(steps.last).stateAfter == .completed)
+    #expect(steps.flatMap(\.output.historyRecords) == replay.flatMap(\.output.historyRecords))
+}
+
+@Test func aLiveHRFrameTooShortForAHeartRateIsSkippedAndTheSyncCarriesOn() throws {
+    let steps = replayWithLiveHR(
+        strapEvents(...reply61Index) + [.liveHR(true)]
+            + strapEvents((reply61Index + 1)...tenthRecordOfFirstBatchIndex)
+            + [.strap(shortLiveHRFrame)] + strapEvents((tenthRecordOfFirstBatchIndex + 1)...)
+    )
+    let fed = steps[tenthRecordOfFirstBatchIndex + 3]
+    #expect(fed.output.liveHRReadings.isEmpty)
+    #expect(fed.output.liveHRSkipped == [.reading(.unexpectedLength(8))])
+    #expect(isOneEntry(fed.output.syncLog, shortLiveHRFrame, going: .fromStrap, at: fed.time))
+    #expect(fed.stateAfter == .running)
+    #expect(try #require(steps.last).stateAfter == .completed)
+}
+
+@Test(arguments: [true, false])
+func switchingLiveHRAfterTheSyncCompletesSendsNothing(on: Bool) {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+    for (index, message) in strapMessages.enumerated() {
+        let time = capturedPhoneTime.addingTimeInterval(Double(index + 1))
+        _ = session.receive(message.bytes, at: time)
+    }
+    #expect(session.state == .completed)
+    let after = capturedPhoneTime.addingTimeInterval(Double(strapMessages.count + 1))
+    #expect(sentOrYieldedNothing(session.setLiveHR(on, at: after)))
+}
+
+@Test(arguments: [true, false])
+func switchingLiveHRAfterTheSyncFailsSendsNothing(on: Bool) {
+    var session = HistorySync()
+    _ = session.start(at: capturedPhoneTime)
+    let silentFor10Seconds = capturedPhoneTime.addingTimeInterval(10)
+    session.timeOutIfSilent(at: silentFor10Seconds)
+    #expect(session.state == .failed(.timedOut))
+    #expect(sentOrYieldedNothing(session.setLiveHR(on, at: silentFor10Seconds)))
+}

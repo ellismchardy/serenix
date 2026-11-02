@@ -14,6 +14,9 @@ final class StoredDayLoad {
     var load: Int?
     /// `LoadMissing`'s raw value; nil when `load` is there.
     var missingReason: String?
+    /// `DayHeartRate` as JSON (spec 006); nil for a Day without one, including every Day stored
+    /// before spec 006 (optional, so the store migrates by itself).
+    var heartRate: Data?
 
     init(_ dayLoad: DayLoad) {
         dateKey = StoredNight.dateKey(dayLoad.day)
@@ -22,13 +25,34 @@ final class StoredDayLoad {
         dayOfMonth = dayLoad.day.dayOfMonth
         load = dayLoad.load
         missingReason = dayLoad.missingReason?.rawValue
+        heartRate = dayLoad.heartRate.flatMap { heartRate in
+            do {
+                return try JSONEncoder().encode(heartRate)
+            } catch {
+                loadLog.error(
+                    "Couldn't keep a Day's HR Zones: \(error.localizedDescription, privacy: .public)"
+                )
+                return nil
+            }
+        }
     }
 
     var dayLoad: DayLoad {
         DayLoad(
             day: Day(year: year, month: month, day: dayOfMonth),
             load: load,
-            missingReason: missingReason.flatMap(LoadMissing.init(rawValue:))
+            missingReason: missingReason.flatMap(LoadMissing.init(rawValue:)),
+            heartRate: heartRate.flatMap { data in
+                do {
+                    return try JSONDecoder().decode(DayHeartRate.self, from: data)
+                } catch {
+                    // Shown as "not available" rather than hiding the Day's Load.
+                    loadLog.error(
+                        "Couldn't read a Day's HR Zones: \(error.localizedDescription, privacy: .public)"
+                    )
+                    return nil
+                }
+            }
         )
     }
 }

@@ -178,7 +178,7 @@ one describes the Night shown:
   - the Baseline and its In range limits (spec 004), drawn as a band, for metrics with a
     Baseline
 
-Tapping the Load ring does nothing in this spec.
+Tapping the Load ring does nothing in this spec (spec 006 now opens the Load popup from it).
 
 **Profile.** The user's name, kept only on the phone (GLOSSARY). On first launch, before the
 Today screen, Serenix asks "What should we call you?" with a name field, Continue and Skip; it
@@ -322,7 +322,7 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
       and Dark at once, Dark keeps the purple accent, and the choice survives relaunching.
 - [x] Tapping the Readiness ring, the Sleep Score ring, the Time Asleep tile and each metric tile
       opens the right popup; a tap outside or a swipe down closes it; the Load ring does
-      nothing.
+      nothing (superseded by spec 006, which opens the Load popup from it).
 - [ ] Each metric tile shows its icon, value, ✓ status word and a gauge in the Zone colour, with
       no trend line.
 - [ ] The sync pill slides down while syncing, showing just "Syncing" and a spinner, and tapping

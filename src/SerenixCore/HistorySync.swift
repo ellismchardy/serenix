@@ -72,6 +72,12 @@ public struct HistorySyncOutput: Equatable, Sendable {
     public var historyRecords: [HistoryRecord] = []
     /// Every Frame in or out during this step, in order.
     public var syncLog: [SyncLogEntry] = []
+    /// Live HR readings from `0x28` Frames, which the Strap sends only while Live HR is on
+    /// (spec 006).
+    public var liveHRReadings: [LiveHRReading] = []
+    /// `0x28` Frames in a layout the decoder doesn't know; each is still in `syncLog`. A Frame
+    /// failing its own check fails the sync instead (spec 001).
+    public var liveHRSkipped: [LiveHRSkip] = []
 }
 
 /// One History Sync with the Strap, as a pure state machine.
@@ -117,7 +123,7 @@ public struct HistorySync: Sendable {
         lastHeardFromStrap = time
         let clock = littleEndianBytes(UInt32(time.timeIntervalSince1970))
         pendingSteps = [
-            [Command(op: helloOp, arguments: [0x01])],
+            [.hello],
             // The captured app sends both forms back to back; the Strap replies to the second.
             [
                 Command(op: setClockOp, arguments: clock + [0x00, 0x00, 0x00, 0x00]),
@@ -180,6 +186,14 @@ public struct HistorySync: Sendable {
                 noteProgress(of: record, arrivedAt: time)
                 output.historyRecords.append(record)
             }
+        case FrameType.realtimeData:
+            do {
+                if let reading = try liveHRReading(from: frame) {
+                    output.liveHRReadings.append(reading)
+                }
+            } catch {
+                output.liveHRSkipped.append(.reading(error))
+            }
         case FrameType.metadata where body.count > metadataKindOffset:
             switch body[metadataKindOffset] {
             case batchEndKind where body.count >= syncCursorRange.upperBound:
@@ -196,6 +210,18 @@ public struct HistorySync: Sendable {
         default:
             break
         }
+        return output
+    }
+
+    /// Turns Live HR on or off on this sync's connection (spec 006; ADR 0007): sends `0x03 01` /
+    /// `0x03 00` with the next sequence number. Nothing while the sync isn't running. Live HR is
+    /// extra to the sync, so the Strap's reply to it never fails the sync. Once the sync has
+    /// ended this sends nothing and later readings are dropped, so a caller still showing Live
+    /// HR carries on with a `LiveHRSession`.
+    public mutating func setLiveHR(_ on: Bool, at time: Date) -> HistorySyncOutput {
+        var output = HistorySyncOutput()
+        guard state == .running else { return output }
+        send(.liveHR(on: on), at: time, into: &output)
         return output
     }
 
@@ -298,14 +324,14 @@ public struct HistorySync: Sendable {
         } catch {
             preconditionFailure("every History Sync command has a known header check: \(error)")
         }
-        sentOps.insert(command.op)
+        // A reply to Live HR that isn't "done" must not fail the sync (spec 006).
+        if command.op != liveHROp { sentOps.insert(command.op) }
         output.framesToSend.append(bytes)
         output.syncLog.append(SyncLogEntry(time: time, direction: .toStrap, bytes: bytes))
     }
 }
 
 // Command ops, from hr-tracker `docs/protocol.md` and the 27 Oct 2026 capture.
-private let helloOp: UInt8 = 0x91
 private let setClockOp: UInt8 = 0x0a
 private let getClockOp: UInt8 = 0x0b
 private let batteryOp: UInt8 = 0x1a
