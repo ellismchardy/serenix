@@ -86,14 +86,18 @@ The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus t
 inside it.
 _Avoid_: sleep duration, total sleep
 
+**Usual Need**:
+The Time Asleep the user needs on a night with no Sleep Debt to repay.
+_Avoid_: typical need, base need, sleep baseline
+
 **Sleep Need**:
-How much Time Asleep the user needs on a given night: the Time Asleep they typically need, plus
-extra to repay Sleep Debt.
+How much Time Asleep the user needs on a given night: their Usual Need, plus extra to repay
+Sleep Debt.
 _Avoid_: sleep goal, sleep target
 
 **Sleep Debt**:
-How far the user's Time Asleep has fallen short of the Time Asleep they typically need over
-recent Nights, added up.
+How far the user's Time Asleep has fallen short of their Usual Need over recent Nights, added
+up, with Nights longer than it paying the shortfall back. Never below zero.
 _Avoid_: sleep deficit, sleep owed
 
 **Night**:
