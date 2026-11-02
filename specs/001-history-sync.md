@@ -54,7 +54,7 @@ again on the next sync.
    hello (`0x91`), set the Strap's clock to the phone's current time (`0x0a`, both observed
    forms), read the clock (`0x0b`), `0x61`, `0x45`, battery (`0x1a`).
    **Left out:** live HR on (`0x03 01`), which a sync doesn't need, and `0x3f`, which the Strap
-   ignores.
+   ignores. (Spec 006 turns Live HR on mid-sync while the Load popup shows it.)
 3. Ask for the data range (`0x22`), then for history (`0x16`).
 4. For each Batch: keep its History Records, and when the Batch ends, acknowledge it by echoing
    its Sync Cursor (`0x17`). Keep going until the Strap says the sync is complete.
@@ -67,7 +67,8 @@ timestamp together, because after a reboot the Strap can reuse a Record Counter 
 record. One whose Record Counter and timestamp are both already stored (or already received in
 this sync) is ignored, so a Batch the Strap re-sends is never stored twice; one that only
 shares a Record Counter is kept. Other Frames that arrive during a
-sync (console logs, events, optical bursts, live HR) are logged and otherwise ignored.
+sync (console logs, events, optical bursts) are logged and otherwise ignored; Live HR Frames
+are passed on as readings (spec 006).
 
 **Empty sync.** When the Strap has nothing new, it sends an empty Batch whose Sync Cursor is all
 `ff`. Serenix acknowledges it, the sync completes, and the status says "Up to date".

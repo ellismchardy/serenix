@@ -207,8 +207,9 @@ HR 60), and one History Record per second. HR Zone lower edges for Max HR 190: 9
 - Readiness, which will reuse Typical Load.
 
 ## Open questions
-- **The `0x28` fixture.** The owner will capture a few seconds of real `0x28` Frames with
-  `hr-tracker`'s `whoop5.py` (including the first HR 0 ones); the Protocol tests wait on it.
+- **The `0x28` fixture** (resolved 2026-11-01): the Protocol tests use the 667 real `0x28`
+  Frames already in the History Sync fixture, plus one real Frame edited to HR 0 with its CRC
+  recomputed (see the archived plan).
 - **The 5-second stale limit** is a named assumption, to tune on the phone.
 - **The unknown bytes** of a `0x28` Frame (`d[9]`, `d[14:16]`) are not read.
 

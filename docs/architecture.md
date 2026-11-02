@@ -40,7 +40,8 @@ The app is split in two (ADR 0002):
   then pruned.
 - **Night**: one Sleep Period, dated by the local date of its Final Wake. It holds Sleep Onset,
   Final Wake, Time in Bed, Nightly Metrics, Sleep Score and Readiness. Kept forever.
-- **Day**: a local calendar day with its Load. Kept forever.
+- **Day**: a local calendar day with its Load and its HR Zones, hour by hour, Highest HR and the
+  Max HR used (spec 006). Kept forever.
 - **Baseline**: not stored. Each Nightly Metric's median, and HRV's and respiratory rate's
   Spread (spec 004; Resting HR's comes with Readiness), come from the last 14 Nights; typical Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights
   exist.

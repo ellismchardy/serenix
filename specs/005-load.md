@@ -70,7 +70,7 @@ labelled "Load" like any other Day.
 
 **Add your age.** When Load is missing because there's no Max HR, the Load ring shows "—" and its
 label reads "Add your age" instead of "Load". Tapping the ring then opens the
-profile menu. Otherwise tapping the Load ring still does nothing (spec 002). A Day missing Load
+profile menu. Otherwise tapping the Load ring opens the Load popup (spec 006). A Day missing Load
 for any other reason keeps the normal label.
 
 **When.** Load is worked out Day by Day, in the same pass as spec 003's Night rebuilds: each sync
