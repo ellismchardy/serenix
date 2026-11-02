@@ -118,9 +118,21 @@ public struct TodayView: Equatable, Sendable {
             readinessBand = nil
             readinessFill = 0
         } else {
-            readinessText = scoreText(night?.readiness)
-            readinessBand = night?.readiness.map(ReadinessBand.init)
-            readinessFill = ringFill(night?.readiness)
+            // Expand step (plan 008): a stored Readiness still wins until it's removed.
+            let readiness =
+                night?.readiness
+                ?? night.flatMap { night in
+                    readinessBaselines.flatMap { baselines in
+                        Readiness.score(
+                            of: night,
+                            hrv: baselines.hrv,
+                            sleepingHR: baselines.sleepingHR
+                        )
+                    }
+                }
+            readinessText = scoreText(readiness)
+            readinessBand = readiness.map(ReadinessBand.init)
+            readinessFill = ringFill(readiness)
         }
         sleepScoreText = scoreText(night?.sleepScore)
         sleepScoreFill = ringFill(night?.sleepScore)

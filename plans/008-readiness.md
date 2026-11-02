@@ -26,7 +26,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice (tracer, expand):** Readiness from HRV, Sleeping HR and Time Asleep — scores
+1. [x] **Slice (tracer, expand):** Readiness from HRV, Sleeping HR and Time Asleep — scores
    (HRV on ln with its Spread, Sleeping HR against a typical Spread of 2.5 bpm, Time Asleep
    short of 7 h), clamp ±3, weights 0.5 / 0.25 / 0.15 re-weighted to add to 1 (no Days yet, so
    Load is always dropped), the curve, halves-up rounding; missing with no HRV. `TodayView` uses
