@@ -140,7 +140,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
    - Done when: spec 005's unticked criteria pass (Resting HR median from Days, Nights alone give
      60, Max HR at Resting HR from a Day).
 
-9. [ ] **Shell: store Resting HR and work it out before Load.**
+9. [x] **Shell: store Resting HR and work it out before Load.**
    - `StoredDayLoad` gains an optional `restingHR` (it migrates by itself, like `heartRate`).
    - `DayLoadStore.apply` works out the Day's Resting HR (with the Nights), then Load with the
      stored Days plus this one.
