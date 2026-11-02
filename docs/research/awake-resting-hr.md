@@ -150,7 +150,8 @@
   says "below a threshold", Vital Connect gives a normalised 0.1, and Speed uses MET < 1.5. "0
   steps and < 10 active seconds (at 2°/s) in the minute" is Serenix's own mapping. It should be
   checked on fixture days: does desk work (typing, phone use) fall inside it, and does it still
-  leave enough still minutes?
+  leave enough still minutes? **Checked on 28 Oct 2026: no.** Desk minutes had 22–59 active
+  seconds, so spec 007 dropped the active-second part and uses steps alone.
 - **Steps resolution.** The Strap's step count is a running total. Whether it counts single
   steps reliably enough for a "0 steps in the minute" rule is unverified.
 - **Post-exercise lockout.** No source sets one. If the lowest-5-minute rule still picks a

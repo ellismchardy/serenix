@@ -1,7 +1,7 @@
 # 007 — Sleeping HR and Resting HR
 
 **Status:** approved
-**Last updated:** 2026-11-02 (Notes: 006 shipped)
+**Last updated:** 2026-11-02 (still minute: steps only, after the fixture Day)
 
 ## Problem
 Serenix calls the lowest sustained heart rate during a Sleep Period "Resting HR", as WHOOP and Oura
@@ -50,8 +50,9 @@ overlaps the Day. The rest is taken minute by minute (clock minutes):
 - **Worn minute:** at least 30 of its records have a heart rate above 0 (spec 003's
   fewest-records rule).
 - **Still minute:** a worn minute with no steps (no record's step count is above the previous
-  record's; a drop is a Strap reboot, not a step) and fewer than 10 active seconds (a second is
-  active when the Strap turns more than 2° in it, spec 003's rule).
+  record's; a drop is a Strap reboot, not a step). Wrist movement doesn't count: at a desk the
+  Strap turns more than 2° in most seconds of every minute (the fixture Day), so spec 003's
+  active-second rule would leave only bedtime.
 - **Still run:** consecutive still minutes. Any other minute, or a missing one, ends the run.
 - **Settled window:** 5 consecutive minutes of a still run, all within its minutes 5 to 15. The
   first 4 minutes let heart rate settle; after minute 15 the user may have fallen asleep (a Nap).
@@ -61,7 +62,7 @@ overlaps the Day. The rest is taken minute by minute (clock minutes):
 
 There is no lockout after exercise: a raised stretch is never the lowest window. Resting HR is
 missing when the Day has fewer than 480 worn minutes (8 hours) outside Sleep Periods, or no
-settled window. Every constant (30 records, 10 active seconds, 2°, 4, 5, 15 and 480 minutes) is
+settled window. Every constant (30 records, 4, 5, 15 and 480 minutes) is
 named and cites docs/research/awake-resting-hr.md or spec 003.
 
 **Today's is so far.** Today's Resting HR covers the records synced up to now, and is worked out
@@ -108,7 +109,7 @@ still on the phone (the last 30 days) are rebuilt once after the update, as for 
 
 ## Seams under test
 - **Resting HR of a Day (`SerenixCore`)**, fed hand-built History Records and Nights with a fixed
-  time zone, plus one real fixture Day. Catches still and worn minutes, steps, active seconds,
+  time zone, plus one real fixture Day. Catches still and worn minutes, steps, wrist movement,
   settling, the 15-minute cap, Sleep Period exclusion, the 8-hour rule, Day boundaries, a clock
   change, repeats, and how the method behaves on the user's real Strap. Expected values are worked
   by hand from this spec and committed as literals.
@@ -129,8 +130,8 @@ second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55
 
 - [ ] The desk Day gives Resting HR 62 (the settling 55 and the 50 after minute 15 don't count);
       with minutes 5–9 at 66 instead, it gives 64 (minutes 10–14).
-- [ ] With 10 active seconds in each minute of the still stretch, the desk Day has no Resting HR;
-      with 9, it gives 62.
+- [ ] With the Strap turning 10° every second of the still stretch (wrist movement, no steps),
+      the desk Day still gives 62.
 - [ ] With one step in the still stretch's minute 7, the run breaks: minutes 1–6 give no window,
       and the run from minute 8 settles until minute 11, so its windows reach minute 20 and
       Resting HR is 50. (The cap counts from each run's start.)
@@ -181,8 +182,11 @@ second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55
 - **Fast sleepers.** Someone very short of sleep can fall asleep in under 10 minutes, letting a
   Nap into the window (pulling Resting HR toward Sleeping HR). The fixture Day shows whether it
   matters; accepted for now.
-- **Step counter.** Unverified until the fixture Day; if it isn't usable, this spec is reopened
-  for the still rule.
+- **Stepless activity.** Driving, cycling or an arm workout has no steps, so it counts as still.
+  Exercise raises heart rate and never gives the lowest window; driving could nudge Resting HR up
+  a little, never below the truth. Accepted for now.
+- **One fixture Day.** Steps only was chosen on one real Day (Resting HR 62.8 against that
+  night's Sleeping HR 54.9). Check it against more Days as they're captured.
 
 ## Notes
 - Research: docs/research/awake-resting-hr.md (Speed et al. 2023 for settle time, the 8-hour
@@ -192,5 +196,9 @@ second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55
   HR from Days).
 - Spec 006 (Load popup) shipped first (#25); its "no Nights (Resting HR 60)" default now reads
   "no Days with a Resting HR".
-- The real fixture Day: the owner shares a Sync Log from a sync covering a full Day, trimmed per
-  docs/conventions.md, with a `steps` column added.
+- The real fixture Day: 28 Oct 2026, from the owner's Bluetooth captures, with a `steps` column
+  added. Its step count stayed flat sitting and rose at the gym, so the counter is usable. No
+  capture holds the 27–28 Oct Night, so the owner agreed its reference is the 28–29 Oct Night.
+- The still rule first also needed fewer than 10 active seconds (spec 003's 2° rule). On the
+  fixture Day the wrist turned in 22–59 seconds of every desk minute, leaving no settled window
+  once the Sleep Period was left out, so the owner chose steps only.
