@@ -40,11 +40,12 @@ The app is split in two (ADR 0002):
   timestamp together (the Strap can reuse a Record Counter after a reboot). Kept for 30 days,
   then pruned.
 - **Night**: one Sleep Period, dated by the local date of its Final Wake. It holds Sleep Onset,
-  Final Wake, Time in Bed, Nightly Metrics, Sleep Score and Readiness. Kept forever.
+  Final Wake, Time in Bed, Nightly Metrics and Sleep Score. Kept forever. Readiness isn't stored:
+  it's worked out from the Nights and Days each time it's shown (spec 008).
 - **Day**: a local calendar day with its Resting HR (spec 007), its Load, and its HR Zones hour
   by hour, Highest HR and Max HR used (spec 006). Kept forever.
 - **Baseline**: not stored. Each Nightly Metric's median, and HRV's and respiratory rate's
-  Spread (spec 004; Sleeping HR's comes with Readiness), come from the last 14 Nights; typical
+  Spread (spec 004; Sleeping HR's from spec 008), come from the last 14 Nights; typical
   Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights exist.
 - **Sync Cursor**: kept by the Strap, not the phone. The phone echoes it to acknowledge each
   Batch, so each sync only gets newer records.

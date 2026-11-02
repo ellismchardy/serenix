@@ -23,12 +23,18 @@ struct Baseline: Equatable, Sendable {
     /// Respiratory rate's typical Spread, br/min (spec 004, Spread). Assumption from issue #14
     /// and docs/research/nightly-metric-deviation.md: tune with real Nights.
     static let respiratoryRateTypicalSpread = 0.5
+    /// Sleeping HR's typical Spread, bpm (spec 008, Sleeping HR's Spread). Assumption from issue
+    /// #18: tune with real Nights.
+    static let sleepingHRTypicalSpread = 2.5
     /// HRV's smallest Spread, on ln(RMSSD) (spec 004, Spread). Assumption from issue #14: tune
     /// with real Nights.
     static let hrvSpreadFloor = 0.10
     /// Respiratory rate's smallest Spread, br/min (spec 004, Spread). Assumption from issue #14:
     /// tune with real Nights.
     static let respiratoryRateSpreadFloor = 0.3
+    /// Sleeping HR's smallest Spread, bpm (spec 008, Sleeping HR's Spread). Assumption from issue
+    /// #18: tune with real Nights.
+    static let sleepingHRSpreadFloor = 1.0
     /// From this many earlier Nights with a value, the Spread is measured from them instead of
     /// the typical value (spec 004, Spread; issue #14).
     static let minEarlierNightsForMeasuredSpread = 7
@@ -73,7 +79,10 @@ struct Baseline: Equatable, Sendable {
         case .respiratoryRate:
             (typical, minSpread) = (respiratoryRateTypicalSpread, respiratoryRateSpreadFloor)
             (scaled, centre) = (values, median)
-        case .sleepingHR, .skinTemperature, .spo2:
+        case .sleepingHR:
+            (typical, minSpread) = (sleepingHRTypicalSpread, sleepingHRSpreadFloor)
+            (scaled, centre) = (values, median)
+        case .skinTemperature, .spo2:
             return nil
         }
         guard earlierNights >= minEarlierNightsForMeasuredSpread else { return typical }

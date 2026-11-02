@@ -146,7 +146,6 @@ private let nightsOct1ToNov1 =
     let yesterday = Night(
         day: oct31,
         sleepScore: 84,
-        readiness: 80,
         sleepingHR: 50,
         hrv: 62,
         respiratoryRate: 14.1,
@@ -297,24 +296,29 @@ func syncPillShowsWhereTheHistorySyncHasGot(
 
 // MARK: Rings
 
-@Test(arguments: [
-    (100, "100", ReadinessBand.ready, "Ready"),
-    (67, "67", .ready, "Ready"),
-    (66, "66", .steady, "Steady"),
-    (34, "34", .steady, "Steady"),
-    (33, "33", .takeItEasy, "Take it easy"),
-    (0, "0", .takeItEasy, "Take it easy"),
-])
+/// HRV, Sleeping HR and Time Asleep (seconds) against Baselines of 60 ms and 50 bpm. 100 needs
+/// every input at its best; 1 is the lowest Readiness there is, every input 3 or more worse
+/// than usual (spec 008).
+@Test(
+    arguments: [
+        (95, 42, 28_800, "100", ReadinessBand.ready, "Ready"),
+        (59, 50, 25_200, "67", .ready, "Ready"),
+        (60, 50, 23_400, "66", .steady, "Steady"),
+        (49, 50, 25_200, "34", .steady, "Steady"),
+        (51, 50, 21_600, "33", .takeItEasy, "Take it easy"),
+        (38, 58, 14_400, "1", .takeItEasy, "Take it easy"),
+    ] as [(Double, Double, TimeInterval, String, ReadinessBand, String)]
+)
 func readinessShowsItsNumberAndBand(
-    readiness: Int,
+    hrv: Double,
+    sleepingHR: Double,
+    timeAsleep: TimeInterval,
     text: String,
     band: ReadinessBand,
     word: String
 ) {
-    let view = todayView(
-        nights: calibratedNightsBeforeNov1 + [Night(day: nov1, readiness: readiness)],
-        showing: nov1
-    )
+    let shown = Night(day: nov1, sleepingHR: sleepingHR, hrv: hrv, timeAsleep: timeAsleep)
+    let view = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
 
     #expect(view.readinessText == text)
     #expect(view.readinessBand == band)
@@ -338,9 +342,12 @@ func readinessShowsItsNumberAndBand(
 }
 
 @Test func aDayWithoutANightShowsNoOtherDaysScores() {
+    // 1 Nov has three earlier Nights, so it has a Readiness (70) that 31 Oct mustn't show.
     let nights = [
-        Night(day: oct30, sleepScore: 81, readiness: 72),
-        Night(day: nov1, sleepScore: 84, readiness: 67),
+        Night(day: oct28, sleepingHR: 50, hrv: 60),
+        Night(day: oct29, sleepingHR: 50, hrv: 60),
+        Night(day: oct30, sleepScore: 81, sleepingHR: 50, hrv: 60),
+        Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 60),
     ]
     let view = todayView(nights: nights, showing: oct31)
 
@@ -351,7 +358,10 @@ func readinessShowsItsNumberAndBand(
 
 @Test func eachRingFillsToItsScoreOutOf100() {
     let view = todayView(
-        nights: calibratedNightsBeforeNov1 + [Night(day: nov1, sleepScore: 84, readiness: 67)],
+        // HRV 59 against 60 with Time Asleep 7 h: Readiness 67.
+        nights: calibratedNightsBeforeNov1 + [
+            Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 59, timeAsleep: 25_200)
+        ],
         showing: nov1
     )
 
@@ -371,7 +381,8 @@ func readinessShowsItsNumberAndBand(
 // MARK: Readiness Calibrating
 
 @Test func readinessIsCalibratingUntilThreeEarlierNightsFormBothBaselines() {
-    let shown = Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)
+    // HRV 64 against 60, Sleeping HR at its Baseline: Readiness 80 once it's past Calibrating.
+    let shown = Night(day: nov1, sleepingHR: 50, hrv: 64)
 
     let twoEarlier = todayView(
         nights: nightsBeforeNov1(hrv: [60, 60], sleepingHR: [50, 50]) + [shown],
@@ -388,7 +399,7 @@ func readinessShowsItsNumberAndBand(
 
 @Test func theFirstNightIsOneOfFourNightsWhileReadinessIsCalibrating() {
     let view = todayView(
-        nights: [Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)],
+        nights: [Night(day: nov1, sleepingHR: 50, hrv: 60)],
         showing: nov1
     )
 
@@ -400,7 +411,7 @@ func readinessShowsItsNumberAndBand(
 @Test func calibratingCountsNightsByTheMetricWithFewestEarlierValues() {
     let nights =
         nightsBeforeNov1(hrv: [60, 60, 60], sleepingHR: [50])
-        + [Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)]
+        + [Night(day: nov1, sleepingHR: 50, hrv: 60)]
     let view = todayView(nights: nights, showing: nov1)
 
     #expect(view.readinessText == "2/4")
@@ -1347,7 +1358,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 }
 
 @Test func vsBaselineIsTheCalibratingLineWithTheNightsToGo() {
-    let shown = Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)
+    let shown = Night(day: nov1, sleepingHR: 50, hrv: 60)
 
     let firstNight = todayView(nights: [shown], showing: nov1)
     #expect(firstNight.readinessText == "1/4")
@@ -1374,7 +1385,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 @Test func vsBaselineIsCalibratingWhileEitherBaselineIs() {
     let nights =
         nightsBeforeNov1(hrv: [60, 60, 60], sleepingHR: [50])
-        + [Night(day: nov1, readiness: 80, sleepingHR: 50, hrv: 60)]
+        + [Night(day: nov1, sleepingHR: 50, hrv: 60)]
     let view = todayView(nights: nights, showing: nov1)
 
     #expect(view.readinessText == "2/4")
@@ -1395,17 +1406,33 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 
 // MARK: Readiness popup
 
-@Test func readinessPopupShowsHRVAndSleepingHRAgainstTheirBaselinesAndHowManyNightsFormThem() {
-    let night = Night(day: nov1, sleepScore: 84, readiness: 80, sleepingHR: 49, hrv: 68.4)
+@Test func readinessPopupShowsEachInputAgainstItsReferenceAndHowManyNightsFormTheBaseline() {
+    // Time Asleep 4 h, 3 h short, the most it can cost: Readiness 81.
+    // The previous Day, 31 Oct, has Load 12, but only 30 Oct comes before it, so typical Load
+    // is calibrating.
+    let night = Night(
+        day: nov1,
+        sleepScore: 84,
+        sleepingHR: 49,
+        hrv: 68.4,
+        timeAsleep: 14_400
+    )
     let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
         .readinessPopup
 
-    #expect(popup?.readinessText == "80")
+    #expect(popup?.readinessText == "81")
     #expect(popup?.band == .ready)
-    #expect(popup?.rows.map(\.metric) == [.hrv, .sleepingHR])
-    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm"])
-    #expect(popup?.rows.map(\.baselineText) == ["60 ms", "52 bpm"])
-    #expect(popup?.rows.map(\.differenceText) == ["+14%", "\u{2212}3 bpm"])
+    #expect(
+        popup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load"]
+    )
+    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "4h 0m", "12"])
+    #expect(popup?.rows.map(\.referenceText) == ["60 ms", "52 bpm", "7h", "Calibrating"])
+    // A whole-hour difference keeps its minutes, as the Time Asleep tile does ("7h 0m").
+    #expect(
+        popup?.rows.map(\.differenceText) == [
+            "+14%", "\u{2212}3 bpm", "\u{2212}3h 0m", "\u{2014}",
+        ]
+    )
     #expect(popup?.sleepScoreText == "84")
     #expect(popup?.baselineNote == "Baseline: your last 3 Nights")
     #expect(popup?.calibratingText == nil)
@@ -1413,11 +1440,30 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 
 /// Spec 007: vs your Baseline and the Readiness popup name the Night's metric "Sleeping HR".
 @Test func vsBaselineAndTheReadinessPopupNameSleepingHR() {
-    let night = Night(day: nov1, sleepScore: 84, readiness: 80, sleepingHR: 49, hrv: 68.4)
+    let night = Night(day: nov1, sleepScore: 84, sleepingHR: 49, hrv: 68.4)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(baselineComparisons(view)?.map(\.metric.name) == ["HRV", "Sleeping HR"])
-    #expect(view.readinessPopup?.rows.map(\.metric.name) == ["HRV", "Sleeping HR"])
+    #expect(
+        view.readinessPopup?.rows.map(\.name) == [
+            "HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load",
+        ]
+    )
+    // This Night has no Time Asleep, so its row reads "—" against 7 h. The previous Day, 31 Oct,
+    // has Load 12 with typical Load calibrating.
+    #expect(
+        view.readinessPopup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "\u{2014}", "12"]
+    )
+    #expect(
+        view.readinessPopup?.rows.map(\.referenceText) == [
+            "60 ms", "52 bpm", "7h", "Calibrating",
+        ]
+    )
+    #expect(
+        view.readinessPopup?.rows.map(\.differenceText) == [
+            "+14%", "\u{2212}3 bpm", "\u{2014}", "\u{2014}",
+        ]
+    )
 }
 
 @Test func readinessPopupBaselineNoteCountsAtMostFourteenNights() {
@@ -1425,7 +1471,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
         hrv: Array(repeating: 60, count: 20),
         sleepingHR: Array(repeating: 52, count: 20)
     )
-    let night = Night(day: nov1, readiness: 80, sleepingHR: 49, hrv: 68.4)
+    let night = Night(day: nov1, sleepingHR: 49, hrv: 68.4)
     let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
 
     #expect(popup?.baselineNote == "Baseline: your last 14 Nights")
@@ -1433,14 +1479,14 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 
 @Test func readinessPopupBaselineNoteCountsByTheMetricWithFewerEarlierNights() {
     let earlier = nightsBeforeNov1(hrv: [60, 60, 60, 60, 60], sleepingHR: [52, 52, 52, 52])
-    let night = Night(day: nov1, readiness: 80, sleepingHR: 49, hrv: 68.4)
+    let night = Night(day: nov1, sleepingHR: 49, hrv: 68.4)
     let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
 
     #expect(popup?.baselineNote == "Baseline: your last 4 Nights")
 }
 
 @Test func readinessPopupExplainsCalibratingWithTheNightsSoFar() {
-    let night = Night(day: nov1, sleepScore: 84, readiness: 80, sleepingHR: 50, hrv: 60)
+    let night = Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 60)
     let popup = todayView(
         nights: nightsBeforeNov1(hrv: [60, 60], sleepingHR: [50, 50]) + [night],
         showing: nov1
@@ -1819,7 +1865,8 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 // MARK: Readiness advice
 
 @Test func readyAdviceSaysItsAGoodDayToPush() {
-    let night = Night(day: nov1, readiness: 80, sleepingHR: 52, hrv: 60)
+    // HRV and Sleeping HR at their Baselines: Readiness 70.
+    let night = Night(day: nov1, sleepingHR: 52, hrv: 60)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(
@@ -1829,7 +1876,8 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func steadyAdviceWithNothingOffIsJustTheBandSentence() {
-    let night = Night(day: nov1, readiness: 50, sleepingHR: 52, hrv: 60)
+    // HRV and Sleeping HR at their Baselines, Time Asleep 6 h: Readiness 62.
+    let night = Night(day: nov1, sleepingHR: 52, hrv: 60, timeAsleep: 21_600)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(
@@ -1839,7 +1887,8 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func takeItEasyAdviceSaysWhyFromTheNightsNumbers() {
-    let night = Night(day: nov1, readiness: 25, sleepingHR: 56, hrv: 51.6)
+    // HRV 14% below and Sleeping HR 4 bpm above their Baselines: Readiness 17.
+    let night = Night(day: nov1, sleepingHR: 56, hrv: 51.6)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 82)],
@@ -1855,7 +1904,9 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func aLoadBelowTheHighMarkYesterdayIsNotMentioned() {
-    let night = Night(day: nov1, readiness: 25, sleepingHR: 52, hrv: 60)
+    // Take it easy needs HRV or Sleeping HR worse than usual, so the Night gives its reasons
+    // too: Readiness 17.
+    let night = Night(day: nov1, sleepingHR: 56, hrv: 51.6)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 54)],
@@ -1864,13 +1915,15 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 
     #expect(
         view.readinessAdvice
-            == "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your "
-            + "Load under 33 today."
+            == "HRV is 14% below your Baseline and Sleeping HR is up 4 bpm. Your body hasn't "
+            + "recovered yet. Rest, hydrate and get to bed early, and keep your Load under 33 today."
     )
 }
 
 @Test func aLoadAtTheHighMarkYesterdayIsMentioned() {
-    let night = Night(day: nov1, readiness: 25, sleepingHR: 52, hrv: 60)
+    // Take it easy needs HRV or Sleeping HR worse than usual, so the Night gives its reasons
+    // too: Readiness 17.
+    let night = Night(day: nov1, sleepingHR: 56, hrv: 51.6)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 55)],
@@ -1879,19 +1932,27 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 
     #expect(
         view.readinessAdvice
-            == "Yesterday's Load was high (55). Your body hasn't recovered yet. Rest, hydrate and get "
-            + "to bed early, and keep your Load under 33 today."
+            == "Yesterday's Load was high (55), HRV is 14% below your Baseline and Sleeping HR is "
+            + "up 4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and "
+            + "keep your Load under 33 today."
     )
 }
 
 @Test func thereIsNoAdviceWhileReadinessIsCalibrating() {
-    let view = todayView(nights: [Night(day: nov1, readiness: 80)], showing: nov1)
+    // A Night with HRV and Sleeping HR, so only Calibrating keeps it from a Readiness.
+    let view = todayView(nights: [Night(day: nov1, sleepingHR: 50, hrv: 60)], showing: nov1)
 
+    #expect(view.readinessText == "1/4")
     #expect(view.readinessAdvice == nil)
 }
 
-@Test func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff() {
-    let night = Night(day: nov1, readiness: 80, sleepingHR: 56, hrv: 51.6)
+// Against Baselines of HRV 60 and Sleeping HR 52, with no Time Asleep:
+// - HRV 14% below, but Sleeping HR 8 bpm under lifts it: Readiness 82;
+// - Sleeping HR up 4 bpm, but HRV 20% above lifts it: Readiness 80.
+// Yesterday's high Load isn't given as a reason either.
+@Test(arguments: [(51.6, 44.0), (72.0, 56.0)])
+func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff(hrv: Double, sleepingHR: Double) {
+    let night = Night(day: nov1, sleepingHR: sleepingHR, hrv: hrv)
     let view = todayView(
         nights: exactBaselinesBeforeNov1 + [night],
         dayLoads: [DayLoad(day: oct31, load: 82)],
@@ -1905,12 +1966,13 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func twoReasonsAreJoinedWithAnd() {
-    let night = Night(day: nov1, readiness: 50, sleepingHR: 56, hrv: 51.6)
+    // HRV 58 against 60 and Sleeping HR 54 against 52, with no Time Asleep: Readiness 50.
+    let night = Night(day: nov1, sleepingHR: 54, hrv: 58)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(
         view.readinessAdvice
-            == "HRV is 14% below your Baseline and Sleeping HR is up 4 bpm. You're part-way "
+            == "HRV is 3% below your Baseline and Sleeping HR is up 2 bpm. You're part-way "
             + "recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }
