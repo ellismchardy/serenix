@@ -492,3 +492,241 @@ private func linkOnInSync() -> LiveHRLink {
     #expect(link.phaseForSyncPill(StrapLinkFacts(phase: .idle)) == .idle)
     #expect(link.linkReady(at: readyAt) == [])
 }
+
+// MARK: Quiet failures
+
+private let quietFailureAt = shownAt.addingTimeInterval(30)
+private let quietRetryAt = quietFailureAt.addingTimeInterval(1)
+private let secondQuietRetryAt = quietRetryAt.addingTimeInterval(10)
+private let readyAfterRetryAt = secondQuietRetryAt.addingTimeInterval(2)
+private let frameAfterRetryAt = readyAfterRetryAt.addingTimeInterval(1)
+
+/// A link shown with a failed sync's phase on the shell, whose own connection attempt then
+/// failed quietly, leaving a retry pending.
+private func linkAfterAQuietFailure() -> LiveHRLink {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    _ = link.linkFailed(facts: StrapLinkFacts(phase: .connecting))
+    return link
+}
+
+@Test func liveHRLinkFailureOfItsOwnAttemptIsQuietAndRetries() {
+    var link = LiveHRLink()
+    let shown = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    #expect(shown == [.connect])
+    let response = link.linkFailed(facts: StrapLinkFacts(phase: .connecting))
+    #expect(response.wasLiveHRConnection)
+    #expect(
+        response.actions
+            == [.stopScanning, .disconnect, .showPhase(failedPhase), .scheduleRetry(after: 1)]
+    )
+    #expect(link.pill(at: quietFailureAt) == .unavailable)
+    #expect(link.heldPhase == nil)
+}
+
+@Test func liveHRLinkFailureWhileASyncRunsIsNotLiveHRs() {
+    var link = linkOnInSync()
+    let response = link.linkFailed(facts: syncingFacts)
+    #expect(!response.wasLiveHRConnection)
+    #expect(response.actions == [])
+}
+
+@Test func liveHRLinkFailureWhileASyncIsWantedIsNotLiveHRs() {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    let response = link.linkFailed(facts: StrapLinkFacts(phase: .connecting, syncWanted: true))
+    #expect(!response.wasLiveHRConnection)
+    #expect(response.actions == [])
+    #expect(link.heldPhase == failedPhase)
+}
+
+@Test func liveHRLinkFailureWithNoLiveHRAttemptIsNotLiveHRs() {
+    var link = LiveHRLink()
+    let response = link.linkFailed(facts: StrapLinkFacts(phase: .connecting))
+    #expect(!response.wasLiveHRConnection)
+    #expect(response.actions == [])
+}
+
+@Test func liveHRLinkFailureOfThePairingConnectionIsNotLiveHRs() {
+    var link = LiveHRLink()
+    // Shown while the user's pairing connection is in progress: Live HR waits for it.
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: .connecting), at: shownAt)
+    let response = link.linkFailed(facts: StrapLinkFacts(phase: .connecting))
+    #expect(!response.wasLiveHRConnection)
+    #expect(response.actions == [])
+}
+
+// MARK: Stuck "…" (retry flips)
+
+@Test func liveHRLinkRetryAfterAQuietFailureKeepsThePillUnavailable() {
+    var link = linkAfterAQuietFailure()
+    let actions = link.retryDue(facts: StrapLinkFacts(phase: failedPhase), at: quietRetryAt)
+    #expect(actions == [.connect])
+    // Never back to "…": it stays "—" until a reading arrives.
+    #expect(link.pill(at: quietRetryAt) == .unavailable)
+}
+
+@Test func liveHRLinkRetriesKeepThePillUnavailableUntilAReadingShowsItsBpm() {
+    var link = linkAfterAQuietFailure()
+    _ = link.retryDue(facts: StrapLinkFacts(phase: failedPhase), at: quietRetryAt)
+    let second = link.linkFailed(facts: StrapLinkFacts(phase: .connecting))
+    #expect(second.wasLiveHRConnection)
+    #expect(
+        second.actions == [
+            .stopScanning, .disconnect, .showPhase(failedPhase), .scheduleRetry(after: 1),
+        ]
+    )
+    let retry = link.retryDue(facts: StrapLinkFacts(phase: failedPhase), at: secondQuietRetryAt)
+    #expect(retry == [.connect])
+    #expect(link.pill(at: secondQuietRetryAt) == .unavailable)
+    #expect(link.linkReady(at: readyAfterRetryAt) == [.write([helloFrame, liveHROnFrame])])
+    #expect(link.pill(at: readyAfterRetryAt) == .unavailable)
+    _ = link.receive(firstLiveHRFrame, at: frameAfterRetryAt)
+    #expect(link.pill(at: frameAfterRetryAt) == .bpm(77))
+}
+
+@Test func liveHRLinkRetryAfterASyncEndsWithNoReadingKeepsThePillUnavailable() {
+    var link = linkOnInSync()
+    _ = link.syncFinished()
+    #expect(link.retryDue(facts: StrapLinkFacts(phase: failedPhase), at: retryAt) == [.connect])
+    #expect(link.pill(at: retryAt) == .unavailable)
+}
+
+// MARK: Retries once at a time
+
+@Test func liveHRLinkSyncEndingWhileARetryIsPendingSchedulesNoSecondRetry() {
+    var link = linkAfterAQuietFailure()
+    #expect(link.syncFinished() == [])
+}
+
+@Test func liveHRLinkHiddenWhileARetryIsPendingCancelsTheRetry() {
+    var link = linkAfterAQuietFailure()
+    let actions = link.setShown(false, facts: StrapLinkFacts(phase: failedPhase), at: hiddenAt)
+    #expect(actions.first == .cancelRetry)
+    // A retry that falls due all the same does nothing.
+    #expect(link.retryDue(facts: StrapLinkFacts(phase: failedPhase), at: quietRetryAt) == [])
+    #expect(link.heldPhase == nil)
+}
+
+@Test func liveHRLinkShownAgainWhileARetryIsPendingCancelsTheRetryAndConnects() {
+    var link = linkAfterAQuietFailure()
+    let actions = link.setShown(
+        true,
+        facts: StrapLinkFacts(phase: failedPhase),
+        at: quietRetryAt
+    )
+    #expect(actions == [.cancelRetry, .connect])
+}
+
+// MARK: Quick close and reopen
+
+private let reopenedAt = hiddenAt.addingTimeInterval(1)
+private let reopenedAttemptEndsAt = reopenedAt.addingTimeInterval(1)
+
+/// A link shown, closed mid-connect, then shown again while the cancelled attempt resolves.
+private func linkReopenedMidConnect() -> LiveHRLink {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    _ = link.setShown(false, facts: StrapLinkFacts(phase: .connecting), at: hiddenAt)
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: .connecting), at: reopenedAt)
+    return link
+}
+
+@Test func liveHRLinkReopenedWhileTheCancelledAttemptResolvesWaitsForIt() {
+    var link = LiveHRLink()
+    let shown = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    #expect(shown == [.connect])
+    let hidden = link.setShown(false, facts: StrapLinkFacts(phase: .connecting), at: hiddenAt)
+    #expect(hidden == [.cancelConnecting])
+    let reopened = link.setShown(true, facts: StrapLinkFacts(phase: .connecting), at: reopenedAt)
+    #expect(reopened == [])
+    #expect(link.pill(at: reopenedAt) == .connecting)
+}
+
+@Test func liveHRLinkReopenedAttemptThatBecomesReadyStartsTheSession() {
+    var link = linkReopenedMidConnect()
+    let actions = link.linkReady(at: reopenedAttemptEndsAt)
+    #expect(actions == [.write([helloFrame, liveHROnFrame])])
+    #expect(link.isStreaming)
+}
+
+@Test func liveHRLinkReopenedAttemptThatDisconnectsShowsThePhaseAgainAndRetries() {
+    var link = linkReopenedMidConnect()
+    let response = link.linkDisconnected(facts: StrapLinkFacts(phase: .connecting))
+    #expect(response.wasLiveHRConnection)
+    #expect(
+        response.actions
+            == [.stopConnectTimeout, .showPhase(failedPhase), .scheduleRetry(after: 1)]
+    )
+    let retry = link.retryDue(
+        facts: StrapLinkFacts(phase: failedPhase),
+        at: reopenedAttemptEndsAt.addingTimeInterval(1)
+    )
+    #expect(retry == [.connect])
+}
+
+// MARK: A link still closing
+
+@Test func liveHRLinkShownWhileTheLinkIsStillClosingRetriesInsteadOfConnecting() {
+    var link = LiveHRLink()
+    let actions = link.setShown(
+        true,
+        facts: StrapLinkFacts(phase: .idle, linkClosing: true),
+        at: shownAt
+    )
+    #expect(actions == [.scheduleRetry(after: 1)])
+    let retry = link.retryDue(facts: StrapLinkFacts(phase: .idle), at: readyAt)
+    #expect(retry == [.connect])
+}
+
+// MARK: Bluetooth off and on
+
+@Test func liveHRLinkBluetoothOffWhileStreamingDropsTheSessionKeepingItsSyncLog() {
+    var link = streamingLink(standingInFor: failedPhase)
+    _ = link.receive(firstLiveHRFrame, at: firstFrameAt)
+    let actions = link.bluetoothOff()
+    guard actions.count == 1, case .keepLog(let log) = actions[0] else {
+        Issue.record("expected keepLog: \(actions)")
+        return
+    }
+    #expect(log.map(\.bytes) == [helloFrame, liveHROnFrame, firstLiveHRFrame])
+    #expect(!link.isStreaming)
+    #expect(link.pill(at: firstFrameAt) == .unavailable)
+    #expect(link.heldPhase == nil)
+}
+
+@Test func liveHRLinkBluetoothOffWhileConnectingForgetsTheAttempt() {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    #expect(link.bluetoothOff() == [])
+    #expect(link.heldPhase == nil)
+    #expect(link.pill(at: shownAt) == .unavailable)
+}
+
+@Test func liveHRLinkBluetoothOnWhileWantedConnectsAgain() {
+    var link = LiveHRLink()
+    _ = link.setShown(true, facts: StrapLinkFacts(phase: failedPhase), at: shownAt)
+    _ = link.bluetoothOff()
+    let actions = link.bluetoothOn(
+        facts: StrapLinkFacts(phase: .idle, bluetoothOn: true),
+        at: readyAt
+    )
+    #expect(actions == [.connect])
+    // Bluetooth coming back isn't a retry: the pill shows "…" again.
+    #expect(link.pill(at: readyAt) == .connecting)
+}
+
+@Test func liveHRLinkBluetoothOnWhenNotWantedDoesNotConnect() {
+    var link = LiveHRLink()
+    let actions = link.bluetoothOn(
+        facts: StrapLinkFacts(phase: .idle, bluetoothOn: true),
+        at: readyAt
+    )
+    #expect(actions == [])
+}
+
+@Test func liveHRLinkBluetoothOffMidSyncTurnsLiveHROnAgainInTheNextSync() {
+    var link = linkOnInSync()
+    _ = link.bluetoothOff()
+    #expect(link.setForeground(true, facts: syncingFacts, at: retryAt) == [.setLiveHRInSync(true)])
+}

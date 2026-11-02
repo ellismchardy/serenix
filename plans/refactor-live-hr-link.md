@@ -88,7 +88,7 @@ phone checks from spec 006's PR are repeated by hand.
        ready; a sync on its way turns it on itself.
      - **"Sync now" during a cancelled attempt:** popup closed mid-connect, then "Sync now";
        the attempt's disconnect forgets the held phase, shows "idle" and connects for the sync.
-4. [ ] **Slice:** quiet failures and retries
+4. [x] **Slice:** quiet failures and retries
    - Seam: `LiveHRLink` · Files: `src/SerenixCore/LiveHRLink.swift`,
      `tests/SerenixCoreTests/LiveHRLinkTests.swift`
    - Done when tests show:

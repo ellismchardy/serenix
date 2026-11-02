@@ -56,6 +56,8 @@ public enum LiveHRAction: Equatable, Sendable {
     case showPhase(StrapPhase)
     /// Calls `retryDue` after this many seconds.
     case scheduleRetry(after: TimeInterval)
+    /// Cancels the retry `scheduleRetry` asked for.
+    case cancelRetry
     /// Keeps these messages as the one "Live HR" Sync Log (spec 006).
     case keepLog([SyncLogEntry])
     /// Logs Live HR Frames that gave no reading, and why.
@@ -159,6 +161,20 @@ public struct LiveHRLink: Sendable {
         return endConnection()
     }
 
+    /// Finding, connecting to or setting up the link failed. Live HR's own attempt fails
+    /// quietly: the pill shows "—" and the sync pill keeps what it showed (spec 006).
+    public mutating func linkFailed(facts: StrapLinkFacts) -> LiveHRLinkResponse {
+        guard connecting, !facts.syncRunning, !facts.syncWanted else {
+            return LiveHRLinkResponse(actions: [], wasLiveHRConnection: false)
+        }
+        connecting = false
+        var actions: [LiveHRAction] = [.stopScanning]
+        actions += endConnection()
+        if lastReading == nil { connection = .unavailable }
+        actions += scheduleRetry()
+        return LiveHRLinkResponse(actions: actions, wasLiveHRConnection: true)
+    }
+
     /// The link disconnected.
     public mutating func linkDisconnected(facts: StrapLinkFacts) -> LiveHRLinkResponse {
         if !facts.syncRunning, facts.syncWanted, connecting, !isWanted {
@@ -172,10 +188,12 @@ public struct LiveHRLink: Sendable {
             )
         }
         if !facts.syncRunning, !facts.syncWanted, connecting || heldPhase != nil {
-            // A connection only for Live HR ended: back to the phase it stood in for.
+            // A connection only for Live HR ended: back to the phase it stood in for, and Live
+            // HR tries again while it's wanted.
             connecting = false
-            let actions: [LiveHRAction] = [.stopConnectTimeout, .showPhase(heldPhase ?? .idle)]
+            var actions: [LiveHRAction] = [.stopConnectTimeout, .showPhase(heldPhase ?? .idle)]
             heldPhase = nil
+            actions += scheduleRetry()
             return LiveHRLinkResponse(actions: actions, wasLiveHRConnection: true)
         }
         // Not Live HR's own connection (a sync's, or the user's): the shell deals with it, and
@@ -211,10 +229,25 @@ public struct LiveHRLink: Sendable {
         note(readings, at: time)
     }
 
+    /// Bluetooth came on. The shell calls this only when no connection (pairing or a sync) was
+    /// waiting for Bluetooth; that one connects instead.
+    public mutating func bluetoothOn(facts: StrapLinkFacts, at time: Date) -> [LiveHRAction] {
+        isWanted ? start(facts, at: time) : []
+    }
+
+    /// Bluetooth went off or is resetting: every link is gone.
+    public mutating func bluetoothOff() -> [LiveHRAction] {
+        let actions = dropSession()
+        forgetAttempt()
+        onInSync = false
+        connection = .unavailable
+        return actions
+    }
+
     /// The retry `scheduleRetry` asked for fell due.
     public mutating func retryDue(facts: StrapLinkFacts, at time: Date) -> [LiveHRAction] {
         retryPending = false
-        return isWanted ? start(facts, at: time) : []
+        return isWanted ? start(facts, at: time, retrying: true) : []
     }
 
     /// Feeds one message the Strap sent on Live HR's own connection.
@@ -230,16 +263,21 @@ public struct LiveHRLink: Sendable {
     }
 
     /// Turns Live HR on: within the running sync, on the link if it's ready, or on a new
-    /// connection of its own (ADR 0007). It never starts a sync.
-    private mutating func start(_ facts: StrapLinkFacts, at time: Date) -> [LiveHRAction] {
-        var actions: [LiveHRAction] = []
-        if lastReading == nil { connection = .connecting }
+    /// connection of its own (ADR 0007). It never starts a sync. A retry after a failed attempt
+    /// keeps the pill on "—" until a reading arrives.
+    private mutating func start(
+        _ facts: StrapLinkFacts,
+        at time: Date,
+        retrying: Bool = false
+    ) -> [LiveHRAction] {
+        var actions = cancelRetry()
+        if lastReading == nil { connection = retrying ? .unavailable : .connecting }
         if facts.phase == .syncing, facts.syncRunning {
             guard !onInSync else { return actions }
             onInSync = true
             return actions + [.setLiveHRInSync(true)]
         }
-        // An attempt already under way carries on: once it resolves, Live HR starts.
+        // An attempt already under way carries on: once it resolves, Live HR starts or retries.
         guard session == nil, !connecting else { return actions }
         if facts.syncWanted || facts.phase.isBusy {
             // A sync on its way turns Live HR on as it starts; any other connection starts it
@@ -251,6 +289,8 @@ public struct LiveHRLink: Sendable {
             connection = .unavailable
             return actions
         }
+        // A link still closing can't be used yet: try again once it has closed.
+        if facts.linkClosing { return actions + scheduleRetry() }
         if facts.linkReady { return actions + beginSession(at: time) }
         heldPhase = facts.phase
         connecting = true
@@ -260,7 +300,7 @@ public struct LiveHRLink: Sendable {
     /// Turns Live HR off: within the running sync, which carries on (ADR 0006), or by ending its
     /// own connection.
     private mutating func stop(_ facts: StrapLinkFacts, at time: Date) -> [LiveHRAction] {
-        var actions: [LiveHRAction] = []
+        var actions = cancelRetry()
         // The pill starts from "…" the next time it shows.
         lastReading = nil
         arrivedAt = nil
@@ -346,5 +386,11 @@ public struct LiveHRLink: Sendable {
         guard isWanted, !retryPending else { return [] }
         retryPending = true
         return [.scheduleRetry(after: liveHRRetryDelay)]
+    }
+
+    private mutating func cancelRetry() -> [LiveHRAction] {
+        guard retryPending else { return [] }
+        retryPending = false
+        return [.cancelRetry]
     }
 }
