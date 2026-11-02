@@ -11,7 +11,7 @@ daily scores, computed on the user's phone without the wearable vendor's subscri
 
 **Profile**:
 The user's name, and optionally their birth year, sex and Max HR, kept only on the phone, used to
-address them and to work out Load.
+address them and to work out Load and their Usual Need.
 _Avoid_: account, user account, login
 
 ## Devices and data

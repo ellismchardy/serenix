@@ -2,8 +2,8 @@ import Foundation
 import SerenixCore
 import Testing
 
-// Sleep Need and Sleep Debt in the Today view's Sleep popup (spec 009, Behavior: Usual Need,
-// Sleep Debt, Sleep Need, Sleep popup).
+// Sleep Need and Sleep Debt in the Today view's Sleep popup, and Readiness against Sleep Need
+// (spec 009, Behavior: Usual Need, Sleep Debt, Sleep Need, Sleep popup, Readiness).
 // Expected values are spec 009's success criteria, worked by hand from its rules.
 
 /// 15 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
@@ -29,9 +29,41 @@ private func todayView(nights: [Night], birthYear: Int? = nil) -> TodayView {
     )
 }
 
+/// A Night dated `day` Nov 2026 with Time Asleep `timeAsleep`, and HRV and Sleeping HR when
+/// Readiness needs them.
+private func nightOnNov(
+    _ day: Int,
+    timeAsleep: TimeInterval?,
+    hrv: Double? = nil,
+    sleepingHR: Double? = nil
+) -> Night {
+    Night(
+        day: Day(year: 2026, month: 11, day: day),
+        sleepingHR: sleepingHR,
+        hrv: hrv,
+        timeAsleep: timeAsleep
+    )
+}
+
 /// The Night shown, dated 15 Nov, with Time Asleep `timeAsleep` (8 h by default).
-private func nightOn15Nov(timeAsleep: TimeInterval? = 8 * oneHour) -> Night {
-    Night(day: nov15, timeAsleep: timeAsleep)
+private func nightOn15Nov(
+    timeAsleep: TimeInterval? = 8 * oneHour,
+    hrv: Double? = nil,
+    sleepingHR: Double? = nil
+) -> Night {
+    nightOnNov(15, timeAsleep: timeAsleep, hrv: hrv, sleepingHR: sleepingHR)
+}
+
+/// Earlier Nights dated 14 Nov, 13 Nov and so on back, with the given Time Asleep in that order,
+/// each with HRV `hrv` and Sleeping HR `sleepingHR`.
+private func earlierNights(
+    _ timesAsleep: [TimeInterval?],
+    hrv: Double? = nil,
+    sleepingHR: Double? = nil
+) -> [Night] {
+    timesAsleep.enumerated().map { offset, timeAsleep in
+        nightOnNov(14 - offset, timeAsleep: timeAsleep, hrv: hrv, sleepingHR: sleepingHR)
+    }
 }
 
 // MARK: Usual Need and Sleep Need
@@ -42,18 +74,6 @@ private func nightOn15Nov(timeAsleep: TimeInterval? = 8 * oneHour) -> Night {
     #expect(popup?.sleepNeedText == "8h 0m")
     #expect(popup?.sleepDebtText == "0h 0m")
     #expect(popup?.sleepDebtCaption == "No earlier Nights")
-}
-
-/// A Night dated `day` Nov 2026 with Time Asleep `timeAsleep`.
-private func nightOnNov(_ day: Int, timeAsleep: TimeInterval?) -> Night {
-    Night(day: Day(year: 2026, month: 11, day: day), timeAsleep: timeAsleep)
-}
-
-/// Earlier Nights dated 14 Nov, 13 Nov and so on back, with the given Time Asleep in that order.
-private func earlierNights(_ timesAsleep: [TimeInterval?]) -> [Night] {
-    timesAsleep.enumerated().map { offset, timeAsleep in
-        nightOnNov(14 - offset, timeAsleep: timeAsleep)
-    }
 }
 
 @Test func aLongNightPaysBackAShortOneAndSleepNeedAddsAQuarterOfSleepDebt() {
@@ -194,23 +214,16 @@ private func earlierNights(_ timesAsleep: [TimeInterval?]) -> [Night] {
 }
 
 // MARK: Readiness against Sleep Need
+// Every Night here has spec 008's usual HRV 60 ms and Sleeping HR 52 bpm, so only Time Asleep
+// against Sleep Need moves Readiness.
 
-/// Earlier Nights dated 14 Nov, 13 Nov and so on back, each with spec 008's usual HRV 60 ms and
-/// Sleeping HR 52 bpm, and the given Time Asleep in that order.
+/// Earlier Nights as `earlierNights`, each with spec 008's usual HRV and Sleeping HR.
 private func usualEarlierNights(_ timesAsleep: [TimeInterval]) -> [Night] {
-    timesAsleep.enumerated().map { offset, timeAsleep in
-        Night(
-            day: Day(year: 2026, month: 11, day: 14 - offset),
-            sleepingHR: 52,
-            hrv: 60,
-            timeAsleep: timeAsleep
-        )
-    }
+    earlierNights(timesAsleep, hrv: 60, sleepingHR: 52)
 }
 
-/// The Night shown, dated 15 Nov: spec 008's usual Night (HRV 60 ms, Sleeping HR 52 bpm) with
-/// Time Asleep 8 h.
-private let usualNightOn15Nov = Night(day: nov15, sleepingHR: 52, hrv: 60, timeAsleep: 8 * oneHour)
+/// The Night shown: spec 008's usual Night with Time Asleep 8 h.
+private let usualNightOn15Nov = nightOn15Nov(hrv: 60, sleepingHR: 52)
 
 @Test func readinessJudgesTimeAsleepAgainstARaisedSleepNeed() {
     let view = todayView(
