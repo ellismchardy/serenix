@@ -146,8 +146,8 @@ Missing, dropped and Calibrating:
 - [ ] HRV 50 with no Sleeping HR reads 26 (HRV and Time Asleep re-weighted).
 - [ ] With only three Days before 14 Nov at Load 45 (typical Load calibrating), 14 Nov at 85
       changes nothing: 70. With four but no Load on 14 Nov, also 70.
-- [ ] With two earlier Nights, Readiness is Calibrating, "2/4" (unchanged); with three, it reads
-      a number.
+- [ ] With one earlier Night, Readiness is Calibrating, "2/4", and with two, "3/4" (unchanged:
+      the count includes the Night shown); with three, it reads a number.
 - [ ] Readiness follows the Days: the same Nights give 70 with no Day for 14 Nov and 61 once
       14 Nov has Load 85 over typical 45.
 
