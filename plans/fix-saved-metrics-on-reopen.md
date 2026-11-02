@@ -49,7 +49,7 @@ listed in the PR's manual steps.
      hand check passes: swipe away straight after a sync, reopen, and the rings and tiles show
      at once (before the sync on open finishes), then update when the rebuild completes. A
      normal reopen still shows metrics, and the Load ring shows its stored value at once too.
-2. [ ] **Cleanup:** drop the throwaway probe.
+2. [x] **Cleanup:** drop the throwaway probe.
    - Files: none on this branch (the probe was only ever on `prototype/reopen-probe`).
    - Close draft PR ellismchardy/serenix#24 without merging, and delete the remote and local
      `prototype/reopen-probe` branch, after the user confirms. Confirm that grepping
