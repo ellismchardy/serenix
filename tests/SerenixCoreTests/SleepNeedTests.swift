@@ -16,7 +16,7 @@ private let nov15 = Day(year: 2026, month: 11, day: 15)
 
 private let oneHour: TimeInterval = 3_600
 
-private func todayView(nights: [Night]) -> TodayView {
+private func todayView(nights: [Night], birthYear: Int? = nil) -> TodayView {
     TodayView(
         nights: nights,
         dayLoads: [],
@@ -24,7 +24,8 @@ private func todayView(nights: [Night]) -> TodayView {
         now: now,
         timeZone: london,
         sync: .idle,
-        profileName: nil
+        profileName: nil,
+        birthYear: birthYear
     )
 }
 
@@ -89,6 +90,31 @@ private func earlierNights(_ timesAsleep: [TimeInterval?]) -> [Night] {
     ).sleepPopup
 
     #expect(popup?.sleepNeedText == "8h 15m")
+}
+
+// MARK: Usual Need by age
+
+@Test func aUserWhoIs65GetsAUsualNeedOf7Hours30() {
+    let popup = todayView(nights: [nightOn15Nov()], birthYear: 1961).sleepPopup
+
+    #expect(popup?.sleepNeedText == "7h 30m")
+}
+
+@Test func aUserWhoIs64KeepsAUsualNeedOf8Hours() {
+    let popup = todayView(nights: [nightOn15Nov()], birthYear: 1962).sleepPopup
+
+    #expect(popup?.sleepNeedText == "8h 0m")
+}
+
+@Test func sleepDebtForAUserWhoIs65IsMeasuredAgainst7Hours30() {
+    let popup = todayView(
+        nights: [nightOn15Nov()] + earlierNights([6 * oneHour + 30 * 60]),
+        birthYear: 1961
+    )
+    .sleepPopup
+
+    #expect(popup?.sleepDebtText == "1h 0m")
+    #expect(popup?.sleepNeedText == "7h 45m")
 }
 
 // MARK: Window and skipping
@@ -158,4 +184,11 @@ private func earlierNights(_ timesAsleep: [TimeInterval?]) -> [Night] {
 
     #expect(todayView(nights: before).sleepPopup?.sleepNeedText == "8h 0m")
     #expect(todayView(nights: after).sleepPopup?.sleepNeedText == "8h 30m")
+}
+
+@Test func givingABirthYearChangesSleepNeedForTheSameNights() {
+    let nights = [nightOn15Nov()]
+
+    #expect(todayView(nights: nights).sleepPopup?.sleepNeedText == "8h 0m")
+    #expect(todayView(nights: nights, birthYear: 1961).sleepPopup?.sleepNeedText == "7h 30m")
 }

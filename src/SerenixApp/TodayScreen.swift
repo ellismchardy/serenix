@@ -36,6 +36,7 @@ struct TodayScreen: View {
             timeZone: .current,
             sync: connection.syncStatus,
             profileName: profile.name,
+            birthYear: profile.birthYear,
             lastSyncEnded: connection.lastSyncCompleted
         )
         NavigationStack {

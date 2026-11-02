@@ -7,6 +7,11 @@ struct SleepNeed: Equatable, Sendable {
     /// Usual Need for an adult, seconds (spec 009: 8 h; Garmin's figure under 65, within the
     /// NSF's 7–9 h).
     static let adultUsualNeed: TimeInterval = 8 * 60 * 60
+    /// Usual Need from `olderAge`, seconds (spec 009: 7.5 h; Garmin's figure over 65, within the
+    /// NSF's 7–8 h for 65 and over).
+    static let olderUsualNeed: TimeInterval = 7.5 * 60 * 60
+    /// The age in years from which Usual Need is `olderUsualNeed` (spec 009: 65).
+    static let olderAge = 65
     /// How many Days before the Night's own Sleep Debt looks back (spec 009: the Nights dated
     /// D − 7 to D − 1).
     static let debtWindowDays = 7
@@ -26,9 +31,11 @@ struct SleepNeed: Equatable, Sendable {
     /// How many Nights counted toward Sleep Debt.
     let nightsCounted: Int
 
-    /// The Sleep Need of the Night dated `day`, from the Nights before it.
-    init(for day: Day, among nights: [Night]) {
-        let usualNeed = Self.adultUsualNeed
+    /// The Sleep Need of the Night dated `day`, from the Nights before it. Age is `day`'s year
+    /// minus `birthYear`; with no birth year, Usual Need is the adult one.
+    init(for day: Day, among nights: [Night], birthYear: Int?) {
+        let isOlder = birthYear.map { day.year - $0 >= Self.olderAge } ?? false
+        let usualNeed = isOlder ? Self.olderUsualNeed : Self.adultUsualNeed
         self.usualNeed = usualNeed
         // The Nights in the week before, the Night itself left out. One with no plausible Time
         // Asleep is skipped, as if the Strap wasn't worn.

@@ -74,6 +74,7 @@ public struct TodayView: Equatable, Sendable {
         timeZone: TimeZone,
         sync: SyncStatus,
         profileName: String? = nil,
+        birthYear: Int? = nil,
         lastSyncEnded: Date? = nil
     ) {
         let today = Day(containing: now, in: timeZone)
@@ -246,7 +247,7 @@ public struct TodayView: Equatable, Sendable {
                 SleepPopup(
                     night,
                     // Worked out each time, never stored, so it follows the Nights (spec 009).
-                    sleepNeed: SleepNeed(for: day, among: nights),
+                    sleepNeed: SleepNeed(for: day, among: nights, birthYear: birthYear),
                     sleepScoreText: sleepScoreText,
                     timeZone: timeZone
                 )

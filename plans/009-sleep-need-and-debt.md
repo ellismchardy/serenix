@@ -47,7 +47,7 @@ view with its own private `todayView` helper, as `ReadinessTests.swift` does.
      6 h … '9h 0m' (capped)", "all 9 h … '0h 0m' … '8h 0m'", "The Night shown with no Time
      Asleep still shows … '8h 15m'", the three Window and skipping criteria, and "Adding an
      earlier Night of 6 h on 14 Nov … '8h 30m'".
-3. [ ] **Slice:** Usual Need by age — `TodayView` gains a `birthYear` input (default nil, so
+3. [x] **Slice:** Usual Need by age — `TodayView` gains a `birthYear` input (default nil, so
    existing callers and tests don't change); 7.5 h when D's year minus the birth year is 65 or
    more; the shell passes `profile.birthYear`.
    - Seam: Today view · Files: `SleepNeed.swift`, `TodayView.swift`, `SleepNeedTests.swift`,
