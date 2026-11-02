@@ -1,7 +1,7 @@
 # 009 — Sleep Need and Sleep Debt
 
-**Status:** approved
-**Last updated:** 2026-11-02 (approved)
+**Status:** built
+**Last updated:** 2026-11-02 (built)
 **Issue:** https://github.com/ellismchardy/serenix/issues/34 (map: https://github.com/ellismchardy/serenix/issues/31)
 
 ## Problem
@@ -95,35 +95,35 @@ with Time Asleep 8 h; no birth year; times in Europe/London. "Earlier Nights" ar
 13 Nov and so on back, in that order. Expected values worked by hand from the rules above.
 
 Usual Need and Sleep Need:
-- [ ] With no earlier Nights, the Sleep popup shows Sleep Need "8h 0m", Sleep Debt "0h 0m" and
+- [x] With no earlier Nights, the Sleep popup shows Sleep Need "8h 0m", Sleep Debt "0h 0m" and
       "No earlier Nights".
-- [ ] Birth year 1961 (65 in 2026) gives Sleep Need "7h 30m"; 1962 (64) gives "8h 0m".
-- [ ] Birth year 1961 with one earlier Night of 6 h 30 m gives Sleep Debt "1h 0m" and Sleep Need
+- [x] Birth year 1961 (65 in 2026) gives Sleep Need "7h 30m"; 1962 (64) gives "8h 0m".
+- [x] Birth year 1961 with one earlier Night of 6 h 30 m gives Sleep Debt "1h 0m" and Sleep Need
       "7h 45m".
-- [ ] Earlier Nights of 6 h and 9 h give Sleep Debt "1h 0m" and Sleep Need "8h 15m".
-- [ ] Four earlier Nights of 6 h give Sleep Debt "8h 0m" and Sleep Need "9h 0m" (capped).
-- [ ] Earlier Nights all 9 h give Sleep Debt "0h 0m" (never below zero) and Sleep Need "8h 0m".
-- [ ] The Night shown with no Time Asleep still shows Sleep Need "8h 15m" after earlier Nights of
+- [x] Earlier Nights of 6 h and 9 h give Sleep Debt "1h 0m" and Sleep Need "8h 15m".
+- [x] Four earlier Nights of 6 h give Sleep Debt "8h 0m" and Sleep Need "9h 0m" (capped).
+- [x] Earlier Nights all 9 h give Sleep Debt "0h 0m" (never below zero) and Sleep Need "8h 0m".
+- [x] The Night shown with no Time Asleep still shows Sleep Need "8h 15m" after earlier Nights of
       6 h and 9 h.
 
 Window and skipping:
-- [ ] Nights dated 8 Nov to 14 Nov count; a Night dated 7 Nov of 4 h changes nothing; the Night
+- [x] Nights dated 8 Nov to 14 Nov count; a Night dated 7 Nov of 4 h changes nothing; the Night
       shown's own Time Asleep of 4 h changes nothing.
-- [ ] Earlier Nights dated 14 Nov (6 h), 13 Nov (no Time Asleep) and 11 Nov (6 h) give Sleep Debt
+- [x] Earlier Nights dated 14 Nov (6 h), 13 Nov (no Time Asleep) and 11 Nov (6 h) give Sleep Debt
       "4h 0m", Sleep Need "9h 0m" and "Your last 2 Nights".
-- [ ] One earlier Night reads "Your last 1 Night"; seven read "Your last 7 Nights".
+- [x] One earlier Night reads "Your last 1 Night"; seven read "Your last 7 Nights".
 
 Always current:
-- [ ] The same Nights give Sleep Need "8h 0m" with no birth year and "7h 30m" with birth year
+- [x] The same Nights give Sleep Need "8h 0m" with no birth year and "7h 30m" with birth year
       1961.
-- [ ] Adding an earlier Night of 6 h on 14 Nov to the same Nights changes Sleep Need from
+- [x] Adding an earlier Night of 6 h on 14 Nov to the same Nights changes Sleep Need from
       "8h 0m" to "8h 30m".
 
 Readiness (spec 008's criteria, changed with this spec, cover the score; these cover the link):
-- [ ] Four earlier Nights of 6 h (Sleep Need 9 h) with the Night shown at 8 h, and the HRV and
+- [x] Four earlier Nights of 6 h (Sleep Need 9 h) with the Night shown at 8 h, and the HRV and
       Sleeping HR of spec 008's usual Night, give Readiness 62, and the Readiness popup's Time
       Asleep row reads "8h 0m", "9h 0m", "−1h 0m".
-- [ ] Earlier Nights of 6 h, 8 h, 8 h and 8 h (Sleep Need 8 h 30 m) give Readiness 66, Steady.
+- [x] Earlier Nights of 6 h, 8 h, 8 h and 8 h (Sleep Need 8 h 30 m) give Readiness 66, Steady.
 
 Build and phone:
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job

@@ -1,7 +1,7 @@
 # 008 — Readiness
 
-**Status:** approved
-**Last updated:** 2026-11-02 (approved: Time Asleep against Sleep Need, spec 009)
+**Status:** built
+**Last updated:** 2026-11-02 (built: Time Asleep against Sleep Need, spec 009)
 **Issue:** https://github.com/ellismchardy/serenix/issues/18 (map: https://github.com/ellismchardy/serenix/issues/12)
 
 ## Problem
@@ -131,10 +131,10 @@ Score:
 - [x] HRV 50 reads 38, Steady; HRV 72 reads 90, Ready.
 - [x] HRV 20 is clamped at −3 and reads 8, Take it easy.
 - [x] Sleeping HR 57 reads 43; Sleeping HR 48 (better than usual) reads 85.
-- [ ] Time Asleep 6 h reads 54; 7 h 59 m reads 70; 10 h reads 70 (against Sleep Need 8 h).
+- [x] Time Asleep 6 h reads 54; 7 h 59 m reads 70; 10 h reads 70 (against Sleep Need 8 h).
 - [x] With four Days before 14 Nov at Load 45: 14 Nov at Load 65 reads 65, Steady; at 85, 61; at
       200, clamped at −3, 56.
-- [ ] All four off at once (HRV 50, Sleeping HR 57, Time Asleep 5 h 30 m, 14 Nov at Load 85 over
+- [x] All four off at once (HRV 50, Sleeping HR 57, Time Asleep 5 h 30 m, 14 Nov at Load 85 over
       typical 45) reads 7, Take it easy.
 
 Sleeping HR's Spread:
@@ -158,7 +158,7 @@ Missing, dropped and Calibrating:
 Popup:
 - [x] The Readiness popup lists HRV, Sleeping HR, Time Asleep and Yesterday's Load, in that
       order.
-- [ ] Its Time Asleep row: 7 h 30 m reads "7h 30m", "8h 0m", "−30m"; 9 h 10 m reads "+1h 10m";
+- [x] Its Time Asleep row: 7 h 30 m reads "7h 30m", "8h 0m", "−30m"; 9 h 10 m reads "+1h 10m";
       8 h reads "±0".
 - [x] Yesterday's Load 85 over typical 45 reads "85", "Typical 45", "+40"; 40 reads "−5"; with no
       Load on 14 Nov, "—", "Typical 45", "—"; with typical Load calibrating (14 Nov at 85),
