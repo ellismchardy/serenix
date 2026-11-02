@@ -97,7 +97,7 @@ _Avoid_: sleep goal, sleep target
 
 **Sleep Debt**:
 How far the user's Time Asleep has fallen short of their Usual Need over recent Nights, added
-up, with Nights longer than it paying the shortfall back. Never below zero.
+up, with Nights whose Time Asleep exceeds their Usual Need paying the shortfall back.
 _Avoid_: sleep deficit, sleep owed
 
 **Night**:
