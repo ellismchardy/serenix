@@ -57,7 +57,7 @@ phone checks from spec 006's PR are repeated by hand.
      reads as unreachable only when a sync or connection was wanted).
    - Done when: tests pin each phase's `isBusy`, `displayText` and sync status to today's
      values; the shell's `syncStatus` calls it; suite, lint and build green.
-2. [ ] **Slice:** Live HR on its own connection, with no sync
+2. [x] **Slice:** Live HR on its own connection, with no sync
    - Seam: `LiveHRLink` (new, agreed in this plan; not a spec seam — refactor) · Files:
      `src/SerenixCore/LiveHRLink.swift` (new), `tests/SerenixCoreTests/LiveHRLinkTests.swift` (new)
    - Done when tests show:
@@ -94,7 +94,7 @@ phone checks from spec 006's PR are repeated by hand.
    - Done when tests show:
      - A failure of Live HR's own attempt is quiet (stop scanning, disconnect, show the held
        phase, "—", retry in 1 s); a failure while a sync is running or wanted is not Live HR's
-       (`nil`).
+       (`wasLiveHRConnection` false).
      - **Stuck "…" / retry flips:** a retry keeps "—" until a reading arrives (never back to
        "…"); a reading then shows the bpm.
      - Retries are scheduled once at a time, only while wanted, and cancelled on hide.
