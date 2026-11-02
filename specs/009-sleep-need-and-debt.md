@@ -1,7 +1,7 @@
 # 009 — Sleep Need and Sleep Debt
 
-**Status:** draft
-**Last updated:** 2026-11-02
+**Status:** approved
+**Last updated:** 2026-11-02 (approved)
 **Issue:** https://github.com/ellismchardy/serenix/issues/34 (map: https://github.com/ellismchardy/serenix/issues/31)
 
 ## Problem

@@ -1,7 +1,7 @@
 # 008 — Readiness
 
-**Status:** draft
-**Last updated:** 2026-11-02 (Time Asleep against Sleep Need, spec 009)
+**Status:** approved
+**Last updated:** 2026-11-02 (approved: Time Asleep against Sleep Need, spec 009)
 **Issue:** https://github.com/ellismchardy/serenix/issues/18 (map: https://github.com/ellismchardy/serenix/issues/12)
 
 ## Problem
