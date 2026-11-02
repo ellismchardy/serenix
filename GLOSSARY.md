@@ -86,14 +86,18 @@ The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus t
 inside it.
 _Avoid_: sleep duration, total sleep
 
+**Usual Need**:
+The Time Asleep the user needs on a night with no Sleep Debt to repay.
+_Avoid_: typical need, base need, sleep baseline
+
 **Sleep Need**:
-How much Time Asleep the user needs on a given night: the Time Asleep they typically need, plus
-extra to repay Sleep Debt.
+How much Time Asleep the user needs on a given night: their Usual Need, plus extra to repay
+Sleep Debt.
 _Avoid_: sleep goal, sleep target
 
 **Sleep Debt**:
-How far the user's Time Asleep has fallen short of the Time Asleep they typically need over
-recent Nights, added up.
+How far the user's Time Asleep has fallen short of their Usual Need over recent Nights, added
+up, with Nights whose Time Asleep exceeds their Usual Need paying the shortfall back.
 _Avoid_: sleep deficit, sleep owed
 
 **Night**:
@@ -119,7 +123,7 @@ _Avoid_: cycle
 The user's typical Sleeping HR, HRV, respiratory rate and skin temperature, and the Spread of
 each, taken over their most recent Nights. It also holds their typical Load, taken over their
 most recent Days. SpO2 has no Baseline.
-_Avoid_: norm, average, usual (when the personal reference is meant)
+_Avoid_: norm, average, usual (alone, when the Baseline is meant)
 
 **Spread**:
 How much one Nightly Metric usually varies from Night to Night for the user; part of that
