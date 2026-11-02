@@ -74,6 +74,7 @@ public struct TodayView: Equatable, Sendable {
         timeZone: TimeZone,
         sync: SyncStatus,
         profileName: String? = nil,
+        birthYear: Int? = nil,
         lastSyncEnded: Date? = nil
     ) {
         let today = Day(containing: now, in: timeZone)
@@ -118,6 +119,9 @@ public struct TodayView: Equatable, Sendable {
         let previousDay = day.adding(days: -1)
         let previousDayLoad = dayLoads.first { $0.day == previousDay }?.load
         let previousDayTypicalLoad = typicalLoad(for: previousDay, among: dayLoads)
+        // The Night shown's Sleep Need, for Readiness, its popup and the Sleep popup (spec 009).
+        // Worked out each time, never stored, so it follows the Nights and the birth year.
+        let sleepNeed = SleepNeed(for: day, among: nights, birthYear: birthYear)
         if let calibratingNightsSoFar {
             readinessText = "\(calibratingNightsSoFar)/\(nightsForBaseline)"
             readinessBand = nil
@@ -130,6 +134,7 @@ public struct TodayView: Equatable, Sendable {
                         of: night,
                         hrv: readinessBaselines.hrv,
                         sleepingHR: readinessBaselines.sleepingHR,
+                        sleepNeed: sleepNeed.sleepNeed,
                         previousDayLoad: previousDayLoad,
                         typicalLoad: previousDayTypicalLoad
                     )
@@ -226,7 +231,10 @@ public struct TodayView: Equatable, Sendable {
                         rows: VsBaseline.metrics.compactMap { metric in
                             tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
                         } + [
-                            ReadinessPopupRow(timeAsleep: night?.plausibleTimeAsleep),
+                            ReadinessPopupRow(
+                                timeAsleep: night?.plausibleTimeAsleep,
+                                sleepNeed: sleepNeed.sleepNeed
+                            ),
                             ReadinessPopupRow(
                                 previousDayLoad: previousDayLoad,
                                 typical: previousDayTypicalLoad
@@ -243,7 +251,12 @@ public struct TodayView: Equatable, Sendable {
             }
         sleepPopup =
             if let night {
-                SleepPopup(night, sleepScoreText: sleepScoreText, timeZone: timeZone)
+                SleepPopup(
+                    night,
+                    sleepNeed: sleepNeed,
+                    sleepScoreText: sleepScoreText,
+                    timeZone: timeZone
+                )
             } else {
                 nil
             }

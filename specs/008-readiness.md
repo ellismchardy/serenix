@@ -1,7 +1,7 @@
 # 008 — Readiness
 
 **Status:** built
-**Last updated:** 2026-11-02 (built)
+**Last updated:** 2026-11-02 (built: Time Asleep against Sleep Need, spec 009)
 **Issue:** https://github.com/ellismchardy/serenix/issues/18 (map: https://github.com/ellismchardy/serenix/issues/12)
 
 ## Problem
@@ -11,8 +11,8 @@ Calibrating ends. The ring meant to answer "how ready am I today?" is empty.
 
 ## Goal
 Each Night gets a Readiness from 0 to 100, worked out from its HRV and Sleeping HR against their
-Baselines, its Time Asleep, and the previous Day's Load against typical Load, using the formula
-decided in issue #18.
+Baselines, its Time Asleep against its Sleep Need (spec 009), and the previous Day's Load against
+typical Load, using the formula decided in issue #18.
 
 ## User stories
 1. As a Strap owner, I want a Readiness number every morning, so the ring, band and advice say
@@ -40,7 +40,7 @@ decided in issue #18.
 |---|---|---|
 | HRV | (ln HRV − ln Baseline) / Spread (spec 004, on ln RMSSD) | 0.50 |
 | Sleeping HR | −(Sleeping HR − Baseline) / Spread | 0.25 |
-| Time Asleep | −(hours short of 7 h), e.g. 5 h 30 m → −1.5; 0 at 7 h or more | 0.15 |
+| Time Asleep | −(hours short of the Night's Sleep Need, spec 009), e.g. 5 h 30 m against 8 h → −2.5; 0 at Sleep Need or more | 0.15 |
 | Previous Day's Load | −(Load − typical Load) / 20 when the Load is above typical Load; otherwise 0 | 0.10 |
 
 Each score is clamped to −3 to +3. Baselines are the Night's own (spec 004: up to 14 earlier
@@ -77,8 +77,8 @@ Readiness.
 
 **Readiness popup.** Spec 002's popup gains two rows after HRV and Sleeping HR, each with a value,
 a reference and a difference:
-- **Time Asleep:** the Night's Time Asleep ("6h 30m"), the reference "7h", and the difference in
-  hours and minutes ("−30m", "+1h 10m", "±0").
+- **Time Asleep:** the Night's Time Asleep ("7h 30m"), the Night's Sleep Need as the reference
+  ("8h 0m"), and the difference in hours and minutes ("−30m", "+1h 10m", "±0").
 - **Yesterday's Load:** the previous Day's Load ("85"), its typical Load ("Typical 45"), and the
   signed difference ("+40", "−5", "±0"), as in spec 006. With the Load missing, the value and
   difference read "—"; with typical Load calibrating, the reference reads "Calibrating" and the
@@ -95,7 +95,8 @@ vs your Baseline; the ring, band colours and Calibrating count.
 - **`SerenixCore`: Readiness (new).** A pure function: given a Night, its HRV and Sleeping HR
   Baselines, and the previous Day's Load and typical Load, it returns Readiness as a whole
   number, or missing. The Today view decides Calibrating, as before, and works out the previous
-  Day once for Readiness, its advice and its popup. Weights, the 7 h mark, the Load divisor 20, the ±3 clamp, the curve's slope 2 and
+  Day once for Readiness, its advice and its popup. It takes the Night's Sleep Need (spec 009)
+  as the Time Asleep mark. Weights, the Load divisor 20, the ±3 clamp, the curve's slope 2 and
   offset 0.42 are named constants, each citing issue #18 and
   `docs/research/readiness-composite-scores.md` ("assumption: tune with real Nights").
 - **`SerenixCore`: Baseline** gains Sleeping HR's Spread (floor and typical value as named
@@ -119,9 +120,10 @@ vs your Baseline; the ring, band colours and Calibrating count.
 
 ## Success criteria (must be checkable)
 Automated (`swift test`). Unless a criterion says otherwise: a Night dated 15 Nov 2026 with HRV
-60 ms, Sleeping HR 52 bpm and Time Asleep 7 h; four earlier Nights each with HRV 60 and Sleeping
-HR 52 (so typical Spreads: HRV 0.15, Sleeping HR 2.5 bpm); and no Days, so the Load input is
-dropped. Expected values worked by hand from the formula above.
+60 ms, Sleeping HR 52 bpm and Time Asleep 8 h; four earlier Nights each with HRV 60, Sleeping
+HR 52 and Time Asleep 8 h (so typical Spreads: HRV 0.15, Sleeping HR 2.5 bpm, and Sleep Need
+8 h with no Sleep Debt, spec 009); no birth year; and no Days, so the Load input is dropped.
+Expected values worked by hand from the formula above.
 
 Score:
 - [x] The usual Night reads 70, Ready. With four Days before 14 Nov at Load 45 and 14 Nov at 40
@@ -129,11 +131,11 @@ Score:
 - [x] HRV 50 reads 38, Steady; HRV 72 reads 90, Ready.
 - [x] HRV 20 is clamped at −3 and reads 8, Take it easy.
 - [x] Sleeping HR 57 reads 43; Sleeping HR 48 (better than usual) reads 85.
-- [x] Time Asleep 5 h reads 54; 6 h 59 m reads 70; 9 h reads 70.
+- [x] Time Asleep 6 h reads 54; 7 h 59 m reads 70; 10 h reads 70 (against Sleep Need 8 h).
 - [x] With four Days before 14 Nov at Load 45: 14 Nov at Load 65 reads 65, Steady; at 85, 61; at
       200, clamped at −3, 56.
 - [x] All four off at once (HRV 50, Sleeping HR 57, Time Asleep 5 h 30 m, 14 Nov at Load 85 over
-      typical 45) reads 10, Take it easy.
+      typical 45) reads 7, Take it easy.
 
 Sleeping HR's Spread:
 - [x] Sleeping HR 54 against four earlier Nights of 52 (typical 2.5 bpm) reads 60; against seven
@@ -155,8 +157,9 @@ Missing, dropped and Calibrating:
 
 Popup:
 - [x] The Readiness popup lists HRV, Sleeping HR, Time Asleep and Yesterday's Load, in that
-      order. Time Asleep 6 h 30 m reads "6h 30m", "7h", "−30m"; 8 h 10 m reads "+1h 10m"; 7 h
-      reads "±0".
+      order.
+- [x] Its Time Asleep row: 7 h 30 m reads "7h 30m", "8h 0m", "−30m"; 9 h 10 m reads "+1h 10m";
+      8 h reads "±0".
 - [x] Yesterday's Load 85 over typical 45 reads "85", "Typical 45", "+40"; 40 reads "−5"; with no
       Load on 14 Nov, "—", "Typical 45", "—"; with typical Load calibrating (14 Nov at 85),
       "85", "Calibrating", "—".
@@ -172,14 +175,14 @@ Build and phone:
 
 ## Non-goals (explicitly out of scope)
 - Retuning the Readiness advice, its reasons or Load caps to typical Load.
-- Sleep Score, Sleep Need and Sleep Debt; replacing the 7 h mark with Sleep Need (later).
+- Sleep Score (its own spec). How Sleep Need and Sleep Debt are worked out: spec 009.
 - Respiratory rate, skin temperature or SpO2 as inputs; Resting HR (the awake one, spec 007).
 - Smoothing inputs over several Nights, or a lagged Baseline.
 - Readiness history or trends, or writing Readiness anywhere (Apple Health has no such type).
 - Tuning the weights, curve, clamp and Spreads against real Nights: after this ships.
 
 ## Open questions
-- **Every number is an assumption** (weights, 7 h, 20, ±3, the curve, Sleeping HR's Spread).
+- **Every number is an assumption** (weights, 20, ±3, the curve, Sleeping HR's Spread).
   Tune them once there are a few weeks of real Nights, changing constants and tests together.
 - **Typical Load from 4 Days** (spec 006) instead of #18's 7: decided here so typical Load means
   one thing. A 4-Day median is noisy, but the input only weighs 0.10.
@@ -189,4 +192,4 @@ Build and phone:
   `docs/research/readiness-composite-scores.md`.
 - Builds on spec 002 (ring, band, message, popup), 004 (Baseline, Spread), 005 (Load) and 006
   (typical Load). Spec 004's open question on Sleeping HR's Spread is answered here.
-- Map: issue #12. This is the map's last spec.
+- Map: issue #12. Its Time Asleep mark became Sleep Need with spec 009 (map: issue #31).

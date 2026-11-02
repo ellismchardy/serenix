@@ -29,7 +29,7 @@ The app is split in two (ADR 0002):
 | Sync logic | The History Sync state machine: which commands to send, when to acknowledge, when a sync is complete. Transport-agnostic | `src/SerenixCore/` |
 | Live HR link | When Live HR runs and on which connection (in a sync or its own), quiet failures and retries, and the sync pill's phase meanwhile (ADR 0007) | `src/SerenixCore/` |
 | Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records | `src/SerenixCore/` |
-| Metrics & scores | Nightly Metrics, Baseline, Sleep Score, Readiness, Resting HR, Load | `src/SerenixCore/` |
+| Metrics & scores | Nightly Metrics, Baseline, Sleep Need, Sleep Score, Readiness, Resting HR, Load | `src/SerenixCore/` |
 | BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |
 | Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever) | `src/SerenixApp/` |
 | Health export | Writes Resting HR (Sleeping HR never as resting heart rate), HRV, SpO2, respiratory rate and sleep to Apple Health | `src/SerenixApp/` |
@@ -47,6 +47,8 @@ The app is split in two (ADR 0002):
 - **Baseline**: not stored. Each Nightly Metric's median, and HRV's and respiratory rate's
   Spread (spec 004; Sleeping HR's from spec 008), come from the last 14 Nights; typical
   Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights exist.
+- **Sleep Need and Sleep Debt**: not stored. Worked out from the Nights of the week before and
+  the Profile's birth year each time they're shown (spec 009).
 - **Sync Cursor**: kept by the Strap, not the phone. The phone echoes it to acknowledge each
   Batch, so each sync only gets newer records.
 

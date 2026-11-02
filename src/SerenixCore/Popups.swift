@@ -23,8 +23,8 @@ public struct ReadinessPopupRow: Equatable, Sendable {
     /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.
     public let valueText: String
     /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
-    /// ms" ("Calibrating" while it is), "7h" for Time Asleep, or "Typical 45" ("Calibrating"
-    /// while typical Load is) for Yesterday's Load.
+    /// ms" ("Calibrating" while it is), the Night's Sleep Need for Time Asleep ("8h 0m"), or
+    /// "Typical 45" ("Calibrating" while typical Load is) for Yesterday's Load.
     public let referenceText: String
     /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep; a signed whole
     /// number ("+40", "−5", "±0") for Yesterday's Load.
@@ -37,13 +37,13 @@ public struct ReadinessPopupRow: Equatable, Sendable {
         differenceText = tile.differenceText
     }
 
-    /// The Night's Time Asleep against Readiness's 7 h mark, e.g. "6h 30m", "7h", "−30m".
-    init(timeAsleep: TimeInterval?) {
+    /// The Night's Time Asleep against its Sleep Need (spec 009), e.g. "7h 30m", "8h 0m", "−30m".
+    init(timeAsleep: TimeInterval?, sleepNeed: TimeInterval) {
         name = "Time Asleep"
         valueText = timeAsleep.map(durationText) ?? missingText
-        referenceText = "\(Int(Readiness.timeAsleepMark / Readiness.secondsPerHour))h"
+        referenceText = durationText(sleepNeed)
         differenceText =
-            timeAsleep.map { Self.differenceText($0 - Readiness.timeAsleepMark) }
+            timeAsleep.map { Self.differenceText($0 - sleepNeed) }
             ?? missingText
     }
 
@@ -92,12 +92,27 @@ public struct SleepPopup: Equatable, Sendable {
     public let sleepOnsetText: String
     public let finalWakeText: String
     public let timeAsleepText: String
+    /// The Night's Sleep Need (spec 009), e.g. "8h 15m".
+    public let sleepNeedText: String
+    /// The Sleep Debt behind it, e.g. "1h 0m".
+    public let sleepDebtText: String
+    /// Which Nights the Sleep Debt is from, e.g. "Your last 5 Nights"; "No earlier Nights" when
+    /// none counted.
+    public let sleepDebtCaption: String
     /// Minutes awake within the Sleep Period: Final Wake − Sleep Onset − Time Asleep, e.g.
     /// "32 min"; "—" if any is missing or it comes out negative.
     public let minutesAwakeText: String
 
-    init(_ night: Night, sleepScoreText: String, timeZone: TimeZone) {
+    init(_ night: Night, sleepNeed: SleepNeed, sleepScoreText: String, timeZone: TimeZone) {
         self.sleepScoreText = sleepScoreText
+        sleepNeedText = durationText(sleepNeed.sleepNeed)
+        sleepDebtText = durationText(sleepNeed.sleepDebt)
+        sleepDebtCaption =
+            switch sleepNeed.nightsCounted {
+            case 0: "No earlier Nights"
+            case 1: "Your last 1 Night"
+            case let count: "Your last \(count) Nights"
+            }
         let timeInBed = night.timeInBedStart.flatMap { start in
             night.timeInBedEnd.map { (start: start, end: $0) }
         }

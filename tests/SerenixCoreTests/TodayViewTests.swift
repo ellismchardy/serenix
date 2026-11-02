@@ -296,17 +296,17 @@ func syncPillShowsWhereTheHistorySyncHasGot(
 
 // MARK: Rings
 
-/// HRV, Sleeping HR and Time Asleep (seconds) against Baselines of 60 ms and 50 bpm. 100 needs
-/// every input at its best; 1 is the lowest Readiness there is, every input 3 or more worse
-/// than usual (spec 008).
+/// HRV, Sleeping HR and Time Asleep (seconds) against Baselines of 60 ms and 50 bpm, and Sleep
+/// Need 8 h (the earlier Nights carry no Time Asleep, spec 009). 100 needs every input at its
+/// best; 1 is the lowest Readiness there is, every input 3 or more worse than usual (spec 008).
 @Test(
     arguments: [
         (95, 42, 28_800, "100", ReadinessBand.ready, "Ready"),
-        (59, 50, 25_200, "67", .ready, "Ready"),
-        (60, 50, 23_400, "66", .steady, "Steady"),
-        (49, 50, 25_200, "34", .steady, "Steady"),
-        (51, 50, 21_600, "33", .takeItEasy, "Take it easy"),
-        (38, 58, 14_400, "1", .takeItEasy, "Take it easy"),
+        (59, 50, 28_800, "67", .ready, "Ready"),
+        (60, 50, 27_000, "66", .steady, "Steady"),
+        (49, 50, 28_800, "34", .steady, "Steady"),
+        (51, 50, 25_200, "33", .takeItEasy, "Take it easy"),
+        (38, 58, 18_000, "1", .takeItEasy, "Take it easy"),
     ] as [(Double, Double, TimeInterval, String, ReadinessBand, String)]
 )
 func readinessShowsItsNumberAndBand(
@@ -358,9 +358,9 @@ func readinessShowsItsNumberAndBand(
 
 @Test func eachRingFillsToItsScoreOutOf100() {
     let view = todayView(
-        // HRV 59 against 60 with Time Asleep 7 h: Readiness 67.
+        // HRV 59 against 60 with Time Asleep 8 h, its Sleep Need: Readiness 67.
         nights: calibratedNightsBeforeNov1 + [
-            Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 59, timeAsleep: 25_200)
+            Night(day: nov1, sleepScore: 84, sleepingHR: 50, hrv: 59, timeAsleep: 28_800)
         ],
         showing: nov1
     )
@@ -1407,7 +1407,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 // MARK: Readiness popup
 
 @Test func readinessPopupShowsEachInputAgainstItsReferenceAndHowManyNightsFormTheBaseline() {
-    // Time Asleep 4 h, 3 h short, the most it can cost: Readiness 81.
+    // Time Asleep 5 h, 3 h short of Sleep Need 8 h, the most it can cost: Readiness 81.
     // The previous Day, 31 Oct, has Load 12, but only 30 Oct comes before it, so typical Load
     // is calibrating.
     let night = Night(
@@ -1415,7 +1415,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
         sleepScore: 84,
         sleepingHR: 49,
         hrv: 68.4,
-        timeAsleep: 14_400
+        timeAsleep: 18_000
     )
     let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
         .readinessPopup
@@ -1425,8 +1425,8 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(
         popup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load"]
     )
-    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "4h 0m", "12"])
-    #expect(popup?.rows.map(\.referenceText) == ["60 ms", "52 bpm", "7h", "Calibrating"])
+    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "5h 0m", "12"])
+    #expect(popup?.rows.map(\.referenceText) == ["60 ms", "52 bpm", "8h 0m", "Calibrating"])
     // A whole-hour difference keeps its minutes, as the Time Asleep tile does ("7h 0m").
     #expect(
         popup?.rows.map(\.differenceText) == [
@@ -1449,14 +1449,14 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
             "HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load",
         ]
     )
-    // This Night has no Time Asleep, so its row reads "—" against 7 h. The previous Day, 31 Oct,
-    // has Load 12 with typical Load calibrating.
+    // This Night has no Time Asleep, so its row reads "—" against Sleep Need 8 h. The previous
+    // Day, 31 Oct, has Load 12 with typical Load calibrating.
     #expect(
         view.readinessPopup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "\u{2014}", "12"]
     )
     #expect(
         view.readinessPopup?.rows.map(\.referenceText) == [
-            "60 ms", "52 bpm", "7h", "Calibrating",
+            "60 ms", "52 bpm", "8h 0m", "Calibrating",
         ]
     )
     #expect(
@@ -1876,8 +1876,9 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 }
 
 @Test func steadyAdviceWithNothingOffIsJustTheBandSentence() {
-    // HRV and Sleeping HR at their Baselines, Time Asleep 6 h: Readiness 62.
-    let night = Night(day: nov1, sleepingHR: 52, hrv: 60, timeAsleep: 21_600)
+    // HRV and Sleeping HR at their Baselines, Time Asleep 7 h, 1 h short of Sleep Need 8 h:
+    // Readiness 62.
+    let night = Night(day: nov1, sleepingHR: 52, hrv: 60, timeAsleep: 25_200)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(

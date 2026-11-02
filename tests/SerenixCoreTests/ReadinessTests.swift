@@ -30,21 +30,27 @@ private func todayView(nights: [Night], dayLoads: [DayLoad] = []) -> TodayView {
     )
 }
 
-/// `count` earlier Nights on the Days before 15 Nov (14 Nov, 13 Nov, …), each with HRV 60 ms and
-/// Sleeping HR 52 bpm. With 3 to 6 of them the Spreads are the typical ones: HRV 0.15 (on ln
-/// RMSSD) and Sleeping HR 2.5 bpm.
+/// `count` earlier Nights on the Days before 15 Nov (14 Nov, 13 Nov, …), each with HRV 60 ms,
+/// Sleeping HR 52 bpm and Time Asleep 8 h. With 3 to 6 of them the Spreads are the typical ones:
+/// HRV 0.15 (on ln RMSSD) and Sleeping HR 2.5 bpm; and Sleep Need is 8 h with no Sleep Debt
+/// (spec 009).
 private func usualNightsBefore15Nov(count: Int = 4) -> [Night] {
     (1...count).map { daysBefore in
-        Night(day: Day(year: 2026, month: 11, day: 15 - daysBefore), sleepingHR: 52, hrv: 60)
+        Night(
+            day: Day(year: 2026, month: 11, day: 15 - daysBefore),
+            sleepingHR: 52,
+            hrv: 60,
+            timeAsleep: 8 * oneHour
+        )
     }
 }
 
 /// The Night dated 15 Nov: by default the usual one (HRV 60 ms, Sleeping HR 52 bpm, Time Asleep
-/// 7 h). It carries no stored Readiness.
+/// 8 h, its Sleep Need). It carries no stored Readiness.
 private func nightOn15Nov(
     hrv: Double? = 60,
     sleepingHR: Double? = 52,
-    timeAsleep: TimeInterval = 7 * oneHour
+    timeAsleep: TimeInterval = 8 * oneHour
 ) -> Night {
     Night(day: nov15, sleepingHR: sleepingHR, hrv: hrv, timeAsleep: timeAsleep)
 }
@@ -112,20 +118,20 @@ private func dayLoadsWith14NovAt(_ load: Int) -> [DayLoad] {
     #expect(view.readinessText == "85")
 }
 
-@Test func timeAsleepShortOfSevenHoursLowersReadiness() {
-    let view = readinessView(for: nightOn15Nov(timeAsleep: 5 * oneHour))
+@Test func timeAsleepShortOfSleepNeedLowersReadiness() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 6 * oneHour))
 
     #expect(view.readinessText == "54")
 }
 
-@Test func timeAsleepAMinuteShortOfSevenHoursStillReads70() {
-    let view = readinessView(for: nightOn15Nov(timeAsleep: 6 * oneHour + 59 * 60))
+@Test func timeAsleepAMinuteShortOfSleepNeedStillReads70() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 7 * oneHour + 59 * 60))
 
     #expect(view.readinessText == "70")
 }
 
-@Test func timeAsleepPastSevenHoursAddsNothing() {
-    let view = readinessView(for: nightOn15Nov(timeAsleep: 9 * oneHour))
+@Test func timeAsleepPastSleepNeedAddsNothing() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 10 * oneHour))
 
     #expect(view.readinessText == "70")
 }
@@ -161,7 +167,7 @@ private func dayLoadsWith14NovAt(_ load: Int) -> [DayLoad] {
         dayLoads: dayLoadsWith14NovAt(85)
     )
 
-    #expect(view.readinessText == "10")
+    #expect(view.readinessText == "7")
     #expect(view.readinessBand == .takeItEasy)
 }
 
@@ -344,30 +350,30 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
     #expect(row?.differenceText == "\u{2014}")
 }
 
-@Test func readinessPopupShowsTimeAsleepShortOfSevenHours() {
-    let view = readinessView(for: nightOn15Nov(timeAsleep: 6 * oneHour + 30 * 60))
+@Test func readinessPopupShowsTimeAsleepShortOfSleepNeed() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 7 * oneHour + 30 * 60))
     let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
 
-    #expect(row?.valueText == "6h 30m")
-    #expect(row?.referenceText == "7h")
+    #expect(row?.valueText == "7h 30m")
+    #expect(row?.referenceText == "8h 0m")
     #expect(row?.differenceText == "\u{2212}30m")
 }
 
-@Test func readinessPopupShowsTimeAsleepPastSevenHours() {
-    let view = readinessView(for: nightOn15Nov(timeAsleep: 8 * oneHour + 10 * 60))
+@Test func readinessPopupShowsTimeAsleepPastSleepNeed() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 9 * oneHour + 10 * 60))
     let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
 
-    #expect(row?.valueText == "8h 10m")
-    #expect(row?.referenceText == "7h")
+    #expect(row?.valueText == "9h 10m")
+    #expect(row?.referenceText == "8h 0m")
     #expect(row?.differenceText == "+1h 10m")
 }
 
-@Test func readinessPopupShowsTimeAsleepOfExactlySevenHours() {
-    let view = readinessView(for: nightOn15Nov(timeAsleep: 7 * oneHour))
+@Test func readinessPopupShowsTimeAsleepOfExactlySleepNeed() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 8 * oneHour))
     let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
 
-    #expect(row?.valueText == "7h 0m")
-    #expect(row?.referenceText == "7h")
+    #expect(row?.valueText == "8h 0m")
+    #expect(row?.referenceText == "8h 0m")
     #expect(row?.differenceText == "\u{00B1}0")
 }
 
@@ -380,7 +386,7 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
 
     #expect(view.readinessText == "70")
     #expect(row?.valueText == "—")
-    #expect(row?.referenceText == "7h")
+    #expect(row?.referenceText == "8h 0m")
     #expect(row?.differenceText == "—")
 }
 
