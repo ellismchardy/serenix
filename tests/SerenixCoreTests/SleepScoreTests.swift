@@ -3,7 +3,7 @@ import SerenixCore
 import Testing
 
 // Sleep Score on the Today view's Sleep Score ring (spec 010, Behavior: Sleep Sufficiency,
-// Sleep Efficiency, Sleep Score, Missing and left out). Expected values are spec 010's success
+// Sleep Efficiency, Sleep Consistency, Sleep Score, Missing and left out). Expected values are spec 010's success
 // criteria, worked by hand from its rules.
 
 /// 14–15 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
@@ -114,6 +114,121 @@ private func earlierNights(_ timesAsleep: [TimeInterval]) -> [Night] {
 
 @Test func timeAsleepLongerThanTheSleepPeriodLeavesOutSleepEfficiencyAndReads100() {
     let view = todayView(nights: [nightOn15Nov(sleepOnset: at(14, 23, 30))])
+
+    #expect(view.sleepScoreText == "100")
+}
+
+// MARK: Sleep Consistency
+
+/// An earlier Night dated `day` Nov for Sleep Consistency, carrying only a Sleep Onset and a
+/// Final Wake (no Time Asleep, so Sleep Need stays 8 h).
+private func nightOnNov(_ day: Int, onset: Date?, wake: Date?) -> Night {
+    Night(day: Day(year: 2026, month: 11, day: day), sleepOnset: onset, finalWake: wake)
+}
+
+/// Earlier Nights dated 14, 13 and 12 Nov, each 23:00 the evening before to 07:00.
+private let usualEarlierNights = [14, 13, 12].map { day in
+    nightOnNov(day, onset: at(day - 1, 23), wake: at(day, 7))
+}
+
+@Test func sleepingAtTheUsualTimesReads100() {
+    let view = todayView(nights: [nightOn15Nov()] + usualEarlierNights)
+
+    #expect(view.sleepScoreText == "100")
+}
+
+@Test func sleepOnset30AndFinalWake40MinutesLaterThanUsualIs35MinutesOffAndReads94() {
+    // Onset +30 min, wake +40 min: 35 min off, Sleep Consistency 70.8; 8 h asleep in 8 h 10 m
+    // (98%) keeps Sleep Efficiency 100. 60 + 20 + 14.17 = 94.17.
+    let view = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(14, 23, 30), finalWake: at(15, 7, 40))]
+            + usualEarlierNights
+    )
+
+    #expect(view.sleepScoreText == "94")
+}
+
+@Test func twoHoursOffTheUsualTimesScoresSleepConsistencyZeroAndReads80() {
+    let view = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 1), finalWake: at(15, 9))] + usualEarlierNights
+    )
+
+    #expect(view.sleepScoreText == "80")
+}
+
+@Test func sleepOnsetsAroundMidnightAreComparedTheShortestWayRoundTheClock() {
+    // Tonight 00:10 against 23:50, 23:40 and 00:20 is +20, +30 and -10 min (median 20); Final
+    // Wake 08:10 each time is 0 off. 10 min off: Sleep Consistency 91.7. 60 + 20 + 18.33 = 98.33.
+    let earlier = [
+        nightOnNov(14, onset: at(13, 23, 50), wake: at(14, 8, 10)),
+        nightOnNov(13, onset: at(12, 23, 40), wake: at(13, 8, 10)),
+        nightOnNov(12, onset: at(12, 0, 20), wake: at(12, 8, 10)),
+    ]
+    let view = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 0, 10), finalWake: at(15, 8, 10))] + earlier
+    )
+
+    #expect(view.sleepScoreText == "98")
+}
+
+@Test func withOnlyTwoEarlierNightsSleepConsistencyIsLeftOutAndTheNightReads100() {
+    let view = todayView(
+        nights: [
+            nightOn15Nov(),
+            nightOnNov(14, onset: at(14, 1), wake: at(14, 9)),
+            nightOnNov(13, onset: at(13, 1), wake: at(13, 9)),
+        ]
+    )
+
+    #expect(view.sleepScoreText == "100")
+}
+
+@Test func anEarlierNightWithNoFinalWakeDoesNotCountForSleepConsistency() {
+    let view = todayView(
+        nights: [
+            nightOn15Nov(),
+            nightOnNov(14, onset: at(14, 1), wake: at(14, 9)),
+            nightOnNov(13, onset: at(13, 1), wake: at(13, 9)),
+            nightOnNov(12, onset: at(12, 1), wake: nil),
+        ]
+    )
+
+    #expect(view.sleepScoreText == "100")
+}
+
+@Test func anEarlierNightDated8NovCountsForSleepConsistency() {
+    // 01:00 to 09:00 on 13, 12 and 8 Nov against tonight's 23:00 to 07:00: 2 h off, Sleep
+    // Consistency 0.
+    let view = todayView(
+        nights: [
+            nightOn15Nov(),
+            nightOnNov(13, onset: at(13, 1), wake: at(13, 9)),
+            nightOnNov(12, onset: at(12, 1), wake: at(12, 9)),
+            nightOnNov(8, onset: at(8, 1), wake: at(8, 9)),
+        ]
+    )
+
+    #expect(view.sleepScoreText == "80")
+}
+
+@Test func anEarlierNightDated7NovDoesNotCountForSleepConsistency() {
+    let view = todayView(
+        nights: [
+            nightOn15Nov(),
+            nightOnNov(13, onset: at(13, 1), wake: at(13, 9)),
+            nightOnNov(12, onset: at(12, 1), wake: at(12, 9)),
+            nightOnNov(7, onset: at(7, 1), wake: at(7, 9)),
+        ]
+    )
+
+    #expect(view.sleepScoreText == "100")
+}
+
+@Test func withNoSleepOnsetTonightSleepConsistencyIsLeftOutAndSleepSufficiencyAloneReads100() {
+    // The earlier Nights are 2 h off tonight's Final Wake, so a Sleep Consistency wrongly worked
+    // out from Final Wake alone would pull the score below 100.
+    let earlier = [14, 13, 12].map { day in nightOnNov(day, onset: at(day, 1), wake: at(day, 9)) }
+    let view = todayView(nights: [nightOn15Nov(sleepOnset: nil)] + earlier)
 
     #expect(view.sleepScoreText == "100")
 }

@@ -146,7 +146,10 @@ public struct TodayView: Equatable, Sendable {
             readinessFill = ringFill(readiness)
         }
         // Worked out each time, never stored, so it follows the Nights (spec 010).
-        let sleepScore = night.flatMap { SleepScore(of: $0, sleepNeed: sleepNeed.sleepNeed)?.score }
+        let sleepScore = night.flatMap {
+            SleepScore(of: $0, among: nights, sleepNeed: sleepNeed.sleepNeed, timeZone: timeZone)?
+                .score
+        }
         sleepScoreText = scoreText(sleepScore)
         sleepScoreFill = ringFill(sleepScore)
 

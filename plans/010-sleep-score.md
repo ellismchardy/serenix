@@ -52,7 +52,7 @@ view with its own private `todayView` helper, as `SleepNeedTests.swift` does.
    - Done when: criteria "The Readiness popup's Sleep Score row shows the Night's Sleep Score
      ('96' …)" and "No `SerenixCore` type still carries a stored Sleep Score on a Night"; whole
      suite green.
-3. [ ] **Slice:** Sleep Consistency — the Nights dated D − 7 to D − 1 with both Sleep Onset and
+3. [x] **Slice:** Sleep Consistency — the Nights dated D − 7 to D − 1 with both Sleep Onset and
    Final Wake; per time, the signed shortest-way-round difference from each (−12 h to +12 h),
    the size of their median; the mean of the two; 100 at 0 minutes down to 0 at 2 h; left out
    with fewer than 3 such Nights or when the Night shown lacks either time; weights 0.6 / 0.2 /
