@@ -232,12 +232,7 @@ private struct LiveHRPillView: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            let pill = liveHRPill(
-                connection: connection.liveHRConnection,
-                last: connection.liveHRReading,
-                arrivedAt: connection.liveHRArrivedAt,
-                now: context.date
-            )
+            let pill = connection.liveHRPill(at: context.date)
             HStack(spacing: 4) {
                 Image(systemName: "heart.fill")
                     .foregroundStyle(pill == .unavailable ? Color.secondary : Color.red)

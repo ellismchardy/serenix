@@ -94,7 +94,7 @@ phone checks from spec 006's PR are repeated by hand.
    - Done when tests show:
      - A failure of Live HR's own attempt is quiet (stop scanning, disconnect, show the held
        phase, "—", retry in 1 s); a failure while a sync is running or wanted is not Live HR's
-       (`wasLiveHRConnection` false).
+       (`handled` false).
      - **Stuck "…" / retry flips:** a retry keeps "—" until a reading arrives (never back to
        "…"); a reading then shows the bpm.
      - Retries are scheduled once at a time, only while wanted, and cancelled on hide.
@@ -124,7 +124,7 @@ phone checks from spec 006's PR are repeated by hand.
      each delegate callback and scene/popup hook passes its event and `StrapLinkFacts`; the
      three published pill values and `syncStatus` come from the link; `swift build`/lint green
      locally; the macOS CI job builds (on the PR).
-7. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+7. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; CI green (both jobs); on the phone (by hand, sideloaded), spec 006
    PR checks 3–6 behave as before, and the known-limit case (fail a sync by taking the Strap
    out of range, open today's Load popup) keeps "Sync paused" while Live HR reconnects.
@@ -133,6 +133,7 @@ phone checks from spec 006's PR are repeated by hand.
      `StrapConnection.swift`. Still to do: the macOS CI job (first compile of the shell, on the
      PR) and the phone checks above, including coming back from the background with the popup
      open while a sync had gone silent.
+   - The CI and phone checks move to the PR's checklist, as for spec 006 (PR #25).
 
 ## Done when
 - All tasks checked, suite green, CI builds the app, Live HR on the phone behaves as spec 006

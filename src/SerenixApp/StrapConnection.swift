@@ -3,10 +3,11 @@ import Foundation
 import SerenixCore
 import os
 
-/// Moves bytes between the Strap and a `HistorySync` session over CoreBluetooth.
+/// Moves bytes between the Strap and a `HistorySync` session, and carries out the `LiveHRLink`'s
+/// decisions, over CoreBluetooth.
 ///
 /// Every decision about what to send lives in `SerenixCore`: this class scans, connects,
-/// subscribes, writes what the session asks for and feeds back what the Strap sends. All state
+/// subscribes, writes what the session and the link ask for and feeds back what the Strap sends. All state
 /// lives on the main actor: SwiftUI calls in there, and the central manager delivers its
 /// callbacks on the main queue (`queue: nil`), which the `@preconcurrency` delegate
 /// conformances check at run time.
@@ -41,11 +42,8 @@ final class StrapConnection: NSObject, ObservableObject {
     /// The running sync's progress (0 to 1) and seconds left, from the session; nil before
     /// they're known. `syncTimer` redraws the screen to show them.
     var syncProgress: Double? { session?.progress }
-    /// The last Live HR reading, when it arrived on the phone, and how the Live HR connection
-    /// stands, for the pill on today's Load popup (spec 006).
-    var liveHRReading: LiveHRReading? { liveHRLink.lastReading }
-    var liveHRArrivedAt: Date? { liveHRLink.arrivedAt }
-    var liveHRConnection: LiveHRConnection { liveHRLink.connection }
+    /// What the Live HR pill on today's Load popup shows at `now` (spec 006).
+    func liveHRPill(at now: Date) -> LiveHRPill { liveHRLink.pill(at: now) }
     var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
     /// The phase as the Today view's sync pill reads it (spec 002). A connection only for Live
     /// HR isn't a sync: the pill keeps showing what it showed before (spec 006).
@@ -664,7 +662,7 @@ final class StrapConnection: NSObject, ObservableObject {
         // it showed (spec 006). No sync ran, so there's nothing of one to end.
         let liveHR = liveHRLink.linkFailed(facts: linkFacts)
         apply(liveHR.actions)
-        guard !liveHR.wasLiveHRConnection else { return }
+        guard !liveHR.handled else { return }
         finish(as: .failed(reason, cause))
     }
 }
@@ -745,7 +743,7 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
         // carries on after any other, e.g. a sync's, which disconnects (spec 001).
         let liveHR = liveHRLink.linkDisconnected(facts: linkFacts)
         apply(liveHR.actions)
-        guard !liveHR.wasLiveHRConnection else { return }
+        guard !liveHR.handled else { return }
         switch phase {
         case .syncing:
             endSession()
