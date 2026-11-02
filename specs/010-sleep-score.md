@@ -1,7 +1,7 @@
 # 010 — Sleep Score
 
-**Status:** approved
-**Last updated:** 2026-11-02 (approved)
+**Status:** built
+**Last updated:** 2026-11-02 (built)
 **Issue:** https://github.com/ellismchardy/serenix/issues/35 (map: https://github.com/ellismchardy/serenix/issues/31)
 
 ## Problem
@@ -118,41 +118,41 @@ so local equals UTC). "Earlier Nights" for Sleep Consistency carry only a Sleep 
 Wake, so they don't change Sleep Need. Expected values worked by hand from the rules above.
 
 Score and Sleep Sufficiency:
-- [ ] The default Night reads 100, the ring fills to 1.0, and the Sleep popup shows Sleep
+- [x] The default Night reads 100, the ring fills to 1.0, and the Sleep popup shows Sleep
       Sufficiency "100" ("8h 0m of 8h 0m"), Sleep Efficiency "100" ("100% asleep") and Sleep
       Consistency "—" ("Needs 3 Nights").
-- [ ] Time Asleep 6 h with Final Wake 05:18 (95.2% asleep) reads 81: Sleep Sufficiency "75"
+- [x] Time Asleep 6 h with Final Wake 05:18 (95.2% asleep) reads 81: Sleep Sufficiency "75"
       ("6h 0m of 8h 0m"), Sleep Efficiency "100".
-- [ ] Time Asleep 7 h 36 m (95% of 23:00–07:00) reads 96, and the ring fills to 0.96.
-- [ ] After four earlier Nights of Time Asleep 6 h (Sleep Need 9 h, spec 009), the default Night
+- [x] Time Asleep 7 h 36 m (95% of 23:00–07:00) reads 96, and the ring fills to 0.96.
+- [x] After four earlier Nights of Time Asleep 6 h (Sleep Need 9 h, spec 009), the default Night
       reads 92, with Sleep Sufficiency "89" ("8h 0m of 9h 0m").
 
 Sleep Efficiency:
-- [ ] Sleep Onset 22:00 (8 h asleep in 9 h) reads 92, with Sleep Efficiency "69" ("89% asleep").
-- [ ] Sleep Onset 20:00 (8 h asleep in 11 h, 72.7%) reads 75, with Sleep Efficiency "0".
-- [ ] A Night with no Sleep Onset and Time Asleep 6 h reads 75 (Sleep Sufficiency alone), with
+- [x] Sleep Onset 22:00 (8 h asleep in 9 h) reads 92, with Sleep Efficiency "69" ("89% asleep").
+- [x] Sleep Onset 20:00 (8 h asleep in 11 h, 72.7%) reads 75, with Sleep Efficiency "0".
+- [x] A Night with no Sleep Onset and Time Asleep 6 h reads 75 (Sleep Sufficiency alone), with
       Sleep Efficiency "—" ("—").
-- [ ] Sleep Onset 23:30 (Time Asleep 8 h longer than 7 h 30 m) reads 100, with Sleep Efficiency
+- [x] Sleep Onset 23:30 (Time Asleep 8 h longer than 7 h 30 m) reads 100, with Sleep Efficiency
       "—".
 
 Sleep Consistency (earlier Nights dated 14, 13 and 12 Nov, each 23:00 to 07:00 unless said):
-- [ ] Tonight at 23:00 to 07:00 reads 100, with Sleep Consistency "100" ("0m off your usual").
-- [ ] Tonight at 23:30 to 07:40 (Time Asleep 8 h) reads 94, with Sleep Consistency "71" ("35m off
+- [x] Tonight at 23:00 to 07:00 reads 100, with Sleep Consistency "100" ("0m off your usual").
+- [x] Tonight at 23:30 to 07:40 (Time Asleep 8 h) reads 94, with Sleep Consistency "71" ("35m off
       your usual").
-- [ ] Tonight at 01:00 to 09:00 reads 80, with Sleep Consistency "0" ("2h 0m off your usual").
-- [ ] Earlier Sleep Onsets 23:50, 23:40 and 00:20 with Final Wakes 08:10, and tonight at 00:10 to
+- [x] Tonight at 01:00 to 09:00 reads 80, with Sleep Consistency "0" ("2h 0m off your usual").
+- [x] Earlier Sleep Onsets 23:50, 23:40 and 00:20 with Final Wakes 08:10, and tonight at 00:10 to
       08:10, read 98, with Sleep Consistency "92" ("10m off your usual").
-- [ ] With only two earlier Nights, or three where one has no Final Wake, Sleep Consistency is
+- [x] With only two earlier Nights, or three where one has no Final Wake, Sleep Consistency is
       "—" ("Needs 3 Nights") and the Night reads 100.
-- [ ] An earlier Night dated 8 Nov counts and one dated 7 Nov doesn't: 13 Nov, 12 Nov and 8 Nov
+- [x] An earlier Night dated 8 Nov counts and one dated 7 Nov doesn't: 13 Nov, 12 Nov and 8 Nov
       at 01:00 to 09:00 give Sleep Consistency "0"; 13 Nov, 12 Nov and 7 Nov leave it "—".
 
 Missing and where it shows:
-- [ ] A Night with no Time Asleep reads "—" with the ring empty, and the Sleep popup's three
+- [x] A Night with no Time Asleep reads "—" with the ring empty, and the Sleep popup's three
       rings read "—".
-- [ ] The Readiness popup's Sleep Score row shows the Night's Sleep Score ("96" for Time Asleep
+- [x] The Readiness popup's Sleep Score row shows the Night's Sleep Score ("96" for Time Asleep
       7 h 36 m, with spec 008's usual HRV and Sleeping HR and four earlier Nights).
-- [ ] No `SerenixCore` type still carries a stored Sleep Score on a Night.
+- [x] No `SerenixCore` type still carries a stored Sleep Score on a Night.
 
 Build and phone:
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job

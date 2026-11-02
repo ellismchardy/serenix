@@ -73,7 +73,7 @@ view with its own private `todayView` helper, as `SleepNeedTests.swift` does.
      "8h 0m of 9h 0m"; "69" / "89% asleep"; "0"; "—" / "—"; "100" / "0m off your usual"; "71" /
      "35m off your usual"; "0" / "2h 0m off your usual"; "92" / "10m off your usual"; "Needs 3
      Nights"; and the three "—" with Sleep Score missing).
-5. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+5. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; every automated success criterion in spec 010 checked.
    - Done when: the above pass and the criteria are ticked. Carried to the PR checklist (they
      need the PR): the macOS CI build, and by hand on the phone — past Nights show a Sleep Score
