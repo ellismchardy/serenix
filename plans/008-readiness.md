@@ -50,7 +50,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
    and re-weights the rest.
    - Seam: Today view · Files: `Readiness.swift`, `ReadinessTests.swift`
    - Done when: criterion "HRV 50 with no Sleeping HR reads 26".
-4. [ ] **Slice:** Sleeping HR's measured Spread — with ≥ 7 earlier Nights, scaled MAD floored at
+4. [x] **Slice:** Sleeping HR's measured Spread — with ≥ 7 earlier Nights, scaled MAD floored at
    1 bpm (named constants beside HRV's and respiratory rate's); Sleeping HR's Zone unchanged.
    - Seam: Today view · Files: `Baseline.swift`, `ReadinessTests.swift`
    - Done when: the three "Sleeping HR's Spread" criteria (54 → 60 / 43; MAD 1.4826 → 34; Zones

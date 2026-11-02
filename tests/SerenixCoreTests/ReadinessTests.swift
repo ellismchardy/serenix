@@ -2,9 +2,10 @@ import Foundation
 import SerenixCore
 import Testing
 
-// Readiness on the Today view (spec 008, Behavior: Inputs, Score, Calibrating and
-// missing, dropped inputs).
-// Expected values are spec 008's success criteria (Score; Missing, dropped and Calibrating).
+// Readiness on the Today view (spec 008, Behavior: Inputs, Score, Sleeping HR's Spread,
+// Calibrating and missing, dropped inputs).
+// Expected values are spec 008's success criteria (Score; Sleeping HR's Spread;
+// Missing, dropped and Calibrating).
 
 /// 15 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
 private let london = TimeZone(identifier: "Europe/London")!
@@ -135,4 +136,53 @@ private func readinessView(
     let view = readinessView(for: nightOn15Nov(), earlierNights: 3)
 
     #expect(view.readinessText == "70")
+}
+
+// MARK: Sleeping HR's Spread
+
+/// Earlier Nights on the Days before 15 Nov (14 Nov, 13 Nov, …), one per Sleeping HR given, in
+/// that order, each with HRV 60 ms.
+private func earlierNightsBefore15Nov(sleepingHRs: [Double]) -> [Night] {
+    sleepingHRs.enumerated().map { index, sleepingHR in
+        Night(day: Day(year: 2026, month: 11, day: 14 - index), sleepingHR: sleepingHR, hrv: 60)
+    }
+}
+
+private func readinessView(for night: Night, earlierSleepingHRs: [Double]) -> TodayView {
+    todayView(nights: earlierNightsBefore15Nov(sleepingHRs: earlierSleepingHRs) + [night])
+}
+
+@Test func aSleepingHRTwoAboveBaselineWithFourEarlierNightsUsesTheTypicalSpread() {
+    let view = readinessView(for: nightOn15Nov(sleepingHR: 54), earlierNights: 4)
+
+    #expect(view.readinessText == "60")
+}
+
+@Test func aSleepingHRTwoAboveBaselineWithSevenIdenticalEarlierNightsUsesTheFlooredSpread() {
+    let view = readinessView(
+        for: nightOn15Nov(sleepingHR: 54),
+        earlierSleepingHRs: Array(repeating: 52, count: 7)
+    )
+
+    #expect(view.readinessText == "43")
+}
+
+@Test func aSleepingHRAgainstSevenVaryingEarlierNightsUsesTheScaledMAD() {
+    let view = readinessView(
+        for: nightOn15Nov(sleepingHR: 56),
+        earlierSleepingHRs: [50, 51, 52, 52, 52, 53, 54]
+    )
+
+    #expect(view.readinessText == "34")
+}
+
+// Spec 004's fixed +3 / +5 bpm gaps still set the Sleeping HR Zone; Sleeping HR's Spread doesn't.
+@Test(arguments: [(54, .inRange), (56, .watch)] as [(Double, Zone)])
+func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
+    let view = readinessView(
+        for: nightOn15Nov(sleepingHR: sleepingHR),
+        earlierSleepingHRs: Array(repeating: 52, count: 7)
+    )
+
+    #expect(view.tile(.sleepingHR)?.zone == zone)
 }
