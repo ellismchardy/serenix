@@ -122,7 +122,8 @@ vs your Baseline; the ring, band colours and Calibrating count.
 Automated (`swift test`). Unless a criterion says otherwise: a Night dated 15 Nov 2026 with HRV
 60 ms, Sleeping HR 52 bpm and Time Asleep 8 h; four earlier Nights each with HRV 60, Sleeping
 HR 52 and Time Asleep 8 h (so typical Spreads: HRV 0.15, Sleeping HR 2.5 bpm, and Sleep Need
-8 h with no Sleep Debt, spec 009); no birth year; and no Days, so the Load input is dropped. Expected values worked by hand from the formula above.
+8 h with no Sleep Debt, spec 009); no birth year; and no Days, so the Load input is dropped.
+Expected values worked by hand from the formula above.
 
 Score:
 - [x] The usual Night reads 70, Ready. With four Days before 14 Nov at Load 45 and 14 Nov at 40
