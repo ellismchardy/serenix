@@ -51,3 +51,4 @@ auto-refresh option can renew over Wi-Fi. At most 3 sideloaded apps at once.
 | `warning: unable to create symbolic link at …\.build\debug` | **Windows** Developer Mode is off | Harmless. Turn it on (Windows Settings → System → For developers) to silence it |
 | `warning: reference to type 'wchar_t' broken by a context change` | Comes from the Swift toolchain's Windows SDK | Harmless |
 | `swift: command not found` / `'swift' is not recognized` in a commit | Hook ran in a terminal opened before the install | Open a new terminal |
+| `swift format --in-place` (`-i`) scrambles a file: doc comments and imports moved to the top, blank lines dropped | Seen with 6.4.1 on Windows (2 Nov 2026, `LiveHRLinkTests.swift`); cause not yet known | Don't format in place on Windows. Fix the lines `swift format lint --strict` names by hand |
