@@ -46,7 +46,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
      `aNightWithoutScoresShowsDashesAndNoBand`, the calibrating, popup and advice tests)
    - Done when: criterion "No `SerenixCore` type still carries a stored Readiness on a Night";
      criterion "with two earlier Nights … Calibrating, '2/4'"; whole suite green.
-3. [ ] **Slice:** a dropped Sleeping HR — a Night with HRV but no Sleeping HR drops that input
+3. [x] **Slice:** a dropped Sleeping HR — a Night with HRV but no Sleeping HR drops that input
    and re-weights the rest.
    - Seam: Today view · Files: `Readiness.swift`, `ReadinessTests.swift`
    - Done when: criterion "HRV 50 with no Sleeping HR reads 26".

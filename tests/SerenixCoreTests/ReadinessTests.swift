@@ -2,7 +2,8 @@ import Foundation
 import SerenixCore
 import Testing
 
-// Readiness on the Today view (spec 008, Behavior: Inputs, Score, Calibrating and missing).
+// Readiness on the Today view (spec 008, Behavior: Inputs, Score, Calibrating and
+// missing, dropped inputs).
 // Expected values are spec 008's success criteria (Score; Missing, dropped and Calibrating).
 
 /// 15 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
@@ -113,7 +114,7 @@ private func readinessView(
     #expect(view.readinessText == "70")
 }
 
-// MARK: Missing and Calibrating
+// MARK: Missing, dropped and Calibrating
 
 @Test func aNightWithNoHRVHasNoReadiness() {
     let view = readinessView(for: nightOn15Nov(hrv: nil))
@@ -121,6 +122,13 @@ private func readinessView(
     #expect(view.readinessText == "—")
     #expect(view.readinessBand == nil)
     #expect(view.readinessAdvice == nil)
+}
+
+@Test func aNightWithNoSleepingHRStillHasAReadinessFromHRVAndTimeAsleep() {
+    let view = readinessView(for: nightOn15Nov(hrv: 50, sleepingHR: nil))
+
+    #expect(view.readinessText == "26")
+    #expect(view.readinessBand == .takeItEasy)
 }
 
 @Test func threeEarlierNightsAreEnoughForAReadinessNumber() {
