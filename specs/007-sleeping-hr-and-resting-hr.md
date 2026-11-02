@@ -1,6 +1,6 @@
 # 007 — Sleeping HR and Resting HR
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-02 (still minute: steps only, after the fixture Day)
 
 ## Problem
@@ -128,39 +128,39 @@ Nights, one History Record per second, no turn between records, and the step cou
 second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55 bpm, 5–9 at 62,
 10–15 at 64 and 16–20 at 50.
 
-- [ ] The desk Day gives Resting HR 62 (the settling 55 and the 50 after minute 15 don't count);
+- [x] The desk Day gives Resting HR 62 (the settling 55 and the 50 after minute 15 don't count);
       with minutes 5–9 at 66 instead, it gives 64 (minutes 10–14).
-- [ ] With the Strap turning 10° every second of the still stretch (wrist movement, no steps),
+- [x] With the Strap turning 10° every second of the still stretch (wrist movement, no steps),
       the desk Day still gives 62.
-- [ ] With one step in the still stretch's minute 7, the run breaks: minutes 1–6 give no window,
+- [x] With one step in the still stretch's minute 7, the run breaks: minutes 1–6 give no window,
       and the run from minute 8 settles until minute 11, so its windows reach minute 20 and
       Resting HR is 50. (The cap counts from each run's start.)
-- [ ] A drop in the step count (a Strap reboot) in the still stretch counts as no step: 62.
-- [ ] With only 29 records above 0 bpm (the rest 0) in the still stretch's minute 3, the run
+- [x] A drop in the step count (a Strap reboot) in the still stretch counts as no step: 62.
+- [x] With only 29 records above 0 bpm (the rest 0) in the still stretch's minute 3, the run
       starts again at minute 4, its windows run from minute 8 to 18, and Resting HR is 55.6
       (minutes 14–18: 64, 64, 50, 50, 50); with 30 it gives 62.
-- [ ] The desk Day starting at 09:01 (479 worn minutes) has no Resting HR; starting at 09:00 (480)
+- [x] The desk Day starting at 09:01 (479 worn minutes) has no Resting HR; starting at 09:00 (480)
       it gives 62.
-- [ ] The desk Day plus records from 00:00 to 07:00 at 45 bpm, still, gives 45; with a Night whose
+- [x] The desk Day plus records from 00:00 to 07:00 at 45 bpm, still, gives 45; with a Night whose
       Sleep Period runs from 23:00 on 9 Nov to 07:00 on 10 Nov they are left out and it gives 62,
       and the desk Day starting at 09:01 plus them, with that Night, has no Resting HR.
-- [ ] Only the Day's records count: a still stretch at 50 bpm from 12:00 to 12:20 on 11 Nov
+- [x] Only the Day's records count: a still stretch at 50 bpm from 12:00 to 12:20 on 11 Nov
       leaves 10 Nov at 62. On 25 Oct 2026 (clocks go back) the desk Day built at local times
       gives 62, records from 23:00 UTC on 24 Oct (local midnight) count toward 25 Oct, and those
       before it toward 24 Oct.
-- [ ] The desk Day with every record repeated, or in a different order, gives 62.
-- [ ] On a real fixture Day (a full Day from the project owner's Strap, with steps): Resting HR is
+- [x] The desk Day with every record repeated, or in a different order, gives 62.
+- [x] On a real fixture Day (a full Day from the project owner's Strap, with steps): Resting HR is
       present, at least that morning's Night's Sleeping HR and no more than 15 bpm above it; the
       step count stays flat over a stretch sitting still and rises over a stretch walking.
-- [ ] Nights: the fixture night of 29–30 Oct 2026 gives Sleeping HR 48.1 bpm; no Night,
+- [x] Nights: the fixture night of 29–30 Oct 2026 gives Sleeping HR 48.1 bpm; no Night,
       Nightly Metric, Zone, Baseline or view in `SerenixCore` or the app still calls it Resting HR
       (searching the source for "restingHR" finds only the awake Resting HR).
-- [ ] Today view: tiles come as Sleeping HR, Resting HR, HRV, respiratory rate, skin temperature,
+- [x] Today view: tiles come as Sleeping HR, Resting HR, HRV, respiratory rate, skin temperature,
       SpO2, after the Time Asleep tile; the first is named "Sleeping HR".
-- [ ] Today view: on today with a Day Resting HR of 61.6, the Resting HR tile reads "Resting HR",
+- [x] Today view: on today with a Day Resting HR of 61.6, the Resting HR tile reads "Resting HR",
       "62 bpm" and "So far today", with no Zone and no popup; on an earlier Day with Resting HR 58
       it reads "58 bpm" and no status; a Day without one reads "—" with an empty gauge.
-- [ ] Today view: Take it easy with Sleeping HR 56 against Baseline 52 says "Sleeping HR is up 4
+- [x] Today view: Take it easy with Sleeping HR 56 against Baseline 52 says "Sleeping HR is up 4
       bpm"; vs your Baseline and the Readiness popup name "Sleeping HR".
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.

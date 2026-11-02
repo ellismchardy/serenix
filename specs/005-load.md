@@ -1,6 +1,6 @@
 # 005 — Load
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-01 (spec 007: Resting HR comes from Days, not Nights)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map); decisions in
 https://github.com/ellismchardy/serenix/issues/16 and
@@ -151,21 +151,21 @@ Resting HR (Resting HR 60), and one History Record per second.
 - [x] 24 hours at 190 bpm gives 100.
 - [x] An hour at 164 bpm plus an hour of records with heart rate 0 gives 57; the same hour with
       every record repeated, or in a different order, gives 57.
-- [ ] With Resting HR 100 entered through Days, an hour at 96 bpm (over the floor, under Resting
+- [x] With Resting HR 100 entered through Days, an hour at 96 bpm (over the floor, under Resting
       HR) gives 0.
 - [x] No Max HR, birth year 1986, sex Male: an hour at 154 bpm on a Day in 2026 (Max HR 180) gives
       56; with no birth year either, Load is missing because there's no Max HR.
 - [x] An entered Max HR wins over birth year: Max HR 190 with birth year 1986 gives 57 for an hour
       at 164 bpm.
-- [ ] Resting HR: with Days whose Resting HR are 50, 52 and 54, all on or before the Day, an hour
+- [x] Resting HR: with Days whose Resting HR are 50, 52 and 54, all on or before the Day, an hour
       at 120 bpm gives 45; adding the Day after, at 90, changes nothing; with only the Day itself,
       at Resting HR 70, it gives 41.
-- [ ] Resting HR: with 15 Days on or before the Day, the oldest at Resting HR 20, then 7 at 50 and
+- [x] Resting HR: with 15 Days on or before the Day, the oldest at Resting HR 20, then 7 at 50 and
       the 7 most recent at 70, an hour at 120 bpm gives 43 (median 60 of the 14 most recent;
       counting the oldest would give 45); a Day without a Resting HR is skipped, not counted.
-- [ ] Resting HR comes only from Days: Nights with a Sleeping HR of 40 and no Days with a Resting
+- [x] Resting HR comes only from Days: Nights with a Sleeping HR of 40 and no Days with a Resting
       HR give the 60 bpm fallback (an hour at 120 bpm gives 43).
-- [ ] Max HR at or below Resting HR gives missing Load (Max HR 100 entered, Resting HR 100 from a
+- [x] Max HR at or below Resting HR gives missing Load (Max HR 100 entered, Resting HR 100 from a
       Day).
 - [x] A Day with no History Records has missing Load; one with records but none over the floor
       has 0.

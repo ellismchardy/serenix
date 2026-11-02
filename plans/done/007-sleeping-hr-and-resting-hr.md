@@ -166,7 +166,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
       today"; an earlier Day shows "58 bpm" with no status; "—" with an empty gauge) and spec
       002's unticked advice criterion pass.
 
-11. [ ] **Verify:**
+11. [x] **Verify:**
     - `swift test`, `swift format lint --strict --recursive src tests Package.swift` and
       `swift build` are green, and the macOS CI job builds the app.
     - Every spec 007 criterion, and the unticked 002 and 005 criteria, are ticked.
@@ -191,3 +191,26 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
 - Shell changes (tasks 3, 9 and 10): the macOS CI job builds the `.ipa`. The owner sideloads it
   and runs the phone steps from task 11.
 - `/ship` at the end runs spec-reviewer and standards-reviewer over the whole branch.
+
+## Verify results (task 11)
+- On Windows: `swift test` (455 tests), `swift format lint --strict` and `swift build` are green.
+- Ticked: every automated criterion in spec 007, 002's advice criterion, and 005's five Resting
+  HR criteria. Specs 007, 002 and 005 are `built`.
+- **Still open:** the macOS CI job building the app (needs the push `/ship` does) and the phone
+  checks below. The CI criteria in 007 and 005 stay unticked until CI is green.
+
+## Phone steps for the PR
+Install the CI `.ipa` with Sideloadly over the previous build, then:
+1. **Past Nights keep their values.** Open earlier Days with a Night: the first tile reads
+   "Sleeping HR" with the same value the previous build showed as Resting HR, and vs your
+   Baseline and the Readiness popup say "Sleeping HR".
+2. **Days gain a Resting HR.** After the first launch's rebuild, Days of the last 30 days with
+   8+ worn hours awake show a Resting HR tile with a value; a Day worn less reads "—".
+3. **After a full Day:** on today, the Resting HR tile reads a few bpm above that morning's
+   Sleeping HR, with "So far today"; an earlier Day's tile has no status word.
+4. **Layout:** Time Asleep spans the full width; under it a 2-column grid of Sleeping HR,
+   Resting HR, HRV, respiratory rate, skin temperature, SpO2. The Resting HR tile has the heart
+   icon, a white (no Zone) look and an empty gauge, and tapping it does nothing. The gap under
+   Time Asleep matches the grid's.
+5. **Load:** the Load ring still shows a value, now from Days' Resting HR (the popup's numbers
+   may shift slightly from the previous build).
