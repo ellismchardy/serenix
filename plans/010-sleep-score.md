@@ -29,7 +29,7 @@ view with its own private `todayView` helper, as `SleepNeedTests.swift` does.
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice (tracer, expand):** Sleep Score from Sleep Sufficiency and Sleep Efficiency —
+1. [x] **Slice (tracer, expand):** Sleep Score from Sleep Sufficiency and Sleep Efficiency —
    Sufficiency (Time Asleep ÷ Sleep Need, capped at 100), Efficiency (95% → 100 down to 75% → 0,
    left out without Sleep Onset or Final Wake or when Time Asleep exceeds the Sleep Period),
    Sleep Consistency always left out for now, re-weighted 0.75 / 0.25, halves-up rounding;
