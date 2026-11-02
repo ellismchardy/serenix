@@ -49,7 +49,7 @@ phone checks from spec 006's PR are repeated by hand.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Prefactor:** `StrapPhase` and the sync pill's reading of it move to `SerenixCore`
+1. [x] **Prefactor:** `StrapPhase` and the sync pill's reading of it move to `SerenixCore`
    - Files: `src/SerenixCore/StrapPhase.swift` (new), `tests/SerenixCoreTests/StrapPhaseTests.swift`
      (new), `src/SerenixApp/StrapConnection.swift`
    - Moves `StrapPhase` (`isBusy`, `displayText`) as is, and the `switch` in

@@ -3,38 +3,6 @@ import Foundation
 import SerenixCore
 import os
 
-/// Where the Strap connection and its History Sync have got to, for display.
-enum StrapPhase: Equatable {
-    case idle
-    case bluetoothUnavailable(String)
-    case searching
-    case connecting
-    case connected
-    case syncing
-    case synced
-    case failed(String, SyncFailureCause)
-
-    var isBusy: Bool {
-        switch self {
-        case .searching, .connecting, .syncing: true
-        default: false
-        }
-    }
-
-    var displayText: String {
-        switch self {
-        case .idle: "Not connected"
-        case .bluetoothUnavailable(let reason): reason
-        case .searching: "Looking for your Strap…"
-        case .connecting: "Connecting…"
-        case .connected: "Connected"
-        case .syncing: "Syncing…"
-        case .synced: "Up to date"
-        case .failed(let reason, _): "Failed: \(reason)"
-        }
-    }
-}
-
 /// Moves bytes between the Strap and a `HistorySync` session over CoreBluetooth.
 ///
 /// Every decision about what to send lives in `SerenixCore`: this class scans, connects,
@@ -79,24 +47,12 @@ final class StrapConnection: NSObject, ObservableObject {
     @Published private(set) var liveHRArrivedAt: Date?
     @Published private(set) var liveHRConnection: LiveHRConnection = .unavailable
     var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
-    /// The phase as the Today view's sync pill reads it (spec 002): looking for or connecting
-    /// to the Strap counts as syncing, and Bluetooth being unavailable as the Strap being
-    /// unreachable.
+    /// The phase as the Today view's sync pill reads it (spec 002).
     var syncStatus: SyncStatus {
         // A connection only for Live HR isn't a sync: the pill keeps showing what it showed
         // before (spec 006: nothing else about syncing changes).
         let phase = session == nil && !wantsSync ? phaseBeforeLiveHR ?? self.phase : self.phase
-        return switch phase {
-        case .searching, .connecting, .syncing: .syncing
-        case .synced: .justFinished
-        case .idle, .connected: .idle
-        // Bluetooth being off only pauses a sync that was wanted; otherwise there's nothing
-        // to say (spec 002, Sync pill).
-        case .bluetoothUnavailable(let reason):
-            wantsSync || wantsConnection
-                ? .failed(reason: reason, cause: .strapUnreachable) : .idle
-        case .failed(let reason, let cause): .failed(reason: reason, cause: cause)
-        }
+        return phase.syncStatus(connectionWanted: wantsSync || wantsConnection)
     }
 
     private var central: CBCentralManager!
