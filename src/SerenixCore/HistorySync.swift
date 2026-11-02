@@ -77,7 +77,7 @@ public struct HistorySyncOutput: Equatable, Sendable {
     public var liveHRReadings: [LiveHRReading] = []
     /// `0x28` Frames in a layout the decoder doesn't know; each is still in `syncLog`. A Frame
     /// failing its own check fails the sync instead (spec 001).
-    public var liveHRSkipped: [LiveHRReadingError] = []
+    public var liveHRSkipped: [LiveHRSkip] = []
 }
 
 /// One History Sync with the Strap, as a pure state machine.
@@ -192,7 +192,7 @@ public struct HistorySync: Sendable {
                     output.liveHRReadings.append(reading)
                 }
             } catch {
-                output.liveHRSkipped.append(error)
+                output.liveHRSkipped.append(.reading(error))
             }
         case FrameType.metadata where body.count > metadataKindOffset:
             switch body[metadataKindOffset] {

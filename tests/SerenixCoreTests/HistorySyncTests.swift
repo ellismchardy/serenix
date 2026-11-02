@@ -999,7 +999,7 @@ private func sentOrYieldedNothing(_ output: HistorySyncOutput) -> Bool {
     )
     let fed = steps[tenthRecordOfFirstBatchIndex + 3]
     #expect(fed.output.liveHRReadings.isEmpty)
-    #expect(fed.output.liveHRSkipped == [.unexpectedLength(8)])
+    #expect(fed.output.liveHRSkipped == [.reading(.unexpectedLength(8))])
     #expect(isOneEntry(fed.output.syncLog, shortLiveHRFrame, going: .fromStrap, at: fed.time))
     #expect(fed.stateAfter == .running)
     #expect(try #require(steps.last).stateAfter == .completed)

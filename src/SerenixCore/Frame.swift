@@ -84,7 +84,8 @@ enum FrameType {
     static let command: UInt8 = 0x23
     /// The Strap's reply to a command.
     static let reply: UInt8 = 0x24
-    /// A Live HR reading, once a second while Live HR is on (spec 006).
+    /// A Live HR reading, once a second while Live HR is on (spec 006); hr-tracker's "realtime"
+    /// type, named as the protocol names it.
     static let realtimeData: UInt8 = 0x28
     /// History Records (and optical bursts) during a History Sync.
     static let historicalData: UInt8 = 0x2f

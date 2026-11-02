@@ -314,8 +314,8 @@ final class StrapConnection: NSObject, ObservableObject {
         noteLiveHR(output.readings)
     }
 
-    /// Logs `LiveHRSkip`s or `LiveHRReadingError`s: Frames that gave no reading, and why.
-    private func logSkippedLiveHR(_ skipped: [some Sendable]) {
+    /// Logs Live HR Frames that gave no reading, and why.
+    private func logSkippedLiveHR(_ skipped: [LiveHRSkip]) {
         for skip in skipped {
             strapLog.error("Skipped a Live HR Frame: \(String(describing: skip), privacy: .public)")
         }
@@ -351,6 +351,20 @@ final class StrapConnection: NSObject, ObservableObject {
                 if self?.wantsLiveHR == true { self?.startLiveHR(retrying: true) }
             }
         }
+    }
+
+    /// Ends the Live HR session, if any, keeping its Sync Log; the caller deals with the link.
+    private func dropLiveSession() {
+        guard liveSession != nil else { return }
+        liveSession = nil
+        keepLiveHRLog()
+    }
+
+    /// Forgets a Live HR connection attempt and the phase it stood in for.
+    private func resetLiveHRConnectionState() {
+        connectingForLiveHR = false
+        phaseBeforeLiveHR = nil
+        startLiveHRWhenReady = false
     }
 
     /// Keeps the Live HR session's messages as the "Live HR" Sync Log, off the main thread.
@@ -650,14 +664,9 @@ final class StrapConnection: NSObject, ObservableObject {
 
     private func startSync() {
         wantsSync = false
-        connectingForLiveHR = false
-        phaseBeforeLiveHR = nil
-        startLiveHRWhenReady = false
+        resetLiveHRConnectionState()
         // The sync takes over Live HR on this connection: the stream carries on into it.
-        if liveSession != nil {
-            liveSession = nil
-            keepLiveHRLog()
-        }
+        dropLiveSession()
         if case .failure(let error) = store {
             fail("Couldn't open the History Record store: \(error.localizedDescription)", .other)
             return
@@ -782,9 +791,7 @@ final class StrapConnection: NSObject, ObservableObject {
         endSession()
         wantsSync = false
         wantsConnection = false
-        connectingForLiveHR = false
-        phaseBeforeLiveHR = nil
-        startLiveHRWhenReady = false
+        resetLiveHRConnectionState()
         phase = newPhase
         // Forget the link now, not when iOS reports the disconnect, so a quick "Sync now"
         // reconnects instead of writing to a connection that's closing.
@@ -829,12 +836,8 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
         case .poweredOff, .resetting:
             // iOS may not report the disconnect, and the peripheral objects are no longer valid.
             let wasSyncing = phase == .syncing
-            if liveSession != nil {
-                liveSession = nil
-                keepLiveHRLog()
-            }
-            connectingForLiveHR = false
-            phaseBeforeLiveHR = nil
+            dropLiveSession()
+            resetLiveHRConnectionState()
             liveHRConnection = .unavailable
             endSession()
             commandCharacteristic = nil
@@ -894,8 +897,7 @@ extension StrapConnection: @preconcurrency CBCentralManagerDelegate {
         subscribed = []
         if liveSession != nil {
             // The Strap went out of range or off: the pill shows "—" until it's back.
-            liveSession = nil
-            keepLiveHRLog()
+            dropLiveSession()
             liveHRConnection = .unavailable
         }
         if session == nil, wantsSync, connectingForLiveHR, !wantsLiveHR {
