@@ -9,10 +9,17 @@ enum Readiness {
     static let sleepingHRWeight = 0.25
     /// Time Asleep's share of Readiness, before re-weighting (spec 008, Inputs). Unitless.
     static let timeAsleepWeight = 0.15
+    /// The previous Day's Load's share of Readiness, before re-weighting (spec 008, Inputs).
+    /// Unitless.
+    static let loadWeight = 0.10
+    /// Load points above typical Load that cost one score unit (spec 008, Inputs), on the 0–100
+    /// Load scale.
+    static let loadPerScoreUnit = 20.0
     /// Time Asleep at or above this costs nothing, seconds (spec 008: 7 h, until Sleep Need).
     static let timeAsleepMark: TimeInterval = 7 * 60 * 60
     /// Each input's score is clamped to this far either side of usual (spec 008), in score units:
-    /// Spreads, or hours for Time Asleep.
+    /// Spreads, hours for Time Asleep, or `loadPerScoreUnit` Load points for the previous Day's
+    /// Load.
     static let scoreLimit = 3.0
     /// The curve's steepness per unit of the weighted score (spec 008, Score). Unitless.
     static let curveSlope = 2.0
@@ -22,8 +29,14 @@ enum Readiness {
 
     /// The Night's Readiness, 0–100, rounded with halves up; nil when the Night has no HRV or
     /// HRV's Baseline has no median or Spread (spec 008). An HRV or Baseline of 0 ms counts as no
-    /// HRV, as ln 0 gives no score. Calibrating is the caller's to decide.
-    static func score(of night: Night, hrv: Baseline, sleepingHR: Baseline) -> Int? {
+    /// HRV, as ln 0 gives no score. Calibrating is the caller's to decide. `dayLoads` holds each
+    /// Day at most once.
+    static func score(
+        of night: Night,
+        hrv: Baseline,
+        sleepingHR: Baseline,
+        dayLoads: [DayLoad]
+    ) -> Int? {
         guard let hrvValue = night.hrv, hrvValue > 0,
             let hrvMedian = hrv.median, hrvMedian > 0, let hrvSpread = hrv.spread
         else { return nil }
@@ -39,6 +52,16 @@ enum Readiness {
         if let timeAsleep = night.timeAsleep {
             let hoursShort = max(timeAsleepMark - timeAsleep, 0) / (60 * 60)
             inputs.append((-hoursShort, timeAsleepWeight))
+        }
+        // The previous Day's Load costs only above its typical Load; dropped while either is
+        // missing.
+        let previousDay = night.day.adding(days: -1)
+        if let load = dayLoads.first(where: { $0.day == previousDay })?.load,
+            case .value(let typical) = typicalLoad(for: previousDay, among: dayLoads)
+        {
+            // Whole numbers both: typical Load is rounded by its own definition (spec 006).
+            let above = max(Double(load - typical), 0)
+            inputs.append((-above / loadPerScoreUnit, loadWeight))
         }
         // The weights left are scaled up to add to 1.
         let totalWeight = inputs.reduce(0) { $0 + $1.weight }

@@ -55,7 +55,7 @@ the Today view (its own private `todayView` helper, as `LoadPopupTests.swift` do
    - Seam: Today view · Files: `Baseline.swift`, `ReadinessTests.swift`
    - Done when: the three "Sleeping HR's Spread" criteria (54 → 60 / 43; MAD 1.4826 → 34; Zones
      54 In range and 56 Watch against seven of 52).
-5. [ ] **Slice:** the previous Day's Load — the Day before the Night's date, against
+5. [x] **Slice:** the previous Day's Load — the Day before the Night's date, against
    `typicalLoad(for:)` that Day; −(Load − typical) / 20 above typical, 0 at or below, clamped;
    dropped when that Day has no Load or typical Load is calibrating. `TodayView` passes its Days.
    - Seam: Today view · Files: `Readiness.swift`, `TodayView.swift`, `ReadinessTests.swift`

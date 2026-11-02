@@ -124,7 +124,8 @@ public struct TodayView: Equatable, Sendable {
                     Readiness.score(
                         of: night,
                         hrv: readinessBaselines.hrv,
-                        sleepingHR: readinessBaselines.sleepingHR
+                        sleepingHR: readinessBaselines.sleepingHR,
+                        dayLoads: dayLoads
                     )
                 } else {
                     nil
