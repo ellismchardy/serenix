@@ -152,7 +152,7 @@ fix to `main` too, so the branch starts by merging `main`. That merge has no fil
    - Done when: it builds in CI; the phone steps go in the PR (past Nights keep their values as
      Sleeping HR, and Days of the last 30 days gain a Resting HR).
 
-10. [ ] **Today screen: Resting HR tile and layout.**
+10. [x] **Today screen: Resting HR tile and layout.**
     - In `SerenixCore`, a `RestingHRTile` beside `TimeAsleepTile`: value "62 bpm" or "—", "So far
       today" on today, no Zone, no popup.
     - TodayView exposes the grid order after Time Asleep: Sleeping HR, Resting HR, HRV,

@@ -127,7 +127,8 @@ private func spo2LevelText(_ zone: Zone?) -> String {
     }
 }
 
-private func wholeText(_ value: Double) -> String {
+/// Rounded to a whole number, e.g. "62".
+func wholeText(_ value: Double) -> String {
     String(Int(value.rounded()))
 }
 

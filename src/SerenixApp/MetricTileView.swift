@@ -37,14 +37,33 @@ struct TimeAsleepTileView: View {
     }
 }
 
-/// The card both kinds of tile draw.
+/// The Resting HR tile (spec 007): the Day's Resting HR with Sleeping HR's heart icon, "So far
+/// today" on today, and no Zone, so a white card with an empty gauge. It opens no popup.
+struct RestingHRTileView: View {
+    let tile: RestingHRTile
+
+    var body: some View {
+        TileCard(
+            icon: NightlyMetric.sleepingHR.icon,
+            name: tile.name,
+            valueText: tile.valueText,
+            detailText: tile.statusText ?? "",
+            colour: tile.zone?.colour,
+            gauge: tile.gauge,
+            showsGauge: true
+        )
+    }
+}
+
+/// The card every kind of tile draws.
 private struct TileCard: View {
     let icon: String
     let name: String
     let valueText: String
-    /// The status word, or for Time Asleep the Sleep Onset → Final Wake span.
+    /// The status word, for Time Asleep the Sleep Onset → Final Wake span, or for Resting HR "So
+    /// far today" or nothing.
     let detailText: String
-    /// The Zone's colour; nil for no Zone (Calibrating, missing, or Time Asleep).
+    /// The Zone's colour; nil for no Zone (Calibrating, missing, Time Asleep or Resting HR).
     let colour: Color?
     let gauge: Double?
     let showsGauge: Bool

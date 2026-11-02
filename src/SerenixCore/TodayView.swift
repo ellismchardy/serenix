@@ -60,6 +60,11 @@ public struct TodayView: Equatable, Sendable {
     public let timeAsleepTile: TimeAsleepTile?
     /// The Nightly Metric tiles in their order; none on a Day without a Night.
     public let tiles: [MetricTile]
+    /// The Day's Resting HR tile (spec 007); nil on a Day without a Night, which shows no tiles.
+    public let restingHRTile: RestingHRTile?
+    /// The 2-column grid under Time Asleep: Sleeping HR, Resting HR, then the other Nightly
+    /// Metrics (spec 007, Today screen); none on a Day without a Night.
+    public let gridTiles: [TodayTile]
 
     public init(
         nights: [Night],
@@ -149,6 +154,14 @@ public struct TodayView: Equatable, Sendable {
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }
             } ?? []
         self.tiles = tiles
+        let restingHRTile = night.map { _ in
+            RestingHRTile(restingHR: dayLoad?.restingHR, isToday: isToday)
+        }
+        self.restingHRTile = restingHRTile
+        gridTiles = tiles.flatMap { tile -> [TodayTile] in
+            guard tile.metric == .sleepingHR, let restingHRTile else { return [.metric(tile)] }
+            return [.metric(tile), .restingHR(restingHRTile)]
+        }
 
         readinessAdvice = readinessBand.map { band in
             ReadinessAdvice.text(

@@ -972,6 +972,85 @@ func spo2LineIsItsZoneLevelInWords(spo2: Double, line: String) {
     )
 }
 
+// MARK: Resting HR tile (spec 007)
+
+/// The name a grid tile shows: a Nightly Metric's name, or the Resting HR tile's.
+private func gridTileName(_ tile: TodayTile) -> String {
+    switch tile {
+    case .metric(let metricTile): metricTile.metric.name
+    case .restingHR(let restingHRTile): restingHRTile.name
+    }
+}
+
+@Test func gridTilesRunSleepingHRThenRestingHRThenTheOtherMetricsAfterTimeAsleep() {
+    let view = todayView(
+        nights: [Night(day: nov1, timeAsleep: 27_600)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 61.6)],
+        showing: nov1
+    )
+
+    #expect(view.timeAsleepTile != nil)
+    #expect(
+        view.gridTiles.map(gridTileName) == [
+            "Sleeping HR", "Resting HR", "HRV", "Respiratory rate", "Skin temperature", "SpO2",
+        ]
+    )
+}
+
+@Test func todaysRestingHRTileReadsWholeBpmSoFarTodayWithNoZoneAndAnEmptyGauge() {
+    let view = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 61.6)],
+        showing: nov1
+    )
+
+    #expect(view.restingHRTile?.name == "Resting HR")
+    #expect(view.restingHRTile?.valueText == "62 bpm")
+    #expect(view.restingHRTile?.statusText == "So far today")
+    #expect(view.restingHRTile?.zone == nil)
+    #expect(view.restingHRTile?.gauge == nil)
+    // No popup: popups open only for a NightlyMetric (`metricPopup(_:)`), and Resting HR is a
+    // Day's, not a Nightly Metric, so there is no public route to a Resting HR popup at all.
+    // The tile not being tappable is checked by hand on the phone (spec 007, Seams under test).
+}
+
+@Test func anEarlierDaysRestingHRTileHasNoStatus() {
+    let view = todayView(
+        nights: [Night(day: oct31), Night(day: nov1)],
+        dayLoads: [DayLoad(day: oct31, load: 12, restingHR: 58), DayLoad(day: nov1, load: 5)],
+        showing: oct31
+    )
+
+    #expect(view.restingHRTile?.valueText == "58 bpm")
+    #expect(view.restingHRTile?.statusText == nil)
+}
+
+@Test func aDayWithoutRestingHRShowsADashWithAnEmptyGauge() {
+    let withoutRestingHR = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 5)],
+        showing: nov1
+    )
+    let withoutDayLoad = todayView(nights: [Night(day: nov1)], dayLoads: [], showing: nov1)
+
+    #expect(withoutRestingHR.restingHRTile?.valueText == "—")
+    #expect(withoutRestingHR.restingHRTile?.name == "Resting HR")
+    #expect(withoutRestingHR.restingHRTile?.gauge == nil)
+    #expect(withoutDayLoad.restingHRTile?.valueText == "—")
+    #expect(withoutDayLoad.restingHRTile?.gauge == nil)
+}
+
+@Test func aDayWithoutANightHasNoRestingHRTileAndNoGrid() {
+    let view = todayView(
+        nights: [Night(day: oct31)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 61.6)],
+        showing: nov1
+    )
+
+    #expect(view.restingHRTile == nil)
+    #expect(view.gridTiles.isEmpty)
+}
+
 // MARK: Status words and gauges
 
 // Values from spec 004, against Baselines HRV 60, Sleeping HR 52, respiratory rate 14.0 and skin
