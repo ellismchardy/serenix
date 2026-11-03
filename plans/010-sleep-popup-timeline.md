@@ -61,7 +61,7 @@ The shell (`src/SerenixApp/TodayPopups.swift`, `SleepPopupView`) is rebuilt as t
    - Done when: criteria "default Night with no Time in Bed: axis 23:00–07:00, hours 23…07",
      "03:00–12:00 Night: axis 03:00–12:00, hours 03…11, Final Wake at 1.0" and "no Sleep Onset:
      no timeline" pass.
-3. [ ] **Slice:** Time in Bed on the timeline, widening the axis.
+3. [x] **Slice:** Time in Bed on the timeline, widening the axis.
    - Seam: Today view · Files: `src/SerenixCore/Popups.swift` (or `SleepTimeline.swift`),
      `tests/SerenixCoreTests/SleepScoreTests.swift`, `src/SerenixApp/TodayPopups.swift`
    - Done when: criterion "default Night with Time in Bed 22:40–07:15: axis 22:00–08:00, hours at

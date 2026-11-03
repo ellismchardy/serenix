@@ -40,17 +40,21 @@ private func at(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
 }
 
 /// The Night shown, dated 15 Nov: by default Sleep Onset 23:00 on 14 Nov, Final Wake 07:00 and
-/// Time Asleep 8 h (spec 010's default fixture).
+/// Time Asleep 8 h and no Time in Bed (spec 010's default fixture).
 private func nightOn15Nov(
     sleepOnset: Date? = at(14, 23),
     finalWake: Date? = at(15, 7),
-    timeAsleep: TimeInterval? = 8 * oneHour
+    timeAsleep: TimeInterval? = 8 * oneHour,
+    timeInBedStart: Date? = nil,
+    timeInBedEnd: Date? = nil
 ) -> Night {
     Night(
         day: nov15,
         sleepOnset: sleepOnset,
         finalWake: finalWake,
-        timeAsleep: timeAsleep
+        timeAsleep: timeAsleep,
+        timeInBedStart: timeInBedStart,
+        timeInBedEnd: timeInBedEnd
     )
 }
 
@@ -451,6 +455,43 @@ private func threePlaces(_ share: Double) -> Double {
     #expect(timeline.map { threePlaces($0.sleepOnset.position) } == 0)
     #expect(timeline?.finalWake.text == "07:00")
     #expect(timeline.map { threePlaces($0.finalWake.position) } == 1.0)
+}
+
+@Test func theDefaultNightWithNoTimeInBedDrawsNoTimeInBed() {
+    let timeline = todayView(nights: [nightOn15Nov()]).sleepPopup?.timeline
+
+    #expect(timeline != nil)
+    #expect(timeline?.timeInBed == nil)
+}
+
+@Test func aTimeInBedThatEndsBeforeItStartsIsNotDrawnAndDoesNotWidenTheAxis() {
+    let view = todayView(
+        nights: [nightOn15Nov(timeInBedStart: at(15, 7, 15), timeInBedEnd: at(14, 22, 40))]
+    )
+    let timeline = view.sleepPopup?.timeline
+
+    #expect(timeline?.timeInBed == nil)
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 7))
+}
+
+@Test func timeInBedFrom2240To0715WidensTheAxisTo22To08AndSpans0067To0925() {
+    let view = todayView(
+        nights: [nightOn15Nov(timeInBedStart: at(14, 22, 40), timeInBedEnd: at(15, 7, 15))]
+    )
+    let timeline = view.sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(14, 22))
+    #expect(timeline?.axisEnd == at(15, 8))
+    #expect(timeline?.hours.map(\.text) == ["22", "00", "02", "04", "06", "08"])
+    #expect(timeline?.hours.map { threePlaces($0.position) } == [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    #expect(timeline?.timeInBed.map { threePlaces($0.start) } == 0.067)
+    #expect(timeline?.timeInBed.map { threePlaces($0.end) } == 0.925)
+    #expect(timeline?.sleepOnset.text == "23:00")
+    #expect(timeline.map { threePlaces($0.sleepOnset.position) } == 0.1)
+    #expect(timeline?.finalWake.text == "07:00")
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 0.9)
+    #expect(part("Sleep Consistency", of: view)?.detailText == "Needs 3 Nights")
 }
 
 @Test func aNightFrom3To12HasATimelineThatFitsIt() {

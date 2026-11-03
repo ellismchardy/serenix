@@ -11,6 +11,9 @@ public struct SleepTimeline: Equatable, Sendable {
     public let hours: [TimelineMark]
     public let sleepOnset: TimelineMark
     public let finalWake: TimelineMark
+    /// Time in Bed, drawn as a band; nil when the Night has no Time in Bed, or it ends before it
+    /// starts.
+    public let timeInBed: TimelineSpan?
 
     /// How far apart the hour labels are (spec 010: every 2 hours), seconds.
     static let hourLabelStep: TimeInterval = 2 * 3_600
@@ -21,7 +24,10 @@ public struct SleepTimeline: Equatable, Sendable {
         guard let onset = night.sleepOnset, let wake = night.finalWake else { return nil }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        let drawn = [onset, wake]
+        let bed = night.timeInBedStart.flatMap { start in
+            night.timeInBedEnd.flatMap { end in end > start ? (start: start, end: end) : nil }
+        }
+        let drawn = [onset, wake] + [bed?.start, bed?.end].compactMap { $0 }
         guard let earliest = drawn.min(), let latest = drawn.max(),
             let start = calendar.dateInterval(of: .hour, for: earliest)?.start,
             let latestHour = calendar.dateInterval(of: .hour, for: latest)
@@ -40,7 +46,15 @@ public struct SleepTimeline: Equatable, Sendable {
         }
         sleepOnset = TimelineMark(text: clockText(onset, in: timeZone), position: position(onset))
         finalWake = TimelineMark(text: clockText(wake, in: timeZone), position: position(wake))
+        timeInBed = bed.map { TimelineSpan(start: position($0.start), end: position($0.end)) }
     }
+}
+
+/// A stretch of the Sleep popup's timeline, from `start` to `end` (start ≤ end), each a share of
+/// the axis from its start: 0 to 1.
+public struct TimelineSpan: Equatable, Sendable {
+    public let start: Double
+    public let end: Double
 }
 
 /// One labelled point on the Sleep popup's timeline.

@@ -173,6 +173,13 @@ private struct SleepTimelineView: View {
             let periodWidth: CGFloat =
                 (timeline.finalWake.position - timeline.sleepOnset.position) * width
             ZStack(alignment: .topLeading) {
+                // Time in Bed as a light band behind the Sleep Period.
+                if let bed = timeline.timeInBed {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Theme.accentSoft)
+                        .frame(width: (bed.end - bed.start) * width, height: 30)
+                        .offset(x: bed.start * width, y: 25)
+                }
                 RoundedRectangle(cornerRadius: 6)
                     .fill(Theme.accent)
                     .frame(width: max(periodWidth, 2), height: 20)
