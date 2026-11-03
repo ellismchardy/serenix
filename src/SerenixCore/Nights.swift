@@ -60,7 +60,8 @@ private func night(from records: [HistoryRecord], period: SleepPeriod, in timeZo
             from: period.timeInBedStart,
             to: period.timeInBedEnd,
             of: records
-        )
+        ),
+        wakeBouts: WakeBout.bouts(in: period.minuteIsAsleep, from: period.sleepOnset)
     )
 }
 

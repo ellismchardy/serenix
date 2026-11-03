@@ -48,7 +48,7 @@ existing Nights and Night rebuild tests.
      `NightsTests.swift`, `src/SerenixApp/NightStore.swift`
    - Done when: spec 011 criteria "Time in Bed 23:00–07:00 has a Heart Rate Trace of 96 steps…"
      and "A step of 300 records at 60 bpm reads 60; …149 at 60 and 151 at 0 is missing".
-3. [ ] **Slice:** Wake Bouts — runs of non-sleep minutes between Sleep Onset and Final Wake, each
+3. [x] **Slice:** Wake Bouts — runs of non-sleep minutes between Sleep Onset and Final Wake, each
    a start and a length in whole minutes; stored on `Night` and in `StoredNight`.
    - Seam: Nights from History Records · Files: `Night.swift`, `Nights.swift`,
      `NightsTests.swift`, `src/SerenixApp/NightStore.swift`

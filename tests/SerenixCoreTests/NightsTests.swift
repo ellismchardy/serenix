@@ -482,3 +482,93 @@ private func heartRateTraceStepAt0300(bpmAt0300: (Int) -> Int) throws -> Double?
     let step = try heartRateTraceStepAt0300 { second in second < 149 ? 60 : 0 }
     #expect(step == nil)
 }
+
+// Spec 011: Wake Bouts.
+
+/// Spec 011: a Night whose Sleep Period has wake minutes 02:00 to 02:07 and no other wake has one
+/// Wake Bout, starting 02:00, 8 minutes long. The night of `nightInBed2300To0700`, but awake in bed
+/// (15 active seconds a minute) for the 8 minutes 02:00–02:07 inside the still stretch. Heart rate
+/// stays flat at 55 bpm, so it never extends the bout; each still minute either side has a
+/// 5-minute median of 0 active seconds, so the bout neither grows nor shrinks. 8 minutes of wake
+/// is under 60, so the Sleep Period still runs 23:10–06:50.
+@Test func nightWithWakeMinutes0200To0207HasOneWakeBoutAt0200OfEightMinutes() throws {
+    let up = RecordMinute(bpm: 55, activeSeconds: 60)
+    let awakeInBed = RecordMinute(bpm: 55, activeSeconds: 15)
+    let still = RecordMinute(bpm: 55)
+    // 23:10–02:00 is 170 still minutes, then 8 awake, then 282 still to 06:50.
+    let minutes =
+        Array(repeating: up, count: 30) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: still, count: 170) + Array(repeating: awakeInBed, count: 8)
+        + Array(repeating: still, count: 282) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: up, count: 30)
+    let records = historyRecords(startingAt: utcDate(2026, 11, 15, 22, 30), minutes: minutes)
+
+    let found = nights(from: records, in: london)
+
+    try #require(found.count == 1)
+    let night = found[0]
+    #expect(night.sleepOnset == utcDate(2026, 11, 15, 23, 10))
+    #expect(night.finalWake == utcDate(2026, 11, 16, 6, 50))
+    let wakeBouts = try #require(night.wakeBouts)
+    #expect(wakeBouts == [WakeBout(start: utcDate(2026, 11, 16, 2, 0), minutes: 8)])
+}
+
+/// Spec 011: two Wake Bouts come oldest first, each with its own start and length (the spec's
+/// 02:10 for 8 min and 04:30 for 7 min).
+@Test func nightWithTwoWakeStretchesHasTwoWakeBoutsOldestFirst() throws {
+    let up = RecordMinute(bpm: 55, activeSeconds: 60)
+    let awakeInBed = RecordMinute(bpm: 55, activeSeconds: 15)
+    let still = RecordMinute(bpm: 55)
+    // 23:10–02:10 still (180), 8 awake, 02:18–04:30 still (132), 7 awake, 04:37–06:50 still
+    // (133).
+    let minutes =
+        Array(repeating: up, count: 30) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: still, count: 180) + Array(repeating: awakeInBed, count: 8)
+        + Array(repeating: still, count: 132) + Array(repeating: awakeInBed, count: 7)
+        + Array(repeating: still, count: 133) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: up, count: 30)
+    let records = historyRecords(startingAt: utcDate(2026, 11, 15, 22, 30), minutes: minutes)
+
+    let found = nights(from: records, in: london)
+
+    try #require(found.count == 1)
+    let wakeBouts = try #require(found[0].wakeBouts)
+    #expect(
+        wakeBouts == [
+            WakeBout(start: utcDate(2026, 11, 16, 2, 10), minutes: 8),
+            WakeBout(start: utcDate(2026, 11, 16, 4, 30), minutes: 7),
+        ]
+    )
+}
+
+/// Spec 011: a Night with no wake between Sleep Onset and Final Wake has Wake Bouts kept, and
+/// none ("Didn't wake"), not missing.
+@Test func nightWithNoWakeInsideItsSleepPeriodHasNoWakeBouts() throws {
+    let found = nights(from: nightInBed2300To0700(), in: london)
+
+    try #require(found.count == 1)
+    let wakeBouts = try #require(found[0].wakeBouts)
+    #expect(wakeBouts.isEmpty)
+}
+
+/// Spec 011: the fixture night's Wake Bouts add up to its Final Wake − Sleep Onset − Time Asleep,
+/// in minutes, and its Sleep Period and Time in Bed are unchanged. Spec 003's literals: Sleep
+/// Onset 21:05, Final Wake 03:42 (6 h 37 m apart) and Time Asleep 5 h 52 m, so 45 minutes awake.
+@Test func fixtureNightWakeBoutsAddUpToItsMinutesAwakeAndItsSleepPeriodIsUnchanged() throws {
+    let found = unmodifiedFixtureNights
+
+    try #require(found.count == 1)
+    let night = found[0]
+    // 2026-10-29 21:05:00 UTC
+    #expect(night.sleepOnset == Date(timeIntervalSince1970: 1_793_307_900))
+    // 2026-10-30 03:42:00 UTC
+    #expect(night.finalWake == Date(timeIntervalSince1970: 1_793_331_720))
+    // 2026-10-29 20:57:00 UTC
+    #expect(night.timeInBedStart == Date(timeIntervalSince1970: 1_793_307_420))
+    // 2026-10-30 04:00:00 UTC
+    #expect(night.timeInBedEnd == Date(timeIntervalSince1970: 1_793_332_800))
+    let fiveHoursFiftyTwo: TimeInterval? = 352 * 60
+    #expect(night.timeAsleep == fiveHoursFiftyTwo)
+    let wakeBouts = try #require(night.wakeBouts)
+    #expect(wakeBouts.map(\.minutes).reduce(0, +) == 45)
+}

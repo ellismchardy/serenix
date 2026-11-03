@@ -26,6 +26,8 @@ final class StoredNight {
     var timeInBedEnd: Date?
     /// The Heart Rate Trace (spec 011) as JSON; nil for Nights built before it, until rebuilt.
     var heartRateTraceJSON: Data?
+    /// The Wake Bouts (spec 011) as JSON; nil for Nights built before them, until rebuilt.
+    var wakeBoutsJSON: Data?
 
     init(_ night: Night) {
         dateKey = Self.dateKey(night.day)
@@ -42,31 +44,34 @@ final class StoredNight {
         timeAsleep = night.timeAsleep
         timeInBedStart = night.timeInBedStart
         timeInBedEnd = night.timeInBedEnd
-        heartRateTraceJSON = night.heartRateTrace.flatMap(Self.encoded)
+        heartRateTraceJSON = night.heartRateTrace.flatMap {
+            Self.encoded($0, logAs: "Heart Rate Trace")
+        }
+        wakeBoutsJSON = night.wakeBouts.flatMap { Self.encoded($0, logAs: "Wake Bouts") }
     }
 
-    /// A Heart Rate Trace as JSON; nil, logged, if it can't be written, so the Night is kept
-    /// without it rather than not at all.
-    private static func encoded(_ trace: HeartRateTrace) -> Data? {
+    /// `value` as JSON; nil, logged, if it can't be written, so the Night is kept without it
+    /// rather than not at all. `name` is what the log calls it.
+    private static func encoded<Value: Encodable>(_ value: Value, logAs name: String) -> Data? {
         do {
-            return try JSONEncoder().encode(trace)
+            return try JSONEncoder().encode(value)
         } catch {
             nightLog.error(
-                "Couldn't keep a Heart Rate Trace: \(error.localizedDescription, privacy: .public)"
+                "Couldn't keep \(name, privacy: .public): \(error.localizedDescription, privacy: .public)"
             )
             return nil
         }
     }
 
-    /// The stored Heart Rate Trace; nil, logged, if it can't be read, so the Night shows without
-    /// it rather than not at all.
-    private var heartRateTrace: HeartRateTrace? {
-        guard let heartRateTraceJSON else { return nil }
+    /// The value stored as `json`; nil, logged, if it can't be read, so the Night shows without
+    /// it rather than not at all. `name` is what the log calls it.
+    private static func decoded<Value: Decodable>(_ json: Data?, logAs name: String) -> Value? {
+        guard let json else { return nil }
         do {
-            return try JSONDecoder().decode(HeartRateTrace.self, from: heartRateTraceJSON)
+            return try JSONDecoder().decode(Value.self, from: json)
         } catch {
             nightLog.error(
-                "Couldn't read a Heart Rate Trace: \(error.localizedDescription, privacy: .public)"
+                "Couldn't read \(name, privacy: .public): \(error.localizedDescription, privacy: .public)"
             )
             return nil
         }
@@ -85,7 +90,8 @@ final class StoredNight {
             timeAsleep: timeAsleep,
             timeInBedStart: timeInBedStart,
             timeInBedEnd: timeInBedEnd,
-            heartRateTrace: heartRateTrace
+            heartRateTrace: Self.decoded(heartRateTraceJSON, logAs: "Heart Rate Trace"),
+            wakeBouts: Self.decoded(wakeBoutsJSON, logAs: "Wake Bouts")
         )
     }
 
