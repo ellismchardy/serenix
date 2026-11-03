@@ -86,7 +86,7 @@ existing Nights and Night rebuild tests.
      `SleepViewTests.swift`, `src/SerenixApp/SleepScreen.swift`
    - Done when: the five Tonight criteria (23:00; 22:00 with "9h 0m" and "· 7h 0m of Sleep
      Debt"; the 06:50/07:10/07:00 median; "after 3 Nights"; no Tonight with 2 Nov shown).
-7. [ ] **Slice:** Your week — 7 slots D − 6 to D, empty slots, Time Asleep against each Night's
+7. [x] **Slice:** Your week — 7 slots D − 6 to D, empty slots, Time Asleep against each Night's
    own Sleep Need, Sleep Onset to Final Wake bars on the 20:00–10:00 axis widened to whole hours,
    the Day shown marked; the shell draws both charts.
    - Seam: Sleep view · Files: `SleepView.swift`, `SleepViewTests.swift`,

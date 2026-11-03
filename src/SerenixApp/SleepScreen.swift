@@ -50,6 +50,7 @@ struct SleepScreen: View {
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
+            SleepWeekView(week: sleep.week)
         }
         .sheet(isPresented: $showsSleepPopup) {
             TodayPopupView(popup: .sleep, today: today, connection: connection)
@@ -231,3 +232,108 @@ private struct SleepChartView: View {
         return width * time.timeIntervalSince(chart.start) / span
     }
 }
+
+/// Your week (spec 011): Time Asleep against each Night's Sleep Need, then when the user slept,
+/// for the 7 Days to the Day shown; the Day shown in the accent colour, the others lighter.
+private struct SleepWeekView: View {
+    let week: SleepWeek
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Your week").font(.headline)
+            Text("Time Asleep against Sleep Need")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(week.days, id: \.day) { day in
+                    VStack(spacing: 4) {
+                        needBar(day).frame(height: needChartHeight)
+                        Text(day.letter).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            Text("When you slept")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            VStack(spacing: 6) {
+                ForEach(week.days, id: \.day) { day in
+                    sleptBar(day).frame(height: sleptRowHeight)
+                }
+            }
+            HStack {
+                Text(week.axisStartText)
+                Spacer()
+                Text(week.axisEndText)
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .themeCard()
+    }
+
+    /// The Night's Time Asleep as a bar, with a dashed mark at its Sleep Need; an empty track
+    /// with no Night.
+    private func needBar(_ day: SleepWeekDay) -> some View {
+        GeometryReader { geometry in
+            let height = geometry.size.height
+            let scale = { (seconds: TimeInterval) -> CGFloat in
+                height * min(seconds / needChartTop, 1)
+            }
+            ZStack(alignment: .bottom) {
+                Capsule().fill(Theme.accentSoft).frame(height: 3)
+                if let timeAsleep = day.timeAsleep {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(colour(day))
+                        .frame(height: scale(timeAsleep))
+                }
+                if let sleepNeed = day.sleepNeed {
+                    // One dashed segment across the bar, at the Sleep Need's height.
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: height - scale(sleepNeed)))
+                        path.addLine(
+                            to: CGPoint(x: geometry.size.width, y: height - scale(sleepNeed))
+                        )
+                    }
+                    .stroke(Color.primary, style: StrokeStyle(lineWidth: 2, dash: [3, 2]))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            day.timeAsleepText.map { "\($0) asleep against \(day.sleepNeedText ?? "")" }
+                ?? "No Night"
+        )
+    }
+
+    /// The Night from Sleep Onset to Final Wake on the evening-to-morning axis; nothing with no
+    /// Night.
+    private func sleptBar(_ day: SleepWeekDay) -> some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            if let onset = day.sleepOnset, let wake = day.finalWake {
+                let start = week.axisFraction(of: onset) * width
+                let end = week.axisFraction(of: wake) * width
+                Capsule()
+                    .fill(colour(day))
+                    .frame(width: max(end - start, 4))
+                    .offset(x: start)
+            }
+        }
+    }
+
+    private func colour(_ day: SleepWeekDay) -> Color {
+        day.isShown ? Theme.accent : Theme.accent.opacity(0.35)
+    }
+
+}
+
+/// Your week's Time Asleep chart: its height, points, and the Time Asleep at its top, seconds
+/// (10 h fits the 9 h Sleep Need cap with room).
+private let needChartHeight: CGFloat = 120
+private let needChartTop: TimeInterval = 10 * 60 * 60
+/// When you slept: each Night's row height, points.
+private let sleptRowHeight: CGFloat = 10

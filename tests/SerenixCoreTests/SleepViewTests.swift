@@ -377,3 +377,134 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
     #expect(tonight.usualWakeText == "You usually wake at 06:00")
     #expect(tonight.beAsleepByText == "Be asleep by 21:00")
 }
+
+// MARK: Your week
+
+// Spec 011's success criteria under "Your week": Nights dated 1 Nov (Time Asleep 6 h), 2 and
+// 3 Nov (8 h), each 23:00 the evening before to 07:00. No birth year, so Usual Need is 8 h.
+
+/// The Nights dated 1 Nov (Time Asleep 6 h), 2 Nov and 3 Nov (8 h), each 23:00 to 07:00.
+private let yourWeekNights = [
+    tonightNight(month: 11, 1, timeAsleep: 6 * oneHour),
+    tonightNight(month: 11, 2, timeAsleep: 8 * oneHour),
+    tonightNight(month: 11, 3, timeAsleep: 8 * oneHour),
+]
+
+@Test func yourWeekHasSevenSlotsFromSixDaysBeforeToTheDayShownOldestFirst() {
+    let week = sleepView(nights: yourWeekNights).week
+
+    #expect(
+        week.days.map(\.day) == [
+            Day(year: 2026, month: 10, day: 28),
+            Day(year: 2026, month: 10, day: 29),
+            Day(year: 2026, month: 10, day: 30),
+            Day(year: 2026, month: 10, day: 31),
+            Day(year: 2026, month: 11, day: 1),
+            Day(year: 2026, month: 11, day: 2),
+            Day(year: 2026, month: 11, day: 3),
+        ]
+    )
+    #expect(week.days.map(\.letter) == ["W", "T", "F", "S", "S", "M", "T"])
+}
+
+@Test func yourWeekDaysWithNoNightAreEmptySlots() {
+    let days = sleepView(nights: yourWeekNights).week.days
+
+    #expect(days.count == 7)
+    for slot in days.prefix(4) {
+        #expect(slot.timeAsleepText == nil)
+        #expect(slot.sleepNeedText == nil)
+        #expect(slot.timeAsleep == nil)
+        #expect(slot.sleepNeed == nil)
+        #expect(slot.sleepOnset == nil)
+        #expect(slot.finalWake == nil)
+    }
+}
+
+/// Each Night's own Sleep Need (spec 009): 1 Nov has no Nights before it, so 8 h; 2 and 3 Nov
+/// each repay 1 Nov's 2 h of Sleep Debt, adding a quarter of it, 30 min.
+@Test func yourWeekSetsEachNightsTimeAsleepAgainstItsOwnSleepNeed() {
+    let days = sleepView(nights: yourWeekNights).week.days
+
+    #expect(days.count == 7)
+    #expect(days.suffix(3).map(\.timeAsleepText) == ["6h 0m", "8h 0m", "8h 0m"])
+    #expect(days.suffix(3).map(\.sleepNeedText) == ["8h 0m", "8h 30m", "8h 30m"])
+    let timeAsleeps: [TimeInterval?] = [6 * oneHour, 8 * oneHour, 8 * oneHour]
+    #expect(days.suffix(3).map(\.timeAsleep) == timeAsleeps)
+    let eightAndAHalfHours: TimeInterval = 8 * oneHour + 30 * oneMinute
+    let sleepNeeds: [TimeInterval?] = [8 * oneHour, eightAndAHalfHours, eightAndAHalfHours]
+    #expect(days.suffix(3).map(\.sleepNeed) == sleepNeeds)
+}
+
+@Test func whenYouSleptRunsEachNightFromSleepOnsetToFinalWakeOnATwentyToTenAxis() {
+    let week = sleepView(nights: yourWeekNights).week
+
+    #expect(week.days.count == 7)
+    let sleepOnsets: [Date?] = [at(month: 10, 31, 23), at(1, 23), at(2, 23)]
+    let finalWakes: [Date?] = [at(1, 7), at(2, 7), at(3, 7)]
+    #expect(week.days.suffix(3).map(\.sleepOnset) == sleepOnsets)
+    #expect(week.days.suffix(3).map(\.finalWake) == finalWakes)
+    #expect(week.axisStartHour == 20)
+    #expect(week.axisEndHour == 10)
+}
+
+/// On the 20:00–10:00 axis (14 h), 23:00 sits 3/14 of the way along and 07:00 the next morning
+/// 11/14.
+@Test func whenYouSleptPlacesEachTimeAlongTheAxis() {
+    let week = sleepView(nights: yourWeekNights).week
+
+    #expect(week.axisFraction(of: at(2, 23)) == 3.0 / 14)
+    #expect(week.axisFraction(of: at(3, 7)) == 11.0 / 14)
+}
+
+/// The axis' ends read as clock times.
+@Test func whenYouSleptsAxisEndsReadAsClockTimes() {
+    let week = sleepView(nights: yourWeekNights).week
+
+    #expect(week.axisStartText == "20:00")
+    #expect(week.axisEndText == "10:00")
+}
+
+/// A Final Wake after 10:00 widens the axis' end to the next whole hour (10:15 → 11:00); a Sleep
+/// Onset after midnight is a morning time and leaves its start at 20:00.
+@Test func aLateFinalWakeWidensTheAxisEndAndAnOnsetAfterMidnightDoesNot() {
+    let lateNight = Night(
+        day: Day(year: 2026, month: 10, day: 31),
+        sleepOnset: at(month: 10, 31, 0, 30),
+        finalWake: at(month: 10, 31, 10, 15),
+        timeAsleep: 8 * oneHour
+    )
+    let week = sleepView(nights: yourWeekNights + [lateNight]).week
+
+    #expect(week.axisStartHour == 20)
+    #expect(week.axisEndHour == 11)
+    #expect(week.axisEndText == "11:00")
+}
+
+@Test func aNightFromNineteenThirtyWidensTheWhenYouSleptAxisToNineteen() {
+    let earlyNight = Night(
+        day: Day(year: 2026, month: 10, day: 31),
+        sleepOnset: at(month: 10, 30, 19, 30),
+        finalWake: at(month: 10, 31, 7),
+        timeAsleep: 8 * oneHour
+    )
+    let week = sleepView(nights: [earlyNight] + yourWeekNights).week
+
+    #expect(week.axisStartHour == 19)
+    #expect(week.axisEndHour == 10)
+}
+
+@Test func yourWeekMarksTheDayShown() {
+    let days = sleepView(nights: yourWeekNights).week.days
+
+    #expect(days.map(\.isShown) == [false, false, false, false, false, false, true])
+}
+
+@Test func withAnEarlierDayShownYourWeekEndsOnItAndMarksIt() {
+    let week = sleepView(nights: yourWeekNights, showing: Day(year: 2026, month: 11, day: 2)).week
+
+    #expect(week.days.first?.day == Day(year: 2026, month: 10, day: 27))
+    #expect(week.days.last?.day == Day(year: 2026, month: 11, day: 2))
+    #expect(week.days.count == 7)
+    #expect(week.days.map(\.isShown) == [false, false, false, false, false, false, true])
+}

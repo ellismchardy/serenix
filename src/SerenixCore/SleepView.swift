@@ -7,6 +7,8 @@ public struct SleepView: Equatable, Sendable {
     public let weekStrip: WeekStrip
     /// A bedtime to aim for tonight; nil when the Day shown isn't today.
     public let tonight: SleepTonight?
+    /// The 7 Days to the Day shown: Time Asleep against Sleep Need, and when the user slept.
+    public let week: SleepWeek
     /// About the Night dated the Day shown; nil when that Day has no Night.
     public let lastNight: SleepLastNight?
     /// "No Night yet" for today, "No Night recorded" for an earlier Day, in place of Last night;
@@ -33,6 +35,7 @@ public struct SleepView: Equatable, Sendable {
             isToday
             ? SleepTonight(today: day, nights: nights, timeZone: timeZone, birthYear: birthYear)
             : nil
+        week = SleepWeek(to: day, nights: nights, timeZone: timeZone, birthYear: birthYear)
         let night = nights.first { $0.day == day }
         lastNight = night.map {
             SleepLastNight($0, title: isToday ? "Last night" : day.text, timeZone: timeZone)
@@ -84,6 +87,106 @@ public struct SleepTonight: Equatable, Sendable {
             ? "\u{00B7} \(durationText(need.sleepDebt)) of Sleep Debt this week" : nil
         waitingText = nil
     }
+}
+
+/// The Sleep tab's Your week section (spec 011, Your week): the 7 Days D − 6 to D.
+public struct SleepWeek: Equatable, Sendable {
+    /// Seven Days, oldest first, ending on the Day shown.
+    public let days: [SleepWeekDay]
+    /// The evening hour the When you slept axis starts: 20, or earlier in whole hours to fit a
+    /// Night's Sleep Onset.
+    public let axisStartHour: Int
+    /// The morning hour the When you slept axis ends: 10, or later in whole hours to fit a
+    /// Night's Final Wake.
+    public let axisEndHour: Int
+    /// The axis' ends as clock times, e.g. "20:00" and "10:00".
+    public let axisStartText: String
+    public let axisEndText: String
+    /// The time zone the axis was worked out in, so times are placed on it the same way.
+    let timeZone: TimeZone
+
+    /// How many Days Your week shows (spec 011: 7, D − 6 to D).
+    static let length = 7
+    /// The When you slept axis' usual start, an evening hour (spec 011: 20:00).
+    static let usualStartHour = 20
+    /// The When you slept axis' usual end, a morning hour (spec 011: 10:00).
+    static let usualEndHour = 10
+    /// Minutes past midnight of noon. A Night's window runs noon to noon (GLOSSARY, Night window),
+    /// so its Sleep Onset is after noon or before its Final Wake, and its Final Wake before noon:
+    /// noon splits evening times from morning ones.
+    private static let noonMinutes = 12.0 * 60
+
+    init(to shown: Day, nights: [Night], timeZone: TimeZone, birthYear: Int?) {
+        days = (0..<Self.length).reversed().map { back in
+            let day = shown.adding(days: -back)
+            let night = nights.first { $0.day == day }
+            let need = night.map { _ in
+                SleepNeed(for: day, among: nights, birthYear: birthYear).sleepNeed
+            }
+            let timeAsleep = night?.plausibleTimeAsleep
+            return SleepWeekDay(
+                day: day,
+                letter: day.weekdayLetter,
+                isShown: day == shown,
+                timeAsleepText: night.map { _ in timeAsleep.map(durationText) ?? missingText },
+                sleepNeedText: need.map(durationText),
+                timeAsleep: timeAsleep,
+                sleepNeed: need,
+                sleepOnset: night?.sleepOnset,
+                finalWake: night?.finalWake
+            )
+        }
+        // Widened to whole hours for an evening Sleep Onset before 20:00 or a morning Final Wake
+        // after 10:00.
+        var start = Double(Self.usualStartHour * 60)
+        var end = Double(Self.usualEndHour * 60)
+        for day in days {
+            if let onset = day.sleepOnset {
+                let minutes = ClockTime.minutes(of: onset, in: timeZone)
+                if minutes >= Self.noonMinutes { start = min(start, minutes) }
+            }
+            if let wake = day.finalWake {
+                let minutes = ClockTime.minutes(of: wake, in: timeZone)
+                if minutes < Self.noonMinutes { end = max(end, minutes) }
+            }
+        }
+        axisStartHour = Int((start / 60).rounded(.down))
+        axisEndHour = Int((end / 60).rounded(.up))
+        axisStartText = ClockTime.text(minutes: Double(axisStartHour * 60))
+        axisEndText = ClockTime.text(minutes: Double(axisEndHour * 60))
+        self.timeZone = timeZone
+    }
+
+    /// Where `time` falls on the When you slept axis, 0 at its evening start to 1 at its
+    /// morning end; morning times sit on the axis' second day.
+    public func axisFraction(of time: Date) -> Double {
+        var minutes = ClockTime.minutes(of: time, in: timeZone)
+        if minutes < Self.noonMinutes { minutes += ClockTime.minutesPerDay }
+        let start = Double(axisStartHour * 60)
+        let end = Double(axisEndHour * 60) + ClockTime.minutesPerDay
+        return min(max((minutes - start) / (end - start), 0), 1)
+    }
+}
+
+/// One Day in Your week; its Night's values are nil for an empty slot (no Night).
+public struct SleepWeekDay: Equatable, Sendable {
+    public let day: Day
+    /// Its weekday's first letter, as the week strip writes it, e.g. "M".
+    public let letter: String
+    /// Whether it's the Day shown, drawn in the accent colour.
+    public let isShown: Bool
+    /// The Night's Time Asleep, e.g. "6h 0m"; nil with no Night.
+    public let timeAsleepText: String?
+    /// The Night's own Sleep Need (spec 009), e.g. "8h 30m"; nil with no Night.
+    public let sleepNeedText: String?
+    /// Seconds, for the bar; nil with no Night (or no plausible Time Asleep).
+    public let timeAsleep: TimeInterval?
+    /// Seconds, for the Sleep Need mark; nil with no Night.
+    public let sleepNeed: TimeInterval?
+    /// UTC, for When you slept; nil with no Night.
+    public let sleepOnset: Date?
+    /// UTC, for When you slept; nil with no Night.
+    public let finalWake: Date?
 }
 
 /// The Sleep tab's Last night section, about one Night (spec 011, Last night).
