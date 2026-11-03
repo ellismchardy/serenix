@@ -118,7 +118,7 @@ Code to reuse:
    - Seam: Today view · Files: new `src/SerenixCore/MetricTexts.swift`,
      `src/SerenixCore/Popups.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`
    - Done when: each metric's popup texts equal the spec's table exactly.
-6. [ ] **Slice: Resting HR popup (core).** The Today view gains `restingHRPopup`, present
+6. [x] **Slice: Resting HR popup (core).** The Today view gains `restingHRPopup`, present
    whenever the Resting HR tile is. It holds:
    - the date text ("Today" on today), and the value text as on the tile;
    - the sentence: "So far today. A stiller moment later today can still lower it." on today,

@@ -288,9 +288,7 @@ public struct MetricPopup: Equatable, Sendable {
                 : tile.baseline.map {
                     "Your Zones · Baseline \(formattedValue(of: tile.metric, $0))"
                 }
-        let blockDates = (0..<Self.blockDays).map {
-            night.day.adding(days: $0 - Self.blockDays + 1)
-        }
+        let blockDates = night.day.lastDays(Self.blockDays)
         let blockNights = blockDates.map { day in
             nights.first { $0.day == day && $0.value(of: tile.metric) != nil }
         }
@@ -601,4 +599,64 @@ public struct LoadPopupZoneRow: Equatable, Sendable {
             ? "\(minutes)m" : "\(minutes / 60)h " + String(format: "%02ldm", minutes % 60)
         share = total > 0 ? Double(seconds) / Double(total) : 0
     }
+}
+
+/// The Resting HR popup (spec 011): the Day's Resting HR, its last 14 Days, and what it is.
+/// Resting HR has no Baseline or Zone, so there's no pill, scale or Your Zones.
+public struct RestingHRPopup: Equatable, Sendable {
+    /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
+    public let dateText: String
+    /// As on the tile, e.g. "57 bpm", or "—".
+    public let valueText: String
+    /// On today, that a stiller moment can still lower it; "No Resting HR for this Day." with
+    /// none; nil on an earlier Day with Resting HR.
+    public let sentenceText: String?
+    /// The Day shown and the 13 Days before it, oldest first.
+    public let blocks: [RestingHRPopupBlock]
+    /// The lowest Resting HR over those Days, in whole bpm; "—" when none has one.
+    public let lowestText: String
+    /// The highest Resting HR over those Days, in whole bpm; "—" when none has one.
+    public let highestText: String
+    /// What Resting HR is (spec 011, Text).
+    public let whatItIsText: String
+    /// What tends to move it, in order (spec 011, Text).
+    public let whatMovesItTexts: [String]
+
+    /// `restingHR` is the Day shown's, as its tile has it.
+    init(restingHR: Double?, for day: Day, isToday: Bool, among dayLoads: [DayLoad]) {
+        dateText = isToday ? "Today" : day.text
+        valueText = RestingHRTile.text(restingHR)
+        sentenceText =
+            if restingHR == nil {
+                "No Resting HR for this Day."
+            } else if isToday {
+                "So far today. A stiller moment later today can still lower it."
+            } else {
+                nil
+            }
+        let blockDays = day.lastDays(MetricPopup.blockDays)
+        let values = blockDays.map { blockDay in dayLoads.first { $0.day == blockDay }?.restingHR }
+        blocks = zip(blockDays, values).map { blockDay, value in
+            RestingHRPopupBlock(
+                weekdayLetter: blockDay.weekdayLetter,
+                hasValue: value != nil,
+                isDayShown: blockDay == day
+            )
+        }
+        let known = values.compactMap { $0 }
+        lowestText = RestingHRTile.text(known.min())
+        highestText = RestingHRTile.text(known.max())
+        whatItIsText = MetricTexts.restingHRWhatItIs
+        whatMovesItTexts = MetricTexts.restingHRWhatMovesIt
+    }
+}
+
+/// One Day in the Resting HR popup's Last 14 Days (spec 011).
+public struct RestingHRPopupBlock: Equatable, Sendable {
+    /// e.g. "S" for Sunday.
+    public let weekdayLetter: String
+    /// False for a Day with no Resting HR, drawn hatched.
+    public let hasValue: Bool
+    /// True only for the Day shown, which is outlined.
+    public let isDayShown: Bool
 }

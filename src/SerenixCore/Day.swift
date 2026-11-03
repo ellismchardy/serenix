@@ -81,6 +81,11 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
             ? "\(Self.monthTitles[month - 1]) \(year)" : missingText
     }
 
+    /// The `count` dates up to and including this one, oldest first.
+    func lastDays(_ count: Int) -> [Day] {
+        (0..<count).map { adding(days: $0 - count + 1) }
+    }
+
     /// The evening before this date, then this date, as a Night's span (spec 011): "2–3 Nov",
     /// or "31 Oct–1 Nov" across a month.
     var nightSpanText: String {

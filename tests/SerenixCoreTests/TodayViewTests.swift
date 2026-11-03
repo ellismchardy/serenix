@@ -1047,9 +1047,8 @@ private func gridTileName(_ tile: TodayTile) -> String {
     #expect(view.restingHRTile?.statusText == "So far today")
     #expect(view.restingHRTile?.zone == nil)
     #expect(view.restingHRTile?.gauge == nil)
-    // No popup: popups open only for a NightlyMetric (`metricPopup(_:)`), and Resting HR is a
-    // Day's, not a Nightly Metric, so there is no public route to a Resting HR popup at all.
-    // The tile not being tappable is checked by hand on the phone (spec 007, Seams under test).
+    // Tapping this tile opens the Resting HR popup (spec 011), tested under "Resting HR popup
+    // (spec 011)" below; that the tap opens it is checked by hand on the phone.
 }
 
 @Test func anEarlierDaysRestingHRTileHasNoStatus() {
@@ -2293,6 +2292,158 @@ func metricPopupExplainsWhatTheMetricIsAndWhatMovesIt(metric: NightlyMetric) {
         #expect(popup?.whatItIsText == specText(of: .hrv).whatItIs)
         #expect(popup?.whatMovesItTexts == specText(of: .hrv).whatMovesIt)
     }
+}
+
+// MARK: Resting HR popup (spec 011)
+
+@Test func todaysRestingHRPopupReadsTodayItsValueAndSoFarToday() {
+    let popup = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 57)],
+        showing: nov1
+    ).restingHRPopup
+
+    #expect(popup?.dateText == "Today")
+    #expect(popup?.valueText == "57 bpm")
+    #expect(
+        popup?.sentenceText == "So far today. A stiller moment later today can still lower it."
+    )
+}
+
+@Test func anEarlierDaysRestingHRPopupHasItsDateAndNoSentence() {
+    let popup = todayView(
+        nights: [Night(day: oct31), Night(day: nov1)],
+        dayLoads: [DayLoad(day: oct31, load: 12, restingHR: 58), DayLoad(day: nov1, load: 5)],
+        showing: oct31
+    ).restingHRPopup
+
+    #expect(popup?.dateText == "Sat 31 Oct")
+    #expect(popup?.valueText == "58 bpm")
+    #expect(popup != nil && popup?.sentenceText == nil)
+}
+
+@Test func aRestingHRPopupWithoutRestingHRShowsADashAndSaysSoTodayOrEarlier() {
+    let today = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 5)],
+        showing: nov1
+    ).restingHRPopup
+    let earlier = todayView(
+        nights: [Night(day: oct31), Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 57)],
+        showing: oct31
+    ).restingHRPopup
+
+    #expect(today?.valueText == "—")
+    #expect(today?.sentenceText == "No Resting HR for this Day.")
+    #expect(earlier?.dateText == "Sat 31 Oct")
+    #expect(earlier?.valueText == "—")
+    #expect(earlier?.sentenceText == "No Resting HR for this Day.")
+}
+
+/// Resting HR on each Day from 19 Oct (position 0) to 1 Nov (position 13): 58 bpm, except 55.4
+/// on 25 Oct (position 6) and 63.6 on 30 Oct (position 11). 22 Oct (position 3) has no DayLoad
+/// and 27 Oct (position 8) a DayLoad without Resting HR. Older Days, outside the 14, hold 40 on
+/// 18 Oct and 90 on 5 Oct.
+private let restingHRDayLoadsOct5ToNov1: [DayLoad] =
+    [
+        DayLoad(day: Day(year: 2026, month: 10, day: 5), load: 10, restingHR: 90),
+        DayLoad(day: Day(year: 2026, month: 10, day: 18), load: 10, restingHR: 40),
+    ]
+    + (19...31).compactMap { date -> DayLoad? in
+        let day = Day(year: 2026, month: 10, day: date)
+        switch date {
+        case 22: return nil
+        case 25: return DayLoad(day: day, load: 10, restingHR: 55.4)
+        case 27: return DayLoad(day: day, load: 10)
+        case 30: return DayLoad(day: day, load: 10, restingHR: 63.6)
+        default: return DayLoad(day: day, load: 10, restingHR: 58)
+        }
+    }
+    + [DayLoad(day: nov1, load: 5, restingHR: 58)]
+
+// 1 Nov 2026 is a Sunday, so its 14 Days run Monday 19 Oct to Sunday 1 Nov.
+@Test func restingHRPopupBlocksAreTheDayShownAndThe13BeforeItOldestFirst() {
+    let popup = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: restingHRDayLoadsOct5ToNov1,
+        showing: nov1
+    ).restingHRPopup
+
+    #expect(
+        popup?.blocks.map(\.weekdayLetter)
+            == ["M", "T", "W", "T", "F", "S", "S", "M", "T", "W", "T", "F", "S", "S"]
+    )
+    #expect(popup?.blocks.map(\.isDayShown) == Array(repeating: false, count: 13) + [true])
+}
+
+@Test func daysWithoutRestingHRAreRestingHRPopupBlocksWithNoValue() {
+    let popup = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: restingHRDayLoadsOct5ToNov1,
+        showing: nov1
+    ).restingHRPopup
+
+    #expect(popup?.blocks.count == 14)
+    #expect(
+        popup?.blocks.enumerated().filter { !$0.element.hasValue }.map(\.offset) == [3, 8]
+    )
+}
+
+@Test func restingHRPopupLowestAndHighestAreOverTheFourteenDaysOnlyInWholeBpm() {
+    let popup = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: restingHRDayLoadsOct5ToNov1,
+        showing: nov1
+    ).restingHRPopup
+
+    #expect(popup?.lowestText == "55 bpm")
+    #expect(popup?.highestText == "64 bpm")
+}
+
+@Test func restingHRPopupLowestAndHighestAreDashesWhenNoDayHasRestingHR() {
+    // Only 18 Oct, older than the 14 Days, has a Resting HR.
+    let popup = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [
+            DayLoad(day: Day(year: 2026, month: 10, day: 18), load: 10, restingHR: 40),
+            DayLoad(day: nov1, load: 5),
+        ],
+        showing: nov1
+    ).restingHRPopup
+
+    #expect(popup?.lowestText == "—")
+    #expect(popup?.highestText == "—")
+}
+
+@Test func restingHRPopupTextsAreSpecElevensRestingHRRowWordForWord() {
+    let popup = todayView(
+        nights: [Night(day: nov1)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 57)],
+        showing: nov1
+    ).restingHRPopup
+
+    #expect(
+        popup?.whatItIsText
+            == "Your lowest sustained heart rate on a Day while awake and still, outside your "
+            + "Sleep Period. Load is worked out against it. It has no Baseline or Zone, so it "
+            + "isn't coloured."
+    )
+    #expect(
+        popup?.whatMovesItTexts
+            == ["Caffeine", "Stress", "How still you were during the Day", "Fitness, over weeks"]
+    )
+}
+
+@Test func aDayWithoutANightHasNoRestingHRPopup() {
+    let view = todayView(
+        nights: [Night(day: oct31)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 61.6)],
+        showing: nov1
+    )
+
+    #expect(view.restingHRTile == nil)
+    #expect(view.restingHRPopup == nil)
 }
 
 // MARK: Popups on a Day without a Night
