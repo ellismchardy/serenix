@@ -113,7 +113,7 @@ private struct SleepPopupView: View {
                     HStack(spacing: 6) {
                         Circle().fill(shade).frame(width: 10, height: 10)
                         Text(part.name).font(.caption)
-                        Text(part.scoreText).font(.caption.bold()).monospacedDigit()
+                        Text(part.keyText).font(.caption.bold()).monospacedDigit()
                     }
                 }
             }
@@ -161,45 +161,114 @@ private struct SleepPopupView: View {
                 Text(popup.sleepNeedBar.neededText).monospacedDigit().foregroundStyle(.secondary)
             }
             .font(.subheadline)
-            LabeledContent("Sleep Debt") {
-                VStack(alignment: .trailing) {
-                    Text(popup.sleepDebtText)
+            // The amount level with its label, and which Nights it's from under the amount.
+            HStack(alignment: .firstTextBaseline) {
+                Text("Sleep Debt")
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(popup.sleepDebtText).bold().monospacedDigit()
                     Text(popup.sleepDebtCaption).font(.footnote).foregroundStyle(.secondary)
                 }
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    /// The Night's Sleep Period on its timeline, with how far off the usual times it was beside
+    /// the heading, a key, and Time in Bed, minutes awake and Sleep Efficiency's detail under it.
+    private var whenYouSlept: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("When you slept").font(.subheadline.bold())
+                Spacer()
+                if let note = popup.whenYouSleptNote {
+                    Text(note)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Theme.accentSoft, in: Capsule())
+                }
+            }
+            if let timeline = popup.timeline {
+                SleepTimelineView(timeline: timeline).frame(height: 104)
+                timelineKey(timeline)
+            } else {
+                Text("No Sleep Period for this Night").foregroundStyle(.secondary)
+            }
+            Divider()
+            HStack(alignment: .top) {
+                stat(
+                    "Time in Bed",
+                    popup.timeInBedText,
+                    detail: popup.timeInBedDurationText
+                )
+                stat("Awake in the night", popup.minutesAwakeText)
+                stat("Sleep Efficiency", popup.sleepEfficiencyDetailText)
             }
         }
     }
 
-    /// The Night's Sleep Period on its timeline, with Sleep Consistency's detail in the heading
-    /// and Time in Bed, minutes awake and Sleep Efficiency's detail in the caption.
-    private var whenYouSlept: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("When you slept").font(.subheadline.bold())
-                Text("· \(popup.sleepConsistencyDetailText)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    /// What the timeline's marks mean: the Sleep Period, and Time in Bed and the usual times when
+    /// they're drawn.
+    private func timelineKey(_ timeline: SleepTimeline) -> some View {
+        HStack(spacing: 12) {
+            keyItem("Asleep") { RoundedRectangle(cornerRadius: 3).fill(Theme.accent) }
+            if timeline.timeInBed != nil {
+                keyItem("In bed") { RoundedRectangle(cornerRadius: 3).fill(Theme.accentSoft) }
             }
-            if let timeline = popup.timeline {
-                SleepTimelineView(timeline: timeline).frame(height: 96)
-            } else {
-                Text("No Sleep Period for this Night").foregroundStyle(.secondary)
+            if timeline.usualSleepOnset != nil || timeline.usualFinalWake != nil {
+                keyItem("Usual") {
+                    Path { path in
+                        path.move(to: CGPoint(x: 6, y: 0))
+                        path.addLine(to: CGPoint(x: 6, y: 12))
+                    }
+                    .stroke(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2]))
+                }
             }
-            Text(
-                "Time in Bed \(popup.timeInBedText) (\(popup.timeInBedDurationText)) · "
-                    + "Awake in the night \(popup.minutesAwakeText) · "
-                    + popup.sleepEfficiencyDetailText
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
+    }
+
+    private func keyItem<Swatch: View>(
+        _ name: String,
+        @ViewBuilder swatch: () -> Swatch
+    ) -> some View {
+        HStack(spacing: 4) {
+            swatch().frame(width: 12, height: 12)
+            Text(name)
+        }
+    }
+
+    /// One fact under the timeline: a small label over its value, and an optional detail.
+    private func stat(_ label: String, _ value: String, detail: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(value).font(.footnote.weight(.semibold)).monospacedDigit()
+            if let detail {
+                Text(detail).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
 /// The Sleep popup's timeline (spec 010): the Sleep Period as an accent bar between its labelled
-/// ends, over the hour labels. Every position comes from `SleepTimeline`.
+/// ends, over faint hour lines and their labels. Every position comes from `SleepTimeline`.
 private struct SleepTimelineView: View {
     let timeline: SleepTimeline
+
+    // Rows, top to bottom, in points: "usual" labels, the band and bar, end labels, hours.
+    private static let usualLabelY: CGFloat = 7
+    private static let barTop: CGFloat = 26
+    private static let barHeight: CGFloat = 22
+    /// How far Time in Bed's band reaches above and below the bar, points.
+    private static let bandOverhang: CGFloat = 6
+    private static let endLabelY: CGFloat = 70
+    private static let hourLabelY: CGFloat = 96
 
     var body: some View {
         GeometryReader { geometry in
@@ -207,27 +276,44 @@ private struct SleepTimelineView: View {
             let periodWidth: CGFloat =
                 (timeline.finalWake.position - timeline.sleepOnset.position) * width
             ZStack(alignment: .topLeading) {
+                ForEach(timeline.hours, id: \.position) { hour in
+                    hourLine(at: hour.position * width)
+                }
                 // Time in Bed as a light band behind the Sleep Period.
                 if let bed = timeline.timeInBed {
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: 9)
                         .fill(Theme.accentSoft)
-                        .frame(width: (bed.end - bed.start) * width, height: 30)
-                        .offset(x: bed.start * width, y: 25)
+                        .frame(
+                            width: (bed.end - bed.start) * width,
+                            height: Self.barHeight + 2 * Self.bandOverhang
+                        )
+                        .offset(x: bed.start * width, y: Self.barTop - Self.bandOverhang)
                 }
-                RoundedRectangle(cornerRadius: 6)
+                Capsule()
                     .fill(Theme.accent)
-                    .frame(width: max(periodWidth, 2), height: 20)
-                    .offset(x: timeline.sleepOnset.position * width, y: 30)
-                endLabel(timeline.sleepOnset, width: width)
-                endLabel(timeline.finalWake, width: width)
+                    .frame(width: max(periodWidth, 2), height: Self.barHeight)
+                    .offset(x: timeline.sleepOnset.position * width, y: Self.barTop)
                 if let usual = timeline.usualSleepOnset { usualLine(usual, width: width) }
                 if let usual = timeline.usualFinalWake { usualLine(usual, width: width) }
+                inwardLabel(
+                    Text(timeline.sleepOnset.text).font(.caption.bold()).monospacedDigit(),
+                    at: timeline.sleepOnset.position * width,
+                    y: Self.endLabelY,
+                    width: width
+                )
+                inwardLabel(
+                    Text(timeline.finalWake.text).font(.caption.bold()).monospacedDigit(),
+                    at: timeline.finalWake.position * width,
+                    y: Self.endLabelY,
+                    width: width
+                )
                 ForEach(timeline.hours, id: \.position) { hour in
                     Text(hour.text)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .monospacedDigit()
                         .fixedSize()
-                        .position(x: hour.position * width, y: 86)
+                        .position(x: hour.position * width, y: Self.hourLabelY)
                 }
             }
         }
@@ -244,32 +330,54 @@ private struct SleepTimelineView: View {
         return text
     }
 
-    /// A usual Sleep Onset or Final Wake: a dashed line across the bar, labelled "usual" and its
-    /// clock time above it.
+    /// A faint vertical line at a labelled hour, from above the band to above the end labels.
+    private func hourLine(at x: CGFloat) -> some View {
+        Path { path in
+            path.move(to: CGPoint(x: x, y: Self.barTop - Self.bandOverhang - 4))
+            path.addLine(to: CGPoint(x: x, y: Self.hourLabelY - 10))
+        }
+        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+    }
+
+    /// A usual Sleep Onset or Final Wake: a dashed line across the band and bar, labelled
+    /// "usual" and its clock time above it.
     private func usualLine(_ mark: TimelineMark, width: CGFloat) -> some View {
         let x = mark.position * width
         return ZStack(alignment: .topLeading) {
             Path { path in
-                path.move(to: CGPoint(x: x, y: 20))
-                // Just below the bar (y 30–50), clear of the end labels at y 60.
-                path.addLine(to: CGPoint(x: x, y: 52))
+                path.move(to: CGPoint(x: x, y: Self.barTop - Self.bandOverhang - 4))
+                // Just past the band, clear of the end labels.
+                path.addLine(
+                    to: CGPoint(x: x, y: Self.barTop + Self.barHeight + Self.bandOverhang + 4)
+                )
             }
-            .stroke(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
-            Text("usual \(mark.text)")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .fixedSize()
-                .position(x: x, y: 10)
+            .stroke(Color.primary.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+            inwardLabel(
+                Text("usual \(mark.text)").font(.caption2).foregroundStyle(.secondary),
+                at: x,
+                y: Self.usualLabelY,
+                width: width
+            )
         }
     }
 
-    /// Sleep Onset's or Final Wake's clock time under its end of the bar.
-    private func endLabel(_ mark: TimelineMark, width: CGFloat) -> some View {
-        Text(mark.text)
-            .font(.caption2.bold())
-            .monospacedDigit()
+    /// The widest a timeline label can be, points: room for "usual 23:00" in a large text size.
+    private static let labelSlot: CGFloat = 120
+
+    /// `label` beside `x`, reading inwards so it never runs off the card: starting at `x` in the
+    /// timeline's left half, ending at `x` in its right half.
+    private func inwardLabel(
+        _ label: some View,
+        at x: CGFloat,
+        y: CGFloat,
+        width: CGFloat
+    ) -> some View {
+        let startsAtX = x < width / 2
+        return
+            label
             .fixedSize()
-            .position(x: mark.position * width, y: 60)
+            .frame(width: Self.labelSlot, alignment: startsAtX ? .leading : .trailing)
+            .position(x: startsAtX ? x + Self.labelSlot / 2 : x - Self.labelSlot / 2, y: y)
     }
 }
 

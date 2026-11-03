@@ -81,10 +81,13 @@ held (spec 002, spec 009) is in a card.
    Efficiency** in the middle, **Sleep Consistency** inside, in three shades of the accent
    colour, strongest outside (darkest in Light, brightest in Dark). Under the number a key
    names each part with its shade and its score as a whole number (halves up). A part left
-   out, and every part when Sleep Score is missing, has an empty ring and "—" in the key.
+   out has an empty ring and its detail in the key in place of a score ("Needs 3 Nights"); every
+   part when Sleep Score is missing has an empty ring and "—" in the key.
 2. **When you slept.** A timeline of the Night, with Sleep Consistency's detail beside its
-   heading, and below it a caption with Time in Bed (start–end), the minutes awake and Sleep
-   Efficiency's detail. On the timeline:
+   heading ("Usual times need 3 Nights" while it's left out; nothing when Sleep Score is
+   missing), a key to its marks under it, and below that three labelled facts: Time in Bed
+   (start–end, and its length), the minutes awake and Sleep Efficiency's detail. On the
+   timeline:
    - Time in Bed as a light band; not drawn when the Night has no Time in Bed.
    - The Sleep Period as an accent bar from Sleep Onset to Final Wake, each end labelled with
      its clock time.
@@ -102,7 +105,8 @@ held (spec 002, spec 009) is in a card.
    ÷ that (so 6 h against 8 h fills 0.75 with the marker at the end, and 9 h against 8 h fills
    the bar with the marker at 0.89). With no Time Asleep the bar is empty and the marker at the
    end. Under it "8h 0m asleep" and "needed 8h 0m" (as the Time Asleep tile writes them, "—"
-   for no Time Asleep), and Sleep Debt with its caption (spec 009).
+   for no Time Asleep), and Sleep Debt (spec 009): its amount level with the label on the
+   right, and its caption under the amount.
 
 Each part's detail:
 - Sleep Sufficiency: Time Asleep "of" Sleep Need, as the Time Asleep tile writes them ("6h 0m of
@@ -180,7 +184,10 @@ Sleep Consistency (earlier Nights dated 14, 13 and 12 Nov, each 23:00 to 07:00 u
 - [x] Earlier Sleep Onsets 23:50, 23:40 and 00:20 with Final Wakes 08:10, and tonight at 00:10 to
       08:10, read 98, with Sleep Consistency "92" ("10m off your usual").
 - [x] With only two earlier Nights, or three where one has no Final Wake, Sleep Consistency is
-      "—" ("Needs 3 Nights") and the Night reads 100.
+      "—" ("Needs 3 Nights") and the Night reads 100; the Sleep Score key shows "Needs 3 Nights"
+      for it, and "When you slept" has "Usual times need 3 Nights" beside its heading.
+- [x] With tonight at 00:10 to 08:10 against 23:00 to 07:00, "When you slept" has "1h 10m off
+      your usual" beside its heading; with Sleep Score missing it has nothing there.
 - [x] An earlier Night dated 8 Nov counts and one dated 7 Nov doesn't: 13 Nov, 12 Nov and 8 Nov
       at 01:00 to 09:00 give Sleep Consistency "0"; 13 Nov, 12 Nov and 7 Nov leave it "—".
 
@@ -224,7 +231,8 @@ Build and phone:
       on the ring, and the Sleep popup shows the three cards (Sleep Score with nested rings,
       When you slept, How much you slept) and no list of plain rows, in Light and Dark.
 - [ ] On the phone (by hand): a Night after fewer than 3 earlier Nights shows Sleep Consistency's
-      inner ring empty, "Needs 3 Nights", and no usual-time lines.
+      inner ring empty, "Needs 3 Nights" in the key, "Usual times need 3 Nights" beside "When
+      you slept", and no usual-time lines.
 
 ## Non-goals (explicitly out of scope)
 - Sleep stages, time to fall asleep, and Sleeping HR or HRV as inputs (Sleeping HR is already

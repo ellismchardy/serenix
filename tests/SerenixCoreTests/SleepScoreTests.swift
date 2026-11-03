@@ -415,6 +415,19 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
     #expect(consistency?.detailText == "Needs 3 Nights")
 }
 
+@Test func theSleepScoreKeySaysWhySleepConsistencyIsLeftOut() {
+    let view = todayView(nights: [nightOn15Nov()])
+
+    #expect(part("Sleep Consistency", of: view)?.keyText == "Needs 3 Nights")
+    #expect(part("Sleep Sufficiency", of: view)?.keyText == "100")
+}
+
+@Test func withSleepScoreMissingTheSleepScoreKeyReadsDash() {
+    let view = todayView(nights: [nightOn15Nov(timeAsleep: nil)])
+
+    #expect(part("Sleep Consistency", of: view)?.keyText == "\u{2014}")
+}
+
 @Test func withNoTimeAsleepTheSleepPopupsThreeRingsReadDashAndAreEmpty() {
     let popup = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup
 
@@ -439,11 +452,28 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
 
 // MARK: Sleep popup timeline
 
-@Test func whenYouSleptCarriesSleepConsistencysAndSleepEfficiencysDetails() {
+@Test func whenYouSleptSaysUsualTimesNeed3NightsAndCarriesSleepEfficiencysDetail() {
     let popup = todayView(nights: [nightOn15Nov(sleepOnset: at(14, 22))]).sleepPopup
 
-    #expect(popup?.sleepConsistencyDetailText == "Needs 3 Nights")
+    #expect(popup?.whenYouSleptNote == "Usual times need 3 Nights")
     #expect(popup?.sleepEfficiencyDetailText == "89% asleep")
+}
+
+@Test func whenYouSleptCarriesSleepConsistencysDetailOnceUsualTimesExist() {
+    let popup = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 0, 10), finalWake: at(15, 8, 10))]
+            + usualEarlierNights
+    )
+    .sleepPopup
+
+    #expect(popup?.whenYouSleptNote == "1h 10m off your usual")
+}
+
+@Test func withSleepScoreMissingWhenYouSleptHasNoNote() {
+    let popup = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup
+
+    #expect(popup != nil)
+    #expect(popup?.whenYouSleptNote == nil)
 }
 
 /// `share` of the axis to 3 decimal places, as spec 010 states timeline positions.

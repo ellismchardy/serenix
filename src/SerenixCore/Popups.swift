@@ -97,6 +97,9 @@ public struct SleepScorePart: Equatable, Sendable {
     /// What it came from, e.g. "6h 0m of 8h 0m", "89% asleep", "35m off your usual", "Needs 3
     /// Nights"; "—" when there's nothing to show.
     public let detailText: String
+    /// What the Sleep Score key shows beside the part's name: its score, or why it's left out
+    /// ("Needs 3 Nights"); "—" when Sleep Score is missing.
+    public var keyText: String { scoreText == missingText ? detailText : scoreText }
 
     init(name: String, score: Double?, detailText: String = missingText) {
         self.name = name
@@ -153,8 +156,16 @@ public struct SleepPopup: Equatable, Sendable {
     /// Sleep Score's parts as three nested rings, outermost first: Sleep Sufficiency, Sleep
     /// Efficiency, Sleep Consistency (spec 010).
     public let parts: [SleepScorePart]
-    /// Sleep Consistency's detail, beside the "When you slept" heading (spec 010).
-    public var sleepConsistencyDetailText: String { detail(of: SleepScorePart.consistencyName) }
+    /// Beside the "When you slept" heading (spec 010): Sleep Consistency's detail ("35m off your
+    /// usual"), or "Usual times need 3 Nights" while it's left out; nil when Sleep Score is
+    /// missing.
+    public var whenYouSleptNote: String? {
+        guard sleepScoreText != missingText else { return nil }
+        let consistency = parts.first { $0.name == SleepScorePart.consistencyName }
+        return consistency?.scoreText == missingText
+            ? "Usual times need \(SleepScore.fewestConsistencyNights) Nights"
+            : consistency?.detailText
+    }
     /// Sleep Efficiency's detail, in the "When you slept" caption (spec 010).
     public var sleepEfficiencyDetailText: String { detail(of: SleepScorePart.efficiencyName) }
     /// Start–end in local time, e.g. "22:30–07:05"; "—" if either is missing.
