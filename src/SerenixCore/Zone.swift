@@ -78,21 +78,44 @@ public enum Zone: Equatable, Sendable {
     static func inRangeLimits(_ metric: NightlyMetric, baseline: Baseline)
         -> (low: Double?, high: Double?)
     {
-        guard let median = baseline.median else { return (nil, nil) }
-        return switch (metric, baseline.spread) {
+        metric.hasBaseline ? edges(metric, baseline: baseline)?.inRange ?? (nil, nil) : (nil, nil)
+    }
+
+    /// Where each Zone ends (spec 011, Your Zones): the In range limits, and where Watch turns into
+    /// Out of range, nil on a side with no limit. Around `baseline`, or for SpO2 its fixed
+    /// levels. Nil when there's no Baseline to measure from: Calibrating, HRV's Baseline 0 or
+    /// less, or an HRV or respiratory rate Baseline with no Spread.
+    static func edges(_ metric: NightlyMetric, baseline: Baseline?) -> ZoneEdges? {
+        if metric == .spo2 {
+            return ZoneEdges(inRange: (spo2InRangeFrom, nil), watch: (spo2WatchFrom, nil))
+        }
+        guard let baseline, let median = baseline.median else { return nil }
+        switch (metric, baseline.spread) {
         case (.hrv, let spread?) where median > 0:
-            (median * exp(hrvZInRangeFrom * spread), median * exp(hrvZInRangeUpTo * spread))
-        case (.sleepingHR, _):
-            (nil, median + sleepingHRWatchFrom)
+            let edge = { (z: Double) in median * exp(z * spread) }
+            return ZoneEdges(
+                inRange: (edge(hrvZInRangeFrom), edge(hrvZInRangeUpTo)),
+                watch: (edge(hrvZWatchFrom), nil)
+            )
         case (.respiratoryRate, let spread?):
-            (
-                median - respiratoryRateZInRangeUpTo * spread,
-                median + respiratoryRateZInRangeUpTo * spread
+            let inRange = respiratoryRateZInRangeUpTo * spread
+            let watch = respiratoryRateZWatchUpTo * spread
+            return ZoneEdges(
+                inRange: (median - inRange, median + inRange),
+                watch: (median - watch, median + watch)
+            )
+        case (.sleepingHR, _):
+            return ZoneEdges(
+                inRange: (nil, median + sleepingHRWatchFrom),
+                watch: (nil, median + sleepingHROutOfRangeFrom)
             )
         case (.skinTemperature, _):
-            (median - skinTemperatureInRangeUpTo, median + skinTemperatureInRangeUpTo)
+            return ZoneEdges(
+                inRange: (median - skinTemperatureInRangeUpTo, median + skinTemperatureInRangeUpTo),
+                watch: (median - skinTemperatureWatchUpTo, median + skinTemperatureWatchUpTo)
+            )
         case (.hrv, _), (.respiratoryRate, nil), (.spo2, _):
-            (nil, nil)
+            return nil
         }
     }
 
@@ -251,4 +274,12 @@ public enum Zone: Equatable, Sendable {
         return measure >= outOfRange - tolerance
             ? .outOfRange : measure >= watch - tolerance ? .watch : .inRange
     }
+}
+
+/// Where a metric's Zones end (spec 011, Your Zones); nil on a side with no limit.
+struct ZoneEdges {
+    /// In range lies between these.
+    let inRange: (low: Double?, high: Double?)
+    /// Watch lies between these and In range; Out of range lies beyond them.
+    let watch: (low: Double?, high: Double?)
 }

@@ -1994,6 +1994,110 @@ private func segmentsMatch(
     #expect(missing != nil && missing?.scale == nil)
 }
 
+// Spec 011: Your Zones. Range texts are the spec's success criteria, word for word ("–" is an en
+// dash).
+
+/// The Zones rows' Zones, top to bottom: always In range, Watch, Out of range.
+private let zoneRowOrder: [Zone] = [.inRange, .watch, .outOfRange]
+
+// HRV against 60 with the typical Spread (0.15): spec 004's In range band is 47.9 to 87.3, and
+// W = exp(ln 60 − 2.5 × 0.15) = 41.2. 48 is In range.
+@Test func hrvZonesRowsAreItsBandAroundTheBaselineWithTheNightsRowMarked() {
+    let popup = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 48)],
+        showing: nov1
+    ).metricPopup(.hrv)
+
+    #expect(popup?.zonesHeading == "Your Zones · Baseline 60 ms")
+    #expect(popup?.zoneRows.map(\.zone) == zoneRowOrder)
+    #expect(
+        popup?.zoneRows.map(\.rangeText) == ["48–87 ms", "41–48 ms, or above 87 ms", "under 41 ms"]
+    )
+    #expect(popup?.zoneRows.map(\.isThisNight) == [true, false, false])
+}
+
+// Sleeping HR 57 against 52: +5 bpm, Out of range (spec 004's cut-offs B+3 and B+5).
+@Test func sleepingHRZonesRowsAreFixedGapsAboveTheBaseline() {
+    let popup = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 57)],
+        showing: nov1
+    ).metricPopup(.sleepingHR)
+
+    #expect(popup?.zonesHeading == "Your Zones · Baseline 52 bpm")
+    #expect(popup?.zoneRows.map(\.zone) == zoneRowOrder)
+    #expect(popup?.zoneRows.map(\.rangeText) == ["under 55 bpm", "55 to 57 bpm", "57 bpm and up"])
+    #expect(popup?.zoneRows.map(\.isThisNight) == [false, false, true])
+}
+
+// Spec 004's seven earlier Nights: Baseline 14.0, Spread 0.59304, so In range 13.11 to 14.89 and
+// Watch out to 12.52 and 15.48. 14.0 is In range.
+@Test func respiratoryRateZonesRowsAreScaledByItsSpread() {
+    let earlier: [Double?] = [14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0]
+    let popup = todayView(
+        nights: nightsBeforeNov1(respiratoryRate: earlier)
+            + [Night(day: nov1, respiratoryRate: 14.0)],
+        showing: nov1
+    ).metricPopup(.respiratoryRate)
+
+    #expect(popup?.zonesHeading == "Your Zones · Baseline 14.0 br/min")
+    #expect(popup?.zoneRows.map(\.zone) == zoneRowOrder)
+    #expect(
+        popup?.zoneRows.map(\.rangeText) == [
+            "13.1–14.9 br/min", "12.5–13.1 or 14.9–15.5 br/min", "under 12.5 or above 15.5 br/min",
+        ]
+    )
+    #expect(popup?.zoneRows.map(\.isThisNight) == [true, false, false])
+}
+
+// Skin temperature 34.3 against 33.8: +0.5 °C, Watch (spec 004's cut-offs ±0.3 and ±0.6).
+@Test func skinTemperatureZonesRowsAreFixedGapsEitherSideOfTheBaseline() {
+    let popup = todayView(
+        nights: nightsBeforeNov1(skinTemperature: [33.8, 33.8, 33.8])
+            + [Night(day: nov1, skinTemperature: 34.3)],
+        showing: nov1
+    ).metricPopup(.skinTemperature)
+
+    #expect(popup?.zonesHeading == "Your Zones · Baseline 33.8 °C")
+    #expect(popup?.zoneRows.map(\.zone) == zoneRowOrder)
+    #expect(
+        popup?.zoneRows.map(\.rangeText) == [
+            "33.5 to 34.1 °C", "33.2 to 33.5 or 34.1 to 34.4 °C", "under 33.2 or above 34.4 °C",
+        ]
+    )
+    #expect(popup?.zoneRows.map(\.isThisNight) == [false, true, false])
+}
+
+// SpO2 has no Baseline: its Zones are fixed levels, from the first Night. 93 is Watch.
+@Test func spo2ZonesAreFixedLevelsHeadedZones() {
+    let popup = todayView(nights: [Night(day: nov1, spo2: 93)], showing: nov1).metricPopup(.spo2)
+
+    #expect(popup?.zonesHeading == "Zones")
+    #expect(popup?.zoneRows.map(\.zone) == zoneRowOrder)
+    #expect(popup?.zoneRows.map(\.rangeText) == ["95% and up", "92% to 95%", "under 92%"])
+    #expect(popup?.zoneRows.map(\.isThisNight) == [false, true, false])
+}
+
+@Test func aNightMissingTheValueHasZonesRowsWithNoneMarked() {
+    let popup = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 52)],
+        showing: nov1
+    ).metricPopup(.hrv)
+
+    #expect(popup?.zonesHeading == "Your Zones · Baseline 60 ms")
+    #expect(popup?.zoneRows.map(\.zone) == zoneRowOrder)
+    #expect(popup?.zoneRows.map(\.isThisNight) == [false, false, false])
+}
+
+@Test func aCalibratingMetricPopupHasNoZonesRows() {
+    let popup = todayView(
+        nights: nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)],
+        showing: nov1
+    ).metricPopup(.hrv)
+
+    #expect(popup != nil && popup?.zoneRows.isEmpty == true)
+    #expect(popup != nil && popup?.zonesHeading == nil)
+}
+
 // MARK: Popups on a Day without a Night
 
 @Test func aDayWithoutANightHasNoPopups() {

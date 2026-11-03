@@ -75,7 +75,7 @@ Code to reuse:
      - SpO2 93 → 0.4167, with no Baseline position
 
      Also: each metric's segments equal the spec table, and Calibrating or missing has no scale.
-3. [ ] **Slice: Your Zones rows.** `Zone` gains the Watch and Out of range limits per metric:
+3. [x] **Slice: Your Zones rows.** `Zone` gains the Watch and Out of range limits per metric:
    - HRV W = exp(ln B − 2.5·Spread)
    - respiratory rate B ∓ 2.5·Spread
    - Sleeping HR B+3 and B+5

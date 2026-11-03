@@ -231,6 +231,12 @@ public struct MetricPopup: Equatable, Sendable {
     public let verdictText: String
     /// Where the value sits among the Zones (spec 011, Zone scale); nil with no Zone.
     public let scale: MetricPopupScale?
+    /// "Your Zones · Baseline 60 ms", or "Zones" for SpO2 (spec 011, Your Zones); nil with no
+    /// rows.
+    public let zonesHeading: String?
+    /// In range, Watch and Out of range, with their ranges; none without a Baseline to measure
+    /// from (Calibrating).
+    public let zoneRows: [MetricPopupZoneRow]
     /// The Night shown and up to 13 earlier Nights, oldest first, without missing values.
     public let chart: [MetricPopupPoint]
     /// The 5 most recent of those, newest first.
@@ -256,6 +262,16 @@ public struct MetricPopup: Equatable, Sendable {
         statusText = tile.statusText
         verdictText = Self.verdict(tile, value: night.value(of: tile.metric))
         scale = MetricPopupScale(tile, value: night.value(of: tile.metric))
+        zoneRows = MetricPopupZoneRow.rows(tile)
+        // SpO2 has fixed levels, so no Baseline to name.
+        zonesHeading =
+            zoneRows.isEmpty
+            ? nil
+            : !tile.metric.hasBaseline
+                ? "Zones"
+                : tile.baseline.map {
+                    "Your Zones · Baseline \(formattedValue(of: tile.metric, $0))"
+                }
         chart = recentNights(Self.chartNights, upTo: night, among: nights).compactMap { night in
             night.value(of: tile.metric).map { MetricPopupPoint(day: night.day, value: $0) }
         }
@@ -332,6 +348,67 @@ public struct MetricPopupScaleSegment: Equatable, Sendable {
     public let zone: Zone
     public let from: Double
     public let to: Double
+}
+
+/// One row of the Nightly Metric popup's Your Zones (spec 011).
+public struct MetricPopupZoneRow: Equatable, Sendable {
+    public let zone: Zone
+    /// The Zone's values, rounded as the metric's are shown, e.g. "41–48 ms, or above 87 ms".
+    public let rangeText: String
+    /// True for the Night's own Zone; with no value, no row is.
+    public let isThisNight: Bool
+
+    /// In range, Watch and Out of range for `tile`'s metric (spec 011, Your Zones table); none
+    /// when its Zones have no edges.
+    static func rows(_ tile: MetricTile) -> [MetricPopupZoneRow] {
+        guard let edges = Zone.edges(tile.metric, baseline: tile.comparedBaseline),
+            let texts = rangeTexts(tile.metric, edges)
+        else { return [] }
+        return zip([Zone.inRange, .watch, .outOfRange], texts).map {
+            MetricPopupZoneRow(zone: $0, rangeText: $1, isThisNight: $0 == tile.zone)
+        }
+    }
+
+    /// The In range, Watch and Out of range texts; nil if an edge the metric needs is missing.
+    private static func rangeTexts(_ metric: NightlyMetric, _ edges: ZoneEdges) -> [String]? {
+        let (inLow, inHigh) = (edges.inRange.low, edges.inRange.high)
+        let (watchLow, watchHigh) = (edges.watch.low, edges.watch.high)
+        switch metric {
+        case .hrv:
+            guard let low = inLow.map(wholeText), let high = inHigh.map(wholeText),
+                let watch = watchLow.map(wholeText)
+            else { return nil }
+            return [
+                "\(low)–\(high) ms", "\(watch)–\(low) ms, or above \(high) ms", "under \(watch) ms",
+            ]
+        case .respiratoryRate:
+            guard let low = inLow.map(tenthsText), let high = inHigh.map(tenthsText),
+                let bottom = watchLow.map(tenthsText), let top = watchHigh.map(tenthsText)
+            else { return nil }
+            return [
+                "\(low)–\(high) br/min", "\(bottom)–\(low) or \(high)–\(top) br/min",
+                "under \(bottom) or above \(top) br/min",
+            ]
+        case .sleepingHR:
+            guard let high = inHigh.map(wholeText), let top = watchHigh.map(wholeText) else {
+                return nil
+            }
+            return ["under \(high) bpm", "\(high) to \(top) bpm", "\(top) bpm and up"]
+        case .skinTemperature:
+            guard let low = inLow.map(tenthsText), let high = inHigh.map(tenthsText),
+                let bottom = watchLow.map(tenthsText), let top = watchHigh.map(tenthsText)
+            else { return nil }
+            return [
+                "\(low) to \(high) °C", "\(bottom) to \(low) or \(high) to \(top) °C",
+                "under \(bottom) or above \(top) °C",
+            ]
+        case .spo2:
+            guard let from = inLow.map(wholeText), let watch = watchLow.map(wholeText) else {
+                return nil
+            }
+            return ["\(from)% and up", "\(watch)% to \(from)%", "under \(watch)%"]
+        }
+    }
 }
 
 /// One Night's value on the Nightly Metric popup's chart.

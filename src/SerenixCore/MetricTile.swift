@@ -133,7 +133,7 @@ func wholeText(_ value: Double) -> String {
 }
 
 /// To one decimal place, e.g. "14.0".
-private func tenthsText(_ value: Double) -> String {
+func tenthsText(_ value: Double) -> String {
     let tenths = Int((value * 10).rounded())
     let sign = tenths < 0 ? "\u{2212}" : ""
     return "\(sign)\(abs(tenths) / 10).\(abs(tenths) % 10)"
