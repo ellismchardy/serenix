@@ -164,8 +164,8 @@ struct ScreenChrome<Content: View>: View {
 
 extension TodayView {
     /// The Today view for the Day shown, from the phone's stored Nights, Day Loads, sync and
-    /// Profile, as both tabs need it.
-    init(
+    /// Profile, as both tabs need it. Main actor, as the stores it reads are.
+    @MainActor init(
         connection: StrapConnection,
         profile: ProfileStore,
         showing day: Day,
