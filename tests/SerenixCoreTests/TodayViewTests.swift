@@ -1676,7 +1676,7 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
         .metricPopup(.spo2)
 
     #expect(popup?.valueText == "97%")
-    #expect(popup?.differenceText == "95% or above")
+    #expect(popup?.verdictText == "A healthy level.")
     #expect(popup?.zone == .inRange)
     #expect(popup != nil && popup?.baselineText == nil)
     #expect(popup?.zonesHeading == "Zones")
@@ -1686,7 +1686,10 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
     let nights = nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)]
     let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
 
-    #expect(popup?.differenceText == "Calibrating")
+    #expect(
+        popup?.verdictText
+            == "Calibrating: Serenix needs 3 earlier Nights with HRV to know what's usual for you (2 so far)."
+    )
     #expect(popup?.baselineText == "Calibrating")
     #expect(popup != nil && popup?.zoneRows.isEmpty == true)
 }

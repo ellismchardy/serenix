@@ -278,7 +278,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       Day's values.
 - [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
 - [x] Baseline, Spread, Zones, status words, gauge positions and the popup's In range band: see
-      spec 004's success criteria.
+      spec 004's success criteria (spec 011 replaces the band with the popup's Your Zones rows).
 - [x] Differences format as "+14%" for HRV, "−3 bpm" for Sleeping HR, and "+0.4" for respiratory
       rate and skin temperature.
 - [x] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.

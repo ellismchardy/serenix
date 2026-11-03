@@ -270,8 +270,6 @@ public struct MetricPopup: Equatable, Sendable {
     public let metric: NightlyMetric
     /// As on the tile.
     public let valueText: String
-    /// As on the tile: the difference, or SpO2's level.
-    public let differenceText: String
     public let zone: Zone?
     /// "Night of 31 Oct–1 Nov": the evening before the Night's date, then its date (spec 011).
     public let nightText: String
@@ -309,7 +307,6 @@ public struct MetricPopup: Equatable, Sendable {
     init(_ tile: MetricTile, for night: Night, among nights: [Night]) {
         metric = tile.metric
         valueText = tile.valueText
-        differenceText = tile.differenceText
         zone = tile.zone
         nightText = "Night of \(night.day.nightSpanText)"
         statusText = tile.statusText

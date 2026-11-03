@@ -16,7 +16,7 @@ public enum Zone: Equatable, Sendable {
     private static let hrvZInRangeUpTo = 2.5
     private static let hrvZWatchFrom = -2.5
     /// Sleeping HR above Baseline, bpm, up only (spec 004): Watch from +3, Out of range from +5.
-    /// A lower Sleeping HR is never a warning. The Watch cut-off is also the band's upper limit.
+    /// A lower Sleeping HR is never a warning. The Watch cut-off is also the In range row's upper limit (spec 011).
     private static let sleepingHRWatchFrom = 3.0
     private static let sleepingHROutOfRangeFrom = 5.0
     /// Respiratory rate's |z|, its distance from Baseline in Spreads, either side (spec 004): In
