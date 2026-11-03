@@ -40,8 +40,9 @@ The app is split in two (ADR 0002):
   timestamp together (the Strap can reuse a Record Counter after a reboot). Kept for 30 days,
   then pruned.
 - **Night**: one Sleep Period, dated by the local date of its Final Wake. It holds Sleep Onset,
-  Final Wake, Time in Bed, Nightly Metrics and Sleep Score. Kept forever. Readiness isn't stored:
-  it's worked out from the Nights and Days each time it's shown (spec 008).
+  Final Wake, Time in Bed, Time Asleep and Nightly Metrics. Kept forever. Sleep Score and
+  Readiness aren't stored: they're worked out from the Nights (and, for Readiness, the Days) each
+  time they're shown (specs 008, 010).
 - **Day**: a local calendar day with its Resting HR (spec 007), its Load, and its HR Zones hour
   by hour, Highest HR and Max HR used (spec 006). Kept forever.
 - **Baseline**: not stored. Each Nightly Metric's median, and HRV's and respiratory rate's

@@ -66,9 +66,13 @@ public struct ReadinessPopupRow: Equatable, Sendable {
     /// A signed difference in whole minutes: "−30m", "+1h 10m", "±0".
     private static func differenceText(_ seconds: TimeInterval) -> String {
         guard let minutes = Int(exactly: (seconds / 60).rounded()) else { return missingText }
-        let (hours, rest) = (abs(minutes) / 60, abs(minutes) % 60)
-        return signedText(minutes, magnitude: hours > 0 ? "\(hours)h \(rest)m" : "\(rest)m")
+        return signedText(minutes, magnitude: hoursMinutesText(abs(minutes)))
     }
+}
+
+/// Whole minutes in hours and minutes for a popup: "35m", "1h 10m", "2h 0m".
+func hoursMinutesText(_ minutes: Int) -> String {
+    minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m" : "\(minutes)m"
 }
 
 /// A signed difference for a popup: "+12", "−5" or "±0" (spec 006 and 008), with `magnitude`
@@ -82,9 +86,73 @@ func signedText(_ difference: Int, magnitude: String? = nil) -> String {
     }
 }
 
+/// One part of Sleep Score in the Sleep popup, drawn as a small ring (spec 010, Sleep popup).
+public struct SleepScorePart: Equatable, Sendable {
+    /// "Sleep Sufficiency", "Sleep Efficiency" or "Sleep Consistency".
+    public let name: String
+    /// The part as a whole number, halves up; "—" when it's left out or Sleep Score is missing.
+    public let scoreText: String
+    /// The ring's fill, 0 to 1; an empty ring when it's left out.
+    public let fill: Double
+    /// What it came from, e.g. "6h 0m of 8h 0m", "89% asleep", "35m off your usual", "Needs 3
+    /// Nights"; "—" when there's nothing to show.
+    public let detailText: String
+
+    init(name: String, score: Double?, detailText: String = missingText) {
+        self.name = name
+        let rounded = score.map(halvesUp)
+        scoreText = SerenixCore.scoreText(rounded)
+        fill = ringFill(rounded)
+        self.detailText = detailText
+    }
+
+    /// Sleep Score's three parts, in order; each "—" when Sleep Score is missing (spec 010).
+    static func parts(of sleepScore: SleepScore?) -> [SleepScorePart] {
+        guard let sleepScore else {
+            return [sufficiencyName, efficiencyName, consistencyName].map {
+                SleepScorePart(name: $0, score: nil)
+            }
+        }
+        let timeAsleep = durationText(sleepScore.timeAsleep)
+        let sleepNeed = durationText(sleepScore.sleepNeed)
+        let asleep = sleepScore.asleepShare.map { "\(halvesUp($0 * 100))% asleep" }
+        let off = sleepScore.minutesOff.map { "\(hoursMinutesText(halvesUp($0))) off your usual" }
+        return [
+            SleepScorePart(
+                name: sufficiencyName,
+                score: sleepScore.sufficiency,
+                detailText: "\(timeAsleep) of \(sleepNeed)"
+            ),
+            SleepScorePart(
+                name: efficiencyName,
+                score: sleepScore.efficiency,
+                detailText: asleep ?? missingText
+            ),
+            SleepScorePart(
+                name: consistencyName,
+                score: sleepScore.consistency,
+                detailText: off ?? "Needs \(SleepScore.fewestConsistencyNights) Nights"
+            ),
+        ]
+    }
+
+    private static let sufficiencyName = "Sleep Sufficiency"
+    private static let efficiencyName = "Sleep Efficiency"
+    private static let consistencyName = "Sleep Consistency"
+}
+
+/// `value` rounded to a whole number with halves up, for scores and their parts, which are never
+/// negative (rounding away from zero is then rounding halves up).
+func halvesUp(_ value: Double) -> Int {
+    Int(value.rounded(.toNearestOrAwayFromZero))
+}
+
 /// The Sleep popup (spec 002, Popups).
 public struct SleepPopup: Equatable, Sendable {
     public let sleepScoreText: String
+    /// Sleep Score's parts as three small rings: Sleep Sufficiency, Sleep Efficiency, Sleep
+    /// Consistency (spec 010).
+    public let parts: [SleepScorePart]
     /// Start–end in local time, e.g. "22:30–07:05"; "—" if either is missing.
     public let timeInBedText: String
     /// e.g. "8h 35m"; "—" if missing.
@@ -103,8 +171,14 @@ public struct SleepPopup: Equatable, Sendable {
     /// "32 min"; "—" if any is missing or it comes out negative.
     public let minutesAwakeText: String
 
-    init(_ night: Night, sleepNeed: SleepNeed, sleepScoreText: String, timeZone: TimeZone) {
-        self.sleepScoreText = sleepScoreText
+    init(
+        _ night: Night,
+        sleepNeed: SleepNeed,
+        sleepScore: SleepScore?,
+        timeZone: TimeZone
+    ) {
+        sleepScoreText = scoreText(sleepScore?.score)
+        parts = SleepScorePart.parts(of: sleepScore)
         sleepNeedText = durationText(sleepNeed.sleepNeed)
         sleepDebtText = durationText(sleepNeed.sleepDebt)
         sleepDebtCaption =
