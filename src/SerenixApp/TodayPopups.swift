@@ -118,9 +118,20 @@ private struct SleepPopupView: View {
         }
         .sleepCard()
         whenYouSlept.sleepCard()
+        howMuchYouSlept.sleepCard()
+    }
+
+    /// Time Asleep as a bar with a marker at Sleep Need, then Sleep Debt (spec 010).
+    private var howMuchYouSlept: some View {
         VStack(alignment: .leading, spacing: 8) {
-            LabeledContent("Time Asleep", value: popup.timeAsleepText)
-            LabeledContent("Sleep Need", value: popup.sleepNeedText)
+            Text("How much you slept").font(.subheadline.bold())
+            SleepNeedBarView(bar: popup.sleepNeedBar).frame(height: 22)
+            HStack {
+                Text(popup.sleepNeedBar.asleepText).monospacedDigit()
+                Spacer()
+                Text(popup.sleepNeedBar.neededText).monospacedDigit().foregroundStyle(.secondary)
+            }
+            .font(.subheadline)
             LabeledContent("Sleep Debt") {
                 VStack(alignment: .trailing) {
                     Text(popup.sleepDebtText)
@@ -128,7 +139,6 @@ private struct SleepPopupView: View {
                 }
             }
         }
-        .sleepCard()
     }
 
     /// The Night's Sleep Period on its timeline, with Sleep Consistency's detail in the heading
@@ -236,6 +246,31 @@ private struct SleepTimelineView: View {
             .monospacedDigit()
             .fixedSize()
             .position(x: mark.position * width, y: 60)
+    }
+}
+
+/// The Sleep Need bar (spec 010): Time Asleep filled in the accent colour, with a marker at Sleep
+/// Need. Fill and marker come from `SleepNeedBar`.
+private struct SleepNeedBarView: View {
+    let bar: SleepNeedBar
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let markerX: CGFloat = max(0, min(bar.marker * width, width - 2))
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 6).fill(Theme.accentSoft)
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Theme.accent)
+                    .frame(width: bar.fill * width)
+                Rectangle()
+                    .fill(.primary)
+                    .frame(width: 2, height: geometry.size.height + 8)
+                    .offset(x: markerX)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(bar.asleepText), \(bar.neededText)")
     }
 }
 

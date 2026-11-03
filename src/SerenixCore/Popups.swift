@@ -172,6 +172,8 @@ public struct SleepPopup: Equatable, Sendable {
     public let minutesAwakeText: String
     /// The "When you slept" timeline (spec 010); nil without Sleep Onset or Final Wake.
     public let timeline: SleepTimeline?
+    /// The "How much you slept" bar: Time Asleep against Sleep Need (spec 010).
+    public let sleepNeedBar: SleepNeedBar
 
     init(
         _ night: Night,
@@ -203,6 +205,7 @@ public struct SleepPopup: Equatable, Sendable {
         finalWakeText = night.finalWake.map { clockText($0, in: timeZone) } ?? missingText
         let timeAsleep = night.plausibleTimeAsleep
         timeAsleepText = timeAsleep.map(durationText) ?? missingText
+        sleepNeedBar = SleepNeedBar(timeAsleep: timeAsleep, sleepNeed: sleepNeed.sleepNeed)
         minutesAwakeText =
             if let onset = night.sleepOnset, let wake = night.finalWake, let timeAsleep,
                 let minutes = Int(
@@ -214,6 +217,30 @@ public struct SleepPopup: Equatable, Sendable {
             } else {
                 missingText
             }
+    }
+}
+
+/// The Sleep popup's "How much you slept" bar (spec 010): Time Asleep against Sleep Need, on a
+/// scale of whichever is longer.
+public struct SleepNeedBar: Equatable, Sendable {
+    /// How far the bar fills, 0 to 1: Time Asleep's share of the scale; 0 with no Time Asleep.
+    public let fill: Double
+    /// Where the Sleep Need marker sits, 0 to 1: Sleep Need's share of the scale.
+    public let marker: Double
+    /// e.g. "8h 0m asleep"; "—" with no Time Asleep.
+    public let asleepText: String
+    /// e.g. "needed 8h 0m".
+    public let neededText: String
+
+    /// The bar for `timeAsleep` (nil when there's no plausible Time Asleep) against `sleepNeed`,
+    /// both in seconds.
+    init(timeAsleep: TimeInterval?, sleepNeed: TimeInterval) {
+        let scale = max(timeAsleep ?? 0, sleepNeed)
+        fill = scale > 0 ? (timeAsleep ?? 0) / scale : 0
+        // With nothing to scale by, the marker sits at the end, as with no Time Asleep.
+        marker = scale > 0 ? sleepNeed / scale : 1
+        asleepText = timeAsleep.map { "\(durationText($0)) asleep" } ?? missingText
+        neededText = "needed \(durationText(sleepNeed))"
     }
 }
 

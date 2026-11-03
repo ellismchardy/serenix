@@ -74,7 +74,7 @@ The shell (`src/SerenixApp/TodayPopups.swift`, `SleepPopupView`) is rebuilt as t
    - Done when: criteria "23:30–07:40 against 23:00–07:00: usual 23:00 at 0, 07:00 at 0.889,
      axis 23:00–08:00, Sleep Onset 0.056, Final Wake 0.963" and "midnight wrap: usual 23:50 and
      08:10, axis 23:00–09:00" pass.
-5. [ ] **Slice:** the Sleep Need bar, and the "How much you slept" card drawing it with
+5. [x] **Slice:** the Sleep Need bar, and the "How much you slept" card drawing it with
    "asleep"/"needed" texts and Sleep Debt with its caption.
    - Seam: Today view · Files: `src/SerenixCore/Popups.swift`,
      `tests/SerenixCoreTests/SleepScoreTests.swift`, `src/SerenixApp/TodayPopups.swift`

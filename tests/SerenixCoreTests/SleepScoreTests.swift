@@ -554,3 +554,41 @@ private func threePlaces(_ share: Double) -> Double {
     #expect(popup != nil)
     #expect(popup?.timeline == nil)
 }
+
+// MARK: Sleep popup Sleep Need bar
+
+@Test func theDefaultNightsSleepNeedBarIsFullWithTheMarkerAtTheEnd() {
+    let bar = todayView(nights: [nightOn15Nov()]).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 1.0)
+    #expect(bar.map { threePlaces($0.marker) } == 1.0)
+    #expect(bar?.asleepText == "8h 0m asleep")
+    #expect(bar?.neededText == "needed 8h 0m")
+}
+
+@Test func sixHoursAsleepAgainstASleepNeedOf8HoursFillsTheBarTo075() {
+    let bar = todayView(
+        nights: [nightOn15Nov(finalWake: at(15, 5, 18), timeAsleep: 6 * oneHour)]
+    ).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 0.75)
+    #expect(bar.map { threePlaces($0.marker) } == 1.0)
+}
+
+@Test func nineHoursAsleepAgainstASleepNeedOf8HoursFillsTheBarWithTheMarkerAt0889() {
+    let bar = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(14, 22), timeAsleep: 9 * oneHour)]
+    ).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 1.0)
+    #expect(bar.map { threePlaces($0.marker) } == 0.889)
+}
+
+@Test func aNightWithNoTimeAsleepHasAnEmptySleepNeedBarReadingDashAsleep() {
+    let bar = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 0)
+    #expect(bar.map { threePlaces($0.marker) } == 1.0)
+    #expect(bar?.asleepText == "—")
+    #expect(bar?.neededText == "needed 8h 0m")
+}
