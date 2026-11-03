@@ -269,6 +269,15 @@ private struct SleepTimelineView: View {
     private static let bandOverhang: CGFloat = 6
     private static let endLabelY: CGFloat = 70
     private static let hourLabelY: CGFloat = 96
+    /// Time in Bed's band: the bar with `bandOverhang` above and below.
+    private static let bandTop: CGFloat = barTop - bandOverhang
+    private static let bandHeight: CGFloat = barHeight + 2 * bandOverhang
+    /// Where the hour and usual lines start: just above the band.
+    private static let linesTop: CGFloat = barTop - bandOverhang - 4
+    /// Where a usual line ends: just below the band, clear of the end labels.
+    private static let usualLineBottom: CGFloat = barTop + barHeight + bandOverhang + 4
+    /// Where an hour line ends: just above the hour labels.
+    private static let hourLineBottom: CGFloat = hourLabelY - 10
 
     var body: some View {
         GeometryReader { geometry in
@@ -283,11 +292,8 @@ private struct SleepTimelineView: View {
                 if let bed = timeline.timeInBed {
                     RoundedRectangle(cornerRadius: 9)
                         .fill(Theme.accentSoft)
-                        .frame(
-                            width: (bed.end - bed.start) * width,
-                            height: Self.barHeight + 2 * Self.bandOverhang
-                        )
-                        .offset(x: bed.start * width, y: Self.barTop - Self.bandOverhang)
+                        .frame(width: (bed.end - bed.start) * width, height: Self.bandHeight)
+                        .offset(x: bed.start * width, y: Self.bandTop)
                 }
                 Capsule()
                     .fill(Theme.accent)
@@ -333,8 +339,8 @@ private struct SleepTimelineView: View {
     /// A faint vertical line at a labelled hour, from above the band to above the end labels.
     private func hourLine(at x: CGFloat) -> some View {
         Path { path in
-            path.move(to: CGPoint(x: x, y: Self.barTop - Self.bandOverhang - 4))
-            path.addLine(to: CGPoint(x: x, y: Self.hourLabelY - 10))
+            path.move(to: CGPoint(x: x, y: Self.linesTop))
+            path.addLine(to: CGPoint(x: x, y: Self.hourLineBottom))
         }
         .stroke(Color.primary.opacity(0.08), lineWidth: 1)
     }
@@ -345,11 +351,8 @@ private struct SleepTimelineView: View {
         let x = mark.position * width
         return ZStack(alignment: .topLeading) {
             Path { path in
-                path.move(to: CGPoint(x: x, y: Self.barTop - Self.bandOverhang - 4))
-                // Just past the band, clear of the end labels.
-                path.addLine(
-                    to: CGPoint(x: x, y: Self.barTop + Self.barHeight + Self.bandOverhang + 4)
-                )
+                path.move(to: CGPoint(x: x, y: Self.linesTop))
+                path.addLine(to: CGPoint(x: x, y: Self.usualLineBottom))
             }
             .stroke(Color.primary.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
             inwardLabel(
@@ -372,12 +375,15 @@ private struct SleepTimelineView: View {
         y: CGFloat,
         width: CGFloat
     ) -> some View {
-        let startsAtX = x < width / 2
+        let startsAtX: Bool = x < width / 2
+        let halfSlot: CGFloat = Self.labelSlot / 2
+        let centreX: CGFloat = startsAtX ? x + halfSlot : x - halfSlot
+        let alignment: Alignment = startsAtX ? .leading : .trailing
         return
             label
             .fixedSize()
-            .frame(width: Self.labelSlot, alignment: startsAtX ? .leading : .trailing)
-            .position(x: startsAtX ? x + Self.labelSlot / 2 : x - Self.labelSlot / 2, y: y)
+            .frame(width: Self.labelSlot, alignment: alignment)
+            .position(x: centreX, y: y)
     }
 }
 
