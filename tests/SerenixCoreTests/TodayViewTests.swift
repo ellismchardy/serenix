@@ -1737,6 +1737,98 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
     #expect(popup != nil && popup?.inRangeHigh == nil)
 }
 
+// Spec 011: the popup's heading, pill and verdict.
+
+@Test func metricPopupHeadingNamesTheEveningBeforeAndTheNightsDate() {
+    let nov1Popup = todayView(nights: [Night(day: nov1, hrv: 60)], showing: nov1)
+        .metricPopup(.hrv)
+    #expect(nov1Popup?.nightText == "Night of 31 Oct–1 Nov")
+
+    // 2026-11-02T08:12:00Z, 08:12 local in London, so 2 Nov is today.
+    let nov2Now = Date(timeIntervalSince1970: 1_793_607_120)
+    let nov2Popup = todayView(
+        nights: [Night(day: nov1, hrv: 60), laterNightOnNov2],
+        showing: Day(year: 2026, month: 11, day: 2),
+        at: nov2Now
+    ).metricPopup(.hrv)
+    #expect(nov2Popup?.nightText == "Night of 1–2 Nov")
+}
+
+// HRV with a typical Spread (0.15) against a Baseline of 60: 48 is 48 / 60 = 0.8, so −20%, and
+// z = ln 0.8 / 0.15 = −1.49, In range; 45 is −25%, z = ln 0.75 / 0.15 = −1.92, Watch.
+// Sleeping HR 57 against a Baseline of 52 is +5 bpm, Out of range (spec 004).
+@Test func metricPopupVerdictAgainstABaselineEndsWithItsZoneInWords() {
+    let hrv48 = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 48)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    #expect(hrv48?.statusText == "Normal")
+    #expect(hrv48?.verdictText == "\u{2212}20% against your Baseline: about usual for you.")
+    #expect(hrv48?.zone == .inRange)
+
+    let hrv45 = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 45)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    #expect(hrv45?.statusText == "Low")
+    #expect(hrv45?.verdictText == "\u{2212}25% against your Baseline: unusual for you.")
+    #expect(hrv45?.zone == .watch)
+
+    let sleepingHR57 = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 57)],
+        showing: nov1
+    ).metricPopup(.sleepingHR)
+    #expect(sleepingHR57?.statusText == "High")
+    #expect(
+        sleepingHR57?.verdictText == "+5 bpm against your Baseline: well outside your usual."
+    )
+    #expect(sleepingHR57?.zone == .outOfRange)
+}
+
+@Test(
+    arguments: [
+        (97, "95% or above", "A healthy level.", .inRange),
+        (93, "Below 95%", "A little low.", .watch),
+        (90, "Below 92%", "Low.", .outOfRange),
+    ] as [(Double, String, String, Zone)]
+)
+func spo2PopupVerdictSaysItsLevelInWords(spo2: Double, status: String, verdict: String, zone: Zone)
+{
+    let popup = todayView(nights: [Night(day: nov1, spo2: spo2)], showing: nov1)
+        .metricPopup(.spo2)
+
+    #expect(popup?.statusText == status)
+    #expect(popup?.verdictText == verdict)
+    #expect(popup?.zone == zone)
+}
+
+@Test func aCalibratingMetricPopupSaysHowManyEarlierNightsItHasWithNoZone() {
+    let nights = nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(popup?.statusText == "Calibrating")
+    #expect(
+        popup?.verdictText
+            == "Calibrating: Serenix needs 3 earlier Nights with HRV to know what's usual for you "
+            + "(2 so far)."
+    )
+    #expect(popup != nil && popup?.zone == nil)
+}
+
+@Test func aMetricPopupForANightMissingTheValueSaysSoWithNoZone() {
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [Night(day: nov1)], showing: nov1)
+
+    let hrv = view.metricPopup(.hrv)
+    #expect(hrv?.valueText == "—")
+    #expect(hrv?.statusText == "—")
+    #expect(hrv?.verdictText == "No HRV for this Night.")
+    #expect(hrv != nil && hrv?.zone == nil)
+
+    let sleepingHR = view.metricPopup(.sleepingHR)
+    #expect(sleepingHR?.verdictText == "No Sleeping HR for this Night.")
+    #expect(sleepingHR != nil && sleepingHR?.zone == nil)
+}
+
 // MARK: Popups on a Day without a Night
 
 @Test func aDayWithoutANightHasNoPopups() {

@@ -222,6 +222,13 @@ public struct MetricPopup: Equatable, Sendable {
     /// As on the tile: the difference, or SpO2's level.
     public let differenceText: String
     public let zone: Zone?
+    /// "Night of 31 Oct–1 Nov": the evening before the Night's date, then its date (spec 011).
+    public let nightText: String
+    /// As on the tile: its status word, or SpO2's level.
+    public let statusText: String
+    /// What the value means for the user, e.g. "−20% against your Baseline: about usual for
+    /// you." (spec 011, Verdict). Its last words take `zone`'s colour.
+    public let verdictText: String
     /// The Night shown and up to 13 earlier Nights, oldest first, without missing values.
     public let chart: [MetricPopupPoint]
     /// The 5 most recent of those, newest first.
@@ -243,6 +250,9 @@ public struct MetricPopup: Equatable, Sendable {
         valueText = tile.valueText
         differenceText = tile.differenceText
         zone = tile.zone
+        nightText = "Night of \(night.day.nightSpanText)"
+        statusText = tile.statusText
+        verdictText = Self.verdict(tile, value: night.value(of: tile.metric))
         chart = recentNights(Self.chartNights, upTo: night, among: nights).compactMap { night in
             night.value(of: tile.metric).map { MetricPopupPoint(day: night.day, value: $0) }
         }
@@ -256,6 +266,36 @@ public struct MetricPopup: Equatable, Sendable {
         let limits = tile.comparedBaseline.map { Zone.inRangeLimits(tile.metric, baseline: $0) }
         inRangeLow = limits?.low
         inRangeHigh = limits?.high
+    }
+
+    /// The verdict sentence (spec 011): the difference and the Zone in words against a
+    /// Baseline, SpO2's level, how many earlier Nights a Calibrating Baseline has, or that the
+    /// value is missing.
+    private static func verdict(_ tile: MetricTile, value: Double?) -> String {
+        let name = tile.metric.name
+        guard value != nil else { return "No \(name) for this Night." }
+        if tile.metric == .spo2 {
+            return switch tile.zone {
+            case .inRange: "A healthy level."
+            case .watch: "A little low."
+            case .outOfRange: "Low."
+            case nil: missingText
+            }
+        }
+        guard let baseline = tile.comparedBaseline, !baseline.isCalibrating else {
+            let soFar = tile.comparedBaseline?.earlierNights ?? 0
+            return "Calibrating: Serenix needs \(Baseline.minEarlierNights) earlier Nights with "
+                + "\(name) to know what's usual for you (\(soFar) so far)."
+        }
+        // HRV against a Baseline of 0 or less has no Zone, and so nothing to say.
+        guard let zone = tile.zone else { return missingText }
+        let meaning =
+            switch zone {
+            case .inRange: "about usual for you."
+            case .watch: "unusual for you."
+            case .outOfRange: "well outside your usual."
+            }
+        return "\(tile.differenceText) against your Baseline: \(meaning)"
     }
 }
 
