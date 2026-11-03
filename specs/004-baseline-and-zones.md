@@ -1,7 +1,7 @@
 # 004 — Baseline and Zones
 
 **Status:** built
-**Last updated:** 2026-11-01 (spec 007: Resting HR renamed Sleeping HR; behavior unchanged)
+**Last updated:** 2026-11-03 (spec 011: the popup's In range band becomes its Your Zones rows)
 **Issue:** https://github.com/ellismchardy/serenix/issues/14 (map: https://github.com/ellismchardy/serenix/issues/12)
 
 ## Problem
@@ -84,7 +84,8 @@ turns into Out of range:
 - SpO2: unchanged, a fixed scale from 88% to 100%.
 
 **In range band** (Nightly Metric popup, spec 002): the values that are In range, with no limit
-on a side that has none:
+on a side that has none (superseded by spec 011: the popup shows these limits as its Your Zones
+In range row, rounded as the metric's values are shown):
 - HRV: exp(ln Baseline − 1.5 × Spread) to exp(ln Baseline + 2.5 × Spread), in ms.
 - Respiratory rate: Baseline ± 1.5 × Spread.
 - Sleeping HR: no lower limit, upper limit Baseline + 3.
@@ -141,16 +142,18 @@ Spread:
       earlier Nights of 14.0 is Watch (z 1.6); against seven, it is Out of range (Spread
       floored to 0.3, z 2.67).
 - [x] Scaled MAD: respiratory rate over earlier Nights 14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0
-      has Baseline 14.0 and Spread 0.59304, so the popup band is 13.11 to 14.89 (to 2 dp), 14.88
-      and 13.12 are In range, 14.9 and 13.11 are Watch, 15.48 is Watch, and 15.49 and 12.5 are
-      Out of range.
+      has Baseline 14.0 and Spread 0.59304, so the In range limits are 13.11 to 14.89 (to 2 dp;
+      spec 011's Your Zones row reads "13.1–14.9 br/min"), 14.88 and 13.12 are In range, 14.9
+      and 13.11 are Watch, 15.48 is Watch, and 15.49 and 12.5 are Out of range.
 - [x] HRV's floor: 50 against seven earlier Nights of 60 is Watch (Spread 0.10, z −1.82); against
       three, it is In range (typical 0.15, z −1.22). 54 against seven of 60 is In range.
 - [x] HRV's Spread is on ln(RMSSD): with earlier Nights 40, 50, 60, 60, 60, 72 and 90, the
-      Baseline is 60 and the Spread is 1.4826 × ln 1.2 = 0.27031, so the popup band runs 40.00 to
-      117.93 ms (to 2 dp); 40.1 is In range and 39.9 is Watch.
+      Baseline is 60 and the Spread is 1.4826 × ln 1.2 = 0.27031, so the In range limits run 40.00
+      to 117.93 ms (to 2 dp; spec 011's Your Zones row reads "40–118 ms"); 40.1 is In range
+      and 39.9 is Watch.
 - [x] The Spread uses the same up-to-14 Nights as the median: with 20 earlier Nights, giving the
-      6 oldest wild values changes no Zone, gauge or band.
+      6 oldest wild values changes no Zone, gauge or band (since spec 011,
+      no Zone scale position).
 
 Zones (replacing spec 002's Zone criteria):
 - [x] HRV against Baseline 60 with the typical Spread: 48 is In range, 47.9 is Watch, 41.3 is
@@ -175,10 +178,10 @@ Status words, gauge and band (replacing spec 002's criteria for these):
       respiratory rate 15.0 → 0.9, 13.5 → 0.3, 16 → 1 (clamped); Sleeping HR 54.5 → 0.75, 47 →
       0; skin temperature 33.7 → 0.25; SpO2 97 → 0.75, 85 → 0 (clamped); a Calibrating or
       missing metric has no position.
-- [x] Popup In range band with typical Spreads: HRV against 60 runs 47.91 to 87.30 ms;
-      respiratory rate against 14.0 runs 13.25 to 14.75; Sleeping HR against 52 has no lower
-      limit and an upper limit of 55; skin temperature against 34.0 runs 33.7 to 34.3; SpO2 has
-      none.
+- [x] Popup In range band with typical Spreads (superseded by spec 011's Your Zones rows): HRV
+      against 60 runs 47.91 to 87.30 ms; respiratory rate against 14.0 runs 13.25 to 14.75;
+      Sleeping HR against 52 has no lower limit and an upper limit of 55; skin temperature
+      against 34.0 runs 33.7 to 34.3; SpO2 has none.
 
 Manual, on the iPhone with the sideloaded CI build:
 - [ ] After a sync with real Nights, each metric tile's Zone, status word and gauge match the

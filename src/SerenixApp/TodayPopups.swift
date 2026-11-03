@@ -7,6 +7,7 @@ enum TodayPopup: Identifiable, Hashable {
     case readiness
     case sleep
     case metric(NightlyMetric)
+    case restingHR
     case load
 
     var id: Self { self }
@@ -31,6 +32,8 @@ struct TodayPopupView: View {
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
                 case .metric(let metric):
                     if let content = today.metricPopup(metric) { MetricPopupView(popup: content) }
+                case .restingHR:
+                    if let content = today.restingHRPopup { RestingHRPopupView(popup: content) }
                 case .load:
                     if let load = today.loadPopup {
                         LoadPopupView(popup: load, connection: connection)
@@ -41,6 +44,7 @@ struct TodayPopupView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .presentationBackground(Theme.popupBackground)
     }
 }
 
@@ -94,86 +98,651 @@ private struct SleepPopupView: View {
 
     var body: some View {
         Text("Sleep").font(.headline)
-        LabeledContent("Sleep Score", value: popup.sleepScoreText)
-        // Sleep Score's parts as three small rings, each with what it came from (spec 010).
-        HStack(alignment: .top) {
-            ForEach(popup.parts, id: \.name) { part in
-                VStack(spacing: 4) {
-                    ScoreRing(
-                        text: part.scoreText,
-                        fill: part.fill,
-                        label: part.name,
-                        diameter: 64
-                    )
-                    Text(part.detailText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+        // Three cards (spec 010, Sleep popup): Sleep Score, When you slept, How much you slept.
+        sleepScore.popupCard()
+        whenYouSlept.popupCard()
+        howMuchYouSlept.popupCard()
+    }
+
+    /// The Sleep Score as a big number with a key of its parts, and the parts as nested rings:
+    /// Sleep Sufficiency outside, Sleep Efficiency in the middle, Sleep Consistency inside.
+    private var sleepScore: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Sleep Score").font(.footnote).foregroundStyle(.secondary)
+                Text(popup.sleepScoreText)
+                    .font(.system(size: 52, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                ForEach(Array(zip(popup.parts, Self.partShades)), id: \.0.name) { part, shade in
+                    HStack(spacing: 6) {
+                        Circle().fill(shade).frame(width: 10, height: 10)
+                        Text(part.name).font(.caption)
+                        Text(part.scoreText).font(.caption.bold()).monospacedDigit()
+                    }
                 }
-                .frame(maxWidth: .infinity)
+            }
+            Spacer(minLength: 0)
+            ZStack {
+                ForEach(Array(zip(popup.parts, Self.partShades).enumerated()), id: \.element.0.name)
+                { index, pair in
+                    RingArc(fill: pair.0.fill, colour: pair.1, lineWidth: Self.ringLineWidth)
+                        .frame(width: ringDiameter(index), height: ringDiameter(index))
+                }
+            }
+            // The outer stroke reaches half a line past its circle.
+            .frame(width: ringDiameter(0), height: ringDiameter(0))
+            .padding(Self.ringLineWidth / 2)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                popup.parts.map { "\($0.name) \($0.scoreText)" }.joined(separator: ", ")
+            )
+        }
+    }
+
+    /// Each part's shade, in the parts' order: the accent outside, lighter inwards.
+    private static let partShades = [Theme.accent, Theme.accentMiddle, Theme.accentInner]
+    /// The nested rings' stroke, points.
+    private static let ringLineWidth: CGFloat = 11
+    /// The outer ring's diameter, points.
+    private static let outerRingDiameter: CGFloat = 131
+    /// The gap between nested rings, points.
+    private static let ringGap: CGFloat = 3
+
+    /// The nested ring at `index`'s diameter, outermost first, each a stroke and a gap inside
+    /// the last on either side.
+    private func ringDiameter(_ index: Int) -> CGFloat {
+        Self.outerRingDiameter - CGFloat(index) * 2 * (Self.ringLineWidth + Self.ringGap)
+    }
+
+    /// Time Asleep as a bar with a marker at Sleep Need, then Sleep Debt (spec 010).
+    private var howMuchYouSlept: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("How much you slept").font(.subheadline.bold())
+            SleepNeedBarView(bar: popup.sleepNeedBar).frame(height: 22)
+            HStack {
+                Text(popup.sleepNeedBar.asleepText).monospacedDigit()
+                Spacer()
+                Text(popup.sleepNeedBar.neededText).monospacedDigit().foregroundStyle(.secondary)
+            }
+            .font(.subheadline)
+            // The amount level with its label, and which Nights it's from under the amount.
+            HStack(alignment: .firstTextBaseline) {
+                Text("Sleep Debt")
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(popup.sleepDebtText).bold().monospacedDigit()
+                    Text(popup.sleepDebtCaption).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    /// The Night's Sleep Period on its timeline, with how far off the usual times it was beside
+    /// the heading, a key, and Time in Bed, minutes awake and Sleep Efficiency's detail under it.
+    private var whenYouSlept: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("When you slept").font(.subheadline.bold())
+                Spacer()
+                if let note = popup.whenYouSleptNote {
+                    Text(note)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Theme.accentSoft, in: Capsule())
+                }
+            }
+            if let timeline = popup.timeline {
+                SleepTimelineView(timeline: timeline).frame(height: 104)
+                timelineKey(timeline)
+            } else {
+                Text("No Sleep Period for this Night").foregroundStyle(.secondary)
+            }
+            Divider()
+            HStack(alignment: .top) {
+                stat(
+                    "Time in Bed",
+                    popup.timeInBedText,
+                    detail: popup.timeInBedDurationText
+                )
+                stat("Awake in the night", popup.minutesAwakeText)
+                stat("Sleep Efficiency", popup.sleepEfficiencyDetailText)
             }
         }
-        LabeledContent("Time in Bed") {
-            Text("\(popup.timeInBedText) · \(popup.timeInBedDurationText)")
-        }
-        LabeledContent("Sleep Onset", value: popup.sleepOnsetText)
-        LabeledContent("Final Wake", value: popup.finalWakeText)
-        LabeledContent("Time Asleep", value: popup.timeAsleepText)
-        LabeledContent("Sleep Need", value: popup.sleepNeedText)
-        LabeledContent("Sleep Debt") {
-            VStack(alignment: .trailing) {
-                Text(popup.sleepDebtText)
-                Text(popup.sleepDebtCaption).font(.footnote).foregroundStyle(.secondary)
+    }
+
+    /// What the timeline's marks mean: the Sleep Period, and Time in Bed and the usual times when
+    /// they're drawn.
+    private func timelineKey(_ timeline: SleepTimeline) -> some View {
+        HStack(spacing: 12) {
+            keyItem("Asleep") { RoundedRectangle(cornerRadius: 3).fill(Theme.accent) }
+            if timeline.timeInBed != nil {
+                keyItem("In bed") { RoundedRectangle(cornerRadius: 3).fill(Theme.accentSoft) }
+            }
+            if timeline.usualSleepOnset != nil || timeline.usualFinalWake != nil {
+                keyItem("Usual") {
+                    Path { path in
+                        path.move(to: CGPoint(x: 6, y: 0))
+                        path.addLine(to: CGPoint(x: 6, y: 12))
+                    }
+                    .stroke(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2]))
+                }
             }
         }
-        LabeledContent("Awake in the night", value: popup.minutesAwakeText)
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .accessibilityHidden(true)
+    }
+
+    private func keyItem<Swatch: View>(
+        _ name: String,
+        @ViewBuilder swatch: () -> Swatch
+    ) -> some View {
+        HStack(spacing: 4) {
+            swatch().frame(width: 12, height: 12)
+            Text(name)
+        }
+    }
+
+    /// One fact under the timeline: a small label over its value, and an optional detail.
+    private func stat(_ label: String, _ value: String, detail: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(value).font(.footnote.weight(.semibold)).monospacedDigit()
+            if let detail {
+                Text(detail).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
+/// The Sleep popup's timeline (spec 010): the Sleep Period as an accent bar between its labelled
+/// ends, over faint hour lines and their labels. Every position comes from `SleepTimeline`.
+private struct SleepTimelineView: View {
+    let timeline: SleepTimeline
+
+    // Rows, top to bottom, in points: "usual" labels, the band and bar, end labels, hours.
+    private static let usualLabelY: CGFloat = 7
+    private static let barTop: CGFloat = 26
+    private static let barHeight: CGFloat = 22
+    /// How far Time in Bed's band reaches above and below the bar, points.
+    private static let bandOverhang: CGFloat = 6
+    private static let endLabelY: CGFloat = 70
+    private static let hourLabelY: CGFloat = 96
+    /// Time in Bed's band: the bar with `bandOverhang` above and below.
+    private static let bandTop: CGFloat = barTop - bandOverhang
+    private static let bandHeight: CGFloat = barHeight + 2 * bandOverhang
+    /// Where the hour and usual lines start: just above the band.
+    private static let linesTop: CGFloat = barTop - bandOverhang - 4
+    /// Where a usual line ends: just below the band, clear of the end labels.
+    private static let usualLineBottom: CGFloat = barTop + barHeight + bandOverhang + 4
+    /// Where an hour line ends: just above the hour labels.
+    private static let hourLineBottom: CGFloat = hourLabelY - 10
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let periodWidth: CGFloat =
+                (timeline.finalWake.position - timeline.sleepOnset.position) * width
+            ZStack(alignment: .topLeading) {
+                ForEach(timeline.hours, id: \.position) { hour in
+                    hourLine(at: hour.position * width)
+                }
+                // Time in Bed as a light band behind the Sleep Period.
+                if let bed = timeline.timeInBed {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(Theme.accentSoft)
+                        .frame(width: (bed.end - bed.start) * width, height: Self.bandHeight)
+                        .offset(x: bed.start * width, y: Self.bandTop)
+                }
+                Capsule()
+                    .fill(Theme.accent)
+                    .frame(width: max(periodWidth, 2), height: Self.barHeight)
+                    .offset(x: timeline.sleepOnset.position * width, y: Self.barTop)
+                if let usual = timeline.usualSleepOnset { usualLine(usual, width: width) }
+                if let usual = timeline.usualFinalWake { usualLine(usual, width: width) }
+                inwardLabel(
+                    Text(timeline.sleepOnset.text).font(.caption.bold()).monospacedDigit(),
+                    at: timeline.sleepOnset.position * width,
+                    y: Self.endLabelY,
+                    width: width
+                )
+                inwardLabel(
+                    Text(timeline.finalWake.text).font(.caption.bold()).monospacedDigit(),
+                    at: timeline.finalWake.position * width,
+                    y: Self.endLabelY,
+                    width: width
+                )
+                ForEach(timeline.hours, id: \.position) { hour in
+                    Text(hour.text)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .fixedSize()
+                        .position(x: hour.position * width, y: Self.hourLabelY)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    /// The Sleep Period, and the usual times when they're drawn.
+    private var accessibilityText: String {
+        var text = "Asleep from \(timeline.sleepOnset.text) to \(timeline.finalWake.text)"
+        if let onset = timeline.usualSleepOnset, let wake = timeline.usualFinalWake {
+            text += ", usually \(onset.text) to \(wake.text)"
+        }
+        return text
+    }
+
+    /// A faint vertical line at a labelled hour, from above the band to above the end labels.
+    private func hourLine(at x: CGFloat) -> some View {
+        Path { path in
+            path.move(to: CGPoint(x: x, y: Self.linesTop))
+            path.addLine(to: CGPoint(x: x, y: Self.hourLineBottom))
+        }
+        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+    }
+
+    /// A usual Sleep Onset or Final Wake: a dashed line across the band and bar, labelled
+    /// "usual" and its clock time above it.
+    private func usualLine(_ mark: TimelineMark, width: CGFloat) -> some View {
+        let x = mark.position * width
+        return ZStack(alignment: .topLeading) {
+            Path { path in
+                path.move(to: CGPoint(x: x, y: Self.linesTop))
+                path.addLine(to: CGPoint(x: x, y: Self.usualLineBottom))
+            }
+            .stroke(Color.primary.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+            inwardLabel(
+                Text("usual \(mark.text)").font(.caption2).foregroundStyle(.secondary),
+                at: x,
+                y: Self.usualLabelY,
+                width: width
+            )
+        }
+    }
+
+    /// The widest a timeline label can be, points: room for "usual 23:00" in a large text size.
+    private static let labelSlot: CGFloat = 120
+
+    /// `label` beside `x`, reading inwards so it never runs off the card: starting at `x` in the
+    /// timeline's left half, ending at `x` in its right half.
+    private func inwardLabel(
+        _ label: some View,
+        at x: CGFloat,
+        y: CGFloat,
+        width: CGFloat
+    ) -> some View {
+        let startsAtX: Bool = x < width / 2
+        let halfSlot: CGFloat = Self.labelSlot / 2
+        let centreX: CGFloat = startsAtX ? x + halfSlot : x - halfSlot
+        let alignment: Alignment = startsAtX ? .leading : .trailing
+        return
+            label
+            .fixedSize()
+            .frame(width: Self.labelSlot, alignment: alignment)
+            .position(x: centreX, y: y)
+    }
+}
+
+/// The Sleep Need bar (spec 010): Time Asleep filled in the accent colour, with a marker at Sleep
+/// Need. Fill and marker come from `SleepNeedBar`.
+private struct SleepNeedBarView: View {
+    let bar: SleepNeedBar
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let markerX: CGFloat = max(0, min(bar.marker * width, width - 2))
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 6).fill(Theme.accentSoft)
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Theme.accent)
+                    .frame(width: bar.fill * width)
+                Rectangle()
+                    .fill(.primary)
+                    .frame(width: 2, height: geometry.size.height + 8)
+                    .offset(x: markerX)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(bar.asleepText), \(bar.neededText)")
+    }
+}
+
+extension View {
+    /// One card of a popup, the same inset on every popup.
+    fileprivate func popupCard() -> some View {
+        padding(16).frame(maxWidth: .infinity, alignment: .leading).themeCard()
+    }
+}
+
+/// The Nightly Metric popup (spec 011), the layout of prototype variant E (branch
+/// `prototype/vital-signs-popup`): value and pill, the Zone scale and verdict, the last 14 Nights,
+/// facts, what it is, Your Zones and what moves it.
 private struct MetricPopupView: View {
     let popup: MetricPopup
 
     var body: some View {
-        Text(popup.metric.name).font(.headline)
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        PopupHeading(icon: popup.metric.icon, name: popup.metric.name, detail: popup.nightText)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
+                Spacer()
+                statusPill
+            }
+            if let scale = popup.scale {
+                ZoneScaleView(scale: scale, zone: popup.zone, valueText: popup.valueText)
+                    .frame(height: 60)
+            }
+            verdict
+        }
+        .popupCard()
+        PopupSectionTitle("Last 14 Nights")
+        PopupBlocksView(
+            blocks: popup.blocks.map {
+                PopupBlock(letter: $0.weekdayLetter, fill: $0.state.fill, outlined: $0.isNightShown)
+            }
+        )
+        PopupFactsView(facts: facts)
+        PopupSectionTitle("What it is")
+        PopupTextCard(text: popup.whatItIsText)
+        if let heading = popup.zonesHeading {
+            PopupSectionTitle(heading)
+            zonesTable
+        }
+        PopupSectionTitle("What moves it")
+        PopupBulletsCard(items: popup.whatMovesItTexts)
+    }
+
+    /// Baseline (none for SpO2), Lowest and Highest.
+    private var facts: [(name: String, value: String)] {
+        var facts: [(name: String, value: String)] = []
+        if let baseline = popup.baselineText { facts.append((name: "Baseline", value: baseline)) }
+        facts.append((name: "Lowest", value: popup.lowestText))
+        facts.append((name: "Highest", value: popup.highestText))
+        return facts
+    }
+
+    /// The tile's status word: a ✓ and the Zone's colour, or plain grey with no Zone.
+    @ViewBuilder private var statusPill: some View {
+        if let colour = popup.zone?.colour {
+            Label(popup.statusText, systemImage: "checkmark")
+                .font(.footnote.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(colour, in: Capsule())
+        } else {
+            Text(popup.statusText).font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+
+    /// The verdict, its words after the colon in the Zone's colour.
+    private var verdict: some View {
+        let text = popup.verdictText
+        guard let colour = popup.zone?.colour, let colon = text.range(of: ": ") else {
+            return Text(text)
+        }
+        return Text(text[..<colon.upperBound])
+            + Text(text[colon.upperBound...]).bold().foregroundStyle(colour)
+    }
+
+    /// In range, Watch and Out of range with their ranges, the Night's row bold.
+    private var zonesTable: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(popup.zoneRows.enumerated()), id: \.offset) { index, row in
+                if index > 0 { Divider() }
+                HStack(spacing: 8) {
+                    Circle().fill(row.zone.colour).frame(width: 10, height: 10)
+                    Text(row.nameText)
+                    Spacer()
+                    Text(row.rangeText).monospacedDigit().multilineTextAlignment(.trailing)
+                }
+                .font(.subheadline)
+                .fontWeight(row.isThisNight ? .bold : .regular)
+                .padding(.vertical, 8)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .themeCard()
+    }
+}
+
+/// The Resting HR popup (spec 011): the Nightly Metric popup's layout without anything that needs
+/// a Baseline or Zone, so no pill, scale or Your Zones, and its blocks all one colour.
+private struct RestingHRPopupView: View {
+    let popup: RestingHRPopup
+
+    var body: some View {
+        PopupHeading(
+            icon: NightlyMetric.sleepingHR.icon,
+            name: "Resting HR",
+            detail: popup.dateText
+        )
+        VStack(alignment: .leading, spacing: 12) {
             Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
-            Text(popup.differenceText).font(.title3)
+            if let sentence = popup.sentenceText { Text(sentence) }
         }
-        .foregroundStyle(popup.zone?.colour ?? .primary)
-        chart.frame(height: 180)
-        ForEach(popup.recent, id: \.dayText) { entry in
-            LabeledContent(entry.dayText, value: entry.valueText)
+        .popupCard()
+        PopupSectionTitle("Last 14 Days")
+        PopupBlocksView(
+            blocks: popup.blocks.map {
+                PopupBlock(
+                    letter: $0.weekdayLetter,
+                    // One neutral colour: the grey of a block with no Zone.
+                    fill: $0.hasValue ? MetricPopupBlockState.noZone.fill : nil,
+                    outlined: $0.isDayShown
+                )
+            }
+        )
+        PopupFactsView(
+            facts: [
+                (name: "Lowest", value: popup.lowestText),
+                (name: "Highest", value: popup.highestText),
+            ]
+        )
+        PopupSectionTitle("What it is")
+        PopupTextCard(text: popup.whatItIsText)
+        PopupSectionTitle("What moves it")
+        PopupBulletsCard(items: popup.whatMovesItTexts)
+    }
+}
+
+/// The Zone scale (spec 011): the Zone segments, the Night's at full colour and the rest faded, a
+/// marker at the value labelled with it, and a tick under the bar at the Baseline.
+private struct ZoneScaleView: View {
+    let scale: MetricPopupScale
+    let zone: Zone?
+    let valueText: String
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            // Keeps a label at an end from running off the card.
+            let x = { (position: Double) in min(max(width * position, 24), width - 24) }
+            ZStack {
+                HStack(spacing: 0) {
+                    ForEach(Array(scale.segments.enumerated()), id: \.offset) { _, segment in
+                        Rectangle()
+                            .fill(segment.zone.colour.opacity(segment.zone == zone ? 1 : 0.3))
+                            .frame(width: width * (segment.to - segment.from))
+                    }
+                }
+                .frame(width: width, height: 12)
+                .clipShape(Capsule())
+                .position(x: width / 2, y: 26)
+                VStack(spacing: 2) {
+                    Text(valueText).font(.caption2.bold()).monospacedDigit()
+                    Capsule().fill(Color.primary).frame(width: 4, height: 22)
+                }
+                .fixedSize()
+                .position(x: x(scale.valuePosition), y: 19)
+                if let baseline = scale.baselinePosition, let label = scale.baselineLabel {
+                    VStack(spacing: 1) {
+                        Rectangle().fill(Color.secondary).frame(width: 2, height: 6)
+                        Text(label)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .fixedSize()
+                    .position(x: x(baseline), y: 48)
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// A popup's heading: the icon and name, and the Night or Day on the right.
+private struct PopupHeading: View {
+    let icon: String
+    let name: String
+    let detail: String
+
+    var body: some View {
+        HStack {
+            Label {
+                Text(name)
+            } icon: {
+                Image(systemName: icon).foregroundStyle(Theme.accent)
+            }
+            .font(.headline)
+            Spacer()
+            Text(detail).font(.footnote).foregroundStyle(.secondary)
         }
     }
+}
 
-    /// The values over the last 14 Nights, with the Baseline and its In range band.
-    private var chart: some View {
-        Chart {
-            if let baseline = popup.baseline, let band = inRangeBand {
-                RectangleMark(yStart: .value("Low", band.low), yEnd: .value("High", band.high))
-                    .foregroundStyle(.green.opacity(0.15))
-                RuleMark(y: .value("Baseline", baseline))
-                    .foregroundStyle(.secondary)
-                    .lineStyle(StrokeStyle(dash: [4, 4]))
-            }
-            ForEach(Array(popup.chart.enumerated()), id: \.element.day) { index, point in
-                LineMark(x: .value("Night", index), y: .value("Value", point.value))
-                PointMark(x: .value("Night", index), y: .value("Value", point.value))
+/// A small grey heading over a popup's card.
+private struct PopupSectionTitle: View {
+    let title: String
+
+    init(_ title: String) { self.title = title }
+
+    var body: some View {
+        Text(title.uppercased()).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+    }
+}
+
+/// One block in a popup's last 14 Nights or Days.
+private struct PopupBlock {
+    let letter: String
+    /// Nil for no value, drawn hatched.
+    let fill: Color?
+    let outlined: Bool
+}
+
+/// A row of blocks, oldest on the left, each with its weekday initial.
+private struct PopupBlocksView: View {
+    let blocks: [PopupBlock]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                VStack(spacing: 3) {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(block.fill ?? .clear)
+                        .overlay {
+                            if block.fill == nil {
+                                Hatch()
+                                    .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                            }
+                        }
+                        .overlay {
+                            if block.outlined {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .strokeBorder(Color.primary, lineWidth: 2)
+                            }
+                        }
+                        .frame(height: 18)
+                    Text(block.letter).font(.caption2).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
-        .chartXAxis(.hidden)
+        .popupCard()
+        .accessibilityHidden(true)
     }
+}
 
-    /// The In range band, with an open side drawn to the edge of the chart's values.
-    private var inRangeBand: (low: Double, high: Double)? {
-        guard popup.inRangeLow != nil || popup.inRangeHigh != nil else { return nil }
-        let values = popup.chart.map(\.value) + [popup.baseline].compactMap { $0 }
-        guard let lowest = values.min(), let highest = values.max() else { return nil }
-        // An open side reaches past every value but never crosses the other limit, so the band
-        // can't flip onto the out-of-range part.
-        let low = popup.inRangeLow ?? min(lowest, popup.inRangeHigh ?? lowest)
-        let high = popup.inRangeHigh ?? max(highest, popup.inRangeLow ?? highest)
-        return (low, high)
+/// Diagonal lines, for a block with no value.
+private struct Hatch: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        var x = rect.minX - rect.height
+        while x < rect.maxX {
+            path.move(to: CGPoint(x: x, y: rect.maxY))
+            path.addLine(to: CGPoint(x: x + rect.height, y: rect.minY))
+            x += 4
+        }
+        return path
+    }
+}
+
+/// Facts side by side: a small grey name over each value.
+private struct PopupFactsView: View {
+    let facts: [(name: String, value: String)]
+
+    var body: some View {
+        HStack(alignment: .top) {
+            ForEach(Array(facts.enumerated()), id: \.offset) { _, fact in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(fact.name).font(.caption).foregroundStyle(.secondary)
+                    Text(fact.value).font(.headline).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .popupCard()
+    }
+}
+
+/// A card of plain text.
+private struct PopupTextCard: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline)
+            .popupCard()
+    }
+}
+
+/// A card of bullet points.
+private struct PopupBulletsCard: View {
+    let items: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("•")
+                    Text(item)
+                }
+            }
+        }
+        .font(.subheadline)
+        .popupCard()
+    }
+}
+
+extension MetricPopupBlockState {
+    /// The block's colour: its Zone's, grey with no Zone, nil (hatched) with no value.
+    fileprivate var fill: Color? {
+        switch self {
+        case .zone(let zone): zone.colour
+        case .noZone: Color.secondary.opacity(0.4)
+        case .noValue: nil
+        }
     }
 }
 

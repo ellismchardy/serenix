@@ -1,7 +1,7 @@
 import Foundation
 
 /// The Resting HR tile on the Today screen (spec 007, Today screen): the Day's Resting HR, not a
-/// Nightly Metric, so it has no Zone, an empty gauge and no popup.
+/// Nightly Metric, so it has no Zone and an empty gauge. It opens the Resting HR popup (spec 011).
 public struct RestingHRTile: Equatable, Sendable {
     public let name = "Resting HR"
     /// In whole bpm, e.g. "62 bpm"; "—" when the Day has none.
@@ -14,8 +14,13 @@ public struct RestingHRTile: Equatable, Sendable {
     public let zone: Zone? = nil
 
     init(restingHR: Double?, isToday: Bool) {
-        valueText = restingHR.map { "\(wholeText($0)) bpm" } ?? missingText
+        valueText = Self.text(restingHR)
         statusText = isToday ? "So far today" : nil
+    }
+
+    /// A Resting HR in whole bpm, e.g. "62 bpm"; "—" for none.
+    static func text(_ restingHR: Double?) -> String {
+        restingHR.map { "\(wholeText($0)) bpm" } ?? missingText
     }
 }
 

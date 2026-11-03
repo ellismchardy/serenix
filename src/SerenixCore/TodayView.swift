@@ -62,6 +62,8 @@ public struct TodayView: Equatable, Sendable {
     public let tiles: [MetricTile]
     /// The Day's Resting HR tile (spec 007); nil on a Day without a Night, which shows no tiles.
     public let restingHRTile: RestingHRTile?
+    /// The Resting HR popup (spec 011), opened from its tile; nil when there's no tile.
+    public let restingHRPopup: RestingHRPopup?
     /// The 2-column grid under Time Asleep: Sleeping HR, Resting HR, then the other Nightly
     /// Metrics (spec 007, Today screen); none on a Day without a Night.
     public let gridTiles: [TodayTile]
@@ -184,6 +186,14 @@ public struct TodayView: Equatable, Sendable {
             RestingHRTile(restingHR: dayLoad?.restingHR, isToday: isToday)
         }
         self.restingHRTile = restingHRTile
+        restingHRPopup = restingHRTile.map { _ in
+            RestingHRPopup(
+                restingHR: dayLoad?.restingHR,
+                for: day,
+                isToday: isToday,
+                among: dayLoads
+            )
+        }
         gridTiles = tiles.flatMap { tile -> [TodayTile] in
             guard tile.metric == .sleepingHR, let restingHRTile else { return [.metric(tile)] }
             return [.metric(tile), .restingHR(restingHRTile)]

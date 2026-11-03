@@ -10,11 +10,20 @@ enum Theme {
     static let background = adaptive(light: 0xF3F2F8, dark: 0x0F0E14)
     /// Cards, round buttons and the sync pill.
     static let card = adaptive(light: 0xFFFFFF, dark: 0x1C1B24)
+    /// Behind a popup: white in Light, and in Dark the screen's near-black background, so the cards
+    /// stand out as they do on the Today screen instead of sitting on the system's grey sheet,
+    /// which is too close to their purple (spec 002, Look).
+    static let popupBackground = adaptive(light: 0xFFFFFF, dark: 0x0F0E14)
     /// A soft accent tint, for tracks and icon circles.
     static let accentSoft = adaptive(light: 0xEFEAFE, dark: 0x2A2440)
     /// The app's accent: the avatar, the Day shown, buttons, the pill's outline and the Sleep
     /// Score ring.
     static let accent = adaptive(light: 0x7C5CFF, dark: 0x9B85FF)
+    /// Sleep Efficiency's ring, the middle of the Sleep popup's nested rings: a lighter shade of
+    /// the accent in Light, a darker one in Dark (spec 010; prototype variant C's values).
+    static let accentMiddle = adaptive(light: 0xB6A5FF, dark: 0x6E5BC4)
+    /// Sleep Consistency's ring, the innermost: lighter again in Light, darker again in Dark.
+    static let accentInner = adaptive(light: 0xD9CFFF, dark: 0x463B7A)
     /// Card shadows show in Light only.
     static let shadow = adaptive(light: 0x1A1A1A, lightAlpha: 0.07, dark: 0x000000, darkAlpha: 0)
 
