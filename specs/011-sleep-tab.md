@@ -1,7 +1,7 @@
 # 011 — Sleep tab
 
-**Status:** approved
-**Last updated:** 2026-11-03 (approved)
+**Status:** built
+**Last updated:** 2026-11-03 (built)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -137,58 +137,58 @@ equals UTC); now 3 Nov 2026 08:12, so today is 3 Nov; no birth year. Expected va
 hand from the rules above.
 
 Heart Rate Trace and Wake Bouts (Nights from History Records):
-- [ ] A Night whose Time in Bed is 23:00–07:00 has a Heart Rate Trace of 96 steps, the first
+- [x] A Night whose Time in Bed is 23:00–07:00 has a Heart Rate Trace of 96 steps, the first
       starting at 23:00 and each 5 minutes after the last.
-- [ ] A step of 300 records at 60 bpm reads 60; 150 at 50 and 150 at 70 read 60; 150 at 60 and
+- [x] A step of 300 records at 60 bpm reads 60; 150 at 50 and 150 at 70 read 60; 150 at 60 and
       150 at 0 read 60; 149 at 60 and 151 at 0 is missing.
-- [ ] A Night whose Sleep Period has wake minutes 02:00 to 02:07 and no other wake has one Wake
+- [x] A Night whose Sleep Period has wake minutes 02:00 to 02:07 and no other wake has one Wake
       Bout, starting 02:00, 8 minutes long.
-- [ ] The fixture night's Wake Bouts add up to its Final Wake − Sleep Onset − Time Asleep, in
+- [x] The fixture night's Wake Bouts add up to its Final Wake − Sleep Onset − Time Asleep, in
       minutes, and its Sleep Onset, Final Wake, Time in Bed and Time Asleep are unchanged
       (spec 003).
 
 Night rebuilds (one-off queue):
-- [ ] With now 30 Nov 2026 12:00, stored Nights dated 31 Oct and 1 Nov with no Heart Rate Trace and
+- [x] With now 30 Nov 2026 12:00, stored Nights dated 31 Oct and 1 Nov with no Heart Rate Trace and
       29 Nov with one queue only 1 Nov (its History Records start exactly 30 days earlier, as in
       spec 003's example; 31 Oct's start before that).
 
 Tonight (Sleep view; Nights dated 28 Oct to 3 Nov, each Sleep Onset 23:00, Final Wake 07:00):
-- [ ] With Time Asleep 8 h each, Tonight reads "Be asleep by 23:00", "Sleep Need 8h 0m", "You
+- [x] With Time Asleep 8 h each, Tonight reads "Be asleep by 23:00", "Sleep Need 8h 0m", "You
       usually wake at 07:00", with no Sleep Debt text.
-- [ ] With Time Asleep 7 h each (Sleep Debt 7 h, Sleep Need capped at 9 h), it reads "Be asleep
+- [x] With Time Asleep 7 h each (Sleep Debt 7 h, Sleep Need capped at 9 h), it reads "Be asleep
       by 22:00", "Sleep Need 9h 0m" and "· 7h 0m of Sleep Debt this week".
-- [ ] With only Nights dated 1, 2 and 3 Nov, Final Wakes 06:50, 07:10 and 07:00 and Time Asleep
+- [x] With only Nights dated 1, 2 and 3 Nov, Final Wakes 06:50, 07:10 and 07:00 and Time Asleep
       8 h, the usual wake time is 07:00 and it reads "Be asleep by 23:00".
-- [ ] With only Nights dated 2 and 3 Nov, Tonight reads only "A bedtime to aim for appears after
+- [x] With only Nights dated 2 and 3 Nov, Tonight reads only "A bedtime to aim for appears after
       3 Nights".
-- [ ] With 2 Nov shown, there is no Tonight.
+- [x] With 2 Nov shown, there is no Tonight.
 
 Last night (Sleep view; the Night dated 3 Nov has Time in Bed 22:50–07:10, Sleep Onset 23:00,
 Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, and Wake Bouts at 02:10 for 8 min and
 04:30 for 7 min):
-- [ ] Its title is "Last night", it reads "7h 45m asleep", the chart runs 22:50 to 07:10, and
+- [x] Its title is "Last night", it reads "7h 45m asleep", the chart runs 22:50 to 07:10, and
       it shows "In bed 22:50 · Up 07:10".
-- [ ] The Sleeping HR line is at 52 and labelled "Sleeping HR 52"; with no Sleeping HR there is
+- [x] The Sleeping HR line is at 52 and labelled "Sleeping HR 52"; with no Sleeping HR there is
       no line or label.
-- [ ] The y-axis runs from the lowest step − 3 to the highest + 3 (steps 50 to 70: 47 to 73); a
+- [x] The y-axis runs from the lowest step − 3 to the highest + 3 (steps 50 to 70: 47 to 73); a
       missing step breaks the line.
-- [ ] The sleep/wake band runs 23:00 to 07:00 with Wake Bouts 02:10–02:18 and 04:30–04:37, and
+- [x] The sleep/wake band runs 23:00 to 07:00 with Wake Bouts 02:10–02:18 and 04:30–04:37, and
       the list reads "Woke 2 times · 15 min awake", "02:10 · 8 min", "04:30 · 7 min".
-- [ ] One Wake Bout reads "Woke 1 time"; none reads "Didn't wake".
-- [ ] With no Time in Bed, the chart runs 23:00 to 07:00 and there is no "In bed · Up".
-- [ ] With no Heart Rate Trace, it shows "Heart rate isn't kept for Nights older than 30 days.",
+- [x] One Wake Bout reads "Woke 1 time"; none reads "Didn't wake".
+- [x] With no Time in Bed, the chart runs 23:00 to 07:00 and there is no "In bed · Up".
+- [x] With no Heart Rate Trace, it shows "Heart rate isn't kept for Nights older than 30 days.",
       no chart, band or Wake Bouts, and still "7h 45m asleep".
-- [ ] With 1 Nov shown, its title is that Day's name as the week strip writes it; with no Night
+- [x] With 1 Nov shown, its title is that Day's name as the week strip writes it; with no Night
       on 3 Nov, it reads "No Night yet", and with none on 1 Nov, "No Night recorded".
 
 Your week (Sleep view; Nights dated 1 Nov with Time Asleep 6 h, 2 and 3 Nov with 8 h, each
 23:00–07:00):
-- [ ] It has 7 slots, 28 Oct to 3 Nov, oldest first; 28 to 31 Oct are empty.
-- [ ] Time Asleep against Sleep Need reads 1 Nov 6h 0m against 8h 0m, 2 Nov 8h 0m against
+- [x] It has 7 slots, 28 Oct to 3 Nov, oldest first; 28 to 31 Oct are empty.
+- [x] Time Asleep against Sleep Need reads 1 Nov 6h 0m against 8h 0m, 2 Nov 8h 0m against
       8h 30m, 3 Nov 8h 0m against 8h 30m.
-- [ ] When you slept runs each Night 23:00 to 07:00 on a 20:00 to 10:00 axis; a Night from 19:30
+- [x] When you slept runs each Night 23:00 to 07:00 on a 20:00 to 10:00 axis; a Night from 19:30
       widens it to 19:00.
-- [ ] 3 Nov's bars are marked as the Day shown; with 2 Nov shown, the slots are 27 Oct to 2 Nov
+- [x] 3 Nov's bars are marked as the Day shown; with 2 Nov shown, the slots are 27 Oct to 2 Nov
       and 2 Nov's are marked.
 
 Build and phone:
