@@ -40,7 +40,7 @@ existing Nights and Night rebuild tests.
    - Files: `SleepPeriod.swift`
    - Done when: the existing suite (incl. spec 003's fixture-night parity tests) is green and
      unchanged.
-2. [ ] **Slice:** Heart Rate Trace — 5-minute steps over Time in Bed (Sleep Onset to Final Wake
+2. [x] **Slice:** Heart Rate Trace — 5-minute steps over Time in Bed (Sleep Onset to Final Wake
    without it) from its start, last step possibly shorter; mean of non-zero heart rates; a step
    with fewer than 150 such records is missing; stored on `Night` and in `StoredNight`
    (optional, encoded).

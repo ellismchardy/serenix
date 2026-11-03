@@ -24,6 +24,8 @@ final class StoredNight {
     var timeAsleep: TimeInterval?
     var timeInBedStart: Date?
     var timeInBedEnd: Date?
+    /// The Heart Rate Trace (spec 011) as JSON; nil for Nights built before it, until rebuilt.
+    var heartRateTraceJSON: Data?
 
     init(_ night: Night) {
         dateKey = Self.dateKey(night.day)
@@ -40,6 +42,34 @@ final class StoredNight {
         timeAsleep = night.timeAsleep
         timeInBedStart = night.timeInBedStart
         timeInBedEnd = night.timeInBedEnd
+        heartRateTraceJSON = night.heartRateTrace.flatMap(Self.encoded)
+    }
+
+    /// A Heart Rate Trace as JSON; nil, logged, if it can't be written, so the Night is kept
+    /// without it rather than not at all.
+    private static func encoded(_ trace: HeartRateTrace) -> Data? {
+        do {
+            return try JSONEncoder().encode(trace)
+        } catch {
+            nightLog.error(
+                "Couldn't keep a Heart Rate Trace: \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
+    }
+
+    /// The stored Heart Rate Trace; nil, logged, if it can't be read, so the Night shows without
+    /// it rather than not at all.
+    private var heartRateTrace: HeartRateTrace? {
+        guard let heartRateTraceJSON else { return nil }
+        do {
+            return try JSONDecoder().decode(HeartRateTrace.self, from: heartRateTraceJSON)
+        } catch {
+            nightLog.error(
+                "Couldn't read a Heart Rate Trace: \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
     }
 
     var night: Night {
@@ -54,7 +84,8 @@ final class StoredNight {
             finalWake: finalWake,
             timeAsleep: timeAsleep,
             timeInBedStart: timeInBedStart,
-            timeInBedEnd: timeInBedEnd
+            timeInBedEnd: timeInBedEnd,
+            heartRateTrace: heartRateTrace
         )
     }
 

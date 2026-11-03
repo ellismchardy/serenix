@@ -26,6 +26,8 @@ public struct Night: Equatable, Sendable {
     public var timeInBedStart: Date?
     /// UTC.
     public var timeInBedEnd: Date?
+    /// Nil when not kept: Nights built before spec 011, or never rebuilt since.
+    public var heartRateTrace: HeartRateTrace?
 
     public init(
         day: Day,
@@ -38,7 +40,8 @@ public struct Night: Equatable, Sendable {
         finalWake: Date? = nil,
         timeAsleep: TimeInterval? = nil,
         timeInBedStart: Date? = nil,
-        timeInBedEnd: Date? = nil
+        timeInBedEnd: Date? = nil,
+        heartRateTrace: HeartRateTrace? = nil
     ) {
         self.day = day
         self.sleepingHR = sleepingHR
@@ -51,6 +54,7 @@ public struct Night: Equatable, Sendable {
         self.timeAsleep = timeAsleep
         self.timeInBedStart = timeInBedStart
         self.timeInBedEnd = timeInBedEnd
+        self.heartRateTrace = heartRateTrace
     }
 }
 

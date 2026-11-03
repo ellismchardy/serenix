@@ -367,3 +367,118 @@ private func fixtureRecordsWithoutRRIntervals() -> [HistoryRecord] {
     let sleepingHR = try #require(found[0].sleepingHR)
     #expect(sleepingHR == 55)
 }
+
+// Spec 011: the Heart Rate Trace. Hand-built records for the night of 15–16 Nov 2026 (UTC is
+// local time in Europe/London): up and about 22:30–23:00, awake in bed (15 active seconds a
+// minute: wake, but not up) 23:00–23:10, still 23:10–06:50, awake in bed 06:50–07:00, up and
+// about 07:00–07:30. So the Sleep Period is 23:10–06:50 and Time in Bed 23:00–07:00. Motion alone
+// drives sleep and wake; the heart rates of the step at 03:00 are set per test.
+
+/// The trace step that starts at 03:00: 4 hours (48 steps of 5 minutes) after 23:00.
+private let stepAt0300 = 48
+
+/// The night above, every record at 55 bpm except the 300 records of 03:00–03:05, whose heart
+/// rate is `bpmAt0300(second)` for second 0 to 299 of that step.
+private func nightInBed2300To0700(bpmAt0300: (Int) -> Int = { _ in 55 }) -> [HistoryRecord] {
+    let up = RecordMinute(bpm: 55, activeSeconds: 60)
+    let awakeInBed = RecordMinute(bpm: 55, activeSeconds: 15)
+    let still = RecordMinute(bpm: 55)
+    let minutes =
+        Array(repeating: up, count: 30) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: still, count: 460) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: up, count: 30)
+    let stepStart = utcDate(2026, 11, 16, 3, 0)
+    return historyRecords(startingAt: utcDate(2026, 11, 15, 22, 30), minutes: minutes).map {
+        record in
+        let second = Int(record.timestamp.timeIntervalSince(stepStart))
+        guard (0..<300).contains(second) else { return record }
+        return HistoryRecord(
+            recordCounter: record.recordCounter,
+            timestamp: record.timestamp,
+            heartRate: bpmAt0300(second),
+            rrIntervals: record.rrIntervals,
+            motion: record.motion,
+            skinTemperature: record.skinTemperature,
+            steps: record.steps,
+            spo2: record.spo2,
+            isInSpO2Window: record.isInSpO2Window,
+            rawBytes: record.rawBytes
+        )
+    }
+}
+
+/// Spec 011: a Night whose Time in Bed is 23:00–07:00 has a Heart Rate Trace of 96 steps, the
+/// first starting at 23:00 (Time in Bed's start, not Sleep Onset's 23:10).
+@Test func nightInBed2300To0700HasHeartRateTraceOfNinetySixStepsFrom2300() throws {
+    let found = nights(from: nightInBed2300To0700(), in: london)
+
+    try #require(found.count == 1)
+    let night = found[0]
+    #expect(night.sleepOnset == utcDate(2026, 11, 15, 23, 10))
+    #expect(night.finalWake == utcDate(2026, 11, 16, 6, 50))
+    #expect(night.timeInBedStart == utcDate(2026, 11, 15, 23, 0))
+    #expect(night.timeInBedEnd == utcDate(2026, 11, 16, 7, 0))
+    let trace = try #require(night.heartRateTrace)
+    #expect(trace.start == utcDate(2026, 11, 15, 23, 0))
+    #expect(trace.steps.count == 96)
+}
+
+/// Spec 011: the last step may be shorter. Three more still minutes make Time in Bed 23:00–07:03,
+/// so 97 steps, the last 3 minutes long: its 180 records at 55 bpm still reach 150, reading 55.
+@Test func aTimeInBedOfPartStepsEndsWithAShorterLastStep() throws {
+    let up = RecordMinute(bpm: 55, activeSeconds: 60)
+    let awakeInBed = RecordMinute(bpm: 55, activeSeconds: 15)
+    let still = RecordMinute(bpm: 55)
+    let minutes =
+        Array(repeating: up, count: 30) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: still, count: 463) + Array(repeating: awakeInBed, count: 10)
+        + Array(repeating: up, count: 30)
+    let records = historyRecords(startingAt: utcDate(2026, 11, 15, 22, 30), minutes: minutes)
+
+    let found = nights(from: records, in: london)
+
+    try #require(found.count == 1)
+    #expect(found[0].timeInBedEnd == utcDate(2026, 11, 16, 7, 3))
+    let trace = try #require(found[0].heartRateTrace)
+    #expect(trace.steps.count == 97)
+    let last: Double? = 55
+    #expect(trace.steps.last == last)
+}
+
+/// The Heart Rate Trace step at 03:00 of the night above, with `bpmAt0300` setting its records'
+/// heart rates.
+private func heartRateTraceStepAt0300(bpmAt0300: (Int) -> Int) throws -> Double? {
+    let found = nights(from: nightInBed2300To0700(bpmAt0300: bpmAt0300), in: london)
+    try #require(found.count == 1)
+    let trace = try #require(found[0].heartRateTrace)
+    try #require(trace.steps.count == 96)
+    return trace.steps[stepAt0300]
+}
+
+/// Spec 011: a step of 300 records at 60 bpm reads 60.
+@Test func heartRateTraceStepOfThreeHundredRecordsAtSixtyReadsSixty() throws {
+    let step = try heartRateTraceStepAt0300 { _ in 60 }
+    let sixty: Double? = 60
+    #expect(step == sixty)
+}
+
+/// Spec 011: a step of 150 records at 50 bpm and 150 at 70 reads their mean, 60.
+@Test func heartRateTraceStepOfHalfAtFiftyAndHalfAtSeventyReadsSixty() throws {
+    let step = try heartRateTraceStepAt0300 { second in second < 150 ? 50 : 70 }
+    let sixty: Double? = 60
+    #expect(step == sixty)
+}
+
+/// Spec 011: records at 0 bpm are left out of a step's mean: 150 at 60 and 150 at 0 read 60.
+@Test func heartRateTraceStepLeavesOutRecordsAtZeroBPM() throws {
+    let step = try heartRateTraceStepAt0300 { second in second < 150 ? 60 : 0 }
+    let sixty: Double? = 60
+    #expect(step == sixty)
+}
+
+/// Spec 011: a step with fewer than 150 records with a non-zero heart rate is missing: 149 at
+/// 60 and 151 at 0.
+@Test func heartRateTraceStepWithOneHundredFortyNineNonZeroRecordsIsMissing() throws {
+    let step = try heartRateTraceStepAt0300 { second in second < 149 ? 60 : 0 }
+    #expect(step == nil)
+}
