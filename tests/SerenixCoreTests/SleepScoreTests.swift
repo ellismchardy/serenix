@@ -415,17 +415,17 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
     #expect(consistency?.detailText == "Needs 3 Nights")
 }
 
-@Test func theSleepScoreKeySaysWhySleepConsistencyIsLeftOut() {
+@Test func theSleepScoreKeyReadsDashForALeftOutSleepConsistency() {
     let view = todayView(nights: [nightOn15Nov()])
 
-    #expect(part("Sleep Consistency", of: view)?.keyText == "Needs 3 Nights")
-    #expect(part("Sleep Sufficiency", of: view)?.keyText == "100")
+    #expect(part("Sleep Consistency", of: view)?.scoreText == "\u{2014}")
+    #expect(part("Sleep Sufficiency", of: view)?.scoreText == "100")
 }
 
 @Test func withSleepScoreMissingTheSleepScoreKeyReadsDash() {
     let view = todayView(nights: [nightOn15Nov(timeAsleep: nil)])
 
-    #expect(part("Sleep Consistency", of: view)?.keyText == "\u{2014}")
+    #expect(part("Sleep Consistency", of: view)?.scoreText == "\u{2014}")
 }
 
 @Test func withNoTimeAsleepTheSleepPopupsThreeRingsReadDashAndAreEmpty() {

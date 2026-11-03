@@ -16,7 +16,7 @@ public enum Zone: Equatable, Sendable {
     private static let hrvZInRangeUpTo = 2.5
     private static let hrvZWatchFrom = -2.5
     /// Sleeping HR above Baseline, bpm, up only (spec 004): Watch from +3, Out of range from +5.
-    /// A lower Sleeping HR is never a warning. The Watch cut-off is also the band's upper limit.
+    /// A lower Sleeping HR is never a warning. The Watch cut-off is also the In range row's upper limit (spec 011).
     private static let sleepingHRWatchFrom = 3.0
     private static let sleepingHROutOfRangeFrom = 5.0
     /// Respiratory rate's |z|, its distance from Baseline in Spreads, either side (spec 004): In
@@ -71,28 +71,41 @@ public enum Zone: Equatable, Sendable {
         }
     }
 
-    /// The values around `baseline` that are In range, for the Nightly Metric popup's band (spec
-    /// 004, In range band); nil on a side with no limit. Both nil for SpO2, which has no Baseline,
-    /// for HRV against a Baseline of 0 or less, while the Baseline is Calibrating, and for an HRV
-    /// or respiratory rate Baseline with no Spread.
-    static func inRangeLimits(_ metric: NightlyMetric, baseline: Baseline)
-        -> (low: Double?, high: Double?)
-    {
-        guard let median = baseline.median else { return (nil, nil) }
-        return switch (metric, baseline.spread) {
+    /// Where each Zone ends (spec 011, Your Zones): the In range limits, and where Watch turns into
+    /// Out of range, nil on a side with no limit. Around `baseline`, or for SpO2 its fixed
+    /// levels. Nil when there's no Baseline to measure from: Calibrating, HRV's Baseline 0 or
+    /// less, or an HRV or respiratory rate Baseline with no Spread.
+    static func edges(_ metric: NightlyMetric, baseline: Baseline?) -> ZoneEdges? {
+        if metric == .spo2 {
+            return ZoneEdges(inRange: (spo2InRangeFrom, nil), watch: (spo2WatchFrom, nil))
+        }
+        guard let baseline, let median = baseline.median else { return nil }
+        switch (metric, baseline.spread) {
         case (.hrv, let spread?) where median > 0:
-            (median * exp(hrvZInRangeFrom * spread), median * exp(hrvZInRangeUpTo * spread))
-        case (.sleepingHR, _):
-            (nil, median + sleepingHRWatchFrom)
+            let edge = { (z: Double) in median * exp(z * spread) }
+            return ZoneEdges(
+                inRange: (edge(hrvZInRangeFrom), edge(hrvZInRangeUpTo)),
+                watch: (edge(hrvZWatchFrom), nil)
+            )
         case (.respiratoryRate, let spread?):
-            (
-                median - respiratoryRateZInRangeUpTo * spread,
-                median + respiratoryRateZInRangeUpTo * spread
+            let inRange = respiratoryRateZInRangeUpTo * spread
+            let watch = respiratoryRateZWatchUpTo * spread
+            return ZoneEdges(
+                inRange: (median - inRange, median + inRange),
+                watch: (median - watch, median + watch)
+            )
+        case (.sleepingHR, _):
+            return ZoneEdges(
+                inRange: (nil, median + sleepingHRWatchFrom),
+                watch: (nil, median + sleepingHROutOfRangeFrom)
             )
         case (.skinTemperature, _):
-            (median - skinTemperatureInRangeUpTo, median + skinTemperatureInRangeUpTo)
+            return ZoneEdges(
+                inRange: (median - skinTemperatureInRangeUpTo, median + skinTemperatureInRangeUpTo),
+                watch: (median - skinTemperatureWatchUpTo, median + skinTemperatureWatchUpTo)
+            )
         case (.hrv, _), (.respiratoryRate, nil), (.spo2, _):
-            (nil, nil)
+            return nil
         }
     }
 
@@ -104,25 +117,105 @@ public enum Zone: Equatable, Sendable {
     static func gaugePosition(_ metric: NightlyMetric, value: Double, baseline: Baseline?)
         -> Double?
     {
-        let position: Double
+        position(metric, value: value, baseline: baseline, reach: 1)
+    }
+
+    /// Where `value` sits on the Nightly Metric popup's Zone scale, 0 (left) to 1 (right),
+    /// clamped (spec 011, Zone scale): as on the gauge, but each end `scaleReach` times as far
+    /// from the Baseline, so Out of range has room. SpO2's scale is the gauge's.
+    static func scalePosition(_ metric: NightlyMetric, value: Double, baseline: Baseline?)
+        -> Double?
+    {
+        position(metric, value: value, baseline: baseline, reach: scaleReach)
+    }
+
+    /// The Zone scale's segments, left to right (spec 011, Zone scale): fixed per metric, with
+    /// each cut-off placed as a value on it would be.
+    static func scaleSegments(_ metric: NightlyMetric) -> [MetricPopupScaleSegment] {
+        // The cut-offs in the measure the scale is centred on: z, or the difference from Baseline.
+        let (zones, cutOffs): ([Zone], [Double]) =
+            switch metric {
+            case .hrv:
+                (
+                    [.outOfRange, .watch, .inRange, .watch],
+                    [hrvZWatchFrom, hrvZInRangeFrom, hrvZInRangeUpTo]
+                )
+            case .respiratoryRate:
+                (
+                    [.outOfRange, .watch, .inRange, .watch, .outOfRange],
+                    [
+                        -respiratoryRateZWatchUpTo, -respiratoryRateZInRangeUpTo,
+                        respiratoryRateZInRangeUpTo, respiratoryRateZWatchUpTo,
+                    ]
+                )
+            case .sleepingHR:
+                ([.inRange, .watch, .outOfRange], [sleepingHRWatchFrom, sleepingHROutOfRangeFrom])
+            case .skinTemperature:
+                (
+                    [.outOfRange, .watch, .inRange, .watch, .outOfRange],
+                    [
+                        -skinTemperatureWatchUpTo, -skinTemperatureInRangeUpTo,
+                        skinTemperatureInRangeUpTo, skinTemperatureWatchUpTo,
+                    ]
+                )
+            case .spo2:
+                ([.outOfRange, .watch, .inRange], [spo2WatchFrom, spo2InRangeFrom])
+            }
+        let cuts = cutOffs.map { cutOff in
+            gaugeLimit(metric).map { centred(cutOff, limit: $0 * scaleReach) }
+                ?? spo2Position(cutOff)
+        }
+        let edges = [0] + cuts + [1]
+        return zones.indices.map {
+            MetricPopupScaleSegment(zone: zones[$0], from: edges[$0], to: edges[$0 + 1])
+        }
+    }
+
+    /// How much farther from the Baseline the Zone scale's ends are than the gauge's, which end
+    /// where Watch turns into Out of range (spec 011, Zone scale): 1.5×, so Out of range shows.
+    private static let scaleReach = 1.5
+
+    /// The gauge's or the scale's position, with each end `reach` times the gauge's limit.
+    private static func position(
+        _ metric: NightlyMetric,
+        value: Double,
+        baseline: Baseline?,
+        reach: Double
+    ) -> Double? {
+        let measure: Double
         switch (metric, baseline?.median) {
         case (.spo2, _):
-            position = (value - spo2GaugeBottom) / (spo2GaugeTop - spo2GaugeBottom)
-        case (.hrv, _):
+            measure = value
+        case (.hrv, _), (.respiratoryRate, _):
             guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
-            position = centred(z, limit: -hrvZWatchFrom)
-        case (.sleepingHR, let median?):
-            position = centred(value - median, limit: sleepingHROutOfRangeFrom)
-        case (.respiratoryRate, _):
-            guard let z = Self.z(metric, value: value, baseline: baseline) else { return nil }
-            position = centred(z, limit: respiratoryRateZWatchUpTo)
-        case (.skinTemperature, let median?):
-            position = centred(value - median, limit: skinTemperatureWatchUpTo)
+            measure = z
+        case (.sleepingHR, let median?), (.skinTemperature, let median?):
+            measure = value - median
         default:
             return nil
         }
+        let position =
+            gaugeLimit(metric).map { centred(measure, limit: $0 * reach) } ?? spo2Position(measure)
         // A value that gives no real position (e.g. NaN) shows an empty gauge.
         return position.isFinite ? min(max(position, 0), 1) : nil
+    }
+
+    /// How far either side of the Baseline the gauge ends: where Watch turns into Out of range,
+    /// in z for HRV and respiratory rate, bpm for Sleeping HR, °C for skin temperature. Nil for
+    /// SpO2, whose gauge is on fixed levels.
+    private static func gaugeLimit(_ metric: NightlyMetric) -> Double? {
+        switch metric {
+        case .hrv: -hrvZWatchFrom
+        case .respiratoryRate: respiratoryRateZWatchUpTo
+        case .sleepingHR: sleepingHROutOfRangeFrom
+        case .skinTemperature: skinTemperatureWatchUpTo
+        case .spo2: nil
+        }
+    }
+
+    /// SpO2 on its fixed scale, 0 at the bottom and 1 at the top; unclamped.
+    private static func spo2Position(_ value: Double) -> Double {
+        (value - spo2GaugeBottom) / (spo2GaugeTop - spo2GaugeBottom)
     }
 
     /// How far `value` sits from its Baseline in Spreads (spec 004, Zones): on ln(RMSSD) for HRV.
@@ -171,4 +264,12 @@ public enum Zone: Equatable, Sendable {
         return measure >= outOfRange - tolerance
             ? .outOfRange : measure >= watch - tolerance ? .watch : .inRange
     }
+}
+
+/// Where a metric's Zones end (spec 011, Your Zones); nil on a side with no limit.
+struct ZoneEdges {
+    /// In range lies between these.
+    let inRange: (low: Double?, high: Double?)
+    /// Watch lies between these and In range; Out of range lies beyond them.
+    let watch: (low: Double?, high: Double?)
 }

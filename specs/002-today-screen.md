@@ -1,7 +1,7 @@
 # 002 — Today screen
 
 **Status:** built
-**Last updated:** 2026-11-01 (spec 007: Resting HR renamed Sleeping HR, Resting HR tile, Time Asleep full width)
+**Last updated:** 2026-11-03 (spec 011: Nightly Metric popup redesigned; popups' Dark background)
 
 ## Problem
 Once History Sync (spec 001) gets History Records onto the phone, the user still has nowhere
@@ -173,7 +173,7 @@ one describes the Night shown:
   - Sleep Onset and Final Wake
   - Time Asleep
   - minutes awake within the Sleep Period: Final Wake − Sleep Onset − Time Asleep
-- **Nightly Metric** (from its tile) shows:
+- **Nightly Metric** (from its tile) shows (superseded by spec 011, which redesigns this popup):
   - the value and difference, or the SpO2 level, coloured by Zone
   - its values for the Night shown and up to 13 earlier Nights, as a chart and as a list of the
     5 most recent
@@ -195,7 +195,9 @@ shows a person icon. It appears in the top bar and, larger, at the top of the pr
 the app's accent: the avatar, the Day shown in the week strip, buttons, the sync pill's outline
 and the Sleep Score ring. Band and Zone colours stay green, amber and red. **Appearance** is
 System (the default, following iOS), Light or Dark, chosen in the profile menu and kept on the
-phone; Dark uses a dark version of the same palette with the same accent.
+phone; Dark uses a dark version of the same palette with the same accent. In Dark, a popup's
+background is the screen's dark background, so its cards stand out as they do on the Today
+screen rather than sitting on a grey close to their own colour; in Light it stays white.
 
 **Profile menu.** It slides up nearly full height, with an ✕ to close it, and contains, as
 rounded, grouped rows:
@@ -278,7 +280,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       Day's values.
 - [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
 - [x] Baseline, Spread, Zones, status words, gauge positions and the popup's In range band: see
-      spec 004's success criteria.
+      spec 004's success criteria (spec 011 replaces the band with the popup's Your Zones rows).
 - [x] Differences format as "+14%" for HRV, "−3 bpm" for Sleeping HR, and "+0.4" for respiratory
       rate and skin temperature.
 - [x] A missing Nightly Metric, score, Time Asleep or Load shows "—" with no Zone.
@@ -288,7 +290,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] Tiles carry no trend line; the Time Asleep tile has no Zone, status word or gauge.
 - [x] The Sleep popup's minutes awake equal Final Wake − Sleep Onset − Time Asleep.
 - [x] The Nightly Metric popup holds the Night shown and up to 13 earlier Nights, plus the
-      Baseline and In range limits (none for SpO2; values per spec 004).
+      Baseline and In range limits (none for SpO2; values per spec 004) (superseded by spec 011).
 - [x] Which sync pill shows: connecting and syncing → "Syncing"; a sync just finished → "Sync
       successful"; Strap not found, Bluetooth unavailable or the Strap disconnecting → "Sync
       paused", carrying its reason and "Serenix will try again next time you open it."; any
@@ -322,6 +324,8 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - [ ] The screen has a light grey background, white rounded cards and a purple accent; band and
       Zone colours are unchanged. Appearance in the profile menu switches between System, Light
       and Dark at once, Dark keeps the purple accent, and the choice survives relaunching.
+- [ ] In Dark, every popup's background is the Today screen's dark background, with its cards
+      standing out on it; in Light it is white.
 - [x] Tapping the Readiness ring, the Sleep Score ring, the Time Asleep tile and each metric tile
       opens the right popup; a tap outside or a swipe down closes it; the Load ring does
       nothing (superseded by spec 006, which opens the Load popup from it).

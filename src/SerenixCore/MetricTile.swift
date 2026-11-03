@@ -7,6 +7,10 @@ public struct MetricTile: Equatable, Sendable {
     public let valueText: String
     /// The Baseline's median; nil while it's Calibrating, and always for SpO2.
     public var baseline: Double? { comparedBaseline?.median }
+    /// The Baseline as values are shown, e.g. "60 ms"; "Calibrating" while it is.
+    var baselineText: String {
+        baseline.map { formattedValue(of: metric, $0) } ?? "Calibrating"
+    }
     /// The difference from Baseline, e.g. "+14%" or "−3 bpm"; SpO2's level in words;
     /// "Calibrating" while the Baseline is; "—" when the value is missing.
     public let differenceText: String
@@ -69,12 +73,22 @@ public struct MetricTile: Equatable, Sendable {
 
 /// The value with its unit (spec 002, Formats).
 func formattedValue(of metric: NightlyMetric, _ value: Double) -> String {
+    let number = numberText(of: metric, value)
+    return switch metric {
+    case .sleepingHR: "\(number) bpm"
+    case .hrv: "\(number) ms"
+    case .respiratoryRate: "\(number) br/min"
+    case .skinTemperature: "\(number) °C"
+    case .spo2: "\(number)%"
+    }
+}
+
+/// The value without its unit, rounded as it's shown: whole, or to one decimal place for
+/// respiratory rate and skin temperature (spec 002, Formats).
+func numberText(of metric: NightlyMetric, _ value: Double) -> String {
     switch metric {
-    case .sleepingHR: "\(wholeText(value)) bpm"
-    case .hrv: "\(wholeText(value)) ms"
-    case .respiratoryRate: "\(tenthsText(value)) br/min"
-    case .skinTemperature: "\(tenthsText(value)) °C"
-    case .spo2: "\(wholeText(value))%"
+    case .sleepingHR, .hrv, .spo2: wholeText(value)
+    case .respiratoryRate, .skinTemperature: tenthsText(value)
     }
 }
 
@@ -133,7 +147,7 @@ func wholeText(_ value: Double) -> String {
 }
 
 /// To one decimal place, e.g. "14.0".
-private func tenthsText(_ value: Double) -> String {
+func tenthsText(_ value: Double) -> String {
     let tenths = Int((value * 10).rounded())
     let sign = tenths < 0 ? "\u{2212}" : ""
     return "\(sign)\(abs(tenths) / 10).\(abs(tenths) % 10)"
