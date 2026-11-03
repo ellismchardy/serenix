@@ -1,7 +1,7 @@
 # 011 — Sleep tab
 
 **Status:** built
-**Last updated:** 2026-11-03 (built)
+**Last updated:** 2026-11-03 (built; y-axis always includes Sleeping HR)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -65,7 +65,8 @@ date otherwise (as the week strip names Days). It shows:
   - the Heart Rate Trace as a line, broken where a step is missing;
   - a dotted line at the Night's Sleeping HR, labelled "Sleeping HR 52"; no line or label
     without a Sleeping HR;
-  - the y-axis from the lowest step − 3 bpm to the highest + 3, with no other labels;
+  - the y-axis from the lowest step − 3 bpm to the highest + 3, widened to take in the Night's
+    Sleeping HR so its line is always on the chart, with no other labels;
   - under it, a **sleep/wake band**: Sleep Onset to Final Wake in the accent colour, each Wake
     Bout in amber, with Sleep Onset's and Final Wake's clock times under its ends;
   - "In bed 22:50 · Up 07:10" (Time in Bed's start and end; left out without Time in Bed).
@@ -172,6 +173,8 @@ Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, and Wake Bouts at 02:10 
       no line or label.
 - [x] The y-axis runs from the lowest step − 3 to the highest + 3 (steps 50 to 70: 47 to 73); a
       missing step breaks the line.
+- [x] A Sleeping HR outside the steps widens the y-axis to take it in: steps 50 to 70 with
+      Sleeping HR 44 run 41 to 73.
 - [x] The sleep/wake band runs 23:00 to 07:00 with Wake Bouts 02:10–02:18 and 04:30–04:37, and
       the list reads "Woke 2 times · 15 min awake", "02:10 · 8 min", "04:30 · 7 min".
 - [x] One Wake Bout reads "Woke 1 time"; none reads "Didn't wake".

@@ -133,6 +133,15 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
     #expect(chart?.highestBPM == 73)
 }
 
+/// A Sleeping HR below every step widens the y-axis to take it in, so its line stays on the
+/// chart: steps 50 to 70 with Sleeping HR 44 run 41 to 73.
+@Test func aSleepingHROutsideTheStepsWidensTheYAxis() {
+    let chart = sleepView(nights: [nightOn3Nov(sleepingHR: 44)]).lastNight?.chart
+
+    #expect(chart?.lowestBPM == 41)
+    #expect(chart?.highestBPM == 73)
+}
+
 @Test func theSleepingHRLineIsAtTheNightsSleepingHRAndLabelled() {
     let chart = sleepView(nights: [nightOn3Nov()]).lastNight?.chart
 

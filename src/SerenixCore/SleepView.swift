@@ -259,9 +259,9 @@ public struct SleepChart: Equatable, Sendable {
     public let end: Date
     /// The Heart Rate Trace's steps, oldest first.
     public let steps: [SleepChartStep]
-    /// The y-axis' bottom, bpm: the lowest step − 3.
+    /// The y-axis' bottom, bpm: the lowest step or Sleeping HR − 3.
     public let lowestBPM: Double
-    /// The y-axis' top, bpm: the highest step + 3.
+    /// The y-axis' top, bpm: the highest step or Sleeping HR + 3.
     public let highestBPM: Double
     /// Where the dotted line goes, bpm; nil without a Sleeping HR.
     public let sleepingHR: Double?
@@ -295,8 +295,8 @@ public struct SleepChart: Equatable, Sendable {
             let middle = min(stepStart + HeartRateTrace.step / 2, max(chartEnd, stepStart))
             return SleepChartStep(start: stepStart, middle: middle, bpm: bpm)
         }
-        // With every step missing there's no line, and the axis is only −3 to 3.
-        let values = trace.steps.compactMap { $0 }
+        // The steps and the Night's Sleeping HR, so its line is always on the chart (spec 011).
+        let values = trace.steps.compactMap { $0 } + [night.sleepingHR].compactMap { $0 }
         lowestBPM = (values.min() ?? 0) - Self.axisMargin
         highestBPM = (values.max() ?? 0) + Self.axisMargin
         sleepingHR = night.sleepingHR
