@@ -35,8 +35,14 @@ struct SleepScore: Equatable, Sendable {
     let asleepShare: Double?
     /// `asleepShare` scored 0–100 and unrounded: Sleep Efficiency; nil when left out.
     let efficiency: Double?
+    /// Tonight's Sleep Onset minus the week before's, in minutes the shortest way round the clock:
+    /// the median signed difference, unrounded; nil when Sleep Consistency is left out.
+    let onsetDifference: Double?
+    /// Tonight's Final Wake minus the week before's, likewise; nil when Sleep Consistency is left
+    /// out.
+    let wakeDifference: Double?
     /// How far tonight's Sleep Onset and Final Wake were from the week before's, in minutes,
-    /// unrounded; nil when Sleep Consistency is left out.
+    /// unrounded: the mean of the two differences' sizes; nil when Sleep Consistency is left out.
     let minutesOff: Double?
     /// How close tonight's times came to the week before's, scored 0–100 and unrounded; nil when
     /// left out.
@@ -63,7 +69,10 @@ struct SleepScore: Equatable, Sendable {
         efficiency = asleepShare.map {
             Self.scaled($0, zeroAt: Self.zeroEfficiency, fullAt: Self.fullEfficiency)
         }
-        let minutesOff = Self.minutesOff(of: night, among: nights, timeZone: timeZone)
+        let differences = Self.differences(of: night, among: nights, timeZone: timeZone)
+        onsetDifference = differences?.onset
+        wakeDifference = differences?.wake
+        let minutesOff = differences.map { (abs($0.onset) + abs($0.wake)) / 2 }
         self.minutesOff = minutesOff
         // 100 at 0 minutes off, down to 0 at `zeroConsistencyMinutes`.
         let consistency = minutesOff.map {
@@ -80,14 +89,14 @@ struct SleepScore: Equatable, Sendable {
     }
 
     /// How far `night`'s Sleep Onset and Final Wake were from those of the Nights dated D − 7 to
-    /// D − 1 that have both, in minutes: for each, the size of the median signed difference the
-    /// shortest way round the clock, then the mean of the two. Nil when the Night lacks either
-    /// time or fewer than `fewestConsistencyNights` earlier Nights count (spec 010).
-    private static func minutesOff(
+    /// D − 1 that have both, in minutes: for each, the median signed difference the shortest way
+    /// round the clock. Nil when the Night lacks either time or fewer than
+    /// `fewestConsistencyNights` earlier Nights count (spec 010).
+    private static func differences(
         of night: Night,
         among nights: [Night],
         timeZone: TimeZone
-    ) -> Double? {
+    ) -> (onset: Double, wake: Double)? {
         guard let onset = night.sleepOnset, let wake = night.finalWake else { return nil }
         let window = SleepNeed.window(before: night.day)
         let earlier = nights.filter { window.contains($0.day) }.compactMap { other in
@@ -96,13 +105,10 @@ struct SleepScore: Equatable, Sendable {
             }
         }
         guard earlier.count >= fewestConsistencyNights else { return nil }
-        let onsetOff = abs(
-            median(of: earlier.map { clockDifference(onset, $0.onset, in: timeZone) })
+        return (
+            onset: median(of: earlier.map { clockDifference(onset, $0.onset, in: timeZone) }),
+            wake: median(of: earlier.map { clockDifference(wake, $0.wake, in: timeZone) })
         )
-        let wakeOff = abs(
-            median(of: earlier.map { clockDifference(wake, $0.wake, in: timeZone) })
-        )
-        return (onsetOff + wakeOff) / 2
     }
 
     /// Minutes from `other`'s local clock time to `time`'s, the shortest way round the clock:

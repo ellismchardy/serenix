@@ -44,7 +44,7 @@ The shell (`src/SerenixApp/TodayPopups.swift`, `SleepPopupView`) is rebuilt as t
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Prefactor:** `SleepScore` keeps the median signed Sleep Onset and Final Wake
+1. [x] **Prefactor:** `SleepScore` keeps the median signed Sleep Onset and Final Wake
    differences (minutes, nil when Sleep Consistency is left out); `minutesOff` is the mean of
    their sizes. No behavior change.
    - Files: `src/SerenixCore/SleepScore.swift`
