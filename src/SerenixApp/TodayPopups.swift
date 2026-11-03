@@ -98,9 +98,9 @@ private struct SleepPopupView: View {
     var body: some View {
         Text("Sleep").font(.headline)
         // Three cards (spec 010, Sleep popup): Sleep Score, When you slept, How much you slept.
-        sleepScore.sleepCard()
-        whenYouSlept.sleepCard()
-        howMuchYouSlept.sleepCard()
+        sleepScore.popupCard()
+        whenYouSlept.popupCard()
+        howMuchYouSlept.popupCard()
     }
 
     /// The Sleep Score as a big number with a key of its parts, and the parts as nested rings:
@@ -416,8 +416,8 @@ private struct SleepNeedBarView: View {
 }
 
 extension View {
-    /// One of the Sleep popup's cards.
-    fileprivate func sleepCard() -> some View {
+    /// One card of a popup, the same inset on every popup.
+    fileprivate func popupCard() -> some View {
         padding(16).frame(maxWidth: .infinity, alignment: .leading).themeCard()
     }
 }
@@ -442,9 +442,7 @@ private struct MetricPopupView: View {
             }
             verdict
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .themeCard()
+        .popupCard()
         PopupSectionTitle("Last 14 Nights")
         PopupBlocksView(
             blocks: popup.blocks.map {
@@ -532,9 +530,7 @@ private struct RestingHRPopupView: View {
             Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
             if let sentence = popup.sentenceText { Text(sentence) }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .themeCard()
+        .popupCard()
         PopupSectionTitle("Last 14 Days")
         PopupBlocksView(
             blocks: popup.blocks.map {
@@ -672,8 +668,7 @@ private struct PopupBlocksView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .padding(14)
-        .themeCard()
+        .popupCard()
         .accessibilityHidden(true)
     }
 }
@@ -706,8 +701,7 @@ private struct PopupFactsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(14)
-        .themeCard()
+        .popupCard()
     }
 }
 
@@ -718,9 +712,7 @@ private struct PopupTextCard: View {
     var body: some View {
         Text(text)
             .font(.subheadline)
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .themeCard()
+            .popupCard()
     }
 }
 
@@ -738,9 +730,7 @@ private struct PopupBulletsCard: View {
             }
         }
         .font(.subheadline)
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .themeCard()
+        .popupCard()
     }
 }
 
