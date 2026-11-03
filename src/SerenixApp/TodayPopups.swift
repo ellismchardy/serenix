@@ -94,39 +94,120 @@ private struct SleepPopupView: View {
 
     var body: some View {
         Text("Sleep").font(.headline)
-        LabeledContent("Sleep Score", value: popup.sleepScoreText)
-        // Sleep Score's parts as three small rings, each with what it came from (spec 010).
-        HStack(alignment: .top) {
-            ForEach(popup.parts, id: \.name) { part in
-                VStack(spacing: 4) {
-                    ScoreRing(
-                        text: part.scoreText,
-                        fill: part.fill,
-                        label: part.name,
-                        diameter: 64
-                    )
-                    Text(part.detailText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+        // Three cards (spec 010, Sleep popup): Sleep Score, When you slept, How much you slept.
+        VStack(alignment: .leading, spacing: 12) {
+            LabeledContent("Sleep Score", value: popup.sleepScoreText)
+            // Sleep Score's parts as three small rings, each with what it came from.
+            HStack(alignment: .top) {
+                ForEach(popup.parts, id: \.name) { part in
+                    VStack(spacing: 4) {
+                        ScoreRing(
+                            text: part.scoreText,
+                            fill: part.fill,
+                            label: part.name,
+                            diameter: 64
+                        )
+                        Text(part.detailText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
             }
         }
-        LabeledContent("Time in Bed") {
-            Text("\(popup.timeInBedText) · \(popup.timeInBedDurationText)")
-        }
-        LabeledContent("Sleep Onset", value: popup.sleepOnsetText)
-        LabeledContent("Final Wake", value: popup.finalWakeText)
-        LabeledContent("Time Asleep", value: popup.timeAsleepText)
-        LabeledContent("Sleep Need", value: popup.sleepNeedText)
-        LabeledContent("Sleep Debt") {
-            VStack(alignment: .trailing) {
-                Text(popup.sleepDebtText)
-                Text(popup.sleepDebtCaption).font(.footnote).foregroundStyle(.secondary)
+        .sleepCard()
+        whenYouSlept.sleepCard()
+        VStack(alignment: .leading, spacing: 8) {
+            LabeledContent("Time Asleep", value: popup.timeAsleepText)
+            LabeledContent("Sleep Need", value: popup.sleepNeedText)
+            LabeledContent("Sleep Debt") {
+                VStack(alignment: .trailing) {
+                    Text(popup.sleepDebtText)
+                    Text(popup.sleepDebtCaption).font(.footnote).foregroundStyle(.secondary)
+                }
             }
         }
-        LabeledContent("Awake in the night", value: popup.minutesAwakeText)
+        .sleepCard()
+    }
+
+    /// The Night's Sleep Period on its timeline, with Sleep Consistency's detail in the heading
+    /// and Time in Bed, minutes awake and Sleep Efficiency's detail in the caption.
+    private var whenYouSlept: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("When you slept").font(.subheadline.bold())
+                Text("· \(detail(of: "Sleep Consistency"))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let timeline = popup.timeline {
+                SleepTimelineView(timeline: timeline).frame(height: 96)
+            } else {
+                Text("No Sleep Period for this Night").foregroundStyle(.secondary)
+            }
+            Text(
+                "Time in Bed \(popup.timeInBedText) (\(popup.timeInBedDurationText)) · "
+                    + "Awake in the night \(popup.minutesAwakeText) · "
+                    + detail(of: "Sleep Efficiency")
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    /// The detail of Sleep Score's part named `name`, e.g. "Sleep Consistency".
+    private func detail(of name: String) -> String {
+        popup.parts.first { $0.name == name }?.detailText ?? "—"
+    }
+}
+
+/// The Sleep popup's timeline (spec 010): the Sleep Period as an accent bar between its labelled
+/// ends, over the hour labels. Every position comes from `SleepTimeline`.
+private struct SleepTimelineView: View {
+    let timeline: SleepTimeline
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let periodWidth: CGFloat =
+                (timeline.finalWake.position - timeline.sleepOnset.position) * width
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Theme.accent)
+                    .frame(width: max(periodWidth, 2), height: 20)
+                    .offset(x: timeline.sleepOnset.position * width, y: 30)
+                endLabel(timeline.sleepOnset, width: width)
+                endLabel(timeline.finalWake, width: width)
+                ForEach(timeline.hours, id: \.position) { hour in
+                    Text(hour.text)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                        .position(x: hour.position * width, y: 86)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Asleep from \(timeline.sleepOnset.text) to \(timeline.finalWake.text)"
+        )
+    }
+
+    /// Sleep Onset's or Final Wake's clock time under its end of the bar.
+    private func endLabel(_ mark: TimelineMark, width: CGFloat) -> some View {
+        Text(mark.text)
+            .font(.caption2.bold())
+            .monospacedDigit()
+            .fixedSize()
+            .position(x: mark.position * width, y: 60)
+    }
+}
+
+extension View {
+    /// One of the Sleep popup's cards.
+    fileprivate func sleepCard() -> some View {
+        padding(16).frame(maxWidth: .infinity, alignment: .leading).themeCard()
     }
 }
 

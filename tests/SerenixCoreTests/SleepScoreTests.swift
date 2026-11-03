@@ -432,3 +432,45 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
     #expect(part("Sleep Consistency", of: view)?.scoreText == "42")
     #expect(part("Sleep Consistency", of: view)?.detailText == "1h 10m off your usual")
 }
+
+// MARK: Sleep popup timeline
+
+/// `share` of the axis to 3 decimal places, as spec 010 states timeline positions.
+private func threePlaces(_ share: Double) -> Double {
+    (share * 1000).rounded() / 1000
+}
+
+@Test func theDefaultNightsTimelineRunsFromSleepOnsetToFinalWakeWithHoursEveryTwoHours() {
+    let timeline = todayView(nights: [nightOn15Nov()]).sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 7))
+    #expect(timeline?.hours.map(\.text) == ["23", "01", "03", "05", "07"])
+    #expect(timeline?.hours.map { threePlaces($0.position) } == [0, 0.25, 0.5, 0.75, 1.0])
+    #expect(timeline?.sleepOnset.text == "23:00")
+    #expect(timeline.map { threePlaces($0.sleepOnset.position) } == 0)
+    #expect(timeline?.finalWake.text == "07:00")
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 1.0)
+}
+
+@Test func aNightFrom3To12HasATimelineThatFitsIt() {
+    let timeline = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 3), finalWake: at(15, 12))]
+    ).sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(15, 3))
+    #expect(timeline?.axisEnd == at(15, 12))
+    #expect(timeline?.hours.map(\.text) == ["03", "05", "07", "09", "11"])
+    #expect(
+        timeline?.hours.map { threePlaces($0.position) } == [0, 0.222, 0.444, 0.667, 0.889]
+    )
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 1.0)
+}
+
+@Test func aNightWithNoSleepOnsetHasNoTimeline() {
+    let popup = todayView(nights: [nightOn15Nov(sleepOnset: nil, timeAsleep: 6 * oneHour)])
+        .sleepPopup
+
+    #expect(popup != nil)
+    #expect(popup?.timeline == nil)
+}

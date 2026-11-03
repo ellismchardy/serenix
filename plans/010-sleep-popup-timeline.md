@@ -49,7 +49,7 @@ The shell (`src/SerenixApp/TodayPopups.swift`, `SleepPopupView`) is rebuilt as t
    their sizes. No behavior change.
    - Files: `src/SerenixCore/SleepScore.swift`
    - Done when: existing suite still green.
-2. [ ] **Slice (tracer):** the Sleep popup's timeline with axis, hour labels, Sleep Onset and
+2. [x] **Slice (tracer):** the Sleep popup's timeline with axis, hour labels, Sleep Onset and
    Final Wake; nil without Sleep Onset. Shell: SleepPopupView becomes the three-card layout
    with the "When you slept" card drawing the axis, hours and the Sleep Period bar (or "No Sleep
    Period for this Night"), the heading with Sleep Consistency's detail, and the caption (Time in

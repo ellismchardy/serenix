@@ -170,6 +170,8 @@ public struct SleepPopup: Equatable, Sendable {
     /// Minutes awake within the Sleep Period: Final Wake − Sleep Onset − Time Asleep, e.g.
     /// "32 min"; "—" if any is missing or it comes out negative.
     public let minutesAwakeText: String
+    /// The "When you slept" timeline (spec 010); nil without Sleep Onset or Final Wake.
+    public let timeline: SleepTimeline?
 
     init(
         _ night: Night,
@@ -196,6 +198,7 @@ public struct SleepPopup: Equatable, Sendable {
             } ?? missingText
         timeInBedDurationText =
             timeInBed.map { durationText($0.end.timeIntervalSince($0.start)) } ?? missingText
+        timeline = SleepTimeline(night, timeZone: timeZone)
         sleepOnsetText = night.sleepOnset.map { clockText($0, in: timeZone) } ?? missingText
         finalWakeText = night.finalWake.map { clockText($0, in: timeZone) } ?? missingText
         let timeAsleep = night.plausibleTimeAsleep
