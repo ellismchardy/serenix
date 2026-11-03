@@ -80,7 +80,7 @@ The shell (`src/SerenixApp/TodayPopups.swift`, `SleepPopupView`) is rebuilt as t
      `tests/SerenixCoreTests/SleepScoreTests.swift`, `src/SerenixApp/TodayPopups.swift`
    - Done when: the four "Sleep Need bar" criteria pass (8 h of 8 h: 1.0/1.0; 6 h: 0.75/1.0;
      9 h against 8 h: 1.0/0.889; no Time Asleep: 0/1.0 and "—").
-6. [ ] **Slice (shell):** the top card — big Sleep Score number, three nested rings (Sufficiency
+6. [x] **Slice (shell):** the top card — big Sleep Score number, three nested rings (Sufficiency
    outside) in three accent shades, the key with each part's score; the plain rows list removed.
    No new `SerenixCore` logic: the "missing" criterion (empty rings, every score and detail "—")
    is already covered by `withNoTimeAsleepTheSleepPopupsThreeRingsReadDashAndAreEmpty`; extend

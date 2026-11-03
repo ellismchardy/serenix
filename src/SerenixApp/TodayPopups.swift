@@ -95,30 +95,59 @@ private struct SleepPopupView: View {
     var body: some View {
         Text("Sleep").font(.headline)
         // Three cards (spec 010, Sleep popup): Sleep Score, When you slept, How much you slept.
-        VStack(alignment: .leading, spacing: 12) {
-            LabeledContent("Sleep Score", value: popup.sleepScoreText)
-            // Sleep Score's parts as three small rings, each with what it came from.
-            HStack(alignment: .top) {
-                ForEach(popup.parts, id: \.name) { part in
-                    VStack(spacing: 4) {
-                        ScoreRing(
-                            text: part.scoreText,
-                            fill: part.fill,
-                            label: part.name,
-                            diameter: 64
-                        )
-                        Text(part.detailText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .sleepCard()
+        sleepScore.sleepCard()
         whenYouSlept.sleepCard()
         howMuchYouSlept.sleepCard()
+    }
+
+    /// The Sleep Score as a big number with a key of its parts, and the parts as nested rings:
+    /// Sleep Sufficiency outside, Sleep Efficiency in the middle, Sleep Consistency inside.
+    private var sleepScore: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Sleep Score").font(.footnote).foregroundStyle(.secondary)
+                Text(popup.sleepScoreText)
+                    .font(.system(size: 52, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                ForEach(Array(zip(popup.parts, Self.partShades)), id: \.0.name) { part, shade in
+                    HStack(spacing: 6) {
+                        Circle().fill(shade).frame(width: 10, height: 10)
+                        Text(part.name).font(.caption)
+                        Text(part.scoreText).font(.caption.bold()).monospacedDigit()
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+            ZStack {
+                ForEach(Array(zip(popup.parts, Self.partShades).enumerated()), id: \.element.0.name)
+                { index, pair in
+                    RingArc(fill: pair.0.fill, colour: pair.1, lineWidth: Self.ringLineWidth)
+                        .frame(width: ringDiameter(index), height: ringDiameter(index))
+                }
+            }
+            // The outer stroke reaches half a line past its circle.
+            .frame(width: ringDiameter(0), height: ringDiameter(0))
+            .padding(Self.ringLineWidth / 2)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                popup.parts.map { "\($0.name) \($0.scoreText)" }.joined(separator: ", ")
+            )
+        }
+    }
+
+    /// Each part's shade, in the parts' order: the accent outside, lighter inwards.
+    private static let partShades = [Theme.accent, Theme.accentMiddle, Theme.accentInner]
+    /// The nested rings' stroke, points.
+    private static let ringLineWidth: CGFloat = 11
+    /// The outer ring's diameter, points.
+    private static let outerRingDiameter: CGFloat = 131
+    /// The gap between nested rings, points.
+    private static let ringGap: CGFloat = 3
+
+    /// The nested ring at `index`'s diameter, outermost first, each a stroke and a gap inside
+    /// the last on either side.
+    private func ringDiameter(_ index: Int) -> CGFloat {
+        Self.outerRingDiameter - CGFloat(index) * 2 * (Self.ringLineWidth + Self.ringGap)
     }
 
     /// Time Asleep as a bar with a marker at Sleep Need, then Sleep Debt (spec 010).
