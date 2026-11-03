@@ -1,7 +1,7 @@
 # 010 — Sleep Score
 
-**Status:** approved
-**Last updated:** 2026-11-03 (approved: Sleep popup redrawn as prototype variant C)
+**Status:** built
+**Last updated:** 2026-11-03 (built: Sleep popup redrawn as prototype variant C)
 **Issue:** https://github.com/ellismchardy/serenix/issues/35 (map: https://github.com/ellismchardy/serenix/issues/31)
 
 ## Problem
@@ -185,33 +185,33 @@ Sleep Consistency (earlier Nights dated 14, 13 and 12 Nov, each 23:00 to 07:00 u
       at 01:00 to 09:00 give Sleep Consistency "0"; 13 Nov, 12 Nov and 7 Nov leave it "—".
 
 Sleep popup timeline (positions are shares of the axis, to 3 decimal places):
-- [ ] The default Night with Time in Bed 22:40 to 07:15 has an axis from 22:00 to 08:00, hours
+- [x] The default Night with Time in Bed 22:40 to 07:15 has an axis from 22:00 to 08:00, hours
       "22", "00", "02", "04", "06", "08" at 0, 0.2, 0.4, 0.6, 0.8 and 1.0, Time in Bed from 0.067
       to 0.925, Sleep Onset "23:00" at 0.1 and Final Wake "07:00" at 0.9, no usual times, and
       Sleep Consistency's detail "Needs 3 Nights".
-- [ ] The default Night with no Time in Bed has no Time in Bed on the timeline, and an axis from
+- [x] The default Night with no Time in Bed has no Time in Bed on the timeline, and an axis from
       23:00 to 07:00 (times on the hour aren't rounded out), hours "23", "01", "03", "05", "07".
-- [ ] With earlier Nights dated 14, 13 and 12 Nov at 23:00 to 07:00 and tonight at 23:30 to 07:40,
+- [x] With earlier Nights dated 14, 13 and 12 Nov at 23:00 to 07:00 and tonight at 23:30 to 07:40,
       the usual Sleep Onset is "23:00" at 0 and the usual Final Wake "07:00" at 0.889, on an axis
       from 23:00 to 08:00, with Sleep Onset at 0.056 and Final Wake at 0.963.
-- [ ] With earlier Sleep Onsets 23:50, 23:40 and 00:20, Final Wakes 08:10, and tonight at 00:10
+- [x] With earlier Sleep Onsets 23:50, 23:40 and 00:20, Final Wakes 08:10, and tonight at 00:10
       to 08:10, the usual Sleep Onset is "23:50" and the usual Final Wake "08:10", on an axis
       from 23:00 to 09:00.
-- [ ] A Night from 03:00 to 12:00 on 15 Nov (Time Asleep 8 h, no Time in Bed) has an axis from
+- [x] A Night from 03:00 to 12:00 on 15 Nov (Time Asleep 8 h, no Time in Bed) has an axis from
       03:00 to 12:00, hours "03", "05", "07", "09", "11", and Final Wake at 1.0.
-- [ ] A Night with no Sleep Onset has no timeline (the popup reads "No Sleep Period for this
+- [x] A Night with no Sleep Onset has no timeline (the popup reads "No Sleep Period for this
       Night").
 
 Sleep popup Sleep Need bar:
-- [ ] The default Night fills to 1.0 with the marker at 1.0, reading "8h 0m asleep" and "needed
+- [x] The default Night fills to 1.0 with the marker at 1.0, reading "8h 0m asleep" and "needed
       8h 0m".
-- [ ] Time Asleep 6 h (Final Wake 05:18) fills to 0.75 with the marker at 1.0.
-- [ ] Time Asleep 9 h with Sleep Onset 22:00 (Sleep Need 8 h) fills to 1.0 with the marker at
+- [x] Time Asleep 6 h (Final Wake 05:18) fills to 0.75 with the marker at 1.0.
+- [x] Time Asleep 9 h with Sleep Onset 22:00 (Sleep Need 8 h) fills to 1.0 with the marker at
       0.889.
-- [ ] A Night with no Time Asleep is empty with the marker at 1.0, reading "—" asleep.
+- [x] A Night with no Time Asleep is empty with the marker at 1.0, reading "—" asleep.
 
 Missing and where it shows:
-- [ ] A Night with no Time Asleep reads "—" with the ring empty, and the Sleep popup's three
+- [x] A Night with no Time Asleep reads "—" with the ring empty, and the Sleep popup's three
       nested rings are empty, with every part's score and detail "—".
 - [x] The Readiness popup's Sleep Score row shows the Night's Sleep Score ("96" for Time Asleep
       7 h 36 m, with spec 008's usual HRV and Sleeping HR and four earlier Nights).
