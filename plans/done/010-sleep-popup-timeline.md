@@ -89,7 +89,7 @@ The shell (`src/SerenixApp/TodayPopups.swift`, `SleepPopupView`) is rebuilt as t
      `src/SerenixApp/TodayPopups.swift`, `src/SerenixApp/Theme.swift`, possibly
      `src/SerenixApp/ScoreRing.swift`, `tests/SerenixCoreTests/SleepScoreTests.swift`
    - Done when: the missing criterion passes; the app target compiles in CI.
-7. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+7. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; every unticked spec 010 criterion ticked except those carried to the
    PR checklist: the macOS CI build and the two by-hand phone checks (three cards in Light and
    Dark, no plain rows; fewer than 3 earlier Nights shows the inner ring empty, "Needs 3 Nights"
