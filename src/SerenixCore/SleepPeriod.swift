@@ -15,8 +15,12 @@ struct SleepPeriod: Equatable, Sendable {
     var timeInBedStart: Date
     /// UTC.
     var timeInBedEnd: Date
-    /// Seconds: the sleep minutes inside the Sleep Period.
-    var timeAsleep: TimeInterval
+    /// Whether each minute from Sleep Onset to Final Wake, in order, was labelled sleep (false for
+    /// wake). Every minute inside a Sleep Period has data: it is runs of sleep, merged only
+    /// across recorded wake.
+    var minuteIsAsleep: [Bool]
+    /// Seconds: the sleep minutes inside the Sleep Period, counted from `minuteIsAsleep`.
+    var timeAsleep: TimeInterval { Double(minuteIsAsleep.filter { $0 }.count) * secondsPerMinute }
 
     /// Nil when no run of sleep minutes is long enough to start a Sleep Period. `records` must be
     /// oldest first, without repeats.
@@ -34,7 +38,7 @@ struct SleepPeriod: Equatable, Sendable {
         finalWake = Date(timeIntervalSince1970: last.start + secondsPerMinute)
         timeInBedStart = Date(timeIntervalSince1970: firstInBed.start)
         timeInBedEnd = Date(timeIntervalSince1970: lastInBed.start + secondsPerMinute)
-        timeAsleep = Double(labels[onset..<end].filter { $0 == .sleep }.count) * secondsPerMinute
+        minuteIsAsleep = labels[onset..<end].map { $0 == .sleep }
     }
 }
 

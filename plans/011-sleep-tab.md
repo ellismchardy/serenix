@@ -9,9 +9,9 @@
 ## Approach
 Three seams, as the spec says. **Nights from History Records** (`nights(from:in:)`) gains the
 Heart Rate Trace and Wake Bouts on `Night`, both worked out from what `SleepPeriod` already
-computes: its per-minute table (mean heart rate, record counts) and its sleep/wake labels. So
-the first task is a **prefactor** that lets `SleepPeriod` hand its minute table, labels and the
-period's minute range to `Nights.swift` (internal API), changing no result: spec 003's
+computes: its sleep/wake labels. So
+the first task is a **prefactor** that lets `SleepPeriod` keep each minute's asleep flag inside the
+period (internal), changing no result: spec 003's
 hr-tracker parity tests must stay green untouched. The Heart Rate Trace needs per-record
 non-zero heart rates in 5-minute steps, so it's built from the sorted records directly, over
 Time in Bed. Wake Bouts are the runs of **non-sleep** minutes between Sleep Onset and Final Wake —
@@ -33,9 +33,11 @@ existing Nights and Night rebuild tests.
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Prefactor:** `SleepPeriod` exposes, internally, its minute table, sleep/wake labels and
-   the Sleep Period's minute range, so `Nights.swift` can read them. No behavior change.
-   - Files: `SleepPeriod.swift`, `Nights.swift`
+1. [x] **Prefactor:** `SleepPeriod` keeps, internally, whether each minute from Sleep Onset to
+   Final Wake was asleep (`minuteIsAsleep`), and works Time Asleep out from it, so Wake Bouts can
+   be read from it. No behavior change. (The minute table isn't needed: the Heart Rate Trace is
+   built from the records, and the table's mean includes zero heart rates.)
+   - Files: `SleepPeriod.swift`
    - Done when: the existing suite (incl. spec 003's fixture-night parity tests) is green and
      unchanged.
 2. [ ] **Slice:** Heart Rate Trace — 5-minute steps over Time in Bed (Sleep Onset to Final Wake
