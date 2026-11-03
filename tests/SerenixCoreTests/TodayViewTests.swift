@@ -2203,6 +2203,98 @@ private func noValuePositions(_ popup: MetricPopup?) -> [Int]? {
     #expect(calibrating?.baselineText == "Calibrating")
 }
 
+/// Spec 011's Text table, word for word: What it is, then What moves it split on " · ".
+private func specText(of metric: NightlyMetric) -> (whatItIs: String, whatMovesIt: [String]) {
+    switch metric {
+    case .sleepingHR:
+        let whatItIs: String =
+            "Your lowest sustained heart rate while asleep. Lower than usual is fine; a rise of a "
+            + "few bpm over your Baseline often comes with a late meal, alcohol, illness or hard "
+            + "training."
+        return (
+            whatItIs,
+            [
+                "Alcohol", "A late, heavy meal", "Illness coming on",
+                "Hard training the day before", "A warm bedroom",
+            ]
+        )
+    case .hrv:
+        let whatItIs: String =
+            "How much the time between your heartbeats varies while you sleep, as RMSSD. It's "
+            + "personal, so compare it only with your own Baseline. Higher than usual is "
+            + "generally a good sign; a drop well below it is worth noticing."
+        return (
+            whatItIs,
+            ["Alcohol", "Short or broken sleep", "Illness", "Hard training", "Stress"]
+        )
+    case .respiratoryRate:
+        let whatItIs: String =
+            "Breaths per minute while you sleep. It barely changes from Night to Night, so even a "
+            + "small rise above your Baseline stands out."
+        return (
+            whatItIs,
+            ["Illness, especially of the chest or airways", "Being at altitude", "Alcohol"]
+        )
+    case .skinTemperature:
+        let whatItIs: String =
+            "The temperature of the skin under the Strap while you sleep. Only the change from "
+            + "your Baseline matters: the number itself depends on the room, your bedding and "
+            + "how the Strap sits."
+        return (
+            whatItIs,
+            [
+                "Fever or illness", "The menstrual cycle", "Room temperature and bedding",
+                "How tightly the Strap is worn",
+            ]
+        )
+    case .spo2:
+        let whatItIs: String =
+            "How much oxygen your blood is carrying, measured in short SpO2 Windows while you "
+            + "sleep. It's judged against fixed levels, not a Baseline."
+        return (
+            whatItIs,
+            ["Being at altitude", "Pauses in breathing during sleep", "A loose Strap"]
+        )
+    }
+}
+
+@Test(arguments: [NightlyMetric.sleepingHR, .hrv, .respiratoryRate, .skinTemperature, .spo2])
+func metricPopupExplainsWhatTheMetricIsAndWhatMovesIt(metric: NightlyMetric) {
+    let night = Night(
+        day: nov1,
+        sleepingHR: 52,
+        hrv: 60,
+        respiratoryRate: 14,
+        skinTemperature: 34,
+        spo2: 97
+    )
+    let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+        .metricPopup(metric)
+
+    #expect(popup?.whatItIsText == specText(of: metric).whatItIs)
+    #expect(popup?.whatMovesItTexts == specText(of: metric).whatMovesIt)
+}
+
+@Test func metricPopupTextsAreTheSameWhetherCalibratingOrMissingTheValue() {
+    let inRange = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 60)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    let calibrating = todayView(
+        nights: nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    let missing = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1)],
+        showing: nov1
+    ).metricPopup(.hrv)
+
+    for popup in [inRange, calibrating, missing] {
+        #expect(popup?.whatItIsText == specText(of: .hrv).whatItIs)
+        #expect(popup?.whatMovesItTexts == specText(of: .hrv).whatMovesIt)
+    }
+}
+
 // MARK: Popups on a Day without a Night
 
 @Test func aDayWithoutANightHasNoPopups() {

@@ -112,7 +112,7 @@ Code to reuse:
        it is In range against the Night shown's Baseline;
      - Lowest and Highest ignore Nights older than the 14 dates and read "—" with none;
      - SpO2 has no Baseline fact.
-5. [ ] **Slice: metric texts.** A new `MetricTexts` namespace in `SerenixCore` gives
+5. [x] **Slice: metric texts.** A new `MetricTexts` namespace in `SerenixCore` gives
    `whatItIs` and `whatMovesIt` for each Nightly Metric and for Resting HR, copied word for
    word from the spec. `MetricPopup` exposes them.
    - Seam: Today view · Files: new `src/SerenixCore/MetricTexts.swift`,

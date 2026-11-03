@@ -247,6 +247,10 @@ public struct MetricPopup: Equatable, Sendable {
     public let lowestText: String
     /// The highest value in the blocks, as on the tile; "—" when none has a value.
     public let highestText: String
+    /// What the metric is (spec 011, Text); the same every Night.
+    public let whatItIsText: String
+    /// What tends to move it, in order (spec 011, Text).
+    public let whatMovesItTexts: [String]
     /// The Night shown and up to 13 earlier Nights, oldest first, without missing values.
     public let chart: [MetricPopupPoint]
     /// The 5 most recent of those, newest first.
@@ -309,6 +313,8 @@ public struct MetricPopup: Equatable, Sendable {
         let blockValues = blockNights.compactMap { $0?.value(of: tile.metric) }
         lowestText = blockValues.min().map { formattedValue(of: tile.metric, $0) } ?? missingText
         highestText = blockValues.max().map { formattedValue(of: tile.metric, $0) } ?? missingText
+        whatItIsText = MetricTexts.whatItIs(tile.metric)
+        whatMovesItTexts = MetricTexts.whatMovesIt(tile.metric)
         chart = recentNights(Self.chartNights, upTo: night, among: nights).compactMap { night in
             night.value(of: tile.metric).map { MetricPopupPoint(day: night.day, value: $0) }
         }
