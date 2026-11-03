@@ -5,6 +5,8 @@ import Foundation
 public struct SleepView: Equatable, Sendable {
     /// The same week strip as the Today tab's for the same Day (spec 002, Week strip).
     public let weekStrip: WeekStrip
+    /// A bedtime to aim for tonight; nil when the Day shown isn't today.
+    public let tonight: SleepTonight?
     /// About the Night dated the Day shown; nil when that Day has no Night.
     public let lastNight: SleepLastNight?
     /// "No Night yet" for today, "No Night recorded" for an earlier Day, in place of Last night;
@@ -27,11 +29,60 @@ public struct SleepView: Equatable, Sendable {
             earliest: WeekStrip.earliest(among: nights, today: today),
             nights: Set(nights.map(\.day))
         )
+        tonight =
+            isToday
+            ? SleepTonight(today: day, nights: nights, timeZone: timeZone, birthYear: birthYear)
+            : nil
         let night = nights.first { $0.day == day }
         lastNight = night.map {
             SleepLastNight($0, title: isToday ? "Last night" : day.text, timeZone: timeZone)
         }
         noNightMessage = night != nil ? nil : TodayView.noNightMessage(isToday: isToday)
+    }
+}
+
+/// The Sleep tab's Tonight section (spec 011, Tonight): when to be asleep tonight to get the
+/// Sleep Need of the Night that will be dated tomorrow, against the usual Final Wake.
+public struct SleepTonight: Equatable, Sendable {
+    /// e.g. "Be asleep by 23:00"; nil before there are enough Nights.
+    public let beAsleepByText: String?
+    /// e.g. "Sleep Need 8h 0m"; nil before there are enough Nights.
+    public let sleepNeedText: String?
+    /// e.g. "You usually wake at 07:00"; nil before there are enough Nights.
+    public let usualWakeText: String?
+    /// e.g. "· 2h 0m of Sleep Debt this week"; nil with no Sleep Debt or before enough Nights.
+    public let sleepDebtText: String?
+    /// "A bedtime to aim for appears after 3 Nights" in place of the rest; nil once there's one.
+    public let waitingText: String?
+
+    /// The fewest Nights with a Final Wake in the week to today that a bedtime needs (spec 011:
+    /// 3, as Sleep Consistency's median).
+    static let fewestNights = 3
+
+    init(today: Day, nights: [Night], timeZone: TimeZone, birthYear: Int?) {
+        let tomorrow = today.adding(days: 1)
+        // The week to today, D − 6 to D: Sleep Need's look-back for tomorrow's Night.
+        let window = SleepNeed.window(before: tomorrow)
+        let wakes = nights.filter { window.contains($0.day) }.compactMap(\.finalWake)
+        guard wakes.count >= Self.fewestNights else {
+            beAsleepByText = nil
+            sleepNeedText = nil
+            usualWakeText = nil
+            sleepDebtText = nil
+            waitingText = "A bedtime to aim for appears after \(Self.fewestNights) Nights"
+            return
+        }
+        let need = SleepNeed(for: tomorrow, among: nights, birthYear: birthYear)
+        // In whole minutes as each is shown, so the three times always agree.
+        let usualWake = ClockTime.median(of: wakes, in: timeZone).rounded(.down)
+        let needMinutes = (need.sleepNeed / 60).rounded()
+        beAsleepByText = "Be asleep by \(ClockTime.text(minutes: usualWake - needMinutes))"
+        sleepNeedText = "Sleep Need \(durationText(need.sleepNeed))"
+        usualWakeText = "You usually wake at \(ClockTime.text(minutes: usualWake))"
+        sleepDebtText =
+            need.sleepDebt > 0
+            ? "\u{00B7} \(durationText(need.sleepDebt)) of Sleep Debt this week" : nil
+        waitingText = nil
     }
 }
 

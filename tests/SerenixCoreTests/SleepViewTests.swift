@@ -16,12 +16,12 @@ private let nov1 = Day(year: 2026, month: 11, day: 1)
 
 private let nov3 = Day(year: 2026, month: 11, day: 3)
 
-/// `hour`:`minute` UTC (and so London local time) on `day` Nov 2026.
-private func at(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+/// `hour`:`minute` UTC (and so London local time) on `month`/`day` 2026 (November by default).
+private func at(month: Int = 11, _ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(identifier: "UTC")!
     return calendar.date(
-        from: DateComponents(year: 2026, month: 11, day: day, hour: hour, minute: minute)
+        from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute)
     )!
 }
 
@@ -267,4 +267,113 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
     )
 
     #expect(sleepView(nights: nights, showing: nov1).weekStrip == today.weekStrip)
+}
+
+// MARK: Tonight
+
+// Spec 011's success criteria under "Tonight": Nights dated 28 Oct to 3 Nov, each Sleep Onset
+// 23:00 the evening before. London is on GMT throughout (BST ended on 25 Oct), so local = UTC.
+
+/// The Night dated `month`/`day` 2026: Sleep Onset 23:00 the evening before, Final Wake
+/// `wakeHour`:`wakeMinute`, and `timeAsleep`.
+private func tonightNight(
+    month: Int,
+    _ day: Int,
+    wakeHour: Int = 7,
+    wakeMinute: Int = 0,
+    timeAsleep: TimeInterval
+) -> Night {
+    Night(
+        day: Day(year: 2026, month: month, day: day),
+        sleepOnset: at(month: month, day, 0) - oneHour,
+        finalWake: at(month: month, day, wakeHour, wakeMinute),
+        timeAsleep: timeAsleep
+    )
+}
+
+/// The seven Nights dated 28 Oct to 3 Nov, each Final Wake 07:00 with `timeAsleep`.
+private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
+    (28...31).map { tonightNight(month: 10, $0, timeAsleep: timeAsleep) }
+        + (1...3).map { tonightNight(month: 11, $0, timeAsleep: timeAsleep) }
+}
+
+@Test func tonightWithNoSleepDebtIsUsualWakeLessUsualNeed() throws {
+    let tonight = try #require(sleepView(nights: weekOfNights(timeAsleep: 8 * oneHour)).tonight)
+
+    #expect(tonight.beAsleepByText == "Be asleep by 23:00")
+    #expect(tonight.sleepNeedText == "Sleep Need 8h 0m")
+    #expect(tonight.usualWakeText == "You usually wake at 07:00")
+    #expect(tonight.sleepDebtText == nil)
+    #expect(tonight.waitingText == nil)
+}
+
+/// Sleep Debt 7 h (1 h short each Night) would add 1 h 45 m, but Sleep Need is capped at 9 h.
+@Test func tonightWithSleepDebtAimsEarlierAndShowsTheSleepDebt() throws {
+    let tonight = try #require(sleepView(nights: weekOfNights(timeAsleep: 7 * oneHour)).tonight)
+
+    #expect(tonight.beAsleepByText == "Be asleep by 22:00")
+    #expect(tonight.sleepNeedText == "Sleep Need 9h 0m")
+    #expect(tonight.usualWakeText == "You usually wake at 07:00")
+    #expect(tonight.sleepDebtText == "\u{00B7} 7h 0m of Sleep Debt this week")
+    #expect(tonight.waitingText == nil)
+}
+
+@Test func tonightsUsualWakeTimeIsTheMedianFinalWake() {
+    let nights = [
+        tonightNight(month: 11, 1, wakeHour: 6, wakeMinute: 50, timeAsleep: 8 * oneHour),
+        tonightNight(month: 11, 2, wakeHour: 7, wakeMinute: 10, timeAsleep: 8 * oneHour),
+        tonightNight(month: 11, 3, wakeHour: 7, wakeMinute: 0, timeAsleep: 8 * oneHour),
+    ]
+    let tonight = sleepView(nights: nights).tonight
+
+    #expect(tonight?.usualWakeText == "You usually wake at 07:00")
+    #expect(tonight?.beAsleepByText == "Be asleep by 23:00")
+}
+
+@Test func withFewerThanThreeNightsTonightReadsOnlyThatABedtimeAppearsAfterThree() throws {
+    let nights = [
+        tonightNight(month: 11, 2, timeAsleep: 8 * oneHour),
+        tonightNight(month: 11, 3, timeAsleep: 8 * oneHour),
+    ]
+    let tonight = try #require(sleepView(nights: nights).tonight)
+
+    #expect(tonight.waitingText == "A bedtime to aim for appears after 3 Nights")
+    #expect(tonight.beAsleepByText == nil)
+    #expect(tonight.sleepNeedText == nil)
+    #expect(tonight.usualWakeText == nil)
+    #expect(tonight.sleepDebtText == nil)
+}
+
+@Test func anEarlierDayShownHasNoTonight() {
+    let nights = weekOfNights(timeAsleep: 8 * oneHour)
+
+    #expect(sleepView(nights: nights, showing: Day(year: 2026, month: 11, day: 2)).tonight == nil)
+}
+
+/// An even count of Final Wakes averages the middle two: 07:00 and 07:01 give 07:00:30, shown cut
+/// to 07:00, and the bedtime is worked out from the time shown, so the two agree (23:00).
+@Test func anEvenCountOfFinalWakesAveragesTheMiddleTwoAndTheTimesAgree() throws {
+    let nights = [
+        tonightNight(month: 10, 31, wakeHour: 7, wakeMinute: 0, timeAsleep: 8 * oneHour),
+        tonightNight(month: 11, 1, wakeHour: 7, wakeMinute: 0, timeAsleep: 8 * oneHour),
+        tonightNight(month: 11, 2, wakeHour: 7, wakeMinute: 1, timeAsleep: 8 * oneHour),
+        tonightNight(month: 11, 3, wakeHour: 7, wakeMinute: 1, timeAsleep: 8 * oneHour),
+    ]
+    let tonight = try #require(sleepView(nights: nights).tonight)
+
+    #expect(tonight.usualWakeText == "You usually wake at 07:00")
+    #expect(tonight.beAsleepByText == "Be asleep by 23:00")
+}
+
+/// The bedtime wraps round midnight: a usual wake of 06:00 with Sleep Need 9 h is 21:00.
+@Test func theBedtimeWrapsRoundMidnight() throws {
+    let nights =
+        (28...31).map {
+            tonightNight(month: 10, $0, wakeHour: 6, timeAsleep: 7 * oneHour)
+        }
+        + (1...3).map { tonightNight(month: 11, $0, wakeHour: 6, timeAsleep: 7 * oneHour) }
+    let tonight = try #require(sleepView(nights: nights).tonight)
+
+    #expect(tonight.usualWakeText == "You usually wake at 06:00")
+    #expect(tonight.beAsleepByText == "Be asleep by 21:00")
 }

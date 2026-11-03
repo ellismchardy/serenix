@@ -79,7 +79,7 @@ existing Nights and Night rebuild tests.
    - Done when: the remaining Last night criteria (chart range 22:50 to 07:10 and 23:00 to 07:00,
      Sleeping HR line, y-axis 47 to 73 and the broken line, band and list, one/none Wake Bouts,
      the "not kept" note).
-6. [ ] **Slice:** Tonight — only when the Day shown is today; usual wake time (shortest-way-round
+6. [x] **Slice:** Tonight — only when the Day shown is today; usual wake time (shortest-way-round
    median of Final Wakes, D − 6 to D), tonight's Sleep Need (the Night dated D + 1), "Be asleep
    by", the Sleep Debt text, and the 3-Night minimum; the shell draws the card.
    - Seam: Sleep view · Files: `SleepView.swift`, `SleepScore.swift` (lift the median helper),

@@ -40,6 +40,9 @@ struct SleepScreen: View {
             today: today
         ) {
             WeekStripView(strip: sleep.weekStrip) { pickedDay = shownSelection($0) }
+            if let tonight = sleep.tonight {
+                tonightCard(tonight)
+            }
             if let lastNight = sleep.lastNight {
                 lastNightCard(lastNight)
             } else if let message = sleep.noNightMessage {
@@ -56,6 +59,31 @@ struct SleepScreen: View {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             if oldPhase == .background, newPhase != .background { showsSleepPopup = false }
         }
+    }
+
+    /// Tonight (spec 011): when to be asleep, tonight's Sleep Need and the usual wake time, or
+    /// that a bedtime needs more Nights.
+    private func tonightCard(_ tonight: SleepTonight) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Tonight").font(.footnote).foregroundStyle(.secondary)
+            if let waiting = tonight.waitingText {
+                Text(waiting).font(.subheadline)
+            }
+            if let beAsleepBy = tonight.beAsleepByText {
+                Text(beAsleepBy).font(.title2.bold())
+            }
+            if let sleepNeed = tonight.sleepNeedText {
+                Text(sleepNeed).font(.subheadline)
+            }
+            if let usualWake = tonight.usualWakeText {
+                Text([usualWake, tonight.sleepDebtText].compactMap { $0 }.joined(separator: " "))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .themeCard()
     }
 
     /// Last night (spec 011): its title, Time Asleep and the Sleep Score button, then Time in Bed.
