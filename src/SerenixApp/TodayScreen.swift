@@ -344,8 +344,12 @@ struct TodayScreen: View {
                             }
                             .buttonStyle(.plain)
                         case .restingHR(let tile):
-                            // Not a button: the Resting HR tile opens no popup.
-                            RestingHRTileView(tile: tile)
+                            Button {
+                                open(.restingHR, in: today)
+                            } label: {
+                                RestingHRTileView(tile: tile)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -360,6 +364,7 @@ struct TodayScreen: View {
             case .readiness: today.readinessPopup != nil
             case .sleep: today.sleepPopup != nil
             case .metric(let metric): today.metricPopup(metric) != nil
+            case .restingHR: today.restingHRPopup != nil
             case .load: today.loadPopup != nil
             }
         if hasContent { openPopup = popup }

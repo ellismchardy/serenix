@@ -7,6 +7,7 @@ enum TodayPopup: Identifiable, Hashable {
     case readiness
     case sleep
     case metric(NightlyMetric)
+    case restingHR
     case load
 
     var id: Self { self }
@@ -31,6 +32,8 @@ struct TodayPopupView: View {
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
                 case .metric(let metric):
                     if let content = today.metricPopup(metric) { MetricPopupView(popup: content) }
+                case .restingHR:
+                    if let content = today.restingHRPopup { RestingHRPopupView(popup: content) }
                 case .load:
                     if let load = today.loadPopup {
                         LoadPopupView(popup: load, connection: connection)
@@ -222,6 +225,48 @@ private struct MetricPopupView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
         .themeCard()
+    }
+}
+
+/// The Resting HR popup (spec 011): the Nightly Metric popup's layout without anything that needs
+/// a Baseline or Zone, so no pill, scale or Your Zones, and its blocks all one colour.
+private struct RestingHRPopupView: View {
+    let popup: RestingHRPopup
+
+    var body: some View {
+        PopupHeading(
+            icon: NightlyMetric.sleepingHR.icon,
+            name: "Resting HR",
+            detail: popup.dateText
+        )
+        VStack(alignment: .leading, spacing: 12) {
+            Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
+            if let sentence = popup.sentenceText { Text(sentence) }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .themeCard()
+        PopupSectionTitle("Last 14 Days")
+        PopupBlocksView(
+            blocks: popup.blocks.map {
+                PopupBlock(
+                    letter: $0.weekdayLetter,
+                    // One neutral colour: the grey of a block with no Zone.
+                    fill: $0.hasValue ? MetricPopupBlockState.noZone.fill : nil,
+                    outlined: $0.isDayShown
+                )
+            }
+        )
+        PopupFactsView(
+            facts: [
+                (name: "Lowest", value: popup.lowestText),
+                (name: "Highest", value: popup.highestText),
+            ]
+        )
+        PopupSectionTitle("What it is")
+        PopupTextCard(text: popup.whatItIsText)
+        PopupSectionTitle("What moves it")
+        PopupBulletsCard(items: popup.whatMovesItTexts)
     }
 }
 

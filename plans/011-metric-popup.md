@@ -148,7 +148,7 @@ Code to reuse:
      `src/SerenixCore/RecentNights.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`
    - Done when: the suite is green with no references to the old fields; `swift build` and lint
      are clean. The look is carried to the PR checklist.
-8. [ ] **Shell: the Resting HR tile opens its popup.**
+8. [x] **Shell: the Resting HR tile opens its popup.**
    - `TodayPopup` gains `.restingHR`.
    - In `TodayScreen`, the Resting HR tile becomes a plain-style `Button`, like the metric
      tiles, and `open(_:in:)` handles the new case.

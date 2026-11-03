@@ -38,7 +38,8 @@ struct TimeAsleepTileView: View {
 }
 
 /// The Resting HR tile (spec 007): the Day's Resting HR with Sleeping HR's heart icon, "So far
-/// today" on today, and no Zone, so a white card with an empty gauge. It opens no popup.
+/// today" on today, and no Zone, so a white card with an empty gauge. It opens the Resting HR
+/// popup (spec 011).
 struct RestingHRTileView: View {
     let tile: RestingHRTile
 
