@@ -44,6 +44,7 @@ struct TodayPopupView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .presentationBackground(Theme.popupBackground)
     }
 }
 

@@ -10,6 +10,9 @@ enum Theme {
     static let background = adaptive(light: 0xF3F2F8, dark: 0x0F0E14)
     /// Cards, round buttons and the sync pill.
     static let card = adaptive(light: 0xFFFFFF, dark: 0x1C1B24)
+    /// Behind a popup: white in Light, and in Dark the cards' colour, so they don't sit on the
+    /// system's grey sheet (spec 002, Look).
+    static let popupBackground = adaptive(light: 0xFFFFFF, dark: 0x1C1B24)
     /// A soft accent tint, for tracks and icon circles.
     static let accentSoft = adaptive(light: 0xEFEAFE, dark: 0x2A2440)
     /// The app's accent: the avatar, the Day shown, buttons, the pill's outline and the Sleep
