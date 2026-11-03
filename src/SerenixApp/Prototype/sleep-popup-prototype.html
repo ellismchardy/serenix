@@ -1,0 +1,365 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway, never merged (branch prototype/sleep-score-popup-ui).
+  Question: what should the Sleep popup look like now it carries Sleep Score's three parts (spec 010)?
+  Four structurally different Sleep popups over the Today screen, in the Look of variant F
+  (prototype/homescreen), switchable via ?variant=A..D. ?night= picks a sample Night, ?dark=1 the dark Look.
+  Run: double-click this file. Arrow keys ← → cycle variants.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sleep popup prototype</title>
+<style>
+  :root { --bg: #e9e9ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font: 14px/1.4 -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif; color: #111; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+  .wrap { display: flex; gap: 28px; justify-content: center; align-items: flex-start; padding: 24px 16px 110px; flex-wrap: wrap; }
+
+  .phone { --s-bg: #f3f2f8; --s-card: #fff; --s-card2: #efeafe; --s-ink: #16151c; --s-sub: #8b8a97;
+    --track: #e7e4f2; --sep: #efedf5; --accent: #7c5cff; --accent2: #b6a5ff; --accent3: #d9cfff; --shadow: 0 4px 16px rgba(40,30,90,.07);
+    --good: #22c55e; --mid: #f59e0b; --low: #ef4444;
+    width: 390px; max-width: 100%; height: 844px; border-radius: 52px; border: 12px solid #1a1a1a; background: var(--s-bg);
+    position: relative; overflow: hidden; color: var(--s-ink); box-shadow: 0 20px 50px rgba(0,0,0,.25); flex: none; }
+  .phone.dark { --s-bg: #0f0e14; --s-card: #1c1b24; --s-card2: #2a2440; --s-ink: #f4f3f8; --s-sub: #8f8d9e;
+    --track: #2f2d3b; --sep: #2a2934; --accent: #9b85ff; --accent2: #6e5bc4; --accent3: #463b7a; --shadow: none; }
+  .muted { color: var(--s-sub); }
+
+  /* the Today screen behind the popup, just enough to judge it against */
+  .today { padding: 58px 20px 0; }
+  .t-top { display: flex; align-items: center; gap: 12px; }
+  .t-av { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+  .t-rings { display: flex; justify-content: space-around; margin-top: 28px; background: var(--s-card); border-radius: 22px; padding: 18px 8px; box-shadow: var(--shadow); }
+  .t-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .t-tiles div { background: var(--s-card); border-radius: 22px; height: 96px; box-shadow: var(--shadow); }
+  .dim { position: absolute; inset: 0; background: rgba(10,8,20,.35); z-index: 10; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 86%; overflow-y: auto; background: var(--s-bg); border-radius: 22px 22px 0 0; padding: 8px 18px 40px; z-index: 11; }
+  .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--track); margin: 0 auto 12px; }
+  .h { font-size: 17px; font-weight: 700; margin: 2px 0 12px; display: flex; justify-content: space-between; align-items: baseline; }
+  .h small { font-size: 13px; font-weight: 500; color: var(--s-sub); }
+  .card { background: var(--s-card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 12px; }
+  .sec { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--s-sub); margin: 18px 4px 8px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--sep); gap: 12px; }
+  .kv:last-child { border-bottom: 0; }
+  .kv .r { text-align: right; } .kv .r small { display: block; color: var(--s-sub); font-size: 12px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .ring-t { font-weight: 800; font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
+
+  /* A */
+  .a-parts { display: flex; margin: 14px 0 6px; }
+  .a-parts > div { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; font-size: 12px; }
+
+  /* B */
+  .b-hero { display: flex; align-items: center; gap: 16px; }
+  .b-stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--track); margin: 8px 0 6px; }
+  .b-stack i { display: block; height: 100%; }
+  .b-leg { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--s-sub); }
+  .b-leg span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--c); margin-right: 4px; }
+  .b-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 0; border-bottom: 1px solid var(--sep); }
+  .b-row:last-child { border-bottom: 0; }
+  .b-row .nm { font-weight: 600; display: flex; gap: 6px; align-items: center; }
+  .chip { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 99px; background: var(--s-card2); color: var(--accent); }
+  .b-row .sc { font-size: 22px; font-weight: 800; text-align: right; grid-row: span 2; align-self: center; }
+  .meter { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; margin-top: 6px; }
+  .meter i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .b-row.out { opacity: .7; } .b-row.out .meter { background: repeating-linear-gradient(90deg, var(--track) 0 6px, transparent 6px 10px); }
+  .b-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+  .b-facts small { display: block; color: var(--s-sub); font-size: 12px; } .b-facts b { font-size: 16px; }
+
+  /* C */
+  .c-top { display: flex; justify-content: space-between; align-items: center; }
+  .c-big { font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -.03em; }
+  .c-leg { font-size: 12px; display: grid; gap: 4px; margin-top: 10px; }
+  .c-leg span { display: flex; gap: 6px; align-items: center; }
+  .c-leg span::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+  .tl { position: relative; height: 112px; margin: 6px 0 2px; }
+  .tl .axis { position: absolute; left: 0; right: 0; bottom: 0; height: 16px; font-size: 10px; color: var(--s-sub); }
+  .tl .axis span { position: absolute; transform: translateX(-50%); }
+  .tl .bed { position: absolute; top: 44px; height: 30px; border-radius: 8px; background: var(--s-card2); }
+  .tl .per { position: absolute; top: 49px; height: 20px; border-radius: 6px; background: var(--accent); }
+  .tl .usual { position: absolute; top: 34px; height: 50px; border-left: 2px dashed var(--s-sub); }
+  .tl .lab { position: absolute; font-size: 10px; transform: translateX(-50%); white-space: nowrap; }
+  .c-need { position: relative; height: 22px; border-radius: 6px; background: var(--track); margin: 8px 0 4px; }
+  .c-need i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 6px; }
+  .c-need .mk { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--s-ink); }
+
+  /* D */
+  .d-verdict { font-size: 20px; font-weight: 700; line-height: 1.25; margin: 10px 0 2px; }
+  .d-part { display: flex; gap: 12px; align-items: flex-start; }
+  .d-part + .d-part { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--sep); }
+  .d-part .n { font-size: 24px; font-weight: 800; width: 44px; flex: none; }
+  .d-part p { margin: 0; } .d-part .t { font-size: 12px; color: var(--s-sub); text-transform: uppercase; letter-spacing: .04em; }
+  .d-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .d-tiles div { background: var(--s-card); border-radius: 16px; padding: 10px; box-shadow: var(--shadow); }
+  .d-tiles small { display: block; color: var(--s-sub); font-size: 11px; } .d-tiles b { font-size: 15px; }
+
+  /* prototype chrome, not part of the design */
+  .side { width: 300px; max-width: 100%; font-size: 13px; }
+  .side h3 { margin: 0 0 8px; font-size: 14px; }
+  .side select, .side label { display: block; margin-bottom: 10px; }
+  .side select { width: 100%; padding: 6px; font: inherit; }
+  .side pre { background: #fff; border-radius: 10px; padding: 10px; font-size: 11.5px; white-space: pre-wrap; margin: 0; }
+  .side p { color: #555; }
+  .switcher { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+    background: #111; color: #fff; padding: 8px 10px; border-radius: 99px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 100; font-weight: 600; font-size: 13px; }
+  .switcher button { width: 30px; height: 30px; border-radius: 50%; background: #333; color: #fff; font-size: 15px; }
+  .switcher span { min-width: 210px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone" id="phone"></div>
+  <div class="side">
+    <h3>Sample Night</h3>
+    <select id="night"></select>
+    <label><input type="checkbox" id="dark"> Dark appearance</label>
+    <h3>State (worked out per spec 010)</h3>
+    <pre id="state"></pre>
+    <p id="about"></p>
+  </div>
+</div>
+<div class="switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+// ---------- sample Nights (minutes from local midnight; negative = evening before) ----------
+const NIGHTS = {
+  typical: { name: "Typical night: a bit short, later than usual", asleep: 432, onset: -26, wake: 461, bedIn: -48, bedOut: 478,
+    need: 495, debt: 90, usualOnset: -55, usualWake: 420, earlier: 6 },
+  great: { name: "Great night: on time, unbroken, enough", asleep: 470, onset: -62, wake: 422, bedIn: -75, bedOut: 435,
+    need: 465, debt: 0, usualOnset: -60, usualWake: 425, earlier: 7 },
+  broken: { name: "Broken night: lots of waking", asleep: 350, onset: -60, wake: 450, bedIn: -70, bedOut: 465,
+    need: 480, debt: 140, usualOnset: -50, usualWake: 420, earlier: 7 },
+  late: { name: "Very late night: 2h off usual", asleep: 400, onset: 75, wake: 545, bedIn: 60, bedOut: 560,
+    need: 480, debt: 60, usualOnset: -60, usualWake: 420, earlier: 7 },
+  newOwner: { name: "New owner: 1 earlier Night (Consistency left out)", asleep: 380, onset: 20, wake: 450, bedIn: 5, bedOut: 462,
+    need: 480, debt: 0, usualOnset: null, usualWake: null, earlier: 1 },
+  missing: { name: "Missing: no plausible Time Asleep", asleep: null, onset: null, wake: null, bedIn: null, bedOut: null,
+    need: 480, debt: 0, usualOnset: -60, usualWake: 420, earlier: 7 },
+};
+
+// ---------- spec 010 maths ----------
+const dur = m => m == null ? "—" : `${Math.floor(Math.round(m) / 60)}h ${Math.round(m) % 60}m`;
+const off = m => { m = Math.round(m); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`; };
+const clock = m => { if (m == null) return "—"; m = ((Math.round(m) % 1440) + 1440) % 1440; return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
+const r = x => Math.floor(x + 0.5);
+
+function work(n) {
+  if (n.asleep == null) return { missing: true, parts: [
+    { key: "suff", name: "Sleep Sufficiency", short: "Sufficiency", score: null, detail: "—" },
+    { key: "eff", name: "Sleep Efficiency", short: "Efficiency", score: null, detail: "—" },
+    { key: "cons", name: "Sleep Consistency", short: "Consistency", score: null, detail: "—" }] };
+  const period = n.wake - n.onset;
+  const suff = Math.min(100, n.asleep / n.need * 100);
+  const share = n.asleep / period;
+  const eff = share > 1 ? null : Math.max(0, Math.min(100, (share - 0.75) / 0.2 * 100));
+  let cons = null, offMin = null;
+  if (n.earlier >= 3) {
+    offMin = (Math.abs(n.onset - n.usualOnset) + Math.abs(n.wake - n.usualWake)) / 2;
+    cons = Math.max(0, 100 - offMin / 120 * 100);
+  }
+  const parts = [
+    { key: "suff", name: "Sleep Sufficiency", short: "Sufficiency", weight: 0.6, score: suff, detail: `${dur(n.asleep)} of ${dur(n.need)}` },
+    { key: "eff", name: "Sleep Efficiency", short: "Efficiency", weight: 0.2, score: eff, detail: eff == null ? "—" : `${r(share * 100)}% asleep`, share },
+    { key: "cons", name: "Sleep Consistency", short: "Consistency", weight: 0.2, score: cons, detail: cons == null ? "Needs 3 Nights" : `${off(offMin)} off your usual`, offMin },
+  ];
+  const kept = parts.filter(p => p.score != null);
+  const total = kept.reduce((s, p) => s + p.weight, 0);
+  kept.forEach(p => { p.w = p.weight / total; p.points = p.w * p.score; p.lost = p.w * 100 - p.points; });
+  const score = r(kept.reduce((s, p) => s + p.points, 0));
+  return { missing: false, score, parts, period, awake: share > 1 ? null : period - n.asleep };
+}
+
+// ---------- shared bits ----------
+function ring(size, fill, text, { stroke = size * 0.08, colour = "var(--accent)", font = size * 0.3 } = {}) {
+  const rad = (size - stroke) / 2, c = 2 * Math.PI * rad;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${rad}" fill="none" stroke="var(--s-card2)" stroke-width="${stroke}"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${rad}" fill="none" stroke="${colour}" stroke-width="${stroke}" stroke-linecap="round"
+      stroke-dasharray="${c * (fill || 0)} ${c}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
+    ${text != null ? `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="ring-t" font-size="${font}" fill="var(--s-ink)">${text}</text>` : ""}
+  </svg>`;
+}
+const sc = p => p.score == null ? "—" : r(p.score);
+const scoreText = w => w.missing ? "—" : w.score;
+const debtCaption = n => n.debt ? "from the 7 Nights before" : "nothing to repay";
+
+function todayBehind(n, w) {
+  return `<div class="today">
+    <div class="t-top"><div class="t-av">E</div><div><small class="muted">Tuesday 3 Nov</small><br><b>Good morning, Ellis</b></div></div>
+    <div class="t-rings">
+      <div style="text-align:center">${ring(96, w.missing ? 0 : w.score / 100, scoreText(w))}<div class="muted" style="font-size:12px">Sleep Score</div></div>
+      <div style="text-align:center">${ring(96, .72, "72", { colour: "var(--good)" })}<div class="muted" style="font-size:12px">Readiness</div></div>
+      <div style="text-align:center">${ring(96, .4, "8.4", { colour: "#fb923c" })}<div class="muted" style="font-size:12px">Load</div></div>
+    </div>
+    <div class="t-tiles"><div></div><div></div><div></div><div></div></div>
+  </div>`;
+}
+
+const nightRows = (n, w) => `
+  <div class="kv"><span>Time in Bed</span><span class="num">${clock(n.bedIn)}–${clock(n.bedOut)} · ${dur(n.bedIn == null ? null : n.bedOut - n.bedIn)}</span></div>
+  <div class="kv"><span>Sleep Onset</span><span class="num">${clock(n.onset)}</span></div>
+  <div class="kv"><span>Final Wake</span><span class="num">${clock(n.wake)}</span></div>
+  <div class="kv"><span>Time Asleep</span><span class="num">${dur(n.asleep)}</span></div>
+  <div class="kv"><span>Sleep Need</span><span class="num">${dur(n.need)}</span></div>
+  <div class="kv"><span>Sleep Debt</span><span class="r num">${dur(n.debt)}<small>${debtCaption(n)}</small></span></div>
+  <div class="kv"><span>Awake in the night</span><span class="num">${w.awake == null ? "—" : off(w.awake)}</span></div>`;
+
+// ---------- Variant A: as built today (spec 010) ----------
+function A(n, w) {
+  return `<div class="h">Sleep</div>
+  <div class="card">
+    <div class="kv"><span>Sleep Score</span><b class="num">${scoreText(w)}</b></div>
+    <div class="a-parts">${w.parts.map(p => `<div>${ring(64, p.score == null ? 0 : p.score / 100, sc(p))}
+      <span class="muted">${p.name}</span><span class="muted">${p.detail}</span></div>`).join("")}</div>
+    ${nightRows(n, w)}
+  </div>`;
+}
+
+// ---------- Variant B: score breakdown, points each part earned ----------
+function B(n, w) {
+  const cols = { suff: "var(--accent)", eff: "var(--accent2)", cons: "var(--accent3)" };
+  const kept = w.parts.filter(p => p.score != null);
+  const why = w.missing ? "No Time Asleep for this Night, so no Sleep Score."
+    : kept.length < 3 ? `Made of ${kept.map(p => p.short).join(" and ")}; ${w.parts.filter(p => p.score == null).map(p => p.short).join(", ")} left out, the rest re-weighted.`
+    : "Out of 100: Sufficiency counts 60%, Efficiency and Consistency 20% each.";
+  return `<div class="h">Sleep <small>Night of 2–3 Nov</small></div>
+  <div class="card">
+    <div class="b-hero">${ring(112, w.missing ? 0 : w.score / 100, scoreText(w), { font: 38 })}
+      <div style="flex:1"><b>Sleep Score</b>
+        ${w.missing ? "" : `<div class="b-stack">${kept.map(p => `<i style="width:${p.points}%;background:${cols[p.key]}"></i>`).join("")}</div>
+        <div class="b-leg">${kept.map(p => `<span style="--c:${cols[p.key]}">${p.short} +${r(p.points)}</span>`).join("")}</div>`}
+        <div class="muted" style="font-size:12px;margin-top:6px">${why}</div></div>
+    </div>
+  </div>
+  <div class="card">${w.parts.map(p => `<div class="b-row ${p.score == null ? "out" : ""}">
+      <div class="nm">${p.name}${p.w ? `<span class="chip">${Math.round(p.w * 100)}%</span>` : `<span class="chip">left out</span>`}</div>
+      <div class="sc num">${sc(p)}</div>
+      <div><div class="muted" style="font-size:12px">${p.detail}</div><div class="meter"><i style="width:${p.score || 0}%"></i></div></div>
+    </div>`).join("")}</div>
+  <div class="sec">The night</div>
+  <div class="card b-facts">
+    <div><small>Sleep Onset</small><b class="num">${clock(n.onset)}</b></div>
+    <div><small>Final Wake</small><b class="num">${clock(n.wake)}</b></div>
+    <div><small>Time Asleep</small><b class="num">${dur(n.asleep)}</b></div>
+    <div><small>Sleep Need</small><b class="num">${dur(n.need)}</b></div>
+    <div><small>Time in Bed</small><b class="num">${n.bedIn == null ? "—" : `${clock(n.bedIn)}–${clock(n.bedOut)}`}</b></div>
+    <div><small>Awake in the night</small><b class="num">${w.awake == null ? "—" : off(w.awake)}</b></div>
+    <div><small>Sleep Debt</small><b class="num">${dur(n.debt)}</b></div>
+  </div>`;
+}
+
+// ---------- Variant C: the night drawn on a timeline, nested rings ----------
+function C(n, w) {
+  const [suff, eff, cons] = w.parts;
+  const nested = `<svg width="132" height="132" viewBox="0 0 132 132">${[[suff, 60, "var(--accent)"], [eff, 46, "var(--accent2)"], [cons, 32, "var(--accent3)"]].map(([p, rad, col]) => {
+    const c = 2 * Math.PI * rad;
+    return `<circle cx="66" cy="66" r="${rad}" fill="none" stroke="var(--s-card2)" stroke-width="11"/>
+      <circle cx="66" cy="66" r="${rad}" fill="none" stroke="${col}" stroke-width="11" stroke-linecap="round" stroke-dasharray="${c * ((p.score || 0) / 100)} ${c}" transform="rotate(-90 66 66)"/>`;
+  }).join("")}</svg>`;
+  // timeline: 21:00 the evening before to 11:00
+  const t0 = -180, t1 = 660, x = m => ((m - t0) / (t1 - t0) * 100).toFixed(2) + "%";
+  const ticks = [-180, -60, 60, 180, 300, 420, 540, 660];
+  const timeline = n.onset == null ? `<p class="muted">No Sleep Period for this Night.</p>` : `<div class="tl">
+      <div class="bed" style="left:${x(n.bedIn)};width:calc(${x(n.bedOut)} - ${x(n.bedIn)})"></div>
+      <div class="per" style="left:${x(n.onset)};width:calc(${x(n.wake)} - ${x(n.onset)})"></div>
+      <span class="lab" style="left:${x(n.onset)};top:82px"><b>${clock(n.onset)}</b></span>
+      <span class="lab" style="left:${x(n.wake)};top:82px"><b>${clock(n.wake)}</b></span>
+      ${n.usualOnset != null && cons.score != null ? `<div class="usual" style="left:${x(n.usualOnset)}"></div><div class="usual" style="left:${x(n.usualWake)}"></div>
+      <span class="lab muted" style="left:${x(n.usualOnset)};top:16px">usual ${clock(n.usualOnset)}</span>
+      <span class="lab muted" style="left:${x(n.usualWake)};top:16px">usual ${clock(n.usualWake)}</span>` : ""}
+      <div class="axis">${ticks.map(t => `<span style="left:${x(t)}">${clock(t).slice(0, 2)}</span>`).join("")}</div>
+    </div>`;
+  return `<div class="h">Sleep <small>Night of 2–3 Nov</small></div>
+  <div class="card c-top">
+    <div><div class="muted" style="font-size:13px">Sleep Score</div><div class="c-big num">${scoreText(w)}</div>
+      <div class="c-leg">${w.parts.map((p, i) => `<span style="--c:${["var(--accent)", "var(--accent2)", "var(--accent3)"][i]}">${p.short} <b class="num">${sc(p)}</b></span>`).join("")}</div></div>
+    ${nested}
+  </div>
+  <div class="card"><b>When you slept</b> <span class="muted" style="font-size:12px">· Consistency ${cons.detail}</span>${timeline}
+    <div class="muted" style="font-size:12px">Light band: Time in Bed ${n.bedIn == null ? "—" : `${clock(n.bedIn)}–${clock(n.bedOut)}`}. Purple: Sleep Period. Awake in the night: ${w.awake == null ? "—" : off(w.awake)} (Efficiency ${eff.detail}).</div></div>
+  <div class="card"><b>How much you slept</b> <span class="muted" style="font-size:12px">· Sufficiency</span>
+    <div class="c-need"><i style="width:${Math.min(100, (n.asleep || 0) / Math.max(n.need, n.asleep || 0) * 100)}%"></i>
+      <div class="mk" style="left:${n.need / Math.max(n.need, n.asleep || 0) * 100}%"></div></div>
+    <div class="kv" style="border:0;padding:4px 0"><span class="num">${dur(n.asleep)} asleep</span><span class="muted num">needed ${dur(n.need)}</span></div>
+    <div class="kv" style="border:0;padding:0"><span class="muted">Sleep Debt</span><span class="num">${dur(n.debt)} <small class="muted">${debtCaption(n)}</small></span></div></div>`;
+}
+
+// ---------- Variant D: plain words first, numbers as tiles ----------
+function D(n, w) {
+  const kept = w.parts.filter(p => p.score != null);
+  const worst = kept.slice().sort((a, b) => b.lost - a.lost)[0];
+  const verdict = w.missing ? "No Sleep Score for this Night."
+    : worst.lost < 3 ? "Nothing held this Night back."
+    : `Mostly held back by ${worst.short.toLowerCase()} (−${r(worst.lost)}).`;
+  const sentence = p => {
+    if (w.missing) return "—";
+    if (p.key === "suff") return `You slept <b>${dur(n.asleep)}</b> of the <b>${dur(n.need)}</b> you needed.`;
+    if (p.key === "eff") return p.score == null ? "Couldn't tell how much of the night you were awake." : `You were asleep for <b>${r(p.share * 100)}%</b> of your Sleep Period (${off(w.awake)} awake).`;
+    return p.score == null ? `Needs 3 earlier Nights to compare against (${n.earlier} so far).` : `Your Sleep Onset and Final Wake were <b>${off(p.offMin)}</b> off your usual.`;
+  };
+  return `<div style="display:flex;align-items:center;gap:14px;margin-top:4px">
+      ${ring(76, w.missing ? 0 : w.score / 100, scoreText(w), { font: 26 })}
+      <div><div class="muted" style="font-size:13px">Sleep Score · Night of 2–3 Nov</div><div class="d-verdict">${verdict}</div></div></div>
+  <div class="sec">What went into it</div>
+  <div class="card">${w.parts.map(p => `<div class="d-part"><div class="n num">${sc(p)}</div>
+      <div style="flex:1"><div class="t">${p.short}${p.w ? ` · ${Math.round(p.w * 100)}%` : p.score == null && !w.missing ? " · left out" : ""}</div><p>${sentence(p)}</p>
+      <div class="meter"><i style="width:${p.score || 0}%"></i></div></div></div>`).join("")}</div>
+  <div class="sec">The night</div>
+  <div class="d-tiles">
+    <div><small>Sleep Onset</small><b class="num">${clock(n.onset)}</b></div>
+    <div><small>Final Wake</small><b class="num">${clock(n.wake)}</b></div>
+    <div><small>Time Asleep</small><b class="num">${dur(n.asleep)}</b></div>
+    <div><small>In bed</small><b class="num">${n.bedIn == null ? "—" : dur(n.bedOut - n.bedIn)}</b></div>
+    <div><small>Awake</small><b class="num">${w.awake == null ? "—" : off(w.awake)}</b></div>
+    <div><small>Sleep Debt</small><b class="num">${dur(n.debt)}</b></div>
+  </div>`;
+}
+
+const VARIANTS = [
+  ["A", "As built (spec 010)", A, "Today's shell: Sleep Score row, three 64pt rings, then the plain rows."],
+  ["B", "Score breakdown", B, "Big ring with a stacked bar of the points each part earned; one row per part with its weight; the night as a fact grid."],
+  ["C", "Night timeline", C, "Nested rings for the three parts; the Sleep Period drawn against usual times (Consistency and Efficiency) and Time Asleep against Sleep Need (Sufficiency)."],
+  ["D", "Plain words", D, "A one-line verdict naming the part that cost most; each part as a sentence with a meter; the night as small tiles."],
+];
+
+// ---------- wiring ----------
+const params = new URLSearchParams(location.search);
+const sel = document.getElementById("night"), dark = document.getElementById("dark");
+for (const [k, v] of Object.entries(NIGHTS)) sel.add(new Option(v.name, k));
+sel.value = NIGHTS[params.get("night")] ? params.get("night") : "typical";
+dark.checked = params.get("dark") === "1";
+
+function current() { const i = VARIANTS.findIndex(v => v[0] === params.get("variant")); return i < 0 ? 0 : i; }
+function set(k, v) { v == null ? params.delete(k) : params.set(k, v); try { history.replaceState(null, "", "?" + params); } catch {} render(); }
+function render() {
+  const [key, label, fn, about] = VARIANTS[current()];
+  const n = NIGHTS[sel.value], w = work(n);
+  const phone = document.getElementById("phone");
+  phone.className = "phone" + (dark.checked ? " dark" : "");
+  phone.innerHTML = todayBehind(n, w) + `<div class="dim"></div><div class="sheet"><div class="grab"></div>${fn(n, w)}</div>`;
+  document.getElementById("vlabel").textContent = `${key} (${label})`;
+  document.getElementById("about").textContent = about;
+  document.getElementById("state").textContent = w.missing ? "Sleep Score: missing\nall three parts: —" :
+    `Sleep Score: ${w.score}\n` + w.parts.map(p => `${p.name}: ${p.score == null ? "left out" : p.score.toFixed(1)}` +
+      (p.w ? `  weight ${p.w.toFixed(2)}  → ${p.points.toFixed(1)} pts` : "") + `\n  ${p.detail}`).join("\n") +
+      `\nSleep Period: ${dur(w.period)}  Awake: ${w.awake == null ? "—" : off(w.awake)}\nEarlier Nights counting: ${n.earlier}`;
+}
+const step = d => set("variant", VARIANTS[(current() + d + VARIANTS.length) % VARIANTS.length][0]);
+document.getElementById("prev").onclick = () => step(-1);
+document.getElementById("next").onclick = () => step(1);
+sel.onchange = () => set("night", sel.value);
+dark.onchange = () => set("dark", dark.checked ? "1" : null);
+addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea, select, [contenteditable]")) return;
+  if (e.key === "ArrowLeft") step(-1); if (e.key === "ArrowRight") step(1);
+});
+render();
+</script>
+</body>
+</html>
