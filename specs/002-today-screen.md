@@ -1,7 +1,7 @@
 # 002 — Today screen
 
 **Status:** built
-**Last updated:** 2026-11-01 (spec 007: Resting HR renamed Sleeping HR, Resting HR tile, Time Asleep full width)
+**Last updated:** 2026-11-03 (spec 011: Nightly Metric popup redesigned)
 
 ## Problem
 Once History Sync (spec 001) gets History Records onto the phone, the user still has nowhere
@@ -173,7 +173,7 @@ one describes the Night shown:
   - Sleep Onset and Final Wake
   - Time Asleep
   - minutes awake within the Sleep Period: Final Wake − Sleep Onset − Time Asleep
-- **Nightly Metric** (from its tile) shows:
+- **Nightly Metric** (from its tile) shows (superseded by spec 011, which redesigns this popup):
   - the value and difference, or the SpO2 level, coloured by Zone
   - its values for the Night shown and up to 13 earlier Nights, as a chart and as a list of the
     5 most recent
@@ -288,7 +288,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
 - [x] Tiles carry no trend line; the Time Asleep tile has no Zone, status word or gauge.
 - [x] The Sleep popup's minutes awake equal Final Wake − Sleep Onset − Time Asleep.
 - [x] The Nightly Metric popup holds the Night shown and up to 13 earlier Nights, plus the
-      Baseline and In range limits (none for SpO2; values per spec 004).
+      Baseline and In range limits (none for SpO2; values per spec 004) (superseded by spec 011).
 - [x] Which sync pill shows: connecting and syncing → "Syncing"; a sync just finished → "Sync
       successful"; Strap not found, Bluetooth unavailable or the Strap disconnecting → "Sync
       paused", carrying its reason and "Serenix will try again next time you open it."; any

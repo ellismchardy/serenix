@@ -1,7 +1,7 @@
 # 007 — Sleeping HR and Resting HR
 
 **Status:** built
-**Last updated:** 2026-11-02 (still minute: steps only, after the fixture Day)
+**Last updated:** 2026-11-03 (spec 011: the Resting HR tile opens a popup)
 
 ## Problem
 Serenix calls the lowest sustained heart rate during a Sleep Period "Resting HR", as WHOOP and Oura
@@ -81,7 +81,7 @@ temperature, SpO2. The Resting HR tile shows the Day shown:
 - the name "Resting HR" with the same heart icon as Sleeping HR
 - the value in whole bpm, e.g. "62 bpm", or "—" when missing
 - on today, "So far today" where other tiles have their status word; on an earlier Day, nothing
-- no Zone (white), an empty gauge, and no popup: tapping it does nothing
+- no Zone (white) and an empty gauge; tapping it opens the Resting HR popup (spec 011)
 
 **Updating the app.** Nights stored by an earlier build keep their value, now as Sleeping HR.
 Days stored by an earlier build have no Resting HR until rebuilt; those whose History Records are
@@ -97,7 +97,7 @@ still on the phone (the last 30 days) are rebuilt once after the update, as for 
   Resting HR median reads Days (spec 005).
 - **`SerenixCore`: Today view.** Takes the Days' Resting HRs and gives a Resting HR tile with its
   value, "So far today" or nothing, and no Zone; the tile list gains it after Sleeping HR. The
-  Resting HR tile is not a Nightly Metric (it belongs to a Day) and opens no popup.
+  Resting HR tile is not a Nightly Metric (it belongs to a Day) and opens its own popup (spec 011).
 - **Shell.** The stored Night field keeps its stored name (or maps from it) so past Nights keep
   their values. Each stored Day gains Resting HR. The Day rebuild works out Resting HR, then
   Load. The Today screen lays out Time Asleep full width, then the grid. After the first launch
@@ -158,7 +158,7 @@ second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55
 - [x] Today view: tiles come as Sleeping HR, Resting HR, HRV, respiratory rate, skin temperature,
       SpO2, after the Time Asleep tile; the first is named "Sleeping HR".
 - [x] Today view: on today with a Day Resting HR of 61.6, the Resting HR tile reads "Resting HR",
-      "62 bpm" and "So far today", with no Zone and no popup; on an earlier Day with Resting HR 58
+      "62 bpm" and "So far today", with no Zone (spec 011 adds its popup); on an earlier Day with Resting HR 58
       it reads "58 bpm" and no status; a Day without one reads "—" with an empty gauge.
 - [x] Today view: Take it easy with Sleeping HR 56 against Baseline 52 says "Sleeping HR is up 4
       bpm"; vs your Baseline and the Readiness popup name "Sleeping HR".
