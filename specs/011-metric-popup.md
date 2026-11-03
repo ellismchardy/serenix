@@ -1,7 +1,7 @@
 # 011 — Metric popup
 
-**Status:** approved
-**Last updated:** 2026-11-03
+**Status:** built
+**Last updated:** 2026-11-03 (built; by-hand checks carried to the PR)
 
 ## Problem
 Tapping a Nightly Metric tile opens a line chart and a list of five numbers (spec 002). It
@@ -153,48 +153,48 @@ values (spec 002) are replaced by the above.
 
 ## Success criteria (must be checkable)
 Nightly Metric popup (Today view):
-- [ ] HRV 48 against Baseline 60 with the typical Spread (0.15) has position 0.30 (to 2 dp),
+- [x] HRV 48 against Baseline 60 with the typical Spread (0.15) has position 0.30 (to 2 dp),
       the In range segment, Baseline at 0.5, and verdict "−20% against your Baseline: about
       usual for you."
-- [ ] HRV against Baseline 60 with the typical Spread has Zones rows "48–87 ms", "41–48 ms, or
+- [x] HRV against Baseline 60 with the typical Spread has Zones rows "48–87 ms", "41–48 ms, or
       above 87 ms" and "under 41 ms".
-- [ ] HRV 200 against Baseline 60 is Watch at position 1 (clamped), verdict ending "unusual for
+- [x] HRV 200 against Baseline 60 is Watch at position 1 (clamped), verdict ending "unusual for
       you."
-- [ ] Sleeping HR 57 against Baseline 52 is Out of range at position 0.8333 (to 4 dp), verdict
+- [x] Sleeping HR 57 against Baseline 52 is Out of range at position 0.8333 (to 4 dp), verdict
       "+5 bpm against your Baseline: well outside your usual.", and its Zones rows are "under 55
       bpm", "55 to 57 bpm" (unmarked) and "57 bpm and up" (marked).
-- [ ] Sleeping HR 40 against Baseline 52 is In range at position 0.
-- [ ] Respiratory rate with spec 004's seven Nights (Baseline 14.0, Spread 0.59304) has Zones
+- [x] Sleeping HR 40 against Baseline 52 is In range at position 0.
+- [x] Respiratory rate with spec 004's seven Nights (Baseline 14.0, Spread 0.59304) has Zones
       rows "13.1–14.9 br/min", "12.5–13.1 or 14.9–15.5 br/min" and "under 12.5 or above 15.5
       br/min".
-- [ ] Skin temperature against Baseline 33.8 has Zones rows "33.5 to 34.1 °C", "33.2 to 33.5 or
+- [x] Skin temperature against Baseline 33.8 has Zones rows "33.5 to 34.1 °C", "33.2 to 33.5 or
       34.1 to 34.4 °C" and "under 33.2 or above 34.4 °C"; 34.3 is Watch at position 0.7778 (to 4
       dp).
-- [ ] SpO2 93 is Watch at position 0.4167 (to 4 dp), with no Baseline position, verdict "A
+- [x] SpO2 93 is Watch at position 0.4167 (to 4 dp), with no Baseline position, verdict "A
       little low.", facts Lowest and Highest only, and Zones heading "Zones" with rows "95% and
       up", "92% to 95%" (marked) and "under 92%".
-- [ ] Each metric's segments are exactly the table's, whatever the Night.
-- [ ] A Calibrating HRV with 2 earlier Nights has no scale and no Zones rows, a status word
+- [x] Each metric's segments are exactly the table's, whatever the Night.
+- [x] A Calibrating HRV with 2 earlier Nights has no scale and no Zones rows, a status word
       "Calibrating" with no Zone, verdict "Calibrating: Serenix needs 3 earlier Nights with HRV
       to know what's usual for you (2 so far).", and Baseline fact "Calibrating".
-- [ ] A Night missing HRV, with a Baseline, has value "—", no scale, verdict "No HRV for this
+- [x] A Night missing HRV, with a Baseline, has value "—", no scale, verdict "No HRV for this
       Night.", and Zones rows with none marked.
-- [ ] The blocks are the Night shown's date and the 13 dates before it, oldest first, with
+- [x] The blocks are the Night shown's date and the 13 dates before it, oldest first, with
       weekday initials; with Nights on only 12 of those dates, 2 blocks have no value; a Night
       with a value but Calibrating has no Zone.
-- [ ] An earlier Night that was Watch against its own Baseline is a Watch block, even when it
+- [x] An earlier Night that was Watch against its own Baseline is a Watch block, even when it
       would be In range against the Night shown's Baseline.
-- [ ] Lowest and Highest are over the 14 blocks' values only, formatted as on the tile; "—" when
+- [x] Lowest and Highest are over the 14 blocks' values only, formatted as on the tile; "—" when
       none have a value.
-- [ ] Each metric's What it is and What moves it are exactly this spec's text.
+- [x] Each metric's What it is and What moves it are exactly this spec's text.
 
 Resting HR popup (Today view):
-- [ ] Today's popup has the sentence "So far today. A stiller moment later today can still lower
+- [x] Today's popup has the sentence "So far today. A stiller moment later today can still lower
       it."; an earlier Day's has none; a Day with no Resting HR has value "—" and "No Resting HR
       for this Day."
-- [ ] Its 14 blocks are the Day shown and the 13 Days before, oldest first, with no Zone, and no
+- [x] Its 14 blocks are the Day shown and the 13 Days before, oldest first, with no Zone, and no
       value for a Day with no Resting HR; Lowest and Highest are over those Days.
-- [ ] It has no pill, scale, Baseline or Zones rows, and Resting HR's two texts.
+- [x] It has no pill, scale, Baseline or Zones rows, and Resting HR's two texts.
 
 By hand on the phone:
 - [ ] Tapping each of the five Nightly Metric tiles opens its popup, and tapping the Resting HR

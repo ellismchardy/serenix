@@ -155,7 +155,7 @@ Code to reuse:
    - A new `RestingHRPopupView` uses the same layout without a pill, scale or Zones.
    - Files: `src/SerenixApp/TodayPopups.swift`, `src/SerenixApp/TodayScreen.swift`
    - Done when: the shell compiles in CI. The tap and the look are carried to the PR checklist.
-9. [ ] **Verify:** the full suite, `swift format lint --strict --recursive src tests Package.swift`
+9. [x] **Verify:** the full suite, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` are green, and every Today-view success criterion in spec 011 is checked.
    The macOS CI build and the by-hand phone checks (every tile opens its popup and closes; the
    scale, verdict colour, blocks and outline; Light and Dark) are carried to the PR checklist.

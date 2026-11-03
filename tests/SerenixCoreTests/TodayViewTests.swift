@@ -1825,6 +1825,7 @@ private func segmentsMatch(
     ).metricPopup(.hrv)
     #expect(hrv200?.zone == .watch)
     #expect(isClose(hrv200?.scale?.valuePosition, to: 1))
+    #expect(hrv200?.verdictText.hasSuffix("against your Baseline: unusual for you.") == true)
 
     // Sleeping HR 40 against 52: 0.5 − 12 / 15 = −0.3, so the left end.
     let sleepingHR40 = todayView(
