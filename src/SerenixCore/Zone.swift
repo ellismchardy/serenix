@@ -71,16 +71,6 @@ public enum Zone: Equatable, Sendable {
         }
     }
 
-    /// The values around `baseline` that are In range, for the Nightly Metric popup's band (spec
-    /// 004, In range band); nil on a side with no limit. Both nil for SpO2, which has no Baseline,
-    /// for HRV against a Baseline of 0 or less, while the Baseline is Calibrating, and for an HRV
-    /// or respiratory rate Baseline with no Spread.
-    static func inRangeLimits(_ metric: NightlyMetric, baseline: Baseline)
-        -> (low: Double?, high: Double?)
-    {
-        metric.hasBaseline ? edges(metric, baseline: baseline)?.inRange ?? (nil, nil) : (nil, nil)
-    }
-
     /// Where each Zone ends (spec 011, Your Zones): the In range limits, and where Watch turns into
     /// Out of range, nil on a side with no limit. Around `baseline`, or for SpO2 its fixed
     /// levels. Nil when there's no Baseline to measure from: Calibrating, HRV's Baseline 0 or

@@ -131,7 +131,7 @@ Code to reuse:
    - Seam: Today view · Files: `src/SerenixCore/Popups.swift`, `src/SerenixCore/TodayView.swift`,
      `src/SerenixCore/RestingHRTile.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`
    - Done when: spec 011's three Resting HR popup criteria pass.
-7. [ ] **Shell: redraw the Nightly Metric popup, and contract.**
+7. [x] **Shell: redraw the Nightly Metric popup, and contract.**
    - Rewrite `MetricPopupView` in variant E's layout from the new fields: heading, value and
      ✓ pill in the Zone colour, the scale (faded segments, the marker, the Baseline tick), the
      verdict with its last words in the Zone colour, the blocks (Zone colour, grey, or hatched,

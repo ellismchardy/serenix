@@ -214,7 +214,8 @@ public struct SleepPopup: Equatable, Sendable {
     }
 }
 
-/// The Nightly Metric popup (spec 002, Popups).
+/// The Nightly Metric popup (spec 011): where the value sits among the Zones, what that means,
+/// the last 14 Nights, and what the metric is.
 public struct MetricPopup: Equatable, Sendable {
     public let metric: NightlyMetric
     /// As on the tile.
@@ -251,23 +252,9 @@ public struct MetricPopup: Equatable, Sendable {
     public let whatItIsText: String
     /// What tends to move it, in order (spec 011, Text).
     public let whatMovesItTexts: [String]
-    /// The Night shown and up to 13 earlier Nights, oldest first, without missing values.
-    public let chart: [MetricPopupPoint]
-    /// The 5 most recent of those, newest first.
-    public let recent: [MetricPopupEntry]
-    /// Nil while Calibrating, and always for SpO2.
-    public let baseline: Double?
-    /// The In range limits around the Baseline; nil on a side with no limit, and both nil
-    /// without a Baseline.
-    public let inRangeLow: Double?
-    public let inRangeHigh: Double?
 
     /// How many dates the blocks cover, including the Night shown's (spec 011, Last 14 Nights).
     static let blockDays = 14
-    /// How many Nights the chart covers, including the one shown (spec 002, Popups).
-    static let chartNights = 14
-    /// How many of them are listed (spec 002, Popups).
-    static let listedNights = 5
 
     init(_ tile: MetricTile, for night: Night, among nights: [Night]) {
         metric = tile.metric
@@ -313,19 +300,6 @@ public struct MetricPopup: Equatable, Sendable {
         highestText = blockValues.max().map { formattedValue(of: tile.metric, $0) } ?? missingText
         whatItIsText = MetricTexts.whatItIs(tile.metric)
         whatMovesItTexts = MetricTexts.whatMovesIt(tile.metric)
-        chart = recentNights(Self.chartNights, upTo: night, among: nights).compactMap { night in
-            night.value(of: tile.metric).map { MetricPopupPoint(day: night.day, value: $0) }
-        }
-        recent = chart.reversed().prefix(Self.listedNights).map {
-            MetricPopupEntry(
-                dayText: $0.day.text,
-                valueText: formattedValue(of: tile.metric, $0.value)
-            )
-        }
-        baseline = tile.baseline
-        let limits = tile.comparedBaseline.map { Zone.inRangeLimits(tile.metric, baseline: $0) }
-        inRangeLow = limits?.low
-        inRangeHigh = limits?.high
     }
 
     /// The verdict sentence (spec 011): the difference and the Zone in words against a
@@ -368,6 +342,8 @@ public struct MetricPopupScale: Equatable, Sendable {
     public let valuePosition: Double
     /// Always 0.5 where there's a Baseline; nil for SpO2.
     public let baselinePosition: Double?
+    /// The Baseline tick's label, e.g. "Baseline 62", no unit; nil for SpO2.
+    public let baselineLabel: String?
 
     /// Nil when the value has no Zone: missing or Calibrating.
     init?(_ tile: MetricTile, value: Double?) {
@@ -381,6 +357,7 @@ public struct MetricPopupScale: Equatable, Sendable {
         segments = Zone.scaleSegments(tile.metric)
         valuePosition = position
         baselinePosition = tile.metric.hasBaseline ? 0.5 : nil
+        baselineLabel = tile.baseline.map { "Baseline \(numberText(of: tile.metric, $0))" }
     }
 }
 
@@ -415,6 +392,16 @@ public struct MetricPopupZoneRow: Equatable, Sendable {
     public let rangeText: String
     /// True for the Night's own Zone; with no value, no row is.
     public let isThisNight: Bool
+    /// The Zone in words, "← this Night" after it on the Night's row, e.g. "Watch ← this Night".
+    public var nameText: String {
+        let name =
+            switch zone {
+            case .inRange: "In range"
+            case .watch: "Watch"
+            case .outOfRange: "Out of range"
+            }
+        return isThisNight ? "\(name) ← this Night" : name
+    }
 
     /// In range, Watch and Out of range for `tile`'s metric (spec 011, Your Zones table); none
     /// when its Zones have no edges.
@@ -467,20 +454,6 @@ public struct MetricPopupZoneRow: Equatable, Sendable {
             return ["\(from)% and up", "\(watch)% to \(from)%", "under \(watch)%"]
         }
     }
-}
-
-/// One Night's value on the Nightly Metric popup's chart.
-public struct MetricPopupPoint: Equatable, Sendable {
-    public let day: Day
-    public let value: Double
-}
-
-/// One Night in the Nightly Metric popup's list.
-public struct MetricPopupEntry: Equatable, Sendable {
-    /// e.g. "Sun 1 Nov".
-    public let dayText: String
-    /// As on the tile, e.g. "62 ms".
-    public let valueText: String
 }
 
 /// The Load popup (spec 006): the Day's Load against typical Load, its time in each HR Zone, hour

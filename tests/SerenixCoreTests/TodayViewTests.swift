@@ -750,8 +750,9 @@ func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
 }
 
 // Values from spec 004, the same seven earlier Nights: Spread = 1.4826 × 0.4 = 0.59304, so the
-// In range band is 14.0 ∓ 1.5 × 0.59304 = 13.11044 to 14.88956 (13.11 to 14.89 to 2 dp).
-@Test func respiratoryRateInRangeBandIsScaledByTheMADOfSevenEarlierNights() {
+// In range band is 14.0 ∓ 1.5 × 0.59304 = 13.11044 to 14.88956, shown to one decimal place in the
+// popup's Your Zones (spec 011).
+@Test func respiratoryRateInRangeRowIsScaledByTheMADOfSevenEarlierNights() {
     let earlier: [Double?] = [14.0, 14.4, 13.6, 14.8, 13.2, 14.0, 14.0]
     let popup = todayView(
         nights: nightsBeforeNov1(respiratoryRate: earlier)
@@ -759,9 +760,8 @@ func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
         showing: nov1
     ).metricPopup(.respiratoryRate)
 
-    #expect(isClose(popup?.baseline, to: 14.0))
-    #expect(isClose(popup?.inRangeLow, to: 13.11, within: 0.005))
-    #expect(isClose(popup?.inRangeHigh, to: 14.89, within: 0.005))
+    #expect(popup?.baselineText == "14.0 br/min")
+    #expect(popup?.zoneRows.first?.rangeText == "13.1–14.9 br/min")
 }
 
 // Values from spec 004. ln(50 / 60) = −0.18232. Seven earlier Nights of 60: the MAD is 0, floored
@@ -778,8 +778,8 @@ func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
 // 0.27031. The low In range edge is exp(ln 60 − 1.5 × 0.27031) ≈ 40.00 ms: 40.1 gives z = −1.49,
 // In range; 39.9 gives z = −1.51, Watch. (On raw ms, or with the typical 0.15, both would be
 // Out of range.)
-// The popup's In range band is 60 × e^(−1.5 × 0.27031) = 40.00 to 60 × e^(2.5 × 0.27031) =
-// 117.93 ms (to 2 dp).
+// The popup's In range row is 60 × e^(−1.5 × 0.27031) = 40.00 to 60 × e^(2.5 × 0.27031) =
+// 117.93 ms, shown in whole ms (spec 011, Your Zones).
 @Test func hrvSpreadIsTheScaledMADOfLnRMSSD() {
     let earlier: [Double?] = [40, 50, 60, 60, 60, 72, 90]
     let tile = { (hrv: Double) in
@@ -797,8 +797,7 @@ func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
         nights: nightsBeforeNov1(hrv: earlier) + [Night(day: nov1, hrv: 60)],
         showing: nov1
     ).metricPopup(.hrv)
-    #expect(isClose(popup?.inRangeLow, to: 40.00, within: 0.005))
-    #expect(isClose(popup?.inRangeHigh, to: 117.93, within: 0.005))
+    #expect(popup?.zoneRows.first?.rangeText == "40–118 ms")
 }
 
 // Spec 004: the Spread uses the same up-to-14 Nights as the median. The 14 newest earlier Nights
@@ -812,16 +811,21 @@ func respiratoryRateZoneIsScaledByTheMADOfSevenEarlierNights(
 // 14.5 gives 0.5 + 1.6667 / 5 = 5/6 ≈ 0.8333, and 14.8 gives 1.0333, clamped to 1. With the
 // 20-Night Spread 1.4826 they would be ≈ 0.527, ≈ 0.567 and ≈ 0.608, so adding them must change
 // no gauge either.
-// The popup's In range band also uses Spread 0.3: 14.0 ∓ 1.5 × 0.3 = 13.55 to 14.45. With the
-// 20-Night Spread 1.4826 it would be 11.7761 to 16.2239.
+// The popup's Zone scale (spec 011: 0.5 + z / 7.5) also uses Spread 0.3: 14.2 gives
+// 0.5 + 0.6667 / 7.5 = 0.5889, 14.5 gives 0.5 + 1.6667 / 7.5 = 0.7222, and 14.8 gives
+// 0.5 + 2.6667 / 7.5 = 0.8556. With the 20-Night Spread 1.4826 they would be ≈ 0.518, ≈ 0.545 and
+// ≈ 0.572.
 @Test(
-    arguments: [(14.2, .inRange, 19.0 / 30.0), (14.5, .watch, 5.0 / 6.0), (14.8, .outOfRange, 1)]
-        as [(Double, Zone, Double)]
+    arguments: [
+        (14.2, .inRange, 19.0 / 30.0, 0.5889), (14.5, .watch, 5.0 / 6.0, 0.7222),
+        (14.8, .outOfRange, 1, 0.8556),
+    ] as [(Double, Zone, Double, Double)]
 )
 func respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights(
     respiratoryRate: Double,
     zone: Zone,
-    gauge: Double
+    gauge: Double,
+    scalePosition: Double
 ) {
     let fourteenNewest: [Double?] = [
         14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 13.0, 15.0, 14.0, 14.0, 14.0, 14.0, 14.0,
@@ -843,12 +847,8 @@ func respiratoryRateSpreadUsesOnlyTheFourteenMostRecentEarlierNights(
             "\(earlier.count) earlier Nights: gauge \(String(describing: tile?.gauge))"
         )
         #expect(
-            isClose(popup?.inRangeLow, to: 13.55),
-            "\(earlier.count) earlier Nights: low \(String(describing: popup?.inRangeLow))"
-        )
-        #expect(
-            isClose(popup?.inRangeHigh, to: 14.45),
-            "\(earlier.count) earlier Nights: high \(String(describing: popup?.inRangeHigh))"
+            isClose(popup?.scale?.valuePosition, to: scalePosition, within: 0.000_05),
+            "\(earlier.count) earlier Nights: scale \(String(describing: popup?.scale))"
         )
     }
 }
@@ -1625,46 +1625,6 @@ private func nightsOct13ToNov1(hrvOnOct25: Double? = 52) -> [Night] {
 /// A Night after 1 Nov, which must never appear in 1 Nov's popup.
 private let laterNightOnNov2 = Night(day: Day(year: 2026, month: 11, day: 2), hrv: 99)
 
-@Test func metricPopupChartHoldsTheNightShownAndThirteenEarlierNightsOldestFirst() {
-    // Given newest first, so the order of the input can't stand in for sorting.
-    let nights = [laterNightOnNov2] + nightsOct13ToNov1().reversed()
-    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
-
-    #expect(popup?.metric == .hrv)
-    #expect(popup?.valueText == "59 ms")
-    #expect(
-        popup?.chart.map(\.day)
-            == (19...31).map { Day(year: 2026, month: 10, day: $0) } + [nov1]
-    )
-    #expect(
-        popup?.chart.map(\.value)
-            == [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
-    )
-}
-
-@Test func metricPopupListsTheFiveMostRecentNightsNewestFirst() {
-    let nights = nightsOct13ToNov1() + [laterNightOnNov2]
-    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
-
-    #expect(
-        popup?.recent.map(\.dayText)
-            == ["Sun 1 Nov", "Sat 31 Oct", "Fri 30 Oct", "Thu 29 Oct", "Wed 28 Oct"]
-    )
-    #expect(popup?.recent.map(\.valueText) == ["59 ms", "58 ms", "57 ms", "56 ms", "55 ms"])
-}
-
-@Test func aNightMissingTheValueIsLeftOutOfTheMetricPopupChart() {
-    let popup = todayView(nights: nightsOct13ToNov1(hrvOnOct25: nil), showing: nov1)
-        .metricPopup(.hrv)
-
-    // 25 Oct's Night is one of the 14 but has no HRV; 18 Oct's Night doesn't take its place.
-    #expect(
-        popup?.chart.map(\.value)
-            == [46, 47, 48, 49, 50, 51, 53, 54, 55, 56, 57, 58, 59]
-    )
-    #expect(popup?.chart.first?.day == Day(year: 2026, month: 10, day: 19))
-}
-
 /// Whether `value` is within `tolerance` of `expected`. By default that is floating-point error:
 /// limits such as 34.0 − 0.3 needn't be exact in binary floating point. Values the spec quotes to
 /// 2 dp pass a looser tolerance such as 0.005.
@@ -1676,8 +1636,9 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
 // Values from spec 004, with typical Spreads (three earlier Nights). HRV: Spread 0.15 on ln(RMSSD),
 // so the band is 60 × e^(−1.5 × 0.15) = 60 × e^−0.225 = 47.91097 to 60 × e^(2.5 × 0.15) =
 // 60 × e^0.375 = 87.29948 ms. Respiratory rate: Spread 0.5, so 14.0 ∓ 1.5 × 0.5 = 13.25 to 14.75.
-// Sleeping HR: no lower limit, upper 52 + 3 = 55. Skin temperature: 34.0 ± 0.3.
-@Test func metricPopupShowsTheBaselineAndItsInRangeLimits() {
+// Sleeping HR: no lower limit, upper 52 + 3 = 55. Skin temperature: 34.0 ± 0.3. Shown in the
+// popup's Baseline fact and In range row, rounded as each metric's values are (spec 011).
+@Test func metricPopupShowsTheBaselineFactAndItsInRangeRow() {
     let night = Night(
         day: nov1,
         sleepingHR: 52,
@@ -1689,31 +1650,27 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     let hrv = view.metricPopup(.hrv)
-    #expect(isClose(hrv?.baseline, to: 60))
-    #expect(isClose(hrv?.inRangeLow, to: 47.910_973_125_562_62))
-    #expect(isClose(hrv?.inRangeHigh, to: 87.299_484_877_092_07))
+    #expect(hrv?.baselineText == "60 ms")
+    #expect(hrv?.zoneRows.first?.rangeText == "48–87 ms")
 
     let sleepingHR = view.metricPopup(.sleepingHR)
-    #expect(isClose(sleepingHR?.baseline, to: 52))
-    #expect(sleepingHR != nil && sleepingHR?.inRangeLow == nil)
-    #expect(isClose(sleepingHR?.inRangeHigh, to: 55))
+    #expect(sleepingHR?.baselineText == "52 bpm")
+    #expect(sleepingHR?.zoneRows.first?.rangeText == "under 55 bpm")
 
     let respiratoryRate = view.metricPopup(.respiratoryRate)
-    #expect(isClose(respiratoryRate?.baseline, to: 14.0))
-    #expect(isClose(respiratoryRate?.inRangeLow, to: 13.25))
-    #expect(isClose(respiratoryRate?.inRangeHigh, to: 14.75))
+    #expect(respiratoryRate?.baselineText == "14.0 br/min")
+    #expect(respiratoryRate?.zoneRows.first?.rangeText == "13.3–14.8 br/min")
 
     let skinTemperature = view.metricPopup(.skinTemperature)
-    #expect(isClose(skinTemperature?.baseline, to: 34.0))
-    #expect(isClose(skinTemperature?.inRangeLow, to: 33.7))
-    #expect(isClose(skinTemperature?.inRangeHigh, to: 34.3))
+    #expect(skinTemperature?.baselineText == "34.0 °C")
+    #expect(skinTemperature?.zoneRows.first?.rangeText == "33.7 to 34.3 °C")
 
     let spo2 = view.metricPopup(.spo2)
-    #expect(spo2 != nil && spo2?.inRangeLow == nil)
-    #expect(spo2 != nil && spo2?.inRangeHigh == nil)
+    #expect(spo2 != nil && spo2?.baselineText == nil)
+    #expect(spo2?.zoneRows.first?.rangeText == "95% and up")
 }
 
-@Test func spo2PopupHasNoBaselineOrInRangeLimitsButShowsItsLevel() {
+@Test func spo2PopupShowsItsLevelWithNoBaselineFactAndZonesOnFixedLevels() {
     let night = Night(day: nov1, spo2: 97)
     let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
         .metricPopup(.spo2)
@@ -1721,19 +1678,17 @@ private func isClose(_ value: Double?, to expected: Double, within tolerance: Do
     #expect(popup?.valueText == "97%")
     #expect(popup?.differenceText == "95% or above")
     #expect(popup?.zone == .inRange)
-    #expect(popup != nil && popup?.baseline == nil)
-    #expect(popup != nil && popup?.inRangeLow == nil)
-    #expect(popup != nil && popup?.inRangeHigh == nil)
+    #expect(popup != nil && popup?.baselineText == nil)
+    #expect(popup?.zonesHeading == "Zones")
 }
 
-@Test func aCalibratingMetricPopupHasNoBaselineOrInRangeLimits() {
+@Test func aCalibratingMetricPopupReadsCalibratingWithNoZonesRows() {
     let nights = nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)]
     let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
 
     #expect(popup?.differenceText == "Calibrating")
-    #expect(popup != nil && popup?.baseline == nil)
-    #expect(popup != nil && popup?.inRangeLow == nil)
-    #expect(popup != nil && popup?.inRangeHigh == nil)
+    #expect(popup?.baselineText == "Calibrating")
+    #expect(popup != nil && popup?.zoneRows.isEmpty == true)
 }
 
 // Spec 011: the popup's heading, pill and verdict.
@@ -1857,6 +1812,8 @@ private func segmentsMatch(
     #expect(popup?.zone == .inRange)
     #expect(isClose(scale?.valuePosition, to: 0.30, within: 0.005))
     #expect(isClose(scale?.baselinePosition, to: 0.5))
+    // Spec 011: the tick is labelled "Baseline 62", the Baseline as values are shown, no unit.
+    #expect(scale?.baselineLabel == "Baseline 60")
 }
 
 // HRV 200 against 60: z = ln(200 / 60) / 0.15 = 8.03, far past the bar's right end, and Watch
@@ -1899,6 +1856,7 @@ private func segmentsMatch(
     #expect(popup?.zone == .watch)
     #expect(isClose(popup?.scale?.valuePosition, to: 0.7778, within: 0.000_05))
     #expect(isClose(popup?.scale?.baselinePosition, to: 0.5))
+    #expect(popup?.scale?.baselineLabel == "Baseline 33.8")
 }
 
 // SpO2 93: (93 − 88) / 12 = 0.4167, and no Baseline tick.
@@ -1909,6 +1867,7 @@ private func segmentsMatch(
     #expect(popup?.zone == .watch)
     #expect(isClose(scale?.valuePosition, to: 0.4167, within: 0.000_05))
     #expect(scale != nil && scale?.baselinePosition == nil)
+    #expect(scale != nil && scale?.baselineLabel == nil)
 }
 
 @Test func metricPopupScaleSegmentsAreFixedPerMetric() {
@@ -2013,6 +1972,9 @@ private let zoneRowOrder: [Zone] = [.inRange, .watch, .outOfRange]
         popup?.zoneRows.map(\.rangeText) == ["48–87 ms", "41–48 ms, or above 87 ms", "under 41 ms"]
     )
     #expect(popup?.zoneRows.map(\.isThisNight) == [true, false, false])
+    #expect(
+        popup?.zoneRows.map(\.nameText) == ["In range ← this Night", "Watch", "Out of range"]
+    )
 }
 
 // Sleeping HR 57 against 52: +5 bpm, Out of range (spec 004's cut-offs B+3 and B+5).
@@ -2085,6 +2047,7 @@ private let zoneRowOrder: [Zone] = [.inRange, .watch, .outOfRange]
     #expect(popup?.zonesHeading == "Your Zones · Baseline 60 ms")
     #expect(popup?.zoneRows.map(\.zone) == zoneRowOrder)
     #expect(popup?.zoneRows.map(\.isThisNight) == [false, false, false])
+    #expect(popup?.zoneRows.map(\.nameText) == ["In range", "Watch", "Out of range"])
 }
 
 @Test func aCalibratingMetricPopupHasNoZonesRows() {

@@ -130,50 +130,294 @@ private struct SleepPopupView: View {
     }
 }
 
+/// The Nightly Metric popup (spec 011), the layout of prototype variant E (branch
+/// `prototype/vital-signs-popup`): value and pill, the Zone scale and verdict, the last 14 Nights,
+/// facts, what it is, Your Zones and what moves it.
 private struct MetricPopupView: View {
     let popup: MetricPopup
 
     var body: some View {
-        Text(popup.metric.name).font(.headline)
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
-            Text(popup.differenceText).font(.title3)
+        PopupHeading(icon: popup.metric.icon, name: popup.metric.name, detail: popup.nightText)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
+                Spacer()
+                statusPill
+            }
+            if let scale = popup.scale {
+                ZoneScaleView(scale: scale, zone: popup.zone, valueText: popup.valueText)
+                    .frame(height: 60)
+            }
+            verdict
         }
-        .foregroundStyle(popup.zone?.colour ?? .primary)
-        chart.frame(height: 180)
-        ForEach(popup.recent, id: \.dayText) { entry in
-            LabeledContent(entry.dayText, value: entry.valueText)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .themeCard()
+        PopupSectionTitle("Last 14 Nights")
+        PopupBlocksView(
+            blocks: popup.blocks.map {
+                PopupBlock(letter: $0.weekdayLetter, fill: $0.state.fill, outlined: $0.isNightShown)
+            }
+        )
+        PopupFactsView(facts: facts)
+        PopupSectionTitle("What it is")
+        PopupTextCard(text: popup.whatItIsText)
+        if let heading = popup.zonesHeading {
+            PopupSectionTitle(heading)
+            zonesTable
+        }
+        PopupSectionTitle("What moves it")
+        PopupBulletsCard(items: popup.whatMovesItTexts)
+    }
+
+    /// Baseline (none for SpO2), Lowest and Highest.
+    private var facts: [(name: String, value: String)] {
+        var facts: [(name: String, value: String)] = []
+        if let baseline = popup.baselineText { facts.append((name: "Baseline", value: baseline)) }
+        facts.append((name: "Lowest", value: popup.lowestText))
+        facts.append((name: "Highest", value: popup.highestText))
+        return facts
+    }
+
+    /// The tile's status word: a ✓ and the Zone's colour, or plain grey with no Zone.
+    @ViewBuilder private var statusPill: some View {
+        if let colour = popup.zone?.colour {
+            Label(popup.statusText, systemImage: "checkmark")
+                .font(.footnote.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(colour, in: Capsule())
+        } else {
+            Text(popup.statusText).font(.footnote).foregroundStyle(.secondary)
         }
     }
 
-    /// The values over the last 14 Nights, with the Baseline and its In range band.
-    private var chart: some View {
-        Chart {
-            if let baseline = popup.baseline, let band = inRangeBand {
-                RectangleMark(yStart: .value("Low", band.low), yEnd: .value("High", band.high))
-                    .foregroundStyle(.green.opacity(0.15))
-                RuleMark(y: .value("Baseline", baseline))
-                    .foregroundStyle(.secondary)
-                    .lineStyle(StrokeStyle(dash: [4, 4]))
-            }
-            ForEach(Array(popup.chart.enumerated()), id: \.element.day) { index, point in
-                LineMark(x: .value("Night", index), y: .value("Value", point.value))
-                PointMark(x: .value("Night", index), y: .value("Value", point.value))
-            }
+    /// The verdict, its words after the colon in the Zone's colour.
+    private var verdict: some View {
+        let text = popup.verdictText
+        guard let colour = popup.zone?.colour, let colon = text.range(of: ": ") else {
+            return Text(text)
         }
-        .chartXAxis(.hidden)
+        return Text(text[..<colon.upperBound])
+            + Text(text[colon.upperBound...]).bold().foregroundStyle(colour)
     }
 
-    /// The In range band, with an open side drawn to the edge of the chart's values.
-    private var inRangeBand: (low: Double, high: Double)? {
-        guard popup.inRangeLow != nil || popup.inRangeHigh != nil else { return nil }
-        let values = popup.chart.map(\.value) + [popup.baseline].compactMap { $0 }
-        guard let lowest = values.min(), let highest = values.max() else { return nil }
-        // An open side reaches past every value but never crosses the other limit, so the band
-        // can't flip onto the out-of-range part.
-        let low = popup.inRangeLow ?? min(lowest, popup.inRangeHigh ?? lowest)
-        let high = popup.inRangeHigh ?? max(highest, popup.inRangeLow ?? highest)
-        return (low, high)
+    /// In range, Watch and Out of range with their ranges, the Night's row bold.
+    private var zonesTable: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(popup.zoneRows.enumerated()), id: \.offset) { index, row in
+                if index > 0 { Divider() }
+                HStack(spacing: 8) {
+                    Circle().fill(row.zone.colour).frame(width: 10, height: 10)
+                    Text(row.nameText)
+                    Spacer()
+                    Text(row.rangeText).monospacedDigit().multilineTextAlignment(.trailing)
+                }
+                .font(.subheadline)
+                .fontWeight(row.isThisNight ? .bold : .regular)
+                .padding(.vertical, 8)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .themeCard()
+    }
+}
+
+/// The Zone scale (spec 011): the Zone segments, the Night's at full colour and the rest faded, a
+/// marker at the value labelled with it, and a tick under the bar at the Baseline.
+private struct ZoneScaleView: View {
+    let scale: MetricPopupScale
+    let zone: Zone?
+    let valueText: String
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            // Keeps a label at an end from running off the card.
+            let x = { (position: Double) in min(max(width * position, 24), width - 24) }
+            ZStack {
+                HStack(spacing: 0) {
+                    ForEach(Array(scale.segments.enumerated()), id: \.offset) { _, segment in
+                        Rectangle()
+                            .fill(segment.zone.colour.opacity(segment.zone == zone ? 1 : 0.3))
+                            .frame(width: width * (segment.to - segment.from))
+                    }
+                }
+                .frame(width: width, height: 12)
+                .clipShape(Capsule())
+                .position(x: width / 2, y: 26)
+                VStack(spacing: 2) {
+                    Text(valueText).font(.caption2.bold()).monospacedDigit()
+                    Capsule().fill(Color.primary).frame(width: 4, height: 22)
+                }
+                .fixedSize()
+                .position(x: x(scale.valuePosition), y: 19)
+                if let baseline = scale.baselinePosition, let label = scale.baselineLabel {
+                    VStack(spacing: 1) {
+                        Rectangle().fill(Color.secondary).frame(width: 2, height: 6)
+                        Text(label)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .fixedSize()
+                    .position(x: x(baseline), y: 48)
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// A popup's heading: the icon and name, and the Night or Day on the right.
+private struct PopupHeading: View {
+    let icon: String
+    let name: String
+    let detail: String
+
+    var body: some View {
+        HStack {
+            Label {
+                Text(name)
+            } icon: {
+                Image(systemName: icon).foregroundStyle(Theme.accent)
+            }
+            .font(.headline)
+            Spacer()
+            Text(detail).font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// A small grey heading over a popup's card.
+private struct PopupSectionTitle: View {
+    let title: String
+
+    init(_ title: String) { self.title = title }
+
+    var body: some View {
+        Text(title.uppercased()).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+    }
+}
+
+/// One block in a popup's last 14 Nights or Days.
+private struct PopupBlock {
+    let letter: String
+    /// Nil for no value, drawn hatched.
+    let fill: Color?
+    let outlined: Bool
+}
+
+/// A row of blocks, oldest on the left, each with its weekday initial.
+private struct PopupBlocksView: View {
+    let blocks: [PopupBlock]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                VStack(spacing: 3) {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(block.fill ?? .clear)
+                        .overlay {
+                            if block.fill == nil {
+                                Hatch()
+                                    .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                            }
+                        }
+                        .overlay {
+                            if block.outlined {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .strokeBorder(Color.primary, lineWidth: 2)
+                            }
+                        }
+                        .frame(height: 18)
+                    Text(block.letter).font(.caption2).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(14)
+        .themeCard()
+        .accessibilityHidden(true)
+    }
+}
+
+/// Diagonal lines, for a block with no value.
+private struct Hatch: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        var x = rect.minX - rect.height
+        while x < rect.maxX {
+            path.move(to: CGPoint(x: x, y: rect.maxY))
+            path.addLine(to: CGPoint(x: x + rect.height, y: rect.minY))
+            x += 4
+        }
+        return path
+    }
+}
+
+/// Facts side by side: a small grey name over each value.
+private struct PopupFactsView: View {
+    let facts: [(name: String, value: String)]
+
+    var body: some View {
+        HStack(alignment: .top) {
+            ForEach(Array(facts.enumerated()), id: \.offset) { _, fact in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(fact.name).font(.caption).foregroundStyle(.secondary)
+                    Text(fact.value).font(.headline).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(14)
+        .themeCard()
+    }
+}
+
+/// A card of plain text.
+private struct PopupTextCard: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .themeCard()
+    }
+}
+
+/// A card of bullet points.
+private struct PopupBulletsCard: View {
+    let items: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("•")
+                    Text(item)
+                }
+            }
+        }
+        .font(.subheadline)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .themeCard()
+    }
+}
+
+extension MetricPopupBlockState {
+    /// The block's colour: its Zone's, grey with no Zone, nil (hatched) with no value.
+    fileprivate var fill: Color? {
+        switch self {
+        case .zone(let zone): zone.colour
+        case .noZone: Color.secondary.opacity(0.4)
+        case .noValue: nil
+        }
     }
 }
 

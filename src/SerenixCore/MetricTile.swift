@@ -73,12 +73,22 @@ public struct MetricTile: Equatable, Sendable {
 
 /// The value with its unit (spec 002, Formats).
 func formattedValue(of metric: NightlyMetric, _ value: Double) -> String {
+    let number = numberText(of: metric, value)
+    return switch metric {
+    case .sleepingHR: "\(number) bpm"
+    case .hrv: "\(number) ms"
+    case .respiratoryRate: "\(number) br/min"
+    case .skinTemperature: "\(number) °C"
+    case .spo2: "\(number)%"
+    }
+}
+
+/// The value without its unit, rounded as it's shown: whole, or to one decimal place for
+/// respiratory rate and skin temperature (spec 002, Formats).
+func numberText(of metric: NightlyMetric, _ value: Double) -> String {
     switch metric {
-    case .sleepingHR: "\(wholeText(value)) bpm"
-    case .hrv: "\(wholeText(value)) ms"
-    case .respiratoryRate: "\(tenthsText(value)) br/min"
-    case .skinTemperature: "\(tenthsText(value)) °C"
-    case .spo2: "\(wholeText(value))%"
+    case .sleepingHR, .hrv, .spo2: wholeText(value)
+    case .respiratoryRate, .skinTemperature: tenthsText(value)
     }
 }
 
