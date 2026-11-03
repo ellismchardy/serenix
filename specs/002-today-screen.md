@@ -195,9 +195,9 @@ shows a person icon. It appears in the top bar and, larger, at the top of the pr
 the app's accent: the avatar, the Day shown in the week strip, buttons, the sync pill's outline
 and the Sleep Score ring. Band and Zone colours stay green, amber and red. **Appearance** is
 System (the default, following iOS), Light or Dark, chosen in the profile menu and kept on the
-phone; Dark uses a dark version of the same palette with the same accent. A popup's background
-is its cards' colour (white in Light, dark purple in Dark) and its cards have no shadow, so they
-sit flat on it.
+phone; Dark uses a dark version of the same palette with the same accent. In Dark, a popup's
+background is its cards' colour, so the cards don't stand out on a different grey; in Light it
+stays white.
 
 **Profile menu.** It slides up nearly full height, with an ✕ to close it, and contains, as
 rounded, grouped rows:
@@ -324,8 +324,7 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
 - [ ] The screen has a light grey background, white rounded cards and a purple accent; band and
       Zone colours are unchanged. Appearance in the profile menu switches between System, Light
       and Dark at once, Dark keeps the purple accent, and the choice survives relaunching.
-- [ ] In Light and Dark, every popup's background is the same colour as its cards, and its cards
-      have no shadow.
+- [ ] In Dark, every popup's background is the same colour as its cards; in Light it is white.
 - [x] Tapping the Readiness ring, the Sleep Score ring, the Time Asleep tile and each metric tile
       opens the right popup; a tap outside or a swipe down closes it; the Load ring does
       nothing (superseded by spec 006, which opens the Load popup from it).

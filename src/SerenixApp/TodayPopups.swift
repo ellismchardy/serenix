@@ -44,7 +44,7 @@ struct TodayPopupView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Theme.card)
+        .presentationBackground(Theme.popupBackground)
     }
 }
 
@@ -419,13 +419,7 @@ private struct SleepNeedBarView: View {
 extension View {
     /// One card of a popup, the same inset on every popup.
     fileprivate func popupCard() -> some View {
-        padding(16).frame(maxWidth: .infinity, alignment: .leading).flatCard()
-    }
-
-    /// A card in the popup background's own colour, with no shadow, so in Light as in Dark the
-    /// cards sit flat on the popup (spec 002, Look).
-    fileprivate func flatCard() -> some View {
-        background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.cardRadius))
+        padding(16).frame(maxWidth: .infinity, alignment: .leading).themeCard()
     }
 }
 
@@ -518,7 +512,7 @@ private struct MetricPopupView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
-        .flatCard()
+        .themeCard()
     }
 }
 
