@@ -179,9 +179,9 @@ Status words, gauge and band (replacing spec 002's criteria for these):
       0; skin temperature 33.7 → 0.25; SpO2 97 → 0.75, 85 → 0 (clamped); a Calibrating or
       missing metric has no position.
 - [x] Popup In range band with typical Spreads (superseded by spec 011's Your Zones rows): HRV
-      against 60 runs 47.91 to 87.30 ms; respiratory rate against 14.0 runs 13.25 to 14.75; Sleeping HR against 52 has no lower
-      limit and an upper limit of 55; skin temperature against 34.0 runs 33.7 to 34.3; SpO2 has
-      none.
+      against 60 runs 47.91 to 87.30 ms; respiratory rate against 14.0 runs 13.25 to 14.75;
+      Sleeping HR against 52 has no lower limit and an upper limit of 55; skin temperature
+      against 34.0 runs 33.7 to 34.3; SpO2 has none.
 
 Manual, on the iPhone with the sideloaded CI build:
 - [ ] After a sync with real Nights, each metric tile's Zone, status word and gauge match the
