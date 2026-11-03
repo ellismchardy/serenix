@@ -90,16 +90,14 @@ func signedText(_ difference: Int, magnitude: String? = nil) -> String {
 public struct SleepScorePart: Equatable, Sendable {
     /// "Sleep Sufficiency", "Sleep Efficiency" or "Sleep Consistency".
     public let name: String
-    /// The part as a whole number, halves up; "—" when it's left out or Sleep Score is missing.
+    /// The part as a whole number, halves up, as the Sleep Score key shows it; "—" when it's left
+    /// out or Sleep Score is missing.
     public let scoreText: String
     /// The ring's fill, 0 to 1; an empty ring when it's left out.
     public let fill: Double
     /// What it came from, e.g. "6h 0m of 8h 0m", "89% asleep", "35m off your usual", "Needs 3
     /// Nights"; "—" when there's nothing to show.
     public let detailText: String
-    /// What the Sleep Score key shows beside the part's name: its score, or why it's left out
-    /// ("Needs 3 Nights"); "—" when Sleep Score is missing.
-    public var keyText: String { scoreText == missingText ? detailText : scoreText }
 
     init(name: String, score: Double?, detailText: String = missingText) {
         self.name = name

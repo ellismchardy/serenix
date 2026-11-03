@@ -117,7 +117,7 @@ private struct SleepPopupView: View {
                     HStack(spacing: 6) {
                         Circle().fill(shade).frame(width: 10, height: 10)
                         Text(part.name).font(.caption)
-                        Text(part.keyText).font(.caption.bold()).monospacedDigit()
+                        Text(part.scoreText).font(.caption.bold()).monospacedDigit()
                     }
                 }
             }
