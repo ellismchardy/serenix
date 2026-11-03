@@ -1,7 +1,7 @@
 # 011 — Sleep tab
 
-**Status:** draft
-**Last updated:** 2026-11-03
+**Status:** approved
+**Last updated:** 2026-11-03 (approved)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
