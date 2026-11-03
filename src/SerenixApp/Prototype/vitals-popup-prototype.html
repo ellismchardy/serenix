@@ -1,0 +1,389 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway, never merged (branch prototype/vital-signs-popup).
+  Question: what should the popup look like for Sleeping HR, Resting HR, HRV, respiratory rate,
+  skin temperature and SpO2? Four structurally different popups over the Today screen, in the Look
+  of variant F (prototype/homescreen), switchable via ?variant=A..D. ?metric= picks the metric,
+  ?state= a sample Night, ?dark=1 the dark Look.
+  Run: double-click this file. Arrow keys ← → cycle variants.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitals popup prototype</title>
+<style>
+  :root { --bg: #e9e9ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font: 14px/1.4 -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif; color: #111; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+  .wrap { display: flex; gap: 28px; justify-content: center; align-items: flex-start; padding: 24px 16px 110px; flex-wrap: wrap; }
+
+  .phone { --s-bg: #f3f2f8; --s-card: #fff; --s-card2: #efeafe; --s-ink: #16151c; --s-sub: #8b8a97;
+    --track: #e7e4f2; --sep: #efedf5; --accent: #7c5cff; --shadow: 0 4px 16px rgba(40,30,90,.07);
+    --in: #22c55e; --watch: #f59e0b; --out: #ef4444; --none: #8b8a97; --band: rgba(34,197,94,.14);
+    width: 390px; max-width: 100%; height: 844px; border-radius: 52px; border: 12px solid #1a1a1a; background: var(--s-bg);
+    position: relative; overflow: hidden; color: var(--s-ink); box-shadow: 0 20px 50px rgba(0,0,0,.25); flex: none; }
+  .phone.dark { --s-bg: #0f0e14; --s-card: #1c1b24; --s-card2: #2a2440; --s-ink: #f4f3f8; --s-sub: #8f8d9e;
+    --track: #2f2d3b; --sep: #2a2934; --accent: #9b85ff; --shadow: none; --band: rgba(34,197,94,.18); }
+  .muted { color: var(--s-sub); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* the Today screen behind the popup */
+  .today { padding: 58px 20px 0; }
+  .t-top { display: flex; align-items: center; gap: 12px; }
+  .t-av { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+  .t-rings { display: flex; justify-content: space-around; margin-top: 28px; background: var(--s-card); border-radius: 22px; height: 130px; box-shadow: var(--shadow); }
+  .t-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .t-tiles div { background: var(--s-card); border-radius: 22px; height: 96px; box-shadow: var(--shadow); padding: 12px 14px; font-size: 12px; }
+  .t-tiles div.on { outline: 2px solid var(--accent); }
+  .dim { position: absolute; inset: 0; background: rgba(10,8,20,.35); z-index: 10; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 82%; overflow-y: auto; background: var(--s-bg); border-radius: 22px 22px 0 0; padding: 8px 18px 40px; z-index: 11; }
+  .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--track); margin: 0 auto 12px; }
+  .card { background: var(--s-card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 12px; }
+  .sec { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--s-sub); margin: 18px 4px 8px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--sep); gap: 12px; }
+  .kv:last-child { border-bottom: 0; }
+  .title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; }
+  .ico { width: 30px; height: 30px; border-radius: 50%; background: var(--s-card2); color: var(--accent); display: grid; place-items: center; font-size: 15px; }
+  .big { font-size: 40px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; }
+  .big small { font-size: 17px; font-weight: 600; color: var(--s-sub); margin-left: 3px; letter-spacing: 0; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; color: #fff; background: var(--c); }
+
+  /* B: zone scale */
+  .scale { position: relative; height: 14px; display: flex; border-radius: 7px; overflow: hidden; }
+  .scale i { display: block; height: 100%; }
+  .scale-wrap { position: relative; height: 64px; margin-top: 10px; padding-top: 22px; }
+  .marker { position: absolute; top: 0; z-index: 1; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 700; }
+  .marker::after { content: ""; width: 4px; height: 22px; background: var(--s-ink); border-radius: 2px; margin-top: 2px; box-shadow: 0 0 0 2px var(--s-card); }
+  .basetick { position: absolute; top: 38px; transform: translateX(-50%); font-size: 11px; color: var(--s-sub); white-space: nowrap; }
+  .basetick::before { content: ""; display: block; width: 2px; height: 8px; margin: 0 auto 1px; background: var(--s-sub); }
+  .dots { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; align-items: end; }
+  .dots div { text-align: center; font-size: 9px; color: var(--s-sub); }
+  .dots b { display: block; height: 18px; border-radius: 5px; background: var(--c); margin-bottom: 3px; }
+  .dots .gap b { background: repeating-linear-gradient(45deg, var(--track) 0 3px, transparent 3px 6px); }
+  .dots .sel b { outline: 2px solid var(--s-ink); outline-offset: 1px; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+  .facts small { display: block; color: var(--s-sub); font-size: 12px; } .facts b { font-size: 16px; }
+
+  /* C: chart-first with metric pager */
+  .tabs { display: flex; gap: 6px; overflow-x: auto; margin: 0 -18px 12px; padding: 0 18px; scrollbar-width: none; }
+  .tabs button { flex: none; padding: 7px 12px; border-radius: 99px; background: var(--s-card); box-shadow: var(--shadow); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .tabs button.on { background: var(--accent); color: #fff; }
+  .bars rect.b { cursor: pointer; }
+  .stats { display: flex; text-align: center; }
+  .stats div { flex: 1; } .stats div + div { border-left: 1px solid var(--sep); }
+  .stats small { display: block; color: var(--s-sub); font-size: 11px; } .stats b { font-size: 15px; }
+
+  /* D: explainer */
+  .lede { font-size: 20px; font-weight: 700; line-height: 1.3; margin: 10px 0 4px; }
+  .zt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .zt td { padding: 8px 0; border-bottom: 1px solid var(--sep); } .zt tr:last-child td { border: 0; }
+  .zt tr.here td { font-weight: 700; }
+  .zt .sw { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; margin-right: 8px; }
+  .why li { margin-bottom: 6px; }
+
+  /* prototype chrome, not part of the design */
+  .side { width: 300px; max-width: 100%; font-size: 13px; }
+  .side h3 { margin: 0 0 8px; font-size: 14px; }
+  .side select, .side label { display: block; margin-bottom: 10px; }
+  .side select { width: 100%; padding: 6px; font: inherit; }
+  .side pre { background: #fff; border-radius: 10px; padding: 10px; font-size: 11.5px; white-space: pre-wrap; margin: 0; }
+  .side p { color: #555; }
+  .switcher { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+    background: #111; color: #fff; padding: 8px 10px; border-radius: 99px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 100; font-weight: 600; font-size: 13px; }
+  .switcher button { width: 30px; height: 30px; border-radius: 50%; background: #333; color: #fff; font-size: 15px; }
+  .switcher span { min-width: 220px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone" id="phone"></div>
+  <div class="side">
+    <h3>Metric</h3>
+    <select id="metric"></select>
+    <h3>Sample Night</h3>
+    <select id="state"></select>
+    <label><input type="checkbox" id="dark"> Dark appearance</label>
+    <h3>State (worked out per spec 004)</h3>
+    <pre id="dump"></pre>
+    <p id="about"></p>
+  </div>
+</div>
+<div class="switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+// ---------- metrics (spec 002 units, spec 004 Zones; Spreads fixed for the prototype) ----------
+const M = {
+  shr:  { name: "Sleeping HR", icon: "♡", unit: "bpm", dp: 0, base: 52, noise: 1.6, values: { inRange: 50, watch: 54, out: 57 },
+    about: "Your lowest sustained heart rate while asleep. Lower than usual is fine; a rise of a few bpm often comes with illness, alcohol, late meals or hard training.",
+    moves: ["Alcohol or a late meal", "Illness coming on", "Hard training the day before", "A hot room"] },
+  rhr:  { name: "Resting HR", icon: "♡", unit: "bpm", dp: 0, base: 58, noise: 2.4, values: { inRange: 57, watch: 57, out: 57 }, perDay: true, noZone: true,
+    about: "Your lowest sustained heart rate on a Day while awake and still. Load is worked out against it. It has no Baseline or Zone, so it isn't coloured.",
+    moves: ["Caffeine", "Stress", "Fitness over weeks", "How still you were today"] },
+  hrv:  { name: "HRV", icon: "∿", unit: "ms", dp: 0, base: 62, noise: 0.12, spread: 0.15, values: { inRange: 66, watch: 49, out: 41 },
+    about: "Heart-rate variability while asleep (RMSSD). Higher usually means more recovered; a drop well under your Baseline is worth noticing.",
+    moves: ["Alcohol", "Poor or short sleep", "Illness", "Hard training"] },
+  rr:   { name: "Respiratory rate", icon: "≋", unit: "br/min", dp: 1, base: 14.2, noise: 0.25, spread: 0.4, values: { inRange: 14.4, watch: 15.0, out: 15.4 },
+    about: "Breaths per minute while asleep. It's very steady from night to night, so even a small rise can be an early sign of illness.",
+    moves: ["Illness, especially respiratory", "Altitude", "Alcohol"] },
+  skin: { name: "Skin temperature", icon: "🌡", unit: "°C", dp: 1, base: 33.8, noise: 0.15, values: { inRange: 33.9, watch: 34.3, out: 34.6 },
+    about: "Your wrist's skin temperature while asleep. Only the change against your Baseline matters; the number itself depends on the room and the fit of the Strap.",
+    moves: ["Fever or illness", "Menstrual cycle", "Room temperature and bedding"] },
+  spo2: { name: "SpO2", icon: "💧", unit: "%", dp: 0, base: 96.5, noise: 1, values: { inRange: 97, watch: 93, out: 91 }, fixed: true,
+    about: "Blood-oxygen saturation, measured in short SpO2 Windows during sleep. It's judged against fixed levels, not a Baseline.",
+    moves: ["Altitude", "Breathing pauses in sleep", "A loose Strap"] },
+};
+const STATES = {
+  inRange: "In range: an ordinary Night",
+  watch: "Watch: unusual for you",
+  out: "Out of range",
+  calibrating: "Calibrating: only 2 earlier Nights",
+  missing: "Missing: no value this Night",
+};
+
+// ---------- sample history (deterministic) ----------
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DATE = i => { const d = new Date(2026, 10, 3 - i); return { short: DAYS[(d.getDay() + 6) % 7].slice(0, 1), long: `${DAYS[(d.getDay() + 6) % 7]} ${d.getDate()} ${d.toLocaleString("en", { month: "short" })}` }; };
+function rand(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function sampleNights(key, state) {
+  const m = M[key], rnd = rand([...key].reduce((a, c) => a + c.charCodeAt(0), 7) * 97);
+  const count = state === "calibrating" ? 3 : 14;
+  const pts = [];
+  for (let i = count - 1; i >= 1; i--) {
+    let v = m.name === "HRV" ? m.base * Math.exp((rnd() - .5) * 2 * m.noise) : m.base + (rnd() - .5) * 2 * m.noise;
+    if (key === "spo2") v = Math.min(99, Math.round(v));
+    pts.push({ i, v: i === 9 ? null : +v.toFixed(m.dp), ...DATE(i) }); // Night 9 back: Strap off
+  }
+  pts.push({ i: 0, v: state === "missing" ? null : m.values[state === "calibrating" ? "inRange" : state], ...DATE(0) });
+  return pts;
+}
+
+// ---------- spec 004 ----------
+const median = a => { const s = a.slice().sort((x, y) => x - y), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+function work(key, state) {
+  const m = M[key], pts = sampleNights(key, state), tonight = pts[pts.length - 1];
+  const earlier = pts.slice(0, -1).map(p => p.v).filter(v => v != null);
+  const calibrating = !m.fixed && !m.noZone && earlier.length < 3;
+  const base = m.fixed || m.noZone || calibrating ? null : median(earlier);
+  const zoneOf = v => {
+    if (v == null || m.noZone) return null;
+    if (m.fixed) return v >= 95 ? "in" : v >= 92 ? "watch" : "out";
+    if (base == null) return null;
+    if (key === "hrv") { const z = (Math.log(v) - Math.log(base)) / m.spread; return z < -2.5 ? "out" : z < -1.5 || z > 2.5 ? "watch" : "in"; }
+    if (key === "rr") { const z = Math.abs(v - base) / m.spread; return z > 2.5 ? "out" : z > 1.5 ? "watch" : "in"; }
+    if (key === "shr") { const d = v - base; return d >= 5 ? "out" : d >= 3 ? "watch" : "in"; }
+    const d = Math.abs(v - base); return d > 0.6 ? "out" : d > 0.3 ? "watch" : "in";
+  };
+  // In range band (spec 004) and the Watch/Out edges for the scale
+  let band = null, edges = null;
+  if (base != null) {
+    if (key === "hrv") { const e = k => base * Math.exp(k * m.spread); band = [e(-1.5), e(2.5)]; edges = [e(-3.5), e(-2.5), e(-1.5), e(2.5), e(3.5), e(3.5)]; }
+    if (key === "rr") { const e = k => base + k * m.spread; band = [e(-1.5), e(1.5)]; edges = [e(-3.5), e(-2.5), e(-1.5), e(1.5), e(2.5), e(3.5)]; }
+    if (key === "shr") { band = [null, base + 3]; edges = [base - 8, null, null, base + 3, base + 5, base + 8]; }
+    if (key === "skin") { band = [base - 0.3, base + 0.3]; edges = [base - 1, base - 0.6, base - 0.3, base + 0.3, base + 0.6, base + 1]; }
+  }
+  if (m.fixed) edges = [88, 92, 95, 100, null, null];
+  pts.forEach(p => p.zone = zoneOf(p.v));
+  const v = tonight.v, zone = tonight.zone;
+  const fmt = x => x == null ? "—" : x.toFixed(m.dp);
+  let diff = null;
+  if (v != null && base != null) {
+    if (key === "hrv") diff = `${v >= base ? "+" : "−"}${Math.abs(Math.round((v / base - 1) * 100))}%`;
+    else if (key === "shr" || key === "rhr") diff = `${v >= base ? "+" : "−"}${Math.abs(Math.round(v - base))} bpm`;
+    else diff = `${v >= base ? "+" : "−"}${Math.abs(v - base).toFixed(1)}`;
+  }
+  const status = v == null ? "—" : m.noZone ? (key === "rhr" ? "So far today" : "") : calibrating ? "Calibrating"
+    : m.fixed ? { in: "95% or above", watch: "Below 95%", out: "Below 92%" }[zone]
+    : zone === "in" ? "Normal" : v < base ? "Low" : "High";
+  const vals = pts.map(p => p.v).filter(x => x != null);
+  return { m, key, pts, v, zone, base, band, edges, diff, status, calibrating, fmt, earlierCount: earlier.length,
+    lo: Math.min(...vals), hi: Math.max(...vals), state };
+}
+const COL = z => `var(--${z || "none"})`;
+const ZWORD = { in: "In range", watch: "Watch", out: "Out of range" };
+const bandText = w => !w.band ? "—" : w.band[0] == null ? `under ${w.fmt(w.band[1])} ${w.m.unit}` : `${w.fmt(w.band[0])}–${w.fmt(w.band[1])} ${w.m.unit}`;
+const nightWord = w => w.m.perDay ? "Day" : "Night";
+
+// ---------- chart (line or bars), shared SVG ----------
+function chart(w, { h = 170, bars = false, sel = null } = {}) {
+  const W = 330, pad = 8, pts = w.pts;
+  const ys = pts.map(p => p.v).filter(v => v != null).concat(w.base ?? [], w.band ? w.band.filter(x => x != null) : [], w.m.fixed ? [92, 95] : []);
+  let lo = Math.min(...ys), hi = Math.max(...ys); const span = (hi - lo) || 1; lo -= span * .15; hi += span * .15;
+  const y = v => pad + (h - 2 * pad - 14) * (1 - (v - lo) / (hi - lo));
+  const x = k => pad + (W - 2 * pad) * (pts.length === 1 ? .5 : k / (pts.length - 1));
+  let s = `<svg viewBox="0 0 ${W} ${h}" width="100%" class="${bars ? "bars" : ""}">`;
+  if (w.band) { const top = y(w.band[1]), bot = w.band[0] == null ? h - 14 : y(w.band[0]); s += `<rect x="0" y="${top}" width="${W}" height="${bot - top}" fill="var(--band)"/>`; }
+  if (w.m.fixed) [95, 92].forEach(t => s += `<line x1="0" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="${t === 95 ? "var(--watch)" : "var(--out)"}" stroke-dasharray="3 4"/><text x="${W - 2}" y="${y(t) - 3}" font-size="9" text-anchor="end" fill="var(--s-sub)">${t}%</text>`);
+  if (w.base != null) s += `<line x1="0" x2="${W}" y1="${y(w.base)}" y2="${y(w.base)}" stroke="var(--s-sub)" stroke-dasharray="4 4"/>`;
+  if (bars) {
+    const bw = (W - 2 * pad) / pts.length * .62;
+    pts.forEach((p, k) => {
+      if (p.v == null) { s += `<rect x="${x(k) - bw / 2}" y="${h - 22}" width="${bw}" height="6" rx="3" fill="var(--track)"/>`; return; }
+      s += `<rect class="b" data-k="${k}" x="${x(k) - bw / 2}" y="${y(p.v)}" width="${bw}" height="${h - 14 - y(p.v)}" rx="5" fill="${COL(p.zone)}" opacity="${sel == null || sel === k ? 1 : .35}"/>`;
+    });
+  } else {
+    const seg = pts.map((p, k) => p.v == null ? null : `${x(k)},${y(p.v)}`);
+    let d = "", pen = false; seg.forEach(c => { if (!c) { pen = false; return; } d += (pen ? " L" : " M") + c; pen = true; });
+    s += `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+    pts.forEach((p, k) => p.v != null && (s += `<circle cx="${x(k)}" cy="${y(p.v)}" r="${k === pts.length - 1 ? 5 : 3}" fill="${k === pts.length - 1 ? COL(p.zone) : "var(--accent)"}" stroke="var(--s-card)" stroke-width="1.5"/>`));
+  }
+  pts.forEach((p, k) => s += `<text x="${x(k)}" y="${h - 2}" font-size="9" text-anchor="middle" fill="var(--s-sub)">${p.short}</text>`);
+  return s + `</svg>`;
+}
+
+function todayBehind(w) {
+  return `<div class="today">
+    <div class="t-top"><div class="t-av">E</div><div><small class="muted">Tuesday 3 Nov</small><br><b>Good morning, Ellis</b></div></div>
+    <div class="t-rings"></div>
+    <div class="t-tiles">${Object.entries(M).map(([k, m]) => `<div class="${k === w.key ? "on" : ""}"><span class="muted">${m.icon} ${m.name}</span></div>`).join("")}</div>
+  </div>`;
+}
+const header = w => `<div class="title"><span class="ico">${w.m.icon}</span>${w.m.name}<span class="muted" style="font-weight:500;font-size:13px;margin-left:auto">${w.m.perDay ? "Today" : "Night of 2–3 Nov"}</span></div>`;
+
+// ---------- A: as built (spec 002) ----------
+function A(w) {
+  const recent = w.pts.slice().reverse().filter(p => p.v != null).slice(0, 5);
+  return `${header(w)}
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;align-items:baseline;gap:8px;color:${w.zone ? COL(w.zone) : "inherit"}">
+      <span class="big num">${w.fmt(w.v)}<small>${w.v == null ? "" : w.m.unit}</small></span>
+      <span style="font-size:18px">${w.m.fixed ? w.status : w.diff ?? (w.calibrating ? "Calibrating" : "")}</span></div>
+    ${chart(w)}
+    ${recent.map(p => `<div class="kv"><span>${p.long}</span><span class="num">${w.fmt(p.v)} ${w.m.unit}</span></div>`).join("")}
+  </div>`;
+}
+
+// ---------- B: where tonight sits on the Zone scale ----------
+function B(w) {
+  let scale = "";
+  if (w.edges && w.v != null) {
+    const [a, b, c, d, e, f] = w.edges, max = (f ?? e ?? d), min = a;
+    const pos = v => Math.max(2, Math.min(98, (v - min) / (max - min) * 100));
+    const segs = w.m.fixed ? [[a, b, "out"], [b, c, "watch"], [c, d, "in"]]
+      : w.key === "shr" ? [[a, d, "in"], [d, e, "watch"], [e, f, "out"]]
+      : [[a, b, "out"], [b, c, "watch"], [c, d, "in"], [d, e, "watch"], [e, f, w.key === "hrv" ? "watch" : "out"]];
+    scale = `<div class="scale-wrap">
+      <div class="marker" style="left:${pos(w.v)}%">${w.fmt(w.v)}</div>
+      <div class="scale">${segs.map(([s, t, z]) => `<i style="width:${(t - s) / (max - min) * 100}%;background:${COL(z)};opacity:${z === w.zone ? 1 : .35}"></i>`).join("")}</div>
+      ${w.base != null ? `<div class="basetick" style="left:${pos(w.base)}%">Baseline ${w.fmt(w.base)}</div>` : ""}
+    </div>`;
+  }
+  const say = w.v == null ? `No ${w.m.name} for this ${nightWord(w)}.`
+    : w.m.noZone ? `${w.fmt(w.v)} ${w.m.unit} ${w.status.toLowerCase()}. Resting HR has no Zone.`
+    : w.calibrating ? `Calibrating: ${w.earlierCount} of 3 earlier Nights so far, so there's nothing to compare against yet.`
+    : w.m.fixed ? `${w.status}: ${ZWORD[w.zone]}.`
+    : `${w.diff} against your Baseline: <b style="color:${COL(w.zone)}">${ZWORD[w.zone]}</b>.`;
+  return `${header(w)}
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="big num">${w.fmt(w.v)}<small>${w.v == null ? "" : w.m.unit}</small></span>
+      ${w.zone ? `<span class="pill" style="--c:${COL(w.zone)}">✓ ${w.status}</span>` : `<span class="muted">${w.status}</span>`}</div>
+    ${scale || `<div style="height:10px"></div>`}
+    <div style="margin-top:${scale ? 8 : 0}px">${say}</div>
+  </div>
+  <div class="sec">Last ${w.pts.length} ${nightWord(w)}s</div>
+  <div class="card"><div class="dots">${w.pts.map((p, k) => `<div class="${p.v == null ? "gap" : ""} ${k === w.pts.length - 1 ? "sel" : ""}" title="${p.long}: ${w.fmt(p.v)}"><b style="--c:${COL(p.zone)}"></b>${p.short}</div>`).join("")}</div></div>
+  <div class="card facts">
+    <div><small>Baseline</small><b class="num">${w.base == null ? "—" : `${w.fmt(w.base)} ${w.m.unit}`}</b></div>
+    <div><small>In range</small><b class="num">${w.m.fixed ? "95% or above" : bandText(w)}</b></div>
+    <div><small>Lowest</small><b class="num">${w.fmt(w.lo)} ${w.m.unit}</b></div>
+    <div><small>Highest</small><b class="num">${w.fmt(w.hi)} ${w.m.unit}</b></div>
+  </div>`;
+}
+
+// ---------- C: chart first, one popup paging through every metric ----------
+let selNight = null;
+function C(w) {
+  const k = selNight != null && w.pts[selNight]?.v != null ? selNight : w.pts.length - 1;
+  const p = w.pts[k];
+  return `<div class="tabs">${Object.entries(M).map(([key, m]) => `<button data-metric="${key}" class="${key === w.key ? "on" : ""}">${m.icon} ${m.name}</button>`).join("")}</div>
+  <div class="card">
+    <div class="muted" style="font-size:13px">${p.long}${k === w.pts.length - 1 ? (w.m.perDay ? " · so far today" : " · last night") : ""}</div>
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <span class="big num">${w.fmt(p.v)}<small>${p.v == null ? "" : w.m.unit}</small></span>
+      ${p.zone ? `<span class="pill" style="--c:${COL(p.zone)}">${ZWORD[p.zone]}</span>` : w.calibrating && k === w.pts.length - 1 ? `<span class="muted">Calibrating</span>` : ""}</div>
+    <div style="margin-top:6px">${chart(w, { h: 210, bars: true, sel: k })}</div>
+    <div class="muted" style="font-size:11px">Tap a bar to see that ${nightWord(w)}. ${w.band ? "Green band: In range." : ""} ${w.base != null ? "Dashed: Baseline." : ""}</div>
+  </div>
+  <div class="card stats">
+    <div><small>Baseline</small><b class="num">${w.base == null ? "—" : w.fmt(w.base)}</b></div>
+    <div><small>In range</small><b class="num">${w.m.fixed ? "≥ 95" : !w.band ? "—" : w.band[0] == null ? `< ${w.fmt(w.band[1])}` : `${w.fmt(w.band[0])}–${w.fmt(w.band[1])}`}</b></div>
+    <div><small>${w.pts.length}-${nightWord(w).toLowerCase()} range</small><b class="num">${w.fmt(w.lo)}–${w.fmt(w.hi)}</b></div>
+  </div>`;
+}
+
+// ---------- D: explain it in words ----------
+function D(w) {
+  const lede = w.v == null ? `No ${w.m.name} for this ${nightWord(w)}.`
+    : w.m.noZone ? `${w.fmt(w.v)} ${w.m.unit} ${w.status.toLowerCase()}.`
+    : w.calibrating ? `${w.fmt(w.v)} ${w.m.unit}. Serenix needs 3 earlier Nights to know what's usual for you.`
+    : w.m.fixed ? `${w.fmt(w.v)}%: ${w.zone === "in" ? "a healthy level." : w.zone === "watch" ? "a little low." : "low. Worth keeping an eye on."}`
+    : w.zone === "in" ? `${w.fmt(w.v)} ${w.m.unit}, about usual for you.`
+    : `${w.fmt(w.v)} ${w.m.unit}, ${w.diff} on your Baseline: ${w.zone === "watch" ? "unusual for you" : "well outside your usual"}.`;
+  const rows = w.m.fixed ? [["in", "95% or above"], ["watch", "92–95%"], ["out", "Below 92%"]]
+    : !w.band ? [] : w.key === "shr" ? [["in", `Under ${w.fmt(w.base + 3)} bpm`], ["watch", `${w.fmt(w.base + 3)}–${w.fmt(w.base + 5)} bpm`], ["out", `${w.fmt(w.base + 5)} bpm or more`]]
+    : w.key === "skin" ? [["in", `${bandText(w)}`], ["watch", "0.3–0.6 °C off"], ["out", "More than 0.6 °C off"]]
+    : [["in", bandText(w)], ["watch", "Just outside that"], ["out", w.key === "hrv" ? "Well under it" : "Well outside it"]];
+  return `${header(w)}
+  <div class="lede" style="color:${w.zone && w.zone !== "in" ? COL(w.zone) : "inherit"}">${lede}</div>
+  <div class="card" style="padding:8px 10px">${chart(w, { h: 110 })}</div>
+  <div class="sec">What it is</div>
+  <div class="card">${w.m.about}</div>
+  ${rows.length ? `<div class="sec">Your Zones${w.base != null ? ` · Baseline ${w.fmt(w.base)} ${w.m.unit}` : ""}</div>
+  <div class="card"><table class="zt">${rows.map(([z, t]) => `<tr class="${z === w.zone ? "here" : ""}"><td><span class="sw" style="--c:${COL(z)}"></span>${ZWORD[z]}${z === w.zone ? " ← this " + nightWord(w) : ""}</td><td style="text-align:right" class="num">${t}</td></tr>`).join("")}</table></div>` : ""}
+  <div class="sec">What moves it</div>
+  <div class="card"><ul class="why" style="margin:0;padding-left:18px">${w.m.moves.map(x => `<li>${x}</li>`).join("")}</ul></div>`;
+}
+
+const VARIANTS = [
+  ["A", "As built (spec 002)", A, "Today's shell: value and difference in the Zone colour, a line chart with the In range band and dashed Baseline, then the 5 most recent values. Resting HR has no popup today; shown here in the same shell."],
+  ["B", "Zone scale", B, "Where this Night sits on an Out / Watch / In range scale with the Baseline marked, a plain sentence, 14 Nights as coloured blocks, and Baseline / In range / lowest / highest as facts."],
+  ["C", "Chart first, paged", C, "One popup for all six metrics, switched by pills at the top. A big bar chart coloured by Zone; tap a bar to read that Night. Three stats underneath."],
+  ["D", "Explained", D, "A one-line verdict, a small chart, what the metric is, your Zone cut-offs as a table with this Night marked, and what tends to move it."],
+];
+
+// ---------- wiring ----------
+const params = new URLSearchParams(location.search);
+const msel = document.getElementById("metric"), ssel = document.getElementById("state"), dark = document.getElementById("dark");
+for (const [k, m] of Object.entries(M)) msel.add(new Option(m.name, k));
+for (const [k, v] of Object.entries(STATES)) ssel.add(new Option(v, k));
+msel.value = M[params.get("metric")] ? params.get("metric") : "shr";
+ssel.value = STATES[params.get("state")] ? params.get("state") : "inRange";
+dark.checked = params.get("dark") === "1";
+
+function current() { const i = VARIANTS.findIndex(v => v[0] === params.get("variant")); return i < 0 ? 0 : i; }
+function set(k, v) { v == null ? params.delete(k) : params.set(k, v); try { history.replaceState(null, "", "?" + params); } catch {} render(); }
+function render() {
+  const [key, label, fn, about] = VARIANTS[current()];
+  const w = work(msel.value, ssel.value);
+  const phone = document.getElementById("phone");
+  phone.className = "phone" + (dark.checked ? " dark" : "");
+  phone.innerHTML = todayBehind(w) + `<div class="dim"></div><div class="sheet"><div class="grab"></div>${fn(w)}</div>`;
+  phone.querySelectorAll("[data-metric]").forEach(b => b.onclick = () => { msel.value = b.dataset.metric; selNight = null; set("metric", msel.value); });
+  phone.querySelectorAll("rect.b").forEach(b => b.onclick = () => { selNight = +b.dataset.k; render(); });
+  document.getElementById("vlabel").textContent = `${key} (${label})`;
+  document.getElementById("about").textContent = about;
+  document.getElementById("dump").textContent =
+    `${w.m.name}: ${w.fmt(w.v)} ${w.m.unit}\nZone: ${w.zone ? ZWORD[w.zone] : "none"}\nStatus word: ${w.status}\nDifference: ${w.diff ?? "—"}\n` +
+    `Baseline: ${w.base == null ? "—" : w.fmt(w.base)} (from ${w.earlierCount} earlier ${nightWord(w)}s)\nIn range band: ${w.m.fixed ? "none (fixed levels)" : bandText(w)}\n` +
+    `History: ${w.pts.map(p => p.v == null ? "·" : w.fmt(p.v)).join(" ")}`;
+}
+const step = d => set("variant", VARIANTS[(current() + d + VARIANTS.length) % VARIANTS.length][0]);
+document.getElementById("prev").onclick = () => step(-1);
+document.getElementById("next").onclick = () => step(1);
+msel.onchange = () => { selNight = null; set("metric", msel.value); };
+ssel.onchange = () => { selNight = null; set("state", ssel.value); };
+dark.onchange = () => set("dark", dark.checked ? "1" : null);
+addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea, select, [contenteditable]")) return;
+  if (e.key === "ArrowLeft") step(-1); if (e.key === "ArrowRight") step(1);
+});
+render();
+</script>
+</body>
+</html>
