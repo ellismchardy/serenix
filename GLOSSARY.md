@@ -86,6 +86,10 @@ The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus t
 inside it.
 _Avoid_: sleep duration, total sleep
 
+**Heart Rate Trace**:
+The user's heart rate through one Night's Time in Bed, in 5-minute steps, kept with the Night.
+_Avoid_: overnight HR, HR series, HR graph
+
 **Usual Need**:
 The Time Asleep the user needs on a night with no Sleep Debt to repay.
 _Avoid_: typical need, base need, sleep baseline
