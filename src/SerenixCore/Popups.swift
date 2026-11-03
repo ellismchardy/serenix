@@ -33,7 +33,7 @@ public struct ReadinessPopupRow: Equatable, Sendable {
     init(_ tile: MetricTile) {
         name = tile.metric.name
         valueText = tile.valueText
-        referenceText = tile.baseline.map { formattedValue(of: tile.metric, $0) } ?? "Calibrating"
+        referenceText = tile.baselineText
         differenceText = tile.differenceText
     }
 
@@ -237,6 +237,16 @@ public struct MetricPopup: Equatable, Sendable {
     /// In range, Watch and Out of range, with their ranges; none without a Baseline to measure
     /// from (Calibrating).
     public let zoneRows: [MetricPopupZoneRow]
+    /// The Night shown's date and the 13 dates before it, oldest first (spec 011, Last 14
+    /// Nights).
+    public let blocks: [MetricPopupBlock]
+    /// The Baseline as the tile formats values, e.g. "60 ms"; "Calibrating" while it is; nil for
+    /// SpO2, which has none.
+    public let baselineText: String?
+    /// The lowest value in the blocks, as on the tile; "—" when none has a value.
+    public let lowestText: String
+    /// The highest value in the blocks, as on the tile; "—" when none has a value.
+    public let highestText: String
     /// The Night shown and up to 13 earlier Nights, oldest first, without missing values.
     public let chart: [MetricPopupPoint]
     /// The 5 most recent of those, newest first.
@@ -248,6 +258,8 @@ public struct MetricPopup: Equatable, Sendable {
     public let inRangeLow: Double?
     public let inRangeHigh: Double?
 
+    /// How many dates the blocks cover, including the Night shown's (spec 011, Last 14 Nights).
+    static let blockDays = 14
     /// How many Nights the chart covers, including the one shown (spec 002, Popups).
     static let chartNights = 14
     /// How many of them are listed (spec 002, Popups).
@@ -272,6 +284,31 @@ public struct MetricPopup: Equatable, Sendable {
                 : tile.baseline.map {
                     "Your Zones · Baseline \(formattedValue(of: tile.metric, $0))"
                 }
+        let blockDates = (0..<Self.blockDays).map {
+            night.day.adding(days: $0 - Self.blockDays + 1)
+        }
+        let blockNights = blockDates.map { day in
+            nights.first { $0.day == day && $0.value(of: tile.metric) != nil }
+        }
+        blocks = zip(blockDates, blockNights).map { day, match in
+            let state: MetricPopupBlockState =
+                if let match {
+                    // Judged against that Night's own Baseline, as its tile was.
+                    MetricTile(tile.metric, for: match, among: nights).zone.map { .zone($0) }
+                        ?? .noZone
+                } else {
+                    .noValue
+                }
+            return MetricPopupBlock(
+                weekdayLetter: day.weekdayLetter,
+                state: state,
+                isNightShown: day == night.day
+            )
+        }
+        baselineText = tile.metric.hasBaseline ? tile.baselineText : nil
+        let blockValues = blockNights.compactMap { $0?.value(of: tile.metric) }
+        lowestText = blockValues.min().map { formattedValue(of: tile.metric, $0) } ?? missingText
+        highestText = blockValues.max().map { formattedValue(of: tile.metric, $0) } ?? missingText
         chart = recentNights(Self.chartNights, upTo: night, among: nights).compactMap { night in
             night.value(of: tile.metric).map { MetricPopupPoint(day: night.day, value: $0) }
         }
@@ -348,6 +385,23 @@ public struct MetricPopupScaleSegment: Equatable, Sendable {
     public let zone: Zone
     public let from: Double
     public let to: Double
+}
+
+/// One date in the Nightly Metric popup's Last 14 Nights (spec 011).
+public struct MetricPopupBlock: Equatable, Sendable {
+    /// e.g. "S" for Sunday.
+    public let weekdayLetter: String
+    public let state: MetricPopupBlockState
+    /// True only for the Night shown's date, which is outlined.
+    public let isNightShown: Bool
+}
+
+/// What a block shows: its Night's Zone, a value with no Zone (Calibrating), or no value (no
+/// Night that date, or no value for the metric).
+public enum MetricPopupBlockState: Equatable, Sendable {
+    case zone(Zone)
+    case noZone
+    case noValue
 }
 
 /// One row of the Nightly Metric popup's Your Zones (spec 011).

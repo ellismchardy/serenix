@@ -7,6 +7,10 @@ public struct MetricTile: Equatable, Sendable {
     public let valueText: String
     /// The Baseline's median; nil while it's Calibrating, and always for SpO2.
     public var baseline: Double? { comparedBaseline?.median }
+    /// The Baseline as values are shown, e.g. "60 ms"; "Calibrating" while it is.
+    var baselineText: String {
+        baseline.map { formattedValue(of: metric, $0) } ?? "Calibrating"
+    }
     /// The difference from Baseline, e.g. "+14%" or "−3 bpm"; SpO2's level in words;
     /// "Calibrating" while the Baseline is; "—" when the value is missing.
     public let differenceText: String

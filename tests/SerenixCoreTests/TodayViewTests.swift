@@ -2098,6 +2098,111 @@ private let zoneRowOrder: [Zone] = [.inRange, .watch, .outOfRange]
     #expect(popup != nil && popup?.zonesHeading == nil)
 }
 
+// Spec 011: Last 14 Nights blocks and the facts.
+
+/// The positions (0 = oldest) of the blocks with no value.
+private func noValuePositions(_ popup: MetricPopup?) -> [Int]? {
+    popup?.blocks.enumerated().filter { $0.element.state == .noValue }.map(\.offset)
+}
+
+// 1 Nov 2026 is a Sunday, so its 14 dates run Monday 19 Oct to Sunday 1 Nov.
+@Test func metricPopupBlocksAreTheNightShownsDateAndThe13BeforeItOldestFirst() {
+    let nights = [laterNightOnNov2] + nightsOct13ToNov1().reversed()
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(
+        popup?.blocks.map(\.weekdayLetter)
+            == ["M", "T", "W", "T", "F", "S", "S", "M", "T", "W", "T", "F", "S", "S"]
+    )
+    #expect(popup?.blocks.map(\.isNightShown) == Array(repeating: false, count: 13) + [true])
+}
+
+@Test func datesWithoutANightAreBlocksWithNoValue() {
+    // Nights on 12 of the 14 dates: none on Thu 22 Oct (position 3) or Tue 27 Oct (position 8).
+    let missingDays = [Day(year: 2026, month: 10, day: 22), Day(year: 2026, month: 10, day: 27)]
+    let nights = nightsOct13ToNov1().filter { !missingDays.contains($0.day) }
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(popup?.blocks.count == 14)
+    #expect(noValuePositions(popup) == [3, 8])
+}
+
+@Test func aNightWithoutTheValueIsABlockWithNoValue() {
+    // 25 Oct (position 6) has a Night, but without HRV.
+    let popup = todayView(nights: nightsOct13ToNov1(hrvOnOct25: nil), showing: nov1)
+        .metricPopup(.hrv)
+
+    #expect(noValuePositions(popup) == [6])
+}
+
+// HRV 60 on 29, 30 and 31 Oct, and 1 Nov: 29 Oct has no earlier Night, 30 Oct one and 31 Oct two,
+// so all three are Calibrating; 1 Nov has three and is In range against 60. 19 to 28 Oct have no
+// Night.
+@Test func aCalibratingNightIsABlockWithNoZone() {
+    let nights = nightsBeforeNov1(hrv: [60, 60, 60]) + [Night(day: nov1, hrv: 60)]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    let expected: [MetricPopupBlockState] =
+        Array(repeating: .noValue, count: 10) + [.noZone, .noZone, .noZone, .zone(.inRange)]
+    #expect(popup?.blocks.map(\.state) == expected)
+}
+
+// Sleeping HR, oldest first: 52 on 19, 20 and 21 Oct; 55 on 22 Oct; 56 on 23 to 31 Oct and 1 Nov.
+// 22 Oct's own Baseline is the median of 52, 52, 52 = 52, so d = 55 − 52 = +3: Watch (spec 004:
+// 3 ≤ d < 5). 1 Nov's Baseline is the median of its 13 earlier Nights (52 ×3, 55, 56 ×9), the 7th
+// value, 56; against that 55 would be d = −1, In range. The block keeps 22 Oct's own Watch.
+@Test func anEarlierNightsBlockIsItsZoneAgainstItsOwnBaseline() {
+    let oldestFirst: [Double?] = [52, 52, 52, 55] + Array(repeating: 56, count: 9)
+    let nights =
+        nightsBeforeNov1(sleepingHR: Array(oldestFirst.reversed()))
+        + [Night(day: nov1, sleepingHR: 56)]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.sleepingHR)
+
+    #expect(popup?.baselineText == "56 bpm")
+    // 22 Oct is position 3 (19 Oct is position 0).
+    #expect(popup?.blocks.count == 14)
+    #expect(popup?.blocks.dropFirst(3).first?.state == .zone(.watch))
+}
+
+// The 14 dates hold HRV 46 to 59, with 41.4 on 25 Oct. Older Nights (40 to 45 ms on 13 to 18 Oct,
+// 200 ms on 12 Oct) and the later 2 Nov Night (99 ms) are outside them.
+@Test func lowestAndHighestAreOverTheFourteenBlocksOnlyFormattedAsOnTheTile() {
+    let nights =
+        [Night(day: Day(year: 2026, month: 10, day: 12), hrv: 200)]
+        + nightsOct13ToNov1(hrvOnOct25: 41.4) + [laterNightOnNov2]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(popup?.lowestText == "41 ms")
+    #expect(popup?.highestText == "59 ms")
+}
+
+@Test func lowestAndHighestAreDashesWhenNoBlockHasAValue() {
+    // Only 12 Oct, older than the 14 dates, has a Sleeping HR.
+    let nights =
+        [Night(day: Day(year: 2026, month: 10, day: 12), sleepingHR: 50)] + nightsOct13ToNov1()
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.sleepingHR)
+
+    #expect(popup?.lowestText == "—")
+    #expect(popup?.highestText == "—")
+}
+
+@Test func baselineFactIsTheBaselineWithItsUnitOrCalibratingAndSpO2HasNone() {
+    let calibrated = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 48, spo2: 97)],
+        showing: nov1
+    )
+    #expect(calibrated.metricPopup(.hrv)?.baselineText == "60 ms")
+
+    let spo2 = calibrated.metricPopup(.spo2)
+    #expect(spo2 != nil && spo2?.baselineText == nil)
+
+    let calibrating = todayView(
+        nights: nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    #expect(calibrating?.baselineText == "Calibrating")
+}
+
 // MARK: Popups on a Day without a Night
 
 @Test func aDayWithoutANightHasNoPopups() {

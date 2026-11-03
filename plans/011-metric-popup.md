@@ -95,7 +95,7 @@ Code to reuse:
      - SpO2 93 (Watch marked)
 
      Also: a Night missing HRV has rows with none marked, and Calibrating has none.
-4. [ ] **Slice: blocks and facts.** `MetricPopup.blocks` holds 14 entries, one for the Night
+4. [x] **Slice: blocks and facts.** `MetricPopup.blocks` holds 14 entries, one for the Night
    shown's date and each of the 13 dates before it, oldest first. Each has `weekdayLetter` and
    a state: a Zone (that Night's own, from its tile), no Zone (Calibrating), or no value (no
    Night, or no value). The facts are:
