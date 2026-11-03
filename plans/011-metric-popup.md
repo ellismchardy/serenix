@@ -56,7 +56,7 @@ Code to reuse:
      - Calibrating HRV with 2 earlier Nights → "Calibrating: Serenix needs 3 earlier Nights
        with HRV to know what's usual for you (2 so far)."
      - Missing HRV → "No HRV for this Night." with value "—".
-2. [ ] **Slice: Zone scale.** `Zone` gains:
+2. [x] **Slice: Zone scale.** `Zone` gains:
    - a scale position: 0.5 + z/(2×3.75) for HRV and respiratory rate, 0.5 + d/(2×7.5) for
      Sleeping HR, 0.5 + d/(2×0.9) for skin temperature, and (v−88)/12 for SpO2, clamped to 0–1;
    - the fixed segments per metric;

@@ -1829,6 +1829,171 @@ func spo2PopupVerdictSaysItsLevelInWords(spo2: Double, status: String, verdict: 
     #expect(sleepingHR != nil && sleepingHR?.zone == nil)
 }
 
+// Spec 011: the Zone scale. Positions are quoted to 4 dp in the spec, so they're compared within
+// 0.00005.
+
+/// Whether `segments` are, left to right, the `expected` Zones with their from–to positions to
+/// 4 dp.
+private func segmentsMatch(
+    _ segments: [MetricPopupScaleSegment]?,
+    _ expected: [(Zone, Double, Double)]
+) -> Bool {
+    guard let segments, segments.count == expected.count else { return false }
+    return zip(segments, expected).allSatisfy { segment, expected in
+        segment.zone == expected.0
+            && isClose(segment.from, to: expected.1, within: 0.000_05)
+            && isClose(segment.to, to: expected.2, within: 0.000_05)
+    }
+}
+
+// HRV 48 against a Baseline of 60 with a typical Spread (0.15): z = ln 0.8 / 0.15 = −1.4876, so
+// 0.5 + z / 7.5 = 0.3017.
+@Test func metricPopupScalePlacesTheValueAndTheBaselineOnTheBar() {
+    let popup = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 48)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    let scale = popup?.scale
+
+    #expect(popup?.zone == .inRange)
+    #expect(isClose(scale?.valuePosition, to: 0.30, within: 0.005))
+    #expect(isClose(scale?.baselinePosition, to: 0.5))
+}
+
+// HRV 200 against 60: z = ln(200 / 60) / 0.15 = 8.03, far past the bar's right end, and Watch
+// (spec 004: above the In range band is Watch).
+@Test func aValuePastTheEndOfTheScaleSitsAtTheEnd() {
+    let hrv200 = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 200)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    #expect(hrv200?.zone == .watch)
+    #expect(isClose(hrv200?.scale?.valuePosition, to: 1))
+
+    // Sleeping HR 40 against 52: 0.5 − 12 / 15 = −0.3, so the left end.
+    let sleepingHR40 = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 40)],
+        showing: nov1
+    ).metricPopup(.sleepingHR)
+    #expect(sleepingHR40?.zone == .inRange)
+    #expect(isClose(sleepingHR40?.scale?.valuePosition, to: 0))
+}
+
+// Sleeping HR 57 against 52: 0.5 + 5 / 15 = 0.8333.
+@Test func sleepingHRScalePositionIsItsDifferenceInBpm() {
+    let scale = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 57)],
+        showing: nov1
+    ).metricPopup(.sleepingHR)?.scale
+
+    #expect(isClose(scale?.valuePosition, to: 0.8333, within: 0.000_05))
+    #expect(isClose(scale?.baselinePosition, to: 0.5))
+}
+
+// Skin temperature 34.3 against a Baseline of 33.8: +0.5 °C, Watch, at 0.5 + 0.5 / 1.8 = 0.7778.
+@Test func skinTemperatureScalePositionIsItsDifferenceInDegrees() {
+    let nights =
+        nightsBeforeNov1(skinTemperature: [33.8, 33.8, 33.8])
+        + [Night(day: nov1, skinTemperature: 34.3)]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.skinTemperature)
+
+    #expect(popup?.zone == .watch)
+    #expect(isClose(popup?.scale?.valuePosition, to: 0.7778, within: 0.000_05))
+    #expect(isClose(popup?.scale?.baselinePosition, to: 0.5))
+}
+
+// SpO2 93: (93 − 88) / 12 = 0.4167, and no Baseline tick.
+@Test func spo2ScaleIsOnFixedLevelsWithNoBaselineTick() {
+    let popup = todayView(nights: [Night(day: nov1, spo2: 93)], showing: nov1).metricPopup(.spo2)
+    let scale = popup?.scale
+
+    #expect(popup?.zone == .watch)
+    #expect(isClose(scale?.valuePosition, to: 0.4167, within: 0.000_05))
+    #expect(scale != nil && scale?.baselinePosition == nil)
+}
+
+@Test func metricPopupScaleSegmentsAreFixedPerMetric() {
+    let night = Night(
+        day: nov1,
+        sleepingHR: 52,
+        hrv: 60,
+        respiratoryRate: 14.0,
+        skinTemperature: 34.0,
+        spo2: 97
+    )
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+
+    #expect(
+        segmentsMatch(
+            view.metricPopup(.hrv)?.scale?.segments,
+            [
+                (.outOfRange, 0, 0.1667), (.watch, 0.1667, 0.3), (.inRange, 0.3, 0.8333),
+                (.watch, 0.8333, 1),
+            ]
+        )
+    )
+    #expect(
+        segmentsMatch(
+            view.metricPopup(.respiratoryRate)?.scale?.segments,
+            [
+                (.outOfRange, 0, 0.1667), (.watch, 0.1667, 0.3), (.inRange, 0.3, 0.7),
+                (.watch, 0.7, 0.8333), (.outOfRange, 0.8333, 1),
+            ]
+        )
+    )
+    #expect(
+        segmentsMatch(
+            view.metricPopup(.sleepingHR)?.scale?.segments,
+            [(.inRange, 0, 0.7), (.watch, 0.7, 0.8333), (.outOfRange, 0.8333, 1)]
+        )
+    )
+    #expect(
+        segmentsMatch(
+            view.metricPopup(.skinTemperature)?.scale?.segments,
+            [
+                (.outOfRange, 0, 0.1667), (.watch, 0.1667, 0.3333), (.inRange, 0.3333, 0.6667),
+                (.watch, 0.6667, 0.8333), (.outOfRange, 0.8333, 1),
+            ]
+        )
+    )
+    #expect(
+        segmentsMatch(
+            view.metricPopup(.spo2)?.scale?.segments,
+            [(.outOfRange, 0, 0.3333), (.watch, 0.3333, 0.5833), (.inRange, 0.5833, 1)]
+        )
+    )
+}
+
+@Test func metricPopupScaleSegmentsDoNotDependOnTheNight() {
+    let low = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 40, spo2: 90)],
+        showing: nov1
+    )
+    let high = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: 90, spo2: 99)],
+        showing: nov1
+    )
+
+    let lowHRV = low.metricPopup(.hrv)?.scale?.segments
+    #expect(lowHRV != nil && lowHRV == high.metricPopup(.hrv)?.scale?.segments)
+    let lowSpO2 = low.metricPopup(.spo2)?.scale?.segments
+    #expect(lowSpO2 != nil && lowSpO2 == high.metricPopup(.spo2)?.scale?.segments)
+}
+
+@Test func aMetricPopupWithoutAZoneHasNoScale() {
+    let calibrating = todayView(
+        nights: nightsBeforeNov1(hrv: [60, 60]) + [Night(day: nov1, hrv: 60)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    #expect(calibrating != nil && calibrating?.scale == nil)
+
+    let missing = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, sleepingHR: 52)],
+        showing: nov1
+    ).metricPopup(.hrv)
+    #expect(missing != nil && missing?.scale == nil)
+}
+
 // MARK: Popups on a Day without a Night
 
 @Test func aDayWithoutANightHasNoPopups() {

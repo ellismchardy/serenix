@@ -229,6 +229,8 @@ public struct MetricPopup: Equatable, Sendable {
     /// What the value means for the user, e.g. "−20% against your Baseline: about usual for
     /// you." (spec 011, Verdict). Its last words take `zone`'s colour.
     public let verdictText: String
+    /// Where the value sits among the Zones (spec 011, Zone scale); nil with no Zone.
+    public let scale: MetricPopupScale?
     /// The Night shown and up to 13 earlier Nights, oldest first, without missing values.
     public let chart: [MetricPopupPoint]
     /// The 5 most recent of those, newest first.
@@ -253,6 +255,7 @@ public struct MetricPopup: Equatable, Sendable {
         nightText = "Night of \(night.day.nightSpanText)"
         statusText = tile.statusText
         verdictText = Self.verdict(tile, value: night.value(of: tile.metric))
+        scale = MetricPopupScale(tile, value: night.value(of: tile.metric))
         chart = recentNights(Self.chartNights, upTo: night, among: nights).compactMap { night in
             night.value(of: tile.metric).map { MetricPopupPoint(day: night.day, value: $0) }
         }
@@ -297,6 +300,38 @@ public struct MetricPopup: Equatable, Sendable {
             }
         return "\(tile.differenceText) against your Baseline: \(meaning)"
     }
+}
+
+/// The Nightly Metric popup's Zone scale (spec 011): its segments, and where the value and the
+/// Baseline sit on it, 0 (left) to 1 (right).
+public struct MetricPopupScale: Equatable, Sendable {
+    /// Left to right; the same for every Night of a metric.
+    public let segments: [MetricPopupScaleSegment]
+    /// Where the value's marker sits, clamped to the ends.
+    public let valuePosition: Double
+    /// Always 0.5 where there's a Baseline; nil for SpO2.
+    public let baselinePosition: Double?
+
+    /// Nil when the value has no Zone: missing or Calibrating.
+    init?(_ tile: MetricTile, value: Double?) {
+        guard tile.zone != nil, let value,
+            let position = Zone.scalePosition(
+                tile.metric,
+                value: value,
+                baseline: tile.comparedBaseline
+            )
+        else { return nil }
+        segments = Zone.scaleSegments(tile.metric)
+        valuePosition = position
+        baselinePosition = tile.metric.hasBaseline ? 0.5 : nil
+    }
+}
+
+/// One Zone's stretch of the Zone scale.
+public struct MetricPopupScaleSegment: Equatable, Sendable {
+    public let zone: Zone
+    public let from: Double
+    public let to: Double
 }
 
 /// One Night's value on the Nightly Metric popup's chart.
