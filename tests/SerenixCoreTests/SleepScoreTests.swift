@@ -40,17 +40,21 @@ private func at(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
 }
 
 /// The Night shown, dated 15 Nov: by default Sleep Onset 23:00 on 14 Nov, Final Wake 07:00 and
-/// Time Asleep 8 h (spec 010's default fixture).
+/// Time Asleep 8 h and no Time in Bed (spec 010's default fixture).
 private func nightOn15Nov(
     sleepOnset: Date? = at(14, 23),
     finalWake: Date? = at(15, 7),
-    timeAsleep: TimeInterval? = 8 * oneHour
+    timeAsleep: TimeInterval? = 8 * oneHour,
+    timeInBedStart: Date? = nil,
+    timeInBedEnd: Date? = nil
 ) -> Night {
     Night(
         day: nov15,
         sleepOnset: sleepOnset,
         finalWake: finalWake,
-        timeAsleep: timeAsleep
+        timeAsleep: timeAsleep,
+        timeInBedStart: timeInBedStart,
+        timeInBedEnd: timeInBedEnd
     )
 }
 
@@ -411,6 +415,19 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
     #expect(consistency?.detailText == "Needs 3 Nights")
 }
 
+@Test func theSleepScoreKeySaysWhySleepConsistencyIsLeftOut() {
+    let view = todayView(nights: [nightOn15Nov()])
+
+    #expect(part("Sleep Consistency", of: view)?.keyText == "Needs 3 Nights")
+    #expect(part("Sleep Sufficiency", of: view)?.keyText == "100")
+}
+
+@Test func withSleepScoreMissingTheSleepScoreKeyReadsDash() {
+    let view = todayView(nights: [nightOn15Nov(timeAsleep: nil)])
+
+    #expect(part("Sleep Consistency", of: view)?.keyText == "\u{2014}")
+}
+
 @Test func withNoTimeAsleepTheSleepPopupsThreeRingsReadDashAndAreEmpty() {
     let popup = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup
 
@@ -431,4 +448,184 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
     #expect(view.sleepScoreText == "88")
     #expect(part("Sleep Consistency", of: view)?.scoreText == "42")
     #expect(part("Sleep Consistency", of: view)?.detailText == "1h 10m off your usual")
+}
+
+// MARK: Sleep popup timeline
+
+@Test func whenYouSleptSaysUsualTimesNeed3NightsAndCarriesSleepEfficiencysDetail() {
+    let popup = todayView(nights: [nightOn15Nov(sleepOnset: at(14, 22))]).sleepPopup
+
+    #expect(popup?.whenYouSleptNote == "Usual times need 3 Nights")
+    #expect(popup?.sleepEfficiencyDetailText == "89% asleep")
+}
+
+@Test func whenYouSleptCarriesSleepConsistencysDetailOnceUsualTimesExist() {
+    let popup = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 0, 10), finalWake: at(15, 8, 10))]
+            + usualEarlierNights
+    )
+    .sleepPopup
+
+    #expect(popup?.whenYouSleptNote == "1h 10m off your usual")
+}
+
+@Test func withSleepScoreMissingWhenYouSleptHasNoNote() {
+    let popup = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup
+
+    #expect(popup != nil)
+    #expect(popup?.whenYouSleptNote == nil)
+}
+
+/// `share` of the axis to 3 decimal places, as spec 010 states timeline positions.
+private func threePlaces(_ share: Double) -> Double {
+    (share * 1000).rounded() / 1000
+}
+
+@Test func theDefaultNightsTimelineRunsFromSleepOnsetToFinalWakeWithHoursEveryTwoHours() {
+    let timeline = todayView(nights: [nightOn15Nov()]).sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 7))
+    #expect(timeline?.hours.map(\.text) == ["23", "01", "03", "05", "07"])
+    #expect(timeline?.hours.map { threePlaces($0.position) } == [0, 0.25, 0.5, 0.75, 1.0])
+    #expect(timeline?.sleepOnset.text == "23:00")
+    #expect(timeline.map { threePlaces($0.sleepOnset.position) } == 0)
+    #expect(timeline?.finalWake.text == "07:00")
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 1.0)
+}
+
+@Test func theDefaultNightWithNoTimeInBedDrawsNoTimeInBed() {
+    let timeline = todayView(nights: [nightOn15Nov()]).sleepPopup?.timeline
+
+    #expect(timeline != nil)
+    #expect(timeline?.timeInBed == nil)
+}
+
+@Test func aTimeInBedThatEndsBeforeItStartsIsNotDrawnAndDoesNotWidenTheAxis() {
+    let view = todayView(
+        nights: [nightOn15Nov(timeInBedStart: at(15, 7, 15), timeInBedEnd: at(14, 22, 40))]
+    )
+    let timeline = view.sleepPopup?.timeline
+
+    #expect(timeline?.timeInBed == nil)
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 7))
+}
+
+@Test func timeInBedFrom2240To0715WidensTheAxisTo22To08AndSpans0067To0925() {
+    let view = todayView(
+        nights: [nightOn15Nov(timeInBedStart: at(14, 22, 40), timeInBedEnd: at(15, 7, 15))]
+    )
+    let timeline = view.sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(14, 22))
+    #expect(timeline?.axisEnd == at(15, 8))
+    #expect(timeline?.hours.map(\.text) == ["22", "00", "02", "04", "06", "08"])
+    #expect(timeline?.hours.map { threePlaces($0.position) } == [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    #expect(timeline?.timeInBed.map { threePlaces($0.start) } == 0.067)
+    #expect(timeline?.timeInBed.map { threePlaces($0.end) } == 0.925)
+    #expect(timeline?.sleepOnset.text == "23:00")
+    #expect(timeline.map { threePlaces($0.sleepOnset.position) } == 0.1)
+    #expect(timeline?.finalWake.text == "07:00")
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 0.9)
+    #expect(part("Sleep Consistency", of: view)?.detailText == "Needs 3 Nights")
+    #expect(timeline != nil)
+    #expect(timeline?.usualSleepOnset == nil)
+    #expect(timeline?.usualFinalWake == nil)
+}
+
+@Test func usualTimesOf2300And0700AgainstTonights2330To0740WidenTheAxisTo23To08() {
+    // Tonight is 30 min later than usual at Sleep Onset and 40 min later at Final Wake, so the
+    // usual times are 23:00 and 07:00. Axis 23:00 14 Nov to 08:00 15 Nov (9 h).
+    let timeline = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(14, 23, 30), finalWake: at(15, 7, 40))]
+            + usualEarlierNights
+    ).sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 8))
+    #expect(timeline?.usualSleepOnset?.text == "23:00")
+    #expect(timeline?.usualSleepOnset.map { threePlaces($0.position) } == 0)
+    #expect(timeline?.usualFinalWake?.text == "07:00")
+    #expect(timeline?.usualFinalWake.map { threePlaces($0.position) } == 0.889)
+    #expect(timeline.map { threePlaces($0.sleepOnset.position) } == 0.056)
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 0.963)
+}
+
+@Test func usualSleepOnsetAroundMidnightIsTonightsLessTheMedianDifferenceShortestWayRound() {
+    // Tonight 00:10 against 23:50, 23:40 and 00:20 is +20, +30 and -10 min (median 20), so the
+    // usual Sleep Onset is 23:50; Final Wake 08:10 each time leaves the usual Final Wake 08:10.
+    let earlier = [
+        nightOnNov(14, onset: at(13, 23, 50), wake: at(14, 8, 10)),
+        nightOnNov(13, onset: at(12, 23, 40), wake: at(13, 8, 10)),
+        nightOnNov(12, onset: at(12, 0, 20), wake: at(12, 8, 10)),
+    ]
+    let timeline = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 0, 10), finalWake: at(15, 8, 10))] + earlier
+    ).sleepPopup?.timeline
+
+    #expect(timeline?.usualSleepOnset?.text == "23:50")
+    #expect(timeline?.usualFinalWake?.text == "08:10")
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 9))
+}
+
+@Test func aNightFrom3To12HasATimelineThatFitsIt() {
+    let timeline = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 3), finalWake: at(15, 12))]
+    ).sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(15, 3))
+    #expect(timeline?.axisEnd == at(15, 12))
+    #expect(timeline?.hours.map(\.text) == ["03", "05", "07", "09", "11"])
+    #expect(
+        timeline?.hours.map { threePlaces($0.position) } == [0, 0.222, 0.444, 0.667, 0.889]
+    )
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 1.0)
+}
+
+@Test func aNightWithNoSleepOnsetHasNoTimeline() {
+    let popup = todayView(nights: [nightOn15Nov(sleepOnset: nil, timeAsleep: 6 * oneHour)])
+        .sleepPopup
+
+    #expect(popup != nil)
+    #expect(popup?.timeline == nil)
+}
+
+// MARK: Sleep popup Sleep Need bar
+
+@Test func theDefaultNightsSleepNeedBarIsFullWithTheMarkerAtTheEnd() {
+    let bar = todayView(nights: [nightOn15Nov()]).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 1.0)
+    #expect(bar.map { threePlaces($0.marker) } == 1.0)
+    #expect(bar?.asleepText == "8h 0m asleep")
+    #expect(bar?.neededText == "needed 8h 0m")
+}
+
+@Test func sixHoursAsleepAgainstASleepNeedOf8HoursFillsTheBarTo075() {
+    let bar = todayView(
+        nights: [nightOn15Nov(finalWake: at(15, 5, 18), timeAsleep: 6 * oneHour)]
+    ).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 0.75)
+    #expect(bar.map { threePlaces($0.marker) } == 1.0)
+}
+
+@Test func nineHoursAsleepAgainstASleepNeedOf8HoursFillsTheBarWithTheMarkerAt0889() {
+    let bar = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(14, 22), timeAsleep: 9 * oneHour)]
+    ).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 1.0)
+    #expect(bar.map { threePlaces($0.marker) } == 0.889)
+}
+
+@Test func aNightWithNoTimeAsleepHasAnEmptySleepNeedBarReadingDashAsleep() {
+    let bar = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup?.sleepNeedBar
+
+    #expect(bar.map { threePlaces($0.fill) } == 0)
+    #expect(bar.map { threePlaces($0.marker) } == 1.0)
+    #expect(bar?.asleepText == "—")
+    #expect(bar?.neededText == "needed 8h 0m")
 }
