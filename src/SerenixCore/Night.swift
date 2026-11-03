@@ -109,6 +109,19 @@ extension Night {
     var plausibleTimeAsleep: TimeInterval? {
         plausible(timeAsleep).flatMap { $0 >= 0 ? $0 : nil }
     }
+
+    /// Minutes awake within the Sleep Period, Final Wake − Sleep Onset − Time Asleep, in whole
+    /// minutes (spec 002, Sleep popup); nil when any is missing or it comes out negative. The
+    /// Sleep tab's Wake Bouts total reads the same (spec 011).
+    var minutesAwake: Int? {
+        guard let onset = sleepOnset, let wake = finalWake, let timeAsleep = plausibleTimeAsleep,
+            let minutes = Int(
+                exactly: ((wake.timeIntervalSince(onset) - timeAsleep) / 60).rounded()
+            ),
+            minutes >= 0
+        else { return nil }
+        return minutes
+    }
 }
 
 /// A bad value (not a number, infinite, or far too large to be a reading) counts as missing, so

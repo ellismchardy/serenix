@@ -69,7 +69,7 @@ existing Nights and Night rebuild tests.
      Up 07:10'" (title, Time Asleep and In bed parts), "With no Time in Bed … no 'In bed · Up'",
      and "With 1 Nov shown, its title is that Day's name …; … 'No Night yet' … 'No Night
      recorded'".
-5. [ ] **Slice:** Last night's chart and Wake Bouts — chart range (Time in Bed, or Sleep Onset to
+5. [x] **Slice:** Last night's chart and Wake Bouts — chart range (Time in Bed, or Sleep Onset to
    Final Wake), trace steps with gaps, y-axis lowest − 3 to highest + 3, the Sleeping HR line
    and label (none without), the sleep/wake band segments, the Wake Bout texts ("Woke 2 times ·
    15 min awake", rows, "Woke 1 time", "Didn't wake"), and the "not kept" note in place of

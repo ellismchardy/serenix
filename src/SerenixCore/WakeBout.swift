@@ -8,6 +8,9 @@ public struct WakeBout: Equatable, Codable, Sendable {
     /// How many whole minutes it lasted.
     public let minutes: Int
 
+    /// UTC: when it ended, `minutes` after `start`.
+    public var end: Date { start + Double(minutes) * MotionMinutes.secondsPerMinute }
+
     public init(start: Date, minutes: Int) {
         self.start = start
         self.minutes = minutes
