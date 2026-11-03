@@ -382,6 +382,23 @@ final class StrapConnection: NSObject, ObservableObject {
         DayLoadStore.pendingRebuilds = pending
     }
 
+    /// Queues, once ever, the stored Nights with no Heart Rate Trace that can still be rebuilt
+    /// (spec 011, Nights built before this ships); later launches queue nothing more.
+    private static func queueTraceRebuildsOnce(
+        for nights: [Night],
+        now: Date,
+        timeZone: TimeZone
+    ) {
+        guard !NightStore.hasQueuedTraceRebuilds else { return }
+        var pending = NightStore.pendingRebuilds
+        for rebuild in traceRebuilds(for: nights, now: now, in: timeZone)
+        where !pending.contains(rebuild) {
+            pending.append(rebuild)
+        }
+        NightStore.pendingRebuilds = pending
+        NightStore.hasQueuedTraceRebuilds = true
+    }
+
     /// Takes away one queued copy of `rebuild`, leaving any copy queued while it was worked out.
     private static func removeOnePending(_ rebuild: NightRebuild) {
         var pending = NightStore.pendingRebuilds
@@ -410,9 +427,16 @@ final class StrapConnection: NSObject, ObservableObject {
             await previous?.value
             // What's stored shows first: a queue left by a run that was swiped away or ended by
             // iOS takes minutes to work out at launch, and the screen would be blank until then.
-            await showStoredNights(in: container)
+            let stored = await showStoredNights(in: container)
             await showStoredDayLoads(in: container)
             let now = Date()
+            // Once after the update, Nights built before spec 011 are queued to gain a Heart Rate
+            // Trace and Wake Bouts, while their History Records are still due.
+            if let stored {
+                await MainActor.run {
+                    Self.queueTraceRebuildsOnce(for: stored, now: now, timeZone: timeZone)
+                }
+            }
             let queued = await MainActor.run { NightStore.pendingRebuilds }
             for rebuild in queued {
                 await MainActor.run { self.rebuildInProgress = rebuild }

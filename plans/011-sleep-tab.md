@@ -92,7 +92,7 @@ existing Nights and Night rebuild tests.
    - Seam: Sleep view · Files: `SleepView.swift`, `SleepViewTests.swift`,
      `src/SerenixApp/SleepScreen.swift`
    - Done when: the four Your week criteria.
-8. [ ] **Slice:** the one-off rebuild queue — given stored Nights, now and the time zone, the
+8. [x] **Slice:** the one-off rebuild queue — given stored Nights, now and the time zone, the
    Nights with no Heart Rate Trace still due by spec 003's 30-day rule; the shell queues them
    once after the update (a stored flag).
    - Seam: Night rebuilds · Files: `NightRebuild.swift`, `NightRebuildTests.swift`,

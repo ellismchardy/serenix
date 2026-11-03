@@ -167,3 +167,71 @@ private func novemberRebuild(day: Int, from startDay: Int, to endDay: Int) -> Ni
     #expect(rebuild.isDue(at: utcDate(2026, 11, 30, 12, 0)))
     #expect(!rebuild.isDue(at: utcDate(2026, 11, 30, 12, 1)))
 }
+
+/// A stored Night that already has a Heart Rate Trace (one 70 bpm step from 02:00 on its
+/// date).
+private func nightWithTrace(day: Int) -> Night {
+    Night(
+        day: Day(year: 2026, month: 11, day: day),
+        heartRateTrace: HeartRateTrace(start: utcDate(2026, 11, day, 2, 0), steps: [70])
+    )
+}
+
+/// Spec 011, Night rebuilds (one-off queue): now 30 Nov 2026 12:00 (Europe/London is UTC after
+/// 25 Oct 2026). Stored Nights dated 31 Oct and 1 Nov have no Heart Rate Trace; 29 Nov has one.
+/// Only 1 Nov is queued: its History Records start 31 Oct 12:00, exactly 30 days before now.
+/// 31 Oct's start 30 Oct 12:00, before that; 29 Nov already has its trace.
+@Test func oneOffQueueRebuildsOnlyDueNightsWithoutAHeartRateTrace() {
+    let nights = [
+        Night(day: Day(year: 2026, month: 10, day: 31)),
+        Night(day: Day(year: 2026, month: 11, day: 1)),
+        nightWithTrace(day: 29),
+    ]
+
+    let found = traceRebuilds(for: nights, now: utcDate(2026, 11, 30, 12, 0), in: london)
+
+    #expect(
+        found == [
+            NightRebuild(
+                day: Day(year: 2026, month: 11, day: 1),
+                records: DateInterval(
+                    start: utcDate(2026, 10, 31, 12, 0),
+                    end: utcDate(2026, 11, 2, 12, 0)
+                )
+            )
+        ]
+    )
+}
+
+/// Nights that all have a Heart Rate Trace, or no stored Nights at all, queue nothing.
+@Test func oneOffQueueSkipsNightsWithAHeartRateTraceAndIsEmptyWithNoNights() {
+    let withTraces = [nightWithTrace(day: 14), nightWithTrace(day: 15)]
+
+    #expect(traceRebuilds(for: withTraces, now: afterNovember2026, in: london) == [])
+    #expect(traceRebuilds(for: [], now: afterNovember2026, in: london) == [])
+}
+
+/// The one-off queue reads the same History Records for a date as a rebuild after a sync does:
+/// Night dated 15 Nov, and a record at 15 Nov 01:00 inside the window noon 14 Nov to noon 15 Nov.
+/// Stored out of order, the queue still comes oldest first.
+@Test func oneOffQueueReadsTheSameRecordsAsARebuildAfterASyncOldestFirst() {
+    let nights = [
+        Night(day: Day(year: 2026, month: 11, day: 15)),
+        Night(day: Day(year: 2026, month: 11, day: 14)),
+    ]
+
+    let queued = traceRebuilds(for: nights, now: afterNovember2026, in: london)
+    let afterSync = nightRebuilds(
+        after: [utcDate(2026, 11, 15, 1, 0)],
+        now: afterNovember2026,
+        in: london
+    )
+
+    #expect(queued == afterSync)
+    #expect(
+        queued == [
+            novemberRebuild(day: 14, from: 13, to: 15),
+            novemberRebuild(day: 15, from: 14, to: 16),
+        ]
+    )
+}

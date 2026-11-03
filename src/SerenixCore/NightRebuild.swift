@@ -12,6 +12,18 @@ public struct NightRebuild: Equatable, Codable, Sendable {
         self.records = records
     }
 
+    /// The rebuild of the Night dated `day`: its two night windows, local noon the Day before
+    /// to local noon the Day after, in `timeZone`.
+    init(day: Day, in timeZone: TimeZone) {
+        self.init(
+            day: day,
+            records: DateInterval(
+                start: day.adding(days: -1).midday(in: timeZone),
+                end: day.adding(days: 1).midday(in: timeZone)
+            )
+        )
+    }
+
     /// Whether to work this date out at `now`: not once its History Records start more than
     /// `historyRecordRetention` before `now` (they may be pruned, and such a Night stays as it
     /// is), nor while they start after `now` (a Strap clock that's wrong). Checked again when a
@@ -35,17 +47,9 @@ public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: Tim
     }
     var rebuilds: [NightRebuild] = []
     for window in windows {
-        let before = nightWindow(containing: window.start.addingTimeInterval(-1), in: timeZone)
-        let after = nightWindow(containing: window.end, in: timeZone)
         let candidates = [
-            NightRebuild(
-                day: Day(containing: window.start, in: timeZone),
-                records: DateInterval(start: before.start, end: window.end)
-            ),
-            NightRebuild(
-                day: Day(containing: window.end, in: timeZone),
-                records: DateInterval(start: window.start, end: after.end)
-            ),
+            NightRebuild(day: Day(containing: window.start, in: timeZone), in: timeZone),
+            NightRebuild(day: Day(containing: window.end, in: timeZone), in: timeZone),
         ]
         for rebuild in candidates
         where rebuild.isDue(at: now) && !rebuilds.contains(where: { $0.day == rebuild.day }) {
@@ -53,4 +57,18 @@ public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: Tim
         }
     }
     return rebuilds
+}
+
+/// The dates whose stored Night has no Heart Rate Trace (built before spec 011) and whose History
+/// Records are still due at `now` (`NightRebuild.isDue(at:)`), oldest first, each reading the
+/// same two night windows a sync's rebuild would. The shell queues them once (spec 011).
+public func traceRebuilds(for nights: [Night], now: Date, in timeZone: TimeZone)
+    -> [NightRebuild]
+{
+    nights
+        .filter { $0.heartRateTrace == nil }
+        .map(\.day)
+        .sorted()
+        .map { NightRebuild(day: $0, in: timeZone) }
+        .filter { $0.isDue(at: now) }
 }

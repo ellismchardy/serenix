@@ -137,6 +137,13 @@ enum NightStore {
         try context.save()
     }
 
+    /// Whether the Nights built before spec 011 have been queued to gain a Heart Rate Trace, which
+    /// happens once ever; kept on the phone.
+    static var hasQueuedTraceRebuilds: Bool {
+        get { UserDefaults.standard.bool(forKey: queuedTraceRebuildsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: queuedTraceRebuildsKey) }
+    }
+
     /// The Night rebuilds still to do. They're kept on the phone until each is applied, so a
     /// sync's Nights are still worked out if iOS ends Serenix before the rebuild finishes.
     static var pendingRebuilds: [NightRebuild] {
@@ -206,4 +213,5 @@ enum NightStore {
 /// How many History Records `NightStore` loads from the store at a time.
 private let readBatchSize = 5_000
 private let pendingRebuildsKey = "pendingNightRebuilds"
+private let queuedTraceRebuildsKey = "queuedHeartRateTraceRebuilds"
 private let nightLog = Logger(subsystem: "com.ellismchardy.Serenix", category: "nights")
