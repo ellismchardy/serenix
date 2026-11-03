@@ -439,6 +439,13 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
 
 // MARK: Sleep popup timeline
 
+@Test func whenYouSleptCarriesSleepConsistencysAndSleepEfficiencysDetails() {
+    let popup = todayView(nights: [nightOn15Nov(sleepOnset: at(14, 22))]).sleepPopup
+
+    #expect(popup?.sleepConsistencyDetailText == "Needs 3 Nights")
+    #expect(popup?.sleepEfficiencyDetailText == "89% asleep")
+}
+
 /// `share` of the axis to 3 decimal places, as spec 010 states timeline positions.
 private func threePlaces(_ share: Double) -> Double {
     (share * 1000).rounded() / 1000

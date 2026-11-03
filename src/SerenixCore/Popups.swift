@@ -136,9 +136,9 @@ public struct SleepScorePart: Equatable, Sendable {
         ]
     }
 
-    private static let sufficiencyName = "Sleep Sufficiency"
-    private static let efficiencyName = "Sleep Efficiency"
-    private static let consistencyName = "Sleep Consistency"
+    static let sufficiencyName = "Sleep Sufficiency"
+    static let efficiencyName = "Sleep Efficiency"
+    static let consistencyName = "Sleep Consistency"
 }
 
 /// `value` rounded to a whole number with halves up, for scores and their parts, which are never
@@ -150,9 +150,13 @@ func halvesUp(_ value: Double) -> Int {
 /// The Sleep popup (spec 002, Popups).
 public struct SleepPopup: Equatable, Sendable {
     public let sleepScoreText: String
-    /// Sleep Score's parts as three small rings: Sleep Sufficiency, Sleep Efficiency, Sleep
-    /// Consistency (spec 010).
+    /// Sleep Score's parts as three nested rings, outermost first: Sleep Sufficiency, Sleep
+    /// Efficiency, Sleep Consistency (spec 010).
     public let parts: [SleepScorePart]
+    /// Sleep Consistency's detail, beside the "When you slept" heading (spec 010).
+    public var sleepConsistencyDetailText: String { detail(of: SleepScorePart.consistencyName) }
+    /// Sleep Efficiency's detail, in the "When you slept" caption (spec 010).
+    public var sleepEfficiencyDetailText: String { detail(of: SleepScorePart.efficiencyName) }
     /// Start–end in local time, e.g. "22:30–07:05"; "—" if either is missing.
     public let timeInBedText: String
     /// e.g. "8h 35m"; "—" if missing.
@@ -217,6 +221,11 @@ public struct SleepPopup: Equatable, Sendable {
             } else {
                 missingText
             }
+    }
+
+    /// The detail of the part named `name`; "—" if there's no such part.
+    private func detail(of name: String) -> String {
+        parts.first { $0.name == name }?.detailText ?? missingText
     }
 }
 

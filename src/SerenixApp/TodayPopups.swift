@@ -176,7 +176,7 @@ private struct SleepPopupView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("When you slept").font(.subheadline.bold())
-                Text("· \(detail(of: "Sleep Consistency"))")
+                Text("· \(popup.sleepConsistencyDetailText)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -188,16 +188,11 @@ private struct SleepPopupView: View {
             Text(
                 "Time in Bed \(popup.timeInBedText) (\(popup.timeInBedDurationText)) · "
                     + "Awake in the night \(popup.minutesAwakeText) · "
-                    + detail(of: "Sleep Efficiency")
+                    + popup.sleepEfficiencyDetailText
             )
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-    }
-
-    /// The detail of Sleep Score's part named `name`, e.g. "Sleep Consistency".
-    private func detail(of name: String) -> String {
-        popup.parts.first { $0.name == name }?.detailText ?? "—"
     }
 }
 
