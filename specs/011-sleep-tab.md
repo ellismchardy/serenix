@@ -148,8 +148,9 @@ Heart Rate Trace and Wake Bouts (Nights from History Records):
       (spec 003).
 
 Night rebuilds (one-off queue):
-- [ ] With now 3 Nov 2026 12:00, stored Nights dated 4 Oct and 5 Oct with no Heart Rate Trace and
-      1 Nov with one queue only 5 Oct (4 Oct's History Records start more than 30 days earlier).
+- [ ] With now 30 Nov 2026 12:00, stored Nights dated 31 Oct and 1 Nov with no Heart Rate Trace and
+      29 Nov with one queue only 1 Nov (its History Records start exactly 30 days earlier, as in
+      spec 003's example; 31 Oct's start before that).
 
 Tonight (Sleep view; Nights dated 28 Oct to 3 Nov, each Sleep Onset 23:00, Final Wake 07:00):
 - [ ] With Time Asleep 8 h each, Tonight reads "Be asleep by 23:00", "Sleep Need 8h 0m", "You

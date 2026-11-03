@@ -97,8 +97,8 @@ existing Nights and Night rebuild tests.
    once after the update (a stored flag).
    - Seam: Night rebuilds · Files: `NightRebuild.swift`, `NightRebuildTests.swift`,
      `src/SerenixApp/NightStore.swift`, `src/SerenixApp/StrapConnection.swift`
-   - Done when: criterion "With now 3 Nov 2026 12:00, stored Nights dated 4 Oct and 5 Oct with no
-     Heart Rate Trace and 1 Nov with one queue only 5 Oct".
+   - Done when: criterion "With now 30 Nov 2026 12:00, stored Nights dated 31 Oct and 1 Nov with
+     no Heart Rate Trace and 29 Nov with one queue only 1 Nov".
 9. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; every automated success criterion in spec 011 checked.
    - Done when: the above pass and the criteria are ticked. Carried to the PR checklist (they
