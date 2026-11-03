@@ -79,7 +79,7 @@ held (spec 002, spec 009) is in a card.
 1. **Sleep Score.** The Sleep Score as a big number ("—" when missing), and on the right three
    nested rings, each filling to its part out of 100: **Sleep Sufficiency** outside, **Sleep
    Efficiency** in the middle, **Sleep Consistency** inside, in three shades of the accent
-   colour, darkest outside. Under the number a key names each part with its shade and its score
+   colour, strongest outside (darkest in Light, brightest in Dark). Under the number a key names each part with its shade and its score
    as a whole number (halves up). A part left out, and every part when Sleep Score is missing,
    has an empty ring and "—" in the key.
 2. **When you slept.** A timeline of the Night, with Sleep Consistency's detail beside its
