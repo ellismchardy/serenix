@@ -368,7 +368,7 @@ private func fixtureRecordsWithoutRRIntervals() -> [HistoryRecord] {
     #expect(sleepingHR == 55)
 }
 
-// Spec 011: the Heart Rate Trace. Hand-built records for the night of 15–16 Nov 2026 (UTC is
+// Spec 012: the Heart Rate Trace. Hand-built records for the night of 15–16 Nov 2026 (UTC is
 // local time in Europe/London): up and about 22:30–23:00, awake in bed (15 active seconds a
 // minute: wake, but not up) 23:00–23:10, still 23:10–06:50, awake in bed 06:50–07:00, up and
 // about 07:00–07:30. So the Sleep Period is 23:10–06:50 and Time in Bed 23:00–07:00. Motion alone
@@ -407,7 +407,7 @@ private func nightInBed2300To0700(bpmAt0300: (Int) -> Int = { _ in 55 }) -> [His
     }
 }
 
-/// Spec 011: a Night whose Time in Bed is 23:00–07:00 has a Heart Rate Trace of 96 steps, the
+/// Spec 012: a Night whose Time in Bed is 23:00–07:00 has a Heart Rate Trace of 96 steps, the
 /// first starting at 23:00 (Time in Bed's start, not Sleep Onset's 23:10).
 @Test func nightInBed2300To0700HasHeartRateTraceOfNinetySixStepsFrom2300() throws {
     let found = nights(from: nightInBed2300To0700(), in: london)
@@ -423,7 +423,7 @@ private func nightInBed2300To0700(bpmAt0300: (Int) -> Int = { _ in 55 }) -> [His
     #expect(trace.steps.count == 96)
 }
 
-/// Spec 011: the last step may be shorter. Three more still minutes make Time in Bed 23:00–07:03,
+/// Spec 012: the last step may be shorter. Three more still minutes make Time in Bed 23:00–07:03,
 /// so 97 steps, the last 3 minutes long: its 180 records at 55 bpm still reach 150, reading 55.
 @Test func aTimeInBedOfPartStepsEndsWithAShorterLastStep() throws {
     let up = RecordMinute(bpm: 55, activeSeconds: 60)
@@ -455,37 +455,37 @@ private func heartRateTraceStepAt0300(bpmAt0300: (Int) -> Int) throws -> Double?
     return trace.steps[stepAt0300]
 }
 
-/// Spec 011: a step of 300 records at 60 bpm reads 60.
+/// Spec 012: a step of 300 records at 60 bpm reads 60.
 @Test func heartRateTraceStepOfThreeHundredRecordsAtSixtyReadsSixty() throws {
     let step = try heartRateTraceStepAt0300 { _ in 60 }
     let sixty: Double? = 60
     #expect(step == sixty)
 }
 
-/// Spec 011: a step of 150 records at 50 bpm and 150 at 70 reads their mean, 60.
+/// Spec 012: a step of 150 records at 50 bpm and 150 at 70 reads their mean, 60.
 @Test func heartRateTraceStepOfHalfAtFiftyAndHalfAtSeventyReadsSixty() throws {
     let step = try heartRateTraceStepAt0300 { second in second < 150 ? 50 : 70 }
     let sixty: Double? = 60
     #expect(step == sixty)
 }
 
-/// Spec 011: records at 0 bpm are left out of a step's mean: 150 at 60 and 150 at 0 read 60.
+/// Spec 012: records at 0 bpm are left out of a step's mean: 150 at 60 and 150 at 0 read 60.
 @Test func heartRateTraceStepLeavesOutRecordsAtZeroBPM() throws {
     let step = try heartRateTraceStepAt0300 { second in second < 150 ? 60 : 0 }
     let sixty: Double? = 60
     #expect(step == sixty)
 }
 
-/// Spec 011: a step with fewer than 150 records with a non-zero heart rate is missing: 149 at
+/// Spec 012: a step with fewer than 150 records with a non-zero heart rate is missing: 149 at
 /// 60 and 151 at 0.
 @Test func heartRateTraceStepWithOneHundredFortyNineNonZeroRecordsIsMissing() throws {
     let step = try heartRateTraceStepAt0300 { second in second < 149 ? 60 : 0 }
     #expect(step == nil)
 }
 
-// Spec 011: Wake Bouts.
+// Spec 012: Wake Bouts.
 
-/// Spec 011: a Night whose Sleep Period has wake minutes 02:00 to 02:07 and no other wake has one
+/// Spec 012: a Night whose Sleep Period has wake minutes 02:00 to 02:07 and no other wake has one
 /// Wake Bout, starting 02:00, 8 minutes long. The night of `nightInBed2300To0700`, but awake in bed
 /// (15 active seconds a minute) for the 8 minutes 02:00–02:07 inside the still stretch. Heart rate
 /// stays flat at 55 bpm, so it never extends the bout; each still minute either side has a
@@ -513,7 +513,7 @@ private func heartRateTraceStepAt0300(bpmAt0300: (Int) -> Int) throws -> Double?
     #expect(wakeBouts == [WakeBout(start: utcDate(2026, 11, 16, 2, 0), minutes: 8)])
 }
 
-/// Spec 011: two Wake Bouts come oldest first, each with its own start and length (the spec's
+/// Spec 012: two Wake Bouts come oldest first, each with its own start and length (the spec's
 /// 02:10 for 8 min and 04:30 for 7 min).
 @Test func nightWithTwoWakeStretchesHasTwoWakeBoutsOldestFirst() throws {
     let up = RecordMinute(bpm: 55, activeSeconds: 60)
@@ -541,7 +541,7 @@ private func heartRateTraceStepAt0300(bpmAt0300: (Int) -> Int) throws -> Double?
     )
 }
 
-/// Spec 011: a Night with no wake between Sleep Onset and Final Wake has Wake Bouts kept, and
+/// Spec 012: a Night with no wake between Sleep Onset and Final Wake has Wake Bouts kept, and
 /// none ("Didn't wake"), not missing.
 @Test func nightWithNoWakeInsideItsSleepPeriodHasNoWakeBouts() throws {
     let found = nights(from: nightInBed2300To0700(), in: london)
@@ -551,7 +551,7 @@ private func heartRateTraceStepAt0300(bpmAt0300: (Int) -> Int) throws -> Double?
     #expect(wakeBouts.isEmpty)
 }
 
-/// Spec 011: the fixture night's Wake Bouts add up to its Final Wake − Sleep Onset − Time Asleep,
+/// Spec 012: the fixture night's Wake Bouts add up to its Final Wake − Sleep Onset − Time Asleep,
 /// in minutes, and its Sleep Period and Time in Bed are unchanged. Spec 003's literals: Sleep
 /// Onset 21:05, Final Wake 03:42 (6 h 37 m apart) and Time Asleep 5 h 52 m, so 45 minutes awake.
 @Test func fixtureNightWakeBoutsAddUpToItsMinutesAwakeAndItsSleepPeriodIsUnchanged() throws {

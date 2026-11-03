@@ -1,12 +1,12 @@
 import Foundation
 
 /// The user's heart rate through one Night's Time in Bed, in 5-minute steps, kept with the Night
-/// (GLOSSARY, spec 011).
+/// (GLOSSARY, spec 012).
 public struct HeartRateTrace: Equatable, Codable, Sendable {
-    /// How long each step covers, seconds (spec 011: 5 minutes).
+    /// How long each step covers, seconds (spec 012: 5 minutes).
     static let step: TimeInterval = 5 * 60
     /// The fewest History Records with a non-zero heart rate a step needs, else it's missing
-    /// (spec 011: 150, half a 5-minute step).
+    /// (spec 012: 150, half a 5-minute step).
     static let fewestRecordsPerStep = 150
 
     /// UTC: when the first step starts.

@@ -59,9 +59,9 @@ public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: Tim
     return rebuilds
 }
 
-/// The dates whose stored Night has no Heart Rate Trace (built before spec 011) and whose History
+/// The dates whose stored Night has no Heart Rate Trace (built before spec 012) and whose History
 /// Records are still due at `now` (`NightRebuild.isDue(at:)`), oldest first, each reading the
-/// same two night windows a sync's rebuild would. The shell queues them once (spec 011).
+/// same two night windows a sync's rebuild would. The shell queues them once (spec 012).
 public func traceRebuilds(for nights: [Night], now: Date, in timeZone: TimeZone)
     -> [NightRebuild]
 {

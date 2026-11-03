@@ -177,7 +177,7 @@ private func nightWithTrace(day: Int) -> Night {
     )
 }
 
-/// Spec 011, Night rebuilds (one-off queue): now 30 Nov 2026 12:00 (Europe/London is UTC after
+/// Spec 012, Night rebuilds (one-off queue): now 30 Nov 2026 12:00 (Europe/London is UTC after
 /// 25 Oct 2026). Stored Nights dated 31 Oct and 1 Nov have no Heart Rate Trace; 29 Nov has one.
 /// Only 1 Nov is queued: its History Records start 31 Oct 12:00, exactly 30 days before now.
 /// 31 Oct's start 30 Oct 12:00, before that; 29 Nov already has its trace.

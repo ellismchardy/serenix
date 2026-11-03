@@ -1,7 +1,7 @@
 import Foundation
 
 /// Local clock times compared the shortest way round the clock, so 00:10 is 20 minutes after
-/// 23:50 (spec 010, Sleep Consistency; spec 011, Tonight).
+/// 23:50 (spec 010, Sleep Consistency; spec 012, Tonight).
 enum ClockTime {
     /// Minutes in a day, for clock times.
     static let minutesPerDay = 24.0 * 60

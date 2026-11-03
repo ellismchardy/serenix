@@ -1,7 +1,7 @@
 import SerenixCore
 import SwiftUI
 
-/// The Sleep tab (spec 011): draws the Sleep view for the Day shown, inside the same top bar and
+/// The Sleep tab (spec 012): draws the Sleep view for the Day shown, inside the same top bar and
 /// sync pill as the Today tab.
 struct SleepScreen: View {
     @ObservedObject var connection: StrapConnection
@@ -62,7 +62,7 @@ struct SleepScreen: View {
         }
     }
 
-    /// Tonight (spec 011): when to be asleep, tonight's Sleep Need and the usual wake time, or
+    /// Tonight (spec 012): when to be asleep, tonight's Sleep Need and the usual wake time, or
     /// that a bedtime needs more Nights.
     private func tonightCard(_ tonight: SleepTonight) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -87,7 +87,7 @@ struct SleepScreen: View {
         .themeCard()
     }
 
-    /// Last night (spec 011): its title, Time Asleep and the Sleep Score button, then Time in Bed.
+    /// Last night (spec 012): its title, Time Asleep and the Sleep Score button, then Time in Bed.
     private func lastNightCard(_ lastNight: SleepLastNight) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
@@ -142,7 +142,7 @@ struct SleepScreen: View {
     }
 }
 
-/// Last night's chart (spec 011): the Heart Rate Trace as a line, broken at missing steps, with a
+/// Last night's chart (spec 012): the Heart Rate Trace as a line, broken at missing steps, with a
 /// dotted line at Sleeping HR, over the sleep/wake band with Sleep Onset's and Final Wake's times.
 private struct SleepChartView: View {
     let chart: SleepChart
@@ -233,7 +233,7 @@ private struct SleepChartView: View {
     }
 }
 
-/// Your week (spec 011): Time Asleep against each Night's Sleep Need, then when the user slept,
+/// Your week (spec 012): Time Asleep against each Night's Sleep Need, then when the user slept,
 /// for the 7 Days to the Day shown; the Day shown in the accent colour, the others lighter.
 private struct SleepWeekView: View {
     let week: SleepWeek

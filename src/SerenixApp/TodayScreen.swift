@@ -5,7 +5,7 @@ import SwiftUI
 struct TodayScreen: View {
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
-    /// The Day picked in the week strip or the date picker, shared with the Sleep tab (spec 011);
+    /// The Day picked in the week strip or the date picker, shared with the Sleep tab (spec 012);
     /// nil is today, whatever today is when the screen draws.
     @Binding var pickedDay: Day?
     /// The sync pill swiped away, shared with the other tab so there is one pill.

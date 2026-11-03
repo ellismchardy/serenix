@@ -383,7 +383,7 @@ final class StrapConnection: NSObject, ObservableObject {
     }
 
     /// Queues, once ever, the stored Nights with no Heart Rate Trace that can still be rebuilt
-    /// (spec 011, Nights built before this ships); later launches queue nothing more.
+    /// (spec 012, Nights built before this ships); later launches queue nothing more.
     private static func queueTraceRebuildsOnce(
         for nights: [Night],
         now: Date,
@@ -430,7 +430,7 @@ final class StrapConnection: NSObject, ObservableObject {
             let stored = await showStoredNights(in: container)
             await showStoredDayLoads(in: container)
             let now = Date()
-            // Once after the update, Nights built before spec 011 are queued to gain a Heart Rate
+            // Once after the update, Nights built before spec 012 are queued to gain a Heart Rate
             // Trace and Wake Bouts, while their History Records are still due.
             if let stored {
                 await MainActor.run {

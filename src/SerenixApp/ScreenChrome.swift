@@ -1,7 +1,7 @@
 import SerenixCore
 import SwiftUI
 
-/// What the Today and Sleep tabs share (spec 002, Top bar and Sync pill; spec 011, Tab bar): the
+/// What the Today and Sleep tabs share (spec 002, Top bar and Sync pill; spec 012, Tab bar): the
 /// top bar, the sync pill over the top, pull to sync, the date picker and the profile menu, around
 /// a tab's own content. The Today view gives the top bar and pill their content.
 struct ScreenChrome<Content: View>: View {

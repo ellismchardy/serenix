@@ -1,7 +1,7 @@
 import Foundation
 
 /// One unbroken stretch of wake inside a Sleep Period, between Sleep Onset and Final Wake
-/// (GLOSSARY, spec 011).
+/// (GLOSSARY, spec 012).
 public struct WakeBout: Equatable, Codable, Sendable {
     /// UTC: its first wake minute.
     public let start: Date

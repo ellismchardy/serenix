@@ -2,7 +2,7 @@ import Foundation
 import SerenixCore
 import Testing
 
-// The Sleep tab's view (spec 011, Behavior: Sleep tab, Last night). Expected values are spec
+// The Sleep tab's view (spec 012, Behavior: Sleep tab, Last night). Expected values are spec
 // 011's success criteria under "Last night", worked by hand from its rules.
 
 /// 1–3 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
@@ -181,7 +181,7 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
     #expect(lastNight?.notKeptText == nil)
 }
 
-/// Spec 011: the total is the Sleep popup's minutes awake (Final Wake − Sleep Onset − Time
+/// Spec 012: the total is the Sleep popup's minutes awake (Final Wake − Sleep Onset − Time
 /// Asleep), not the Wake Bouts' own sum: Time Asleep 7 h 40 m gives 20 though the bouts add to 15.
 @Test func theWakeBoutsTotalIsTheSleepPopupsMinutesAwake() {
     let night = nightOn3Nov(timeAsleep: 7 * oneHour + 40 * oneMinute)
@@ -280,7 +280,7 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
 
 // MARK: Tonight
 
-// Spec 011's success criteria under "Tonight": Nights dated 28 Oct to 3 Nov, each Sleep Onset
+// Spec 012's success criteria under "Tonight": Nights dated 28 Oct to 3 Nov, each Sleep Onset
 // 23:00 the evening before. London is on GMT throughout (BST ended on 25 Oct), so local = UTC.
 
 /// The Night dated `month`/`day` 2026: Sleep Onset 23:00 the evening before, Final Wake
@@ -389,7 +389,7 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
 
 // MARK: Your week
 
-// Spec 011's success criteria under "Your week": Nights dated 1 Nov (Time Asleep 6 h), 2 and
+// Spec 012's success criteria under "Your week": Nights dated 1 Nov (Time Asleep 6 h), 2 and
 // 3 Nov (8 h), each 23:00 the evening before to 07:00. No birth year, so Usual Need is 8 h.
 
 /// The Nights dated 1 Nov (Time Asleep 6 h), 2 Nov and 3 Nov (8 h), each 23:00 to 07:00.

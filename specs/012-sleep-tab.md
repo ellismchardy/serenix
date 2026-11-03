@@ -1,4 +1,4 @@
-# 011 — Sleep tab
+# 012 — Sleep tab
 
 **Status:** built
 **Last updated:** 2026-11-03 (built; y-axis always includes Sleeping HR)

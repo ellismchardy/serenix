@@ -1,6 +1,6 @@
-# Plan: 011 — Sleep tab
+# Plan: 012 — Sleep tab
 
-**For spec:** specs/011-sleep-tab.md
+**For spec:** specs/012-sleep-tab.md
 **Type:** feature
 **Branch:** feat/sleep-screen
 
@@ -46,7 +46,7 @@ existing Nights and Night rebuild tests.
    (optional, encoded).
    - Seam: Nights from History Records · Files: `Night.swift`, `Nights.swift`,
      `NightsTests.swift`, `src/SerenixApp/NightStore.swift`
-   - Done when: spec 011 criteria "Time in Bed 23:00–07:00 has a Heart Rate Trace of 96 steps…"
+   - Done when: spec 012 criteria "Time in Bed 23:00–07:00 has a Heart Rate Trace of 96 steps…"
      and "A step of 300 records at 60 bpm reads 60; …149 at 60 and 151 at 0 is missing".
 3. [x] **Slice:** Wake Bouts — runs of non-sleep minutes between Sleep Onset and Final Wake, each
    a start and a length in whole minutes; stored on `Night` and in `StoredNight`.
@@ -100,7 +100,7 @@ existing Nights and Night rebuild tests.
    - Done when: criterion "With now 30 Nov 2026 12:00, stored Nights dated 31 Oct and 1 Nov with
      no Heart Rate Trace and 29 Nov with one queue only 1 Nov".
 9. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
-   and `swift build` green; every automated success criterion in spec 011 checked.
+   and `swift build` green; every automated success criterion in spec 012 checked.
    - Done when: the above pass and the criteria are ticked. Carried to the PR checklist (they
      need the PR): the macOS CI build, and by hand on the phone — the tab bar and shared Day
      (picking on one tab shows on the other; back from background shows today on both); recent
@@ -109,4 +109,4 @@ existing Nights and Night rebuild tests.
      button opens the Sleep popup.
 
 ## Done when
-- All tasks checked, every success criterion in spec 011 met, suite green.
+- All tasks checked, every success criterion in spec 012 met, suite green.

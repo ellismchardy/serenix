@@ -24,9 +24,9 @@ final class StoredNight {
     var timeAsleep: TimeInterval?
     var timeInBedStart: Date?
     var timeInBedEnd: Date?
-    /// The Heart Rate Trace (spec 011) as JSON; nil for Nights built before it, until rebuilt.
+    /// The Heart Rate Trace (spec 012) as JSON; nil for Nights built before it, until rebuilt.
     var heartRateTraceJSON: Data?
-    /// The Wake Bouts (spec 011) as JSON; nil for Nights built before them, until rebuilt.
+    /// The Wake Bouts (spec 012) as JSON; nil for Nights built before them, until rebuilt.
     var wakeBoutsJSON: Data?
 
     init(_ night: Night) {
@@ -137,7 +137,7 @@ enum NightStore {
         try context.save()
     }
 
-    /// Whether the Nights built before spec 011 have been queued to gain a Heart Rate Trace, which
+    /// Whether the Nights built before spec 012 have been queued to gain a Heart Rate Trace, which
     /// happens once ever; kept on the phone.
     static var hasQueuedTraceRebuilds: Bool {
         get { UserDefaults.standard.bool(forKey: queuedTraceRebuildsKey) }

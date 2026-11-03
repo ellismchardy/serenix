@@ -26,10 +26,10 @@ public struct Night: Equatable, Sendable {
     public var timeInBedStart: Date?
     /// UTC.
     public var timeInBedEnd: Date?
-    /// Nil when not kept: Nights built before spec 011, or never rebuilt since.
+    /// Nil when not kept: Nights built before spec 012, or never rebuilt since.
     public var heartRateTrace: HeartRateTrace?
     /// Oldest first; empty when the user didn't wake. Nil when not kept: Nights built before
-    /// spec 011, or never rebuilt since.
+    /// spec 012, or never rebuilt since.
     public var wakeBouts: [WakeBout]?
 
     public init(
@@ -112,7 +112,7 @@ extension Night {
 
     /// Minutes awake within the Sleep Period, Final Wake − Sleep Onset − Time Asleep, in whole
     /// minutes (spec 002, Sleep popup); nil when any is missing or it comes out negative. The
-    /// Sleep tab's Wake Bouts total reads the same (spec 011).
+    /// Sleep tab's Wake Bouts total reads the same (spec 012).
     var minutesAwake: Int? {
         guard let onset = sleepOnset, let wake = finalWake, let timeAsleep = plausibleTimeAsleep,
             let minutes = Int(

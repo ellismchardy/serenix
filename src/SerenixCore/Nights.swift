@@ -55,7 +55,7 @@ private func night(from records: [HistoryRecord], period: SleepPeriod, in timeZo
         timeAsleep: period.timeAsleep,
         timeInBedStart: period.timeInBedStart,
         timeInBedEnd: period.timeInBedEnd,
-        // Over Time in Bed (spec 011), which a Sleep Period always has.
+        // Over Time in Bed (spec 012), which a Sleep Period always has.
         heartRateTrace: HeartRateTrace(
             from: period.timeInBedStart,
             to: period.timeInBedEnd,

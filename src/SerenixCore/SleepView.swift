@@ -1,6 +1,6 @@
 import Foundation
 
-/// Everything the Sleep tab shows for the Day shown (spec 011), worked out from the stored Nights
+/// Everything the Sleep tab shows for the Day shown (spec 012), worked out from the stored Nights
 /// each time, never stored. The shell draws it.
 public struct SleepView: Equatable, Sendable {
     /// The same week strip as the Today tab's for the same Day (spec 002, Week strip).
@@ -44,7 +44,7 @@ public struct SleepView: Equatable, Sendable {
     }
 }
 
-/// The Sleep tab's Tonight section (spec 011, Tonight): when to be asleep tonight to get the
+/// The Sleep tab's Tonight section (spec 012, Tonight): when to be asleep tonight to get the
 /// Sleep Need of the Night that will be dated tomorrow, against the usual Final Wake.
 public struct SleepTonight: Equatable, Sendable {
     /// e.g. "Be asleep by 23:00"; nil before there are enough Nights.
@@ -58,7 +58,7 @@ public struct SleepTonight: Equatable, Sendable {
     /// "A bedtime to aim for appears after 3 Nights" in place of the rest; nil once there's one.
     public let waitingText: String?
 
-    /// The fewest Nights with a Final Wake in the week to today that a bedtime needs (spec 011:
+    /// The fewest Nights with a Final Wake in the week to today that a bedtime needs (spec 012:
     /// 3, as Sleep Consistency's median).
     static let fewestNights = 3
 
@@ -89,7 +89,7 @@ public struct SleepTonight: Equatable, Sendable {
     }
 }
 
-/// The Sleep tab's Your week section (spec 011, Your week): the 7 Days D − 6 to D.
+/// The Sleep tab's Your week section (spec 012, Your week): the 7 Days D − 6 to D.
 public struct SleepWeek: Equatable, Sendable {
     /// Seven Days, oldest first, ending on the Day shown.
     public let days: [SleepWeekDay]
@@ -105,11 +105,11 @@ public struct SleepWeek: Equatable, Sendable {
     /// The time zone the axis was worked out in, so times are placed on it the same way.
     let timeZone: TimeZone
 
-    /// How many Days Your week shows (spec 011: 7, D − 6 to D).
+    /// How many Days Your week shows (spec 012: 7, D − 6 to D).
     static let length = 7
-    /// The When you slept axis' usual start, an evening hour (spec 011: 20:00).
+    /// The When you slept axis' usual start, an evening hour (spec 012: 20:00).
     static let usualStartHour = 20
-    /// The When you slept axis' usual end, a morning hour (spec 011: 10:00).
+    /// The When you slept axis' usual end, a morning hour (spec 012: 10:00).
     static let usualEndHour = 10
     /// Minutes past midnight of noon. A Night's window runs noon to noon (GLOSSARY, Night window),
     /// so its Sleep Onset is after noon or before its Final Wake, and its Final Wake before noon:
@@ -189,7 +189,7 @@ public struct SleepWeekDay: Equatable, Sendable {
     public let finalWake: Date?
 }
 
-/// The Sleep tab's Last night section, about one Night (spec 011, Last night).
+/// The Sleep tab's Last night section, about one Night (spec 012, Last night).
 public struct SleepLastNight: Equatable, Sendable {
     /// "Last night" when the Day shown is today, else the Day, e.g. "Sun 1 Nov".
     public let title: String
@@ -240,7 +240,7 @@ public struct SleepLastNight: Equatable, Sendable {
     }
 }
 
-/// One Wake Bout in Last night's list (spec 011).
+/// One Wake Bout in Last night's list (spec 012).
 public struct SleepWakeBoutRow: Equatable, Sendable {
     /// UTC: when it started; unique, unlike its clock text across a clock change.
     public let start: Date
@@ -250,7 +250,7 @@ public struct SleepWakeBoutRow: Equatable, Sendable {
     public let lengthText: String
 }
 
-/// Last night's chart (spec 011): the Heart Rate Trace against the Night's Sleeping HR, over a
+/// Last night's chart (spec 012): the Heart Rate Trace against the Night's Sleeping HR, over a
 /// sleep/wake band.
 public struct SleepChart: Equatable, Sendable {
     /// UTC: the chart's left end, Time in Bed's start (or Sleep Onset without Time in Bed).
@@ -278,7 +278,7 @@ public struct SleepChart: Equatable, Sendable {
     /// Under the band's right end, e.g. "07:00".
     public let finalWakeText: String
 
-    /// Room above and below the steps on the y-axis, bpm (spec 011: 3).
+    /// Room above and below the steps on the y-axis, bpm (spec 012: 3).
     static let axisMargin = 3.0
 
     /// Nil without a Heart Rate Trace, or without Sleep Onset and Final Wake for the band.
@@ -295,7 +295,7 @@ public struct SleepChart: Equatable, Sendable {
             let middle = min(stepStart + HeartRateTrace.step / 2, max(chartEnd, stepStart))
             return SleepChartStep(start: stepStart, middle: middle, bpm: bpm)
         }
-        // The steps and the Night's Sleeping HR, so its line is always on the chart (spec 011).
+        // The steps and the Night's Sleeping HR, so its line is always on the chart (spec 012).
         let values = trace.steps.compactMap { $0 } + [night.sleepingHR].compactMap { $0 }
         lowestBPM = (values.min() ?? 0) - Self.axisMargin
         highestBPM = (values.max() ?? 0) + Self.axisMargin
