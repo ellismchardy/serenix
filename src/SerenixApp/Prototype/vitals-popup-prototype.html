@@ -340,11 +340,35 @@ function D(w) {
   <div class="card"><ul class="why" style="margin:0;padding-left:18px">${w.m.moves.map(x => `<li>${x}</li>`).join("")}</ul></div>`;
 }
 
+// ---------- E: B's Zone scale and blocks, with D's explanations ----------
+function E(w) {
+  const b = B(w), d = D(w);
+  // B up to its facts card, then the facts without In range (the Zones table says it)
+  const top = b.slice(0, b.indexOf(`<div class="card facts">`)).replace(/(<div style="margin-top:\d+px">)[\s\S]*?(<\/div>\s*<\/div>\s*<div class="sec">Last)/, (_, open, close) => open + lede(w) + close);
+  const facts = `<div class="card facts" style="grid-template-columns:repeat(3,1fr)">
+    <div><small>Baseline</small><b class="num">${w.base == null ? "—" : `${w.fmt(w.base)} ${w.m.unit}`}</b></div>
+    <div><small>Lowest</small><b class="num">${w.fmt(w.lo)} ${w.m.unit}</b></div>
+    <div><small>Highest</small><b class="num">${w.fmt(w.hi)} ${w.m.unit}</b></div>
+  </div>`;
+  // D from "What it is" on: what it is, your Zones, what moves it
+  return top + facts + d.slice(d.indexOf(`<div class="sec">What it is</div>`));
+}
+// D's verdict, as the sentence under E's scale
+function lede(w) {
+  return w.v == null ? `No ${w.m.name} for this ${nightWord(w)}.`
+    : w.m.noZone ? `${w.fmt(w.v)} ${w.m.unit} ${w.status.toLowerCase()}. Resting HR has no Zone.`
+    : w.calibrating ? `Calibrating: Serenix needs 3 earlier Nights to know what's usual for you (${w.earlierCount} so far).`
+    : w.m.fixed ? `${w.zone === "in" ? "A healthy level." : w.zone === "watch" ? "A little low." : "Low. Worth keeping an eye on."}`
+    : w.zone === "in" ? `${w.diff} against your Baseline: about usual for you.`
+    : `${w.diff} against your Baseline: <b style="color:${COL(w.zone)}">${w.zone === "watch" ? "unusual for you" : "well outside your usual"}</b>.`;
+}
+
 const VARIANTS = [
   ["A", "As built (spec 002)", A, "Today's shell: value and difference in the Zone colour, a line chart with the In range band and dashed Baseline, then the 5 most recent values. Resting HR has no popup today; shown here in the same shell."],
   ["B", "Zone scale", B, "Where this Night sits on an Out / Watch / In range scale with the Baseline marked, a plain sentence, 14 Nights as coloured blocks, and Baseline / In range / lowest / highest as facts."],
   ["C", "Chart first, paged", C, "One popup for all six metrics, switched by pills at the top. A big bar chart coloured by Zone; tap a bar to read that Night. Three stats underneath."],
   ["D", "Explained", D, "A one-line verdict, a small chart, what the metric is, your Zone cut-offs as a table with this Night marked, and what tends to move it."],
+  ["E", "Zone scale, explained", E, "B's Zone scale and 14 Nights of blocks, with D's verdict as the sentence, then Baseline / lowest / highest, what the metric is, your Zones table with this Night marked, and what moves it."],
 ];
 
 // ---------- wiring ----------
