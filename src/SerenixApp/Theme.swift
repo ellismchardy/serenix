@@ -15,6 +15,11 @@ enum Theme {
     /// The app's accent: the avatar, the Day shown, buttons, the pill's outline and the Sleep
     /// Score ring.
     static let accent = adaptive(light: 0x7C5CFF, dark: 0x9B85FF)
+    /// Sleep Efficiency's ring, the middle of the Sleep popup's nested rings: a lighter shade of
+    /// the accent in Light, a darker one in Dark (spec 010; prototype variant C's values).
+    static let accentMiddle = adaptive(light: 0xB6A5FF, dark: 0x6E5BC4)
+    /// Sleep Consistency's ring, the innermost: lighter again in Light, darker again in Dark.
+    static let accentInner = adaptive(light: 0xD9CFFF, dark: 0x463B7A)
     /// Card shadows show in Light only.
     static let shadow = adaptive(light: 0x1A1A1A, lightAlpha: 0.07, dark: 0x000000, darkAlpha: 0)
 

@@ -16,12 +16,7 @@ struct ScoreRing: View {
     var body: some View {
         VStack(spacing: 6) {
             ZStack {
-                Circle()
-                    .stroke(Theme.accentSoft, lineWidth: lineWidth)
-                Circle()
-                    .trim(from: 0, to: fill)
-                    .stroke(colour, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+                RingArc(fill: fill, colour: colour, lineWidth: lineWidth)
                 Text(text)
                     .font(.system(size: diameter * 0.3, weight: .bold, design: .rounded))
                     .monospacedDigit()
@@ -34,6 +29,25 @@ struct ScoreRing: View {
     }
 
     private var lineWidth: CGFloat { diameter * 0.08 }
+}
+
+/// A ring's track and its arc, filling clockwise from the top to `fill` (0 to 1), sized by its
+/// frame. Shared by the score rings and the Sleep popup's nested rings.
+struct RingArc: View {
+    let fill: Double
+    let colour: Color
+    let lineWidth: CGFloat
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Theme.accentSoft, lineWidth: lineWidth)
+            Circle()
+                .trim(from: 0, to: fill)
+                .stroke(colour, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+    }
 }
 
 extension ReadinessBand {
