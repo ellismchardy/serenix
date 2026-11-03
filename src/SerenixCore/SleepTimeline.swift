@@ -14,20 +14,30 @@ public struct SleepTimeline: Equatable, Sendable {
     /// Time in Bed, drawn as a band; nil when the Night has no Time in Bed, or it ends before it
     /// starts.
     public let timeInBed: TimelineSpan?
+    /// The user's usual Sleep Onset, drawn as a dashed line labelled with its clock time; nil when
+    /// Sleep Consistency is left out.
+    public let usualSleepOnset: TimelineMark?
+    /// The user's usual Final Wake, likewise.
+    public let usualFinalWake: TimelineMark?
 
     /// How far apart the hour labels are (spec 010: every 2 hours), seconds.
     static let hourLabelStep: TimeInterval = 2 * 3_600
 
     /// The timeline of `night` with clock times in `timeZone`; nil without both ends of its Sleep
-    /// Period.
-    init?(_ night: Night, timeZone: TimeZone) {
+    /// Period. `sleepScore` gives the median differences from the user's usual times (spec 010),
+    /// so the gap drawn is the one Sleep Consistency measured.
+    init?(_ night: Night, sleepScore: SleepScore?, timeZone: TimeZone) {
         guard let onset = night.sleepOnset, let wake = night.finalWake else { return nil }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let bed = night.timeInBedStart.flatMap { start in
             night.timeInBedEnd.flatMap { end in end > start ? (start: start, end: end) : nil }
         }
-        let drawn = [onset, wake] + [bed?.start, bed?.end].compactMap { $0 }
+        // Usual time: tonight's less the median signed difference, in minutes.
+        let usualOnset = sleepScore?.onsetDifference.map { onset.addingTimeInterval(-$0 * 60) }
+        let usualWake = sleepScore?.wakeDifference.map { wake.addingTimeInterval(-$0 * 60) }
+        let drawn =
+            [onset, wake] + [bed?.start, bed?.end, usualOnset, usualWake].compactMap { $0 }
         guard let earliest = drawn.min(), let latest = drawn.max(),
             let start = calendar.dateInterval(of: .hour, for: earliest)?.start,
             let latestHour = calendar.dateInterval(of: .hour, for: latest)
@@ -44,9 +54,14 @@ public struct SleepTimeline: Equatable, Sendable {
             let hour = calendar.component(.hour, from: time)
             return TimelineMark(text: String(format: "%02ld", hour), position: position(time))
         }
-        sleepOnset = TimelineMark(text: clockText(onset, in: timeZone), position: position(onset))
-        finalWake = TimelineMark(text: clockText(wake, in: timeZone), position: position(wake))
+        func mark(_ date: Date) -> TimelineMark {
+            TimelineMark(text: clockText(date, in: timeZone), position: position(date))
+        }
+        sleepOnset = mark(onset)
+        finalWake = mark(wake)
         timeInBed = bed.map { TimelineSpan(start: position($0.start), end: position($0.end)) }
+        usualSleepOnset = usualOnset.map(mark)
+        usualFinalWake = usualWake.map(mark)
     }
 }
 

@@ -198,7 +198,7 @@ public struct SleepPopup: Equatable, Sendable {
             } ?? missingText
         timeInBedDurationText =
             timeInBed.map { durationText($0.end.timeIntervalSince($0.start)) } ?? missingText
-        timeline = SleepTimeline(night, timeZone: timeZone)
+        timeline = SleepTimeline(night, sleepScore: sleepScore, timeZone: timeZone)
         sleepOnsetText = night.sleepOnset.map { clockText($0, in: timeZone) } ?? missingText
         finalWakeText = night.finalWake.map { clockText($0, in: timeZone) } ?? missingText
         let timeAsleep = night.plausibleTimeAsleep

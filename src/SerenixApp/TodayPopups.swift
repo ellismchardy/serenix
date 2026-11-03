@@ -186,6 +186,8 @@ private struct SleepTimelineView: View {
                     .offset(x: timeline.sleepOnset.position * width, y: 30)
                 endLabel(timeline.sleepOnset, width: width)
                 endLabel(timeline.finalWake, width: width)
+                if let usual = timeline.usualSleepOnset { usualLine(usual, width: width) }
+                if let usual = timeline.usualFinalWake { usualLine(usual, width: width) }
                 ForEach(timeline.hours, id: \.position) { hour in
                     Text(hour.text)
                         .font(.caption2)
@@ -196,9 +198,35 @@ private struct SleepTimelineView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "Asleep from \(timeline.sleepOnset.text) to \(timeline.finalWake.text)"
-        )
+        .accessibilityLabel(accessibilityText)
+    }
+
+    /// The Sleep Period, and the usual times when they're drawn.
+    private var accessibilityText: String {
+        var text = "Asleep from \(timeline.sleepOnset.text) to \(timeline.finalWake.text)"
+        if let onset = timeline.usualSleepOnset, let wake = timeline.usualFinalWake {
+            text += ", usually \(onset.text) to \(wake.text)"
+        }
+        return text
+    }
+
+    /// A usual Sleep Onset or Final Wake: a dashed line across the bar, labelled "usual" and its
+    /// clock time above it.
+    private func usualLine(_ mark: TimelineMark, width: CGFloat) -> some View {
+        let x = mark.position * width
+        return ZStack(alignment: .topLeading) {
+            Path { path in
+                path.move(to: CGPoint(x: x, y: 20))
+                // Just below the bar (y 30–50), clear of the end labels at y 60.
+                path.addLine(to: CGPoint(x: x, y: 52))
+            }
+            .stroke(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+            Text("usual \(mark.text)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize()
+                .position(x: x, y: 10)
+        }
     }
 
     /// Sleep Onset's or Final Wake's clock time under its end of the bar.

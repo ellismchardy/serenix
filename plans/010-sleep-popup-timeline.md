@@ -67,7 +67,7 @@ The shell (`src/SerenixApp/TodayPopups.swift`, `SleepPopupView`) is rebuilt as t
    - Done when: criterion "default Night with Time in Bed 22:40–07:15: axis 22:00–08:00, hours at
      0…1.0, Time in Bed 0.067–0.925, Sleep Onset 0.1, Final Wake 0.9, no usual times, 'Needs 3
      Nights'" passes.
-4. [ ] **Slice:** usual Sleep Onset and Final Wake on the timeline (from task 1's differences),
+4. [x] **Slice:** usual Sleep Onset and Final Wake on the timeline (from task 1's differences),
    widening the axis; drawn as dashed lines labelled "usual HH:MM".
    - Seam: Today view · Files: as task 3, plus `src/SerenixCore/SleepScore.swift` if the
      differences need exposing to the popup

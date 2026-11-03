@@ -492,6 +492,45 @@ private func threePlaces(_ share: Double) -> Double {
     #expect(timeline?.finalWake.text == "07:00")
     #expect(timeline.map { threePlaces($0.finalWake.position) } == 0.9)
     #expect(part("Sleep Consistency", of: view)?.detailText == "Needs 3 Nights")
+    #expect(timeline != nil)
+    #expect(timeline?.usualSleepOnset == nil)
+    #expect(timeline?.usualFinalWake == nil)
+}
+
+@Test func usualTimesOf2300And0700AgainstTonights2330To0740WidenTheAxisTo23To08() {
+    // Tonight is 30 min later than usual at Sleep Onset and 40 min later at Final Wake, so the
+    // usual times are 23:00 and 07:00. Axis 23:00 14 Nov to 08:00 15 Nov (9 h).
+    let timeline = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(14, 23, 30), finalWake: at(15, 7, 40))]
+            + usualEarlierNights
+    ).sleepPopup?.timeline
+
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 8))
+    #expect(timeline?.usualSleepOnset?.text == "23:00")
+    #expect(timeline?.usualSleepOnset.map { threePlaces($0.position) } == 0)
+    #expect(timeline?.usualFinalWake?.text == "07:00")
+    #expect(timeline?.usualFinalWake.map { threePlaces($0.position) } == 0.889)
+    #expect(timeline.map { threePlaces($0.sleepOnset.position) } == 0.056)
+    #expect(timeline.map { threePlaces($0.finalWake.position) } == 0.963)
+}
+
+@Test func usualSleepOnsetAroundMidnightIsTonightsLessTheMedianDifferenceShortestWayRound() {
+    // Tonight 00:10 against 23:50, 23:40 and 00:20 is +20, +30 and -10 min (median 20), so the
+    // usual Sleep Onset is 23:50; Final Wake 08:10 each time leaves the usual Final Wake 08:10.
+    let earlier = [
+        nightOnNov(14, onset: at(13, 23, 50), wake: at(14, 8, 10)),
+        nightOnNov(13, onset: at(12, 23, 40), wake: at(13, 8, 10)),
+        nightOnNov(12, onset: at(12, 0, 20), wake: at(12, 8, 10)),
+    ]
+    let timeline = todayView(
+        nights: [nightOn15Nov(sleepOnset: at(15, 0, 10), finalWake: at(15, 8, 10))] + earlier
+    ).sleepPopup?.timeline
+
+    #expect(timeline?.usualSleepOnset?.text == "23:50")
+    #expect(timeline?.usualFinalWake?.text == "08:10")
+    #expect(timeline?.axisStart == at(14, 23))
+    #expect(timeline?.axisEnd == at(15, 9))
 }
 
 @Test func aNightFrom3To12HasATimelineThatFitsIt() {
