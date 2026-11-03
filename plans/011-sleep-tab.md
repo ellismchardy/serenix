@@ -55,7 +55,7 @@ existing Nights and Night rebuild tests.
    - Done when: criteria "wake minutes 02:00 to 02:07 … one Wake Bout, starting 02:00, 8 minutes
      long" and "The fixture night's Wake Bouts add up to … and its Sleep Onset, Final Wake, Time
      in Bed and Time Asleep are unchanged".
-4. [ ] **Slice (tracer):** the tab bar and the Sleep screen's skeleton — `SleepView` with the week
+4. [x] **Slice (tracer):** the tab bar and the Sleep screen's skeleton — `SleepView` with the week
    strip and Last night's header (title "Last night" or the Day's name, "7h 45m asleep", "In bed
    22:50 · Up 07:10" or none, the no-Night messages); the shell's tab container (Today `sun.max`,
    Sleep `moon.zzz`, accent when selected) owning the shared Day shown and the

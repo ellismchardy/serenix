@@ -79,8 +79,7 @@ public struct TodayView: Equatable, Sendable {
     ) {
         let today = Day(containing: now, in: timeZone)
         let isToday = day == today
-        let earliestNight = nights.map(\.day).min()
-        pickerRange = min(earliestNight ?? today, today)...today
+        pickerRange = WeekStrip.earliest(among: nights, today: today)...today
         pickerDates =
             pickerRange.lowerBound.midday(
                 in: timeZone
@@ -99,7 +98,7 @@ public struct TodayView: Equatable, Sendable {
         menuName = profile.menuName
 
         let night = nights.first { $0.day == day }
-        noNightMessage = night != nil ? nil : isToday ? "No Night yet" : "No Night recorded"
+        noNightMessage = night != nil ? nil : Self.noNightMessage(isToday: isToday)
 
         // Readiness is Calibrating while either Baseline it's drawn from is (spec 002, Rings).
         // "n/4" counts the Nights so far, by the metric with the fewest.
@@ -284,6 +283,11 @@ public struct TodayView: Equatable, Sendable {
     /// A Nightly Metric's tile; nil on a Day without a Night.
     public func tile(_ metric: NightlyMetric) -> MetricTile? {
         tiles.first { $0.metric == metric }
+    }
+
+    /// What a Day without a Night says (spec 002), on the Today and Sleep tabs alike.
+    static func noNightMessage(isToday: Bool) -> String {
+        isToday ? "No Night yet" : "No Night recorded"
     }
 }
 
