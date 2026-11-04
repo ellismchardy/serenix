@@ -176,9 +176,9 @@ private struct SleepScoreButton: View {
     }
 }
 
-/// Your week (spec 012): a lane for each of the 7 Days, the Day shown first, each Night's bar on
-/// one evening-to-morning axis with faint hour lines, broken at its Wake Bouts. Tapping a lane
-/// opens its Night's chart under it and closes any other.
+/// Your week (spec 012): a lane for each of the 7 Days, the Day shown first, each Night as one
+/// block with Wake Bout notches on one evening-to-morning axis with faint hour lines. Tapping a
+/// lane opens its Night's chart under it and closes any other.
 private struct SleepWeekView: View {
     let week: SleepWeek
     /// Tonight's dashed lane, first; nil when the Day shown isn't today or there's no bedtime.
@@ -338,7 +338,7 @@ private struct SleepWeekView: View {
                                 style: StrokeStyle(lineWidth: 1.2, dash: [3, 3])
                             )
                         )
-                        .frame(width: max(end - start, 4), height: 12)
+                        .frame(width: max(end - start, 4), height: laneBlockHeight)
                         .offset(x: start)
                 }
                 .frame(maxHeight: .infinity)
@@ -408,16 +408,27 @@ private struct SleepChartView: View {
                     Path(roundedRect: asleep, cornerRadius: 12),
                     with: .color(Theme.accentSoft.opacity(0.55))
                 )
+                let startLabel = context.resolve(
+                    Text(chart.asleepStartText).font(.caption2).foregroundStyle(.secondary)
+                )
+                let endLabel = context.resolve(
+                    Text(chart.asleepEndText).font(.caption2).foregroundStyle(.secondary)
+                )
                 context.draw(
-                    Text(chart.asleepStartText).font(.caption2).foregroundStyle(.secondary),
+                    startLabel,
                     at: CGPoint(x: asleep.minX + 8, y: top / 2 + 2),
                     anchor: .leading
                 )
-                context.draw(
-                    Text(chart.asleepEndText).font(.caption2).foregroundStyle(.secondary),
-                    at: CGPoint(x: asleep.maxX - 8, y: top / 2 + 2),
-                    anchor: .trailing
-                )
+                // On a short asleep stretch the two would overlap: the start label wins.
+                let labelsWidth =
+                    startLabel.measure(in: size).width + endLabel.measure(in: size).width + 24
+                if asleep.width >= labelsWidth {
+                    context.draw(
+                        endLabel,
+                        at: CGPoint(x: asleep.maxX - 8, y: top / 2 + 2),
+                        anchor: .trailing
+                    )
+                }
                 for bout in chart.wakeBouts {
                     // Under the label strip, so a Wake Bout near either end never covers a label.
                     let rect = CGRect(
@@ -581,7 +592,7 @@ private struct SleepChartView: View {
 private let laneNameWidth: CGFloat = 40
 private let laneValueWidth: CGFloat = 52
 private let laneSpacing: CGFloat = 6
-/// The height of a lane's bar area and of a row of axis labels or hour ticks, points.
+/// The height of a lane's row and of a row of axis labels or hour ticks, points.
 private let laneBarHeight: CGFloat = 18
 /// The height of a lane's block, points.
 private let laneBlockHeight: CGFloat = 12

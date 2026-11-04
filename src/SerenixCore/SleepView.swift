@@ -360,7 +360,7 @@ public struct SleepAxisLabel: Equatable, Sendable {
     public let fraction: Double
 }
 
-/// One Day's lane in Your week (spec 012): its Night's bar on the shared axis, or "no Night".
+/// One Day's lane in Your week (spec 012): its Night's block on the shared axis, or "no Night".
 public struct SleepLane: Equatable, Sendable {
     public let day: Day
     /// "Last" for the Day shown when it's today, else the weekday's short name, e.g. "Mon".
@@ -451,7 +451,7 @@ public struct SleepLane: Equatable, Sendable {
 
     /// Each Wake Bout clamped to `block`, oldest first; none for a Night with no Heart Rate Trace
     /// (spec 012, Not kept).
-    private static func wakeNotches(of night: Night, in block: DateInterval) -> [DateInterval] {
+    static func wakeNotches(of night: Night, in block: DateInterval) -> [DateInterval] {
         guard night.heartRateTrace != nil else { return [] }
         return (night.wakeBouts ?? []).sorted { $0.start < $1.start }.compactMap { bout in
             let start = max(bout.start, block.start)
@@ -552,7 +552,11 @@ public struct SleepChart: Equatable, Sendable {
         asleepEnd = wake
         asleepStartText = "asleep \(clockText(onset, in: timeZone))"
         asleepEndText = clockText(wake, in: timeZone)
-        wakeBouts = (night.wakeBouts ?? []).map { DateInterval(start: $0.start, end: $0.end) }
+        // Clamped and ordered as the lane's notches, so the two always agree.
+        wakeBouts = SleepLane.wakeNotches(
+            of: night,
+            in: DateInterval(start: onset, end: max(wake, onset))
+        )
         hourTicks = Self.hourTicks(from: start, to: end, in: timeZone)
     }
 

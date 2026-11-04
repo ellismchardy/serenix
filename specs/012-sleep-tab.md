@@ -86,8 +86,9 @@ lines and labels every 2 hours ("22", "00", "02" …) under the last lane:
 - **The chart**, from the start to the end of Time in Bed (or Sleep Onset to Final Wake when
   Time in Bed is missing), one picture with no separate band:
   - Sleep Onset to Final Wake shaded behind everything in the lighter accent colour, labelled
-    "asleep 23:00" at its top left and "07:00" at its top right;
-  - each Wake Bout as an amber column across the chart's height;
+    "asleep 23:00" at its top left and "07:00" at its top right (the "07:00" left out when the
+    stretch is too narrow for both);
+  - each Wake Bout as an amber column down the chart, below the asleep labels;
   - the Heart Rate Trace as a smooth curve in the accent colour with a fill fading from it down
     to the chart's foot, broken where a step is missing. Each step is drawn at its **smoothed
     value**: the mean of the steps within 3 either side (15 minutes), each weighted by
@@ -234,7 +235,7 @@ Onset 23:00, Final Wake 07:00, Time in Bed 22:50–07:10):
 - [x] It has 7 lanes, 3 Nov first, then 2 Nov back to 28 Oct, named "Last", "Mon", "Sun", "Sat",
       "Fri", "Thu", "Wed"; 28 to 31 Oct read "no Night".
 - [x] Its title reads "avg 7h 20m · Sleep Debt 2h 0m".
-- [x] Each Night's bar runs 23:00 to 07:00 on a 20:00 to 10:00 axis labelled "22", "00", "02",
+- [x] Each Night's block runs 23:00 to 07:00 on a 20:00 to 10:00 axis labelled "22", "00", "02",
       "04", "06", "08"; a Night from 19:30 widens it to 19:00.
 - [x] 1 Nov's Time Asleep reads "6h 0m" and is marked short (Sleep Need 8h 0m); 2 Nov's "8h 0m"
       (Sleep Need 8h 30m) is marked short; 3 Nov's (Sleep Need 8h 30m) is marked short.
@@ -254,7 +255,7 @@ Onset 23:00, Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, and Wake Bo
       missing step breaks the line.
 - [x] A Sleeping HR outside the steps widens the y-axis to take it in: steps 50 to 70 with
       Sleeping HR 44 run 41 to 73.
-- [x] The chart has no gridlines.
+- [x] The chart has no gridlines (it holds no gridline values to draw).
 - [x] Smoothed values (to 2 dp): steps all 60 but one of 74 draw that step at 63.58, the steps
       1, 2 and 3 away at 62.95, 61.64 and 60.62, and the rest at 60; a missing step among 60s
       stays missing and its neighbours draw at 60; the y-axis still runs from the steps as kept
@@ -263,7 +264,7 @@ Onset 23:00, Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, and Wake Bo
       columns run 02:10–02:18 and 04:30–04:37; under the chart it reads "Woke 2 times · 15 min
       awake".
 - [x] One Wake Bout reads "Woke 1 time"; none reads "Didn't wake".
-- [x] With no Time in Bed, the chart runs 23:00 to 07:00 and the bar has no track.
+- [x] With no Time in Bed, the chart runs 23:00 to 07:00 and the block has no track.
 - [x] With no Heart Rate Trace, its chart is "Heart rate isn't kept for Nights older than 30
       days.", its block has no notches, and its Time Asleep still reads "7h 45m".
 

@@ -428,7 +428,7 @@ private let traceWithOne74 = HeartRateTrace(
     #expect(lane?.wakeText == nil)
 }
 
-@Test func withNoTimeInBedTheChartRunsFromSleepOnsetToFinalWakeAndTheBarHasNoTrack() {
+@Test func withNoTimeInBedTheChartRunsFromSleepOnsetToFinalWakeAndTheBlockHasNoTrack() {
     let view = sleepView(nights: [nightOn3Nov(timeInBedStart: nil, timeInBedEnd: nil)])
     let lane = view.week.lanes.first
 
@@ -889,6 +889,8 @@ private let yourWeekNights = [
 
     #expect(lane?.asleep == DateInterval(start: at(2, 23), end: at(3, 7)))
     #expect(lane?.wakeNotches == [DateInterval(start: at(3, 6, 55), end: at(3, 7))])
+    // The chart's column for it is clamped the same way, so the two never disagree.
+    #expect(lane?.chart?.wakeBouts == [DateInterval(start: at(3, 6, 55), end: at(3, 7))])
 }
 
 // MARK: What stood out
