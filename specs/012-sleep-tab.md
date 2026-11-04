@@ -1,6 +1,6 @@
 # 012 — Sleep tab
 
-**Status:** draft
+**Status:** approved
 **Last updated:** 2026-11-04 (lanes and chart restyled from the graphs prototype's variant E:
 gradient block with Wake Bout notches, one-picture chart in the accent colour, smoothed curve)
 
