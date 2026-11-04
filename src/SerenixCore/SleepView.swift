@@ -379,8 +379,7 @@ public struct SleepLane: Equatable, Sendable {
     public let timeAsleepText: String?
     /// Whether Time Asleep fell 15 min or more under the Night's own Sleep Need (spec 009).
     public let isShort: Bool
-    /// The Night's Heart Rate Trace with its sleep/wake band, shown when the lane is open; nil
-    /// with no Night or no Heart Rate Trace.
+    /// The Night's chart, shown when the lane is open; nil with no Night or no Heart Rate Trace.
     public let chart: SleepChart?
     /// In place of the chart when the Night has no Heart Rate Trace; nil otherwise.
     public let notKeptText: String?
@@ -462,8 +461,8 @@ public struct SleepLane: Equatable, Sendable {
     }
 }
 
-/// A Night's chart, opened in its lane (spec 012): the Heart Rate Trace against the Night's
-/// Sleeping HR and bpm gridlines, over a sleep/wake band with hour ticks.
+/// A Night's chart, opened in its lane (spec 012): one picture of the asleep stretch, Wake Bout
+/// columns and the smoothed Heart Rate Trace against the Night's Sleeping HR, with hour ticks.
 public struct SleepChart: Equatable, Sendable {
     /// UTC: the chart's left end, Time in Bed's start (or Sleep Onset without Time in Bed).
     public let start: Date
@@ -477,27 +476,24 @@ public struct SleepChart: Equatable, Sendable {
     public let highestBPM: Double
     /// Where the dotted line goes, bpm; nil without a Sleeping HR.
     public let sleepingHR: Double?
-    /// e.g. "Sleeping HR 52"; nil without a Sleeping HR.
+    /// The tag at the Sleeping HR line's right end, e.g. "52 bpm"; nil without a Sleeping HR.
     public let sleepingHRLabel: String?
-    /// UTC: the band's asleep stretch, Sleep Onset to Final Wake.
+    /// UTC: the asleep shading's start, Sleep Onset.
     public let asleepStart: Date
-    /// UTC: the band's asleep stretch's end, Final Wake.
+    /// UTC: the asleep shading's end, Final Wake.
     public let asleepEnd: Date
-    /// Each Wake Bout over the band, start to end; empty with none, or none kept.
+    /// At the asleep shading's top left, e.g. "asleep 23:00".
+    public let asleepStartText: String
+    /// At the asleep shading's top right, e.g. "07:00".
+    public let asleepEndText: String
+    /// Each Wake Bout as a column across the chart, start to end; empty with none, or none kept.
     public let wakeBouts: [DateInterval]
-    /// Faint lines across the chart, bpm, e.g. [50, 55, 60, 65, 70] on a 47–73 axis.
-    public let gridlines: [Double]
-    /// Under the band, on the even clock hours inside the chart: "00:00", "02:00" …
+    /// Under the chart, on the even clock hours inside it: "00:00", "02:00" …
     public let hourTicks: [SleepChartTick]
 
     /// Room above and below the steps on the y-axis, bpm (spec 012: 3).
     static let axisMargin = 3.0
-    /// Gridlines every this many bpm (spec 012: 5) …
-    static let gridlineStep = 5.0
-    /// … or every this many when the axis spans more than `wideAxisSpan` bpm (spec 012: 10, 30).
-    static let wideGridlineStep = 10.0
-    static let wideAxisSpan = 30.0
-    /// Hours between ticks under the band, on even clock hours (spec 012: 2).
+    /// Hours between ticks under the chart, on even clock hours (spec 012: 2).
     static let tickEveryHours = 2
     /// How many steps either side a step's smoothed value takes in (spec 012: 3, 15 minutes).
     static let smoothingReach = 3
@@ -525,7 +521,8 @@ public struct SleepChart: Equatable, Sendable {
         }
     }
 
-    /// Nil without a Heart Rate Trace, or without Sleep Onset and Final Wake for the band.
+    /// Nil without a Heart Rate Trace, or without Sleep Onset and Final Wake for the asleep
+    /// shading.
     init?(_ night: Night, timeZone: TimeZone) {
         guard let trace = night.heartRateTrace, let onset = night.sleepOnset,
             let wake = night.finalWake
@@ -550,15 +547,12 @@ public struct SleepChart: Equatable, Sendable {
         lowestBPM = (values.min() ?? 0) - Self.axisMargin
         highestBPM = (values.max() ?? 0) + Self.axisMargin
         sleepingHR = night.sleepingHR
-        sleepingHRLabel = night.sleepingHR.map { "Sleeping HR \(Int($0.rounded()))" }
+        sleepingHRLabel = night.sleepingHR.map { "\(Int($0.rounded())) bpm" }
         asleepStart = onset
         asleepEnd = wake
+        asleepStartText = "asleep \(clockText(onset, in: timeZone))"
+        asleepEndText = clockText(wake, in: timeZone)
         wakeBouts = (night.wakeBouts ?? []).map { DateInterval(start: $0.start, end: $0.end) }
-        let step =
-            highestBPM - lowestBPM > Self.wideAxisSpan ? Self.wideGridlineStep : Self.gridlineStep
-        gridlines = Array(
-            stride(from: (lowestBPM / step).rounded(.up) * step, through: highestBPM, by: step)
-        )
         hourTicks = Self.hourTicks(from: start, to: end, in: timeZone)
     }
 

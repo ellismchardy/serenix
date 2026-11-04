@@ -210,7 +210,7 @@ private func laneChart(_ night: Night) -> SleepChart? {
     let chart = lanes.dropFirst().first?.chart
     #expect(chart?.start == at(1, 22, 50))
     #expect(chart?.end == at(2, 7, 10))
-    #expect(chart?.sleepingHRLabel == "Sleeping HR 55")
+    #expect(chart?.sleepingHRLabel == "55 bpm")
 }
 
 @Test func aNightsChartHasTheHeartRateTracesStepsFiveMinutesApart() {
@@ -339,17 +339,8 @@ private let traceWithOne74 = HeartRateTrace(
     #expect(twoDP(steps.dropFirst().first?.smoothedBPM) == 63.52)
 }
 
-/// The 47 to 73 axis (steps 50 to 70) spans 26 bpm, so its gridlines are every 5 bpm.
-@Test func aYAxisSpanningThirtyBPMOrLessHasGridlinesEveryFive() {
-    let chart = laneChart(nightOn3Nov())
-
-    #expect(chart?.lowestBPM == 47)
-    #expect(chart?.highestBPM == 73)
-    #expect(chart?.gridlines == [50, 55, 60, 65, 70])
-}
-
-/// Steps 44 to 80 give a 41 to 83 axis, spanning 42 bpm, so its gridlines are every 10 bpm.
-@Test func aYAxisSpanningMoreThanThirtyBPMHasGridlinesEveryTen() {
+/// Steps 44 to 80 give a 41 to 83 axis, the lowest step − 3 to the highest + 3.
+@Test func stepsFrom44To80GiveAYAxisFrom41To83() {
     let trace = HeartRateTrace(
         start: at(2, 22, 50),
         steps: [44, 80] + Array(repeating: 60, count: 98)
@@ -358,14 +349,13 @@ private let traceWithOne74 = HeartRateTrace(
 
     #expect(chart?.lowestBPM == 41)
     #expect(chart?.highestBPM == 83)
-    #expect(chart?.gridlines == [50, 60, 70, 80])
 }
 
-@Test func theSleepingHRLineIsAtTheNightsSleepingHRAndLabelled() {
+@Test func theSleepingHRLineIsAtTheNightsSleepingHRWithItsBPMTag() {
     let chart = laneChart(nightOn3Nov())
 
     #expect(chart?.sleepingHR == 52)
-    #expect(chart?.sleepingHRLabel == "Sleeping HR 52")
+    #expect(chart?.sleepingHRLabel == "52 bpm")
 }
 
 @Test func withNoSleepingHRThereIsNoSleepingHRLineOrLabel() {
@@ -376,11 +366,13 @@ private let traceWithOne74 = HeartRateTrace(
     #expect(chart?.sleepingHRLabel == nil)
 }
 
-@Test func theSleepWakeBandRunsFromSleepOnsetToFinalWakeWithEachWakeBoutAndReadsHowOftenTheyWoke() {
+@Test func theAsleepShadingRunsSleepOnsetToFinalWakeLabelledWithWakeBoutsAndHowOftenTheyWoke() {
     let lane = sleepView(nights: [nightOn3Nov()]).week.lanes.first
 
     #expect(lane?.chart?.asleepStart == at(2, 23))
     #expect(lane?.chart?.asleepEnd == at(3, 7))
+    #expect(lane?.chart?.asleepStartText == "asleep 23:00")
+    #expect(lane?.chart?.asleepEndText == "07:00")
     #expect(
         lane?.chart?.wakeBouts == [
             DateInterval(start: at(3, 2, 10), end: at(3, 2, 18)),

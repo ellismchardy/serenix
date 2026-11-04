@@ -380,45 +380,58 @@ private struct SleepWeekView: View {
     }
 }
 
-/// A Night's chart (spec 012): the Heart Rate Trace as a smooth line with a soft fill, broken at
-/// missing steps, over faint bpm gridlines labelled at the right, Wake Bouts shaded behind it and
-/// a dotted line at Sleeping HR; under it the sleep/wake band and hour ticks.
+/// A Night's chart (spec 012), one picture: the asleep stretch shaded behind it with its times,
+/// Wake Bouts as amber columns, the smoothed Heart Rate Trace as a curve in the accent colour with
+/// a fill fading to the chart's foot, and a dotted line at Sleeping HR with its tag; hour ticks
+/// under it.
 private struct SleepChartView: View {
     let chart: SleepChart
 
     var body: some View {
         VStack(spacing: 6) {
             Canvas { context, size in
-                let plotWidth = size.width - chartLabelGutter
-                let x = { (time: Date) -> CGFloat in xPosition(time, width: plotWidth) }
+                let width = size.width
+                let x = { (time: Date) -> CGFloat in xPosition(time, width: width) }
+                // The plot sits under the asleep labels.
+                let top = chartLabelRoom
                 let y = { (bpm: Double) -> CGFloat in
                     let span = chart.highestBPM - chart.lowestBPM
-                    return size.height * (1 - (bpm - chart.lowestBPM) / span)
+                    return top + (size.height - top) * (1 - (bpm - chart.lowestBPM) / span)
                 }
-                for bpm in chart.gridlines {
-                    var line = Path()
-                    line.move(to: CGPoint(x: 0, y: y(bpm)))
-                    line.addLine(to: CGPoint(x: plotWidth, y: y(bpm)))
-                    context.stroke(line, with: .color(.secondary.opacity(0.15)), lineWidth: 1)
-                    context.draw(
-                        Text("\(Int(bpm))").font(.caption2).foregroundStyle(.secondary),
-                        at: CGPoint(x: size.width, y: y(bpm)),
-                        anchor: .trailing
-                    )
-                }
+                let asleep = CGRect(
+                    x: x(chart.asleepStart),
+                    y: 0,
+                    width: max(x(chart.asleepEnd) - x(chart.asleepStart), 4),
+                    height: size.height
+                )
+                context.fill(
+                    Path(roundedRect: asleep, cornerRadius: 12),
+                    with: .color(Theme.accentSoft.opacity(0.55))
+                )
+                context.draw(
+                    Text(chart.asleepStartText).font(.caption2).foregroundStyle(.secondary),
+                    at: CGPoint(x: asleep.minX + 8, y: top / 2 + 2),
+                    anchor: .leading
+                )
+                context.draw(
+                    Text(chart.asleepEndText).font(.caption2).foregroundStyle(.secondary),
+                    at: CGPoint(x: asleep.maxX - 8, y: top / 2 + 2),
+                    anchor: .trailing
+                )
                 for bout in chart.wakeBouts {
+                    // Under the label strip, so a Wake Bout near either end never covers a label.
                     let rect = CGRect(
                         x: x(bout.start),
-                        y: 0,
+                        y: top,
                         width: max(x(bout.end) - x(bout.start), 3),
-                        height: size.height
+                        height: size.height - top
                     )
                     context.fill(
-                        Path(roundedRect: rect, cornerRadius: 2),
-                        with: .color(.orange.opacity(0.16))
+                        Path(roundedRect: rect, cornerRadius: 1.5),
+                        with: .color(.orange.opacity(0.22))
                     )
                 }
-                // Each unbroken run of steps, smoothed, with a soft fill down to the chart's foot.
+                // Each unbroken run of smoothed values, with a fill fading to the chart's foot.
                 for run in runs(x: x, y: y) {
                     let line = smoothPath(through: run)
                     var area = line
@@ -430,40 +443,50 @@ private struct SleepChartView: View {
                     context.fill(
                         area,
                         with: .linearGradient(
-                            Gradient(colors: [.red.opacity(0.28), .red.opacity(0)]),
-                            startPoint: .zero,
+                            Gradient(stops: [
+                                .init(color: Theme.accent.opacity(0.45), location: 0),
+                                .init(color: Theme.accent.opacity(0), location: 1),
+                            ]),
+                            startPoint: CGPoint(x: 0, y: top),
                             endPoint: CGPoint(x: 0, y: size.height)
                         )
                     )
                     context.stroke(
                         line,
-                        with: .color(.red),
-                        style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+                        with: .color(Theme.accent),
+                        style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round)
                     )
                 }
                 if let sleepingHR = chart.sleepingHR {
                     var line = Path()
                     line.move(to: CGPoint(x: 0, y: y(sleepingHR)))
-                    line.addLine(to: CGPoint(x: plotWidth, y: y(sleepingHR)))
+                    line.addLine(to: CGPoint(x: width, y: y(sleepingHR)))
                     context.stroke(
                         line,
                         with: .color(.primary.opacity(0.45)),
-                        style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [2, 4])
+                        style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [1, 4])
                     )
                     if let label = chart.sleepingHRLabel {
-                        // Under its right end, where the trace has risen above it toward waking.
-                        context.draw(
-                            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(
-                                .secondary
-                            ),
-                            at: CGPoint(x: plotWidth - 4, y: y(sleepingHR) + 9),
-                            anchor: .trailing
+                        // A tag on a pill at the line's right end.
+                        let text = context.resolve(
+                            Text(label).font(.caption2.weight(.bold)).foregroundStyle(.primary)
                         )
+                        let textSize = text.measure(in: size)
+                        let pill = CGRect(
+                            x: width - textSize.width - 14,
+                            y: y(sleepingHR) - 9,
+                            width: textSize.width + 12,
+                            height: 18
+                        )
+                        context.fill(
+                            Path(roundedRect: pill, cornerRadius: 9),
+                            with: .color(Theme.card)
+                        )
+                        context.draw(text, at: CGPoint(x: pill.midX, y: pill.midY))
                     }
                 }
             }
             .frame(height: chartHeight)
-            band
             ticks
         }
     }
@@ -530,45 +553,10 @@ private struct SleepChartView: View {
         return path
     }
 
-    /// Time in Bed as a track, Sleep Onset to Final Wake in the accent colour with a gap and an
-    /// amber mark at each Wake Bout.
-    private var band: some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width - chartLabelGutter
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.accentSoft).frame(width: width)
-                Capsule()
-                    .fill(Theme.accent)
-                    .frame(
-                        width: max(
-                            xPosition(chart.asleepEnd, width: width)
-                                - xPosition(chart.asleepStart, width: width),
-                            3
-                        )
-                    )
-                    .offset(x: xPosition(chart.asleepStart, width: width))
-                ForEach(chart.wakeBouts, id: \.start) { bout in
-                    Capsule()
-                        .fill(.orange)
-                        .frame(
-                            width: max(
-                                xPosition(bout.end, width: width)
-                                    - xPosition(bout.start, width: width),
-                                2
-                            ),
-                            height: 3
-                        )
-                        .offset(x: xPosition(bout.start, width: width))
-                }
-            }
-        }
-        .frame(height: bandHeight)
-    }
-
-    /// The hour ticks under the band, at their clock positions.
+    /// The hour ticks under the chart, at their clock positions.
     private var ticks: some View {
         GeometryReader { geometry in
-            let width = geometry.size.width - chartLabelGutter
+            let width = geometry.size.width
             ForEach(chart.hourTicks, id: \.time) { tick in
                 Text(tick.text)
                     .font(.caption2)
@@ -600,8 +588,7 @@ private let laneBlockHeight: CGFloat = 12
 /// The height of a Wake Bout notch, standing 3 points above and below the block, points.
 private let laneNotchHeight: CGFloat = 18
 private let axisLabelHeight: CGFloat = 14
-/// A Night's chart: its height, the room at its right for bpm labels, and its band's height,
-/// points.
-private let chartHeight: CGFloat = 150
-private let chartLabelGutter: CGFloat = 26
-private let bandHeight: CGFloat = 10
+/// The height of a Night's chart, points.
+private let chartHeight: CGFloat = 170
+/// The room at the top of a Night's chart for the asleep labels, above the plot, points.
+private let chartLabelRoom: CGFloat = 18

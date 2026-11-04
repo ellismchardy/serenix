@@ -44,7 +44,7 @@ files, so they run in order.
      `tests/SerenixCoreTests/SleepViewTests.swift`, `src/SerenixApp/SleepScreen.swift`
    - Done when: the smoothed-values criterion passes (63.58 / 62.95 / 61.64 / 60.62 / 60, the
      missing step, and the 57–77 axis).
-3. [ ] **Slice: the chart as one picture.** `SleepChart` drops `gridlines`, gains the asleep
+3. [x] **Slice: the chart as one picture.** `SleepChart` drops `gridlines`, gains the asleep
    labels ("asleep 23:00", "07:00") and changes `sleepingHRLabel` to the "52 bpm" tag. The Sleep
    screen draws, in the accent colour: the asleep shading behind everything with its labels,
    Wake Bout columns, the curve with a fill fading to the chart's foot, the dotted Sleeping HR
