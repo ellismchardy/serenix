@@ -47,7 +47,7 @@ says which popup a tap opens via a new core enum `StoryTap` (`.sleep`, `.metric(
    - Seam: Today view · Files: `TodayStory.swift`, `TodayView.swift`, `TodayStoryTests.swift`,
      `src/SerenixApp/StoryBodyView.swift`
    - Done when: tests pin half, capped-at-full and nil cases; the shell bar uses it.
-7. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+7. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build` green; phone criteria 8–11 checked by hand on the sideloaded build.
 
 ## Verification
