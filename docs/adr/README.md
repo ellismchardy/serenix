@@ -5,7 +5,8 @@ Neither preserves *why we chose X over Y* — ADRs do.
 
 One decision per file, so parallel branches never conflict: `NNNN-kebab-title.md`, numbered by
 taking the highest existing number + 1. ADRs are never rewritten — to change a decision, write a
-new ADR and set the old one's status to `superseded by NNNN`.
+new ADR and set the old one's status to `superseded by NNNN`. A dated **Update YYYY-MM-DD:**
+note at the end may record a fact that doesn't change the decision (a new tool version, say).
 
 ## When to write one
 Only when **all three** are true:

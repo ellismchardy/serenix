@@ -82,9 +82,17 @@ The moment the user last wakes at the end of a Sleep Period.
 The span around a Sleep Period during which the user is lying down but not up and about.
 
 **Time Asleep**:
-The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus the wake bouts
+The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus the Wake Bouts
 inside it.
 _Avoid_: sleep duration, total sleep
+
+**Wake Bout**:
+One unbroken stretch of wake inside a Sleep Period, between Sleep Onset and Final Wake.
+_Avoid_: awakening, interruption, disturbance
+
+**Heart Rate Trace**:
+The user's heart rate through one Night's Time in Bed, in 5-minute steps, kept with the Night.
+_Avoid_: overnight HR, HR series, HR graph
 
 **Usual Need**:
 The Time Asleep the user needs on a night with no Sleep Debt to repay.

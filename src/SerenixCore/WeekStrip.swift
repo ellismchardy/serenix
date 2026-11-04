@@ -16,6 +16,12 @@ public struct WeekStrip: Equatable, Sendable {
     /// How many Days the strip holds and ‹ › move by.
     static let length = 7
 
+    /// The earliest Day that can be shown: the earliest Night's, or today with no Nights (and
+    /// never after today).
+    static func earliest(among nights: [Night], today: Day) -> Day {
+        min(nights.map(\.day).min() ?? today, today)
+    }
+
     /// `earliest` is the earliest Night's Day, or today with no Nights.
     init(showing shown: Day, today: Day, earliest: Day, nights: Set<Day>) {
         // Weeks count back from today: page 0 ends on today, page 1 on the Day a week before.
