@@ -1,7 +1,7 @@
 # 002 — Today screen
 
-**Status:** built
-**Last updated:** 2026-11-03 (spec 011: Nightly Metric popup redesigned; popups' Dark background)
+**Status:** approved
+**Last updated:** 2026-11-04 (Resting HR shown on a Day with no Night)
 
 ## Problem
 Once History Sync (spec 001) gets History Records onto the phone, the user still has nowhere
@@ -67,7 +67,10 @@ today; it is disabled on today. There is no Today pill and no large date
 title.
 
 **No Night for the Day.** On today, "No Night yet". On an earlier Day, "No Night recorded". Both
-still show that Day's Load. Serenix never shows another Day's Night in its place.
+still show that Day's Load, and, when the Day has a Resting HR (spec 007; it belongs to the Day,
+not the Night), the Resting HR tile on its own under the message, as in Tiles: same value, "So
+far today" on today, and tapping it opens the Resting HR popup. A Day with no Night and no
+Resting HR shows no tile. Serenix never shows another Day's Night in its place.
 
 **Sync pill.** History Sync (spec 001) shows as a pill that slides down over the top of the
 screen only when there's something to say:
@@ -279,6 +282,11 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       strip titled "November 2026".
 - [x] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
       Day's values.
+- [ ] Today view tests: on a Day with no Night whose Day Load has a Resting HR of 58, the view
+      gives a Resting HR tile showing "58 bpm" (with "So far today" on today, nothing on an
+      earlier Day) and a Resting HR popup; with no Resting HR for that Day, it gives neither.
+- [ ] On the phone: on a Day with no Night but a Resting HR, the Rings layout shows the Resting HR
+      tile under "No Night yet" / "No Night recorded", and tapping it opens the Resting HR popup.
 - [x] Readiness 67 is Ready, 66 and 34 are Steady, 33 is Take it easy.
 - [x] Baseline, Spread, Zones, status words, gauge positions and the popup's In range band: see
       spec 004's success criteria (spec 011 replaces the band with the popup's Your Zones rows).
