@@ -45,7 +45,7 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
    - Done when: the criteria for "−17% against your usual 60 ms.", the clamped gauge at 0, Sleeping
      HR's gauge at 0.1667, dropped Sleeping HR, Typical Load calibrating, "Enough for your Sleep
      Need.", and "No more than your typical 45." pass.
-4. [ ] **Slice:** Calibrating and Missing popups: no band and no Why rows; spec 002's Calibrating
+4. [x] **Slice:** Calibrating and Missing popups: no band and no Why rows; spec 002's Calibrating
    explanation, or "No HRV for this Night, so there's no Readiness." Sleep Score shows in both.
    - Seam: Today view · Files: same as 2
    - Done when: the Calibrating and No HRV criteria pass.
@@ -56,7 +56,8 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
    - Done when: the week criterion passes.
 6. [ ] **Shell + contract:** redraw `ReadinessPopupView` in variant E's layout (ring card with pill
    and verdict, Why rows with gauges, week bars, Sleep Score) using the existing popup cards,
-   `ScoreRing` and `ReadinessBand.colour`. Remove `rows`, `baselineNote` and `ReadinessPopupRow`
+   `ScoreRing` and `ReadinessBand.colour`. Remove `rows`, `baselineNote`, `calibratingText` (now the
+   same as `verdictText` while Calibrating) and `ReadinessPopupRow`
    if nothing else uses them, and rewrite or remove the tests that pinned spec 008's popup rows,
    which spec 012 supersedes.
    - Files: `src/SerenixApp/TodayPopups.swift`, `src/SerenixCore/Popups.swift`,

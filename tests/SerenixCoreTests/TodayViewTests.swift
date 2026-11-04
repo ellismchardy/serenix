@@ -1512,8 +1512,8 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 }
 
 @Test func readinessPopupExplainsCalibratingWithTheNightsSoFar() {
-    // Time Asleep 6 h 43 m against Sleep Need 8 h gives a Sleep Score, 84 (spec 010), that the
-    // popup mustn't show while Calibrating.
+    // Time Asleep 6 h 43 m against Sleep Need 8 h gives a Sleep Score, 84 (spec 010), which the
+    // popup shows as usual while Calibrating (spec 012 supersedes spec 002 here).
     let night = Night(day: nov1, sleepingHR: 50, hrv: 60, timeAsleep: 24_180)
     let popup = todayView(
         nights: nightsBeforeNov1(hrv: [60, 60], sleepingHR: [50, 50]) + [night],
@@ -1526,10 +1526,11 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
         popup?.calibratingText
             == "Readiness needs 4 Nights to form your Baseline. You have 3 so far."
     )
-    // Spec 002, Popups: while Calibrating it explains "instead", so no rows or Sleep Score.
+    // Spec 002, Popups: while Calibrating it explains "instead", so no rows.
     #expect(popup?.baselineNote == nil)
     #expect(popup?.rows == [])
-    #expect(popup != nil && popup?.sleepScoreText == nil)
+    // Spec 012: the Sleep Score shows as usual while Calibrating.
+    #expect(popup?.sleepScoreText == "84")
 }
 
 // MARK: Sleep popup

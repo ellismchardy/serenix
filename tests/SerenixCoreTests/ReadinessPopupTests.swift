@@ -251,3 +251,29 @@ private func expectGauge(_ position: Double?, isAbout expected: Double) {
 
     #expect(row("Yesterday's Load", in: view)?.reasonText == "No more than your typical 45.")
 }
+
+// MARK: Calibrating and missing
+
+@Test func whileCalibratingTheVerdictExplainsHowManyNightsSoFarAndSleepScoreStillShows() {
+    // One earlier Night plus the Night shown: 2 Nights so far.
+    let popup = readinessView(for: nightOn15Nov(), earlierNights: 1).readinessPopup
+
+    #expect(popup?.readinessText == "2/4")
+    #expect(popup?.band == nil)
+    #expect(popup?.whyRows == [])
+    #expect(
+        popup?.verdictText
+            == "Readiness needs 4 Nights to form your Baseline. You have 2 so far."
+    )
+    #expect(popup != nil && popup?.sleepScoreText != nil)
+}
+
+@Test func aNightWithNoHRVSaysThereIsNoReadinessAndSleepScoreStillShows() {
+    let popup = readinessView(for: nightOn15Nov(hrv: nil)).readinessPopup
+
+    #expect(popup?.readinessText == "\u{2014}")
+    #expect(popup?.band == nil)
+    #expect(popup?.whyRows == [])
+    #expect(popup?.verdictText == "No HRV for this Night, so there's no Readiness.")
+    #expect(popup != nil && popup?.sleepScoreText != nil)
+}

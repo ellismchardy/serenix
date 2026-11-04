@@ -236,6 +236,14 @@ public struct TodayView: Equatable, Sendable {
                 typicalLoad: previousDayTypicalLoad
             )
         }
+        // Spec 002's Calibrating explanation: the popup's verdict while Calibrating (spec 012).
+        let calibratingExplanation = calibratingNightsSoFar.map {
+            "Readiness needs \(nightsForBaseline) Nights to form your Baseline. "
+                + "You have \($0) so far."
+        }
+        // Readiness is missing when the Night has no HRV, an HRV of 0 counting as none (spec 008).
+        let hasHRV = (night?.value(of: .hrv)).map { $0 > 0 } ?? false
+        let missingHRVVerdict = hasHRV ? nil : "No HRV for this Night, so there's no Readiness."
         readinessPopup =
             if let readinessBaselines {
                 if let calibratingNightsSoFar {
@@ -243,12 +251,11 @@ public struct TodayView: Equatable, Sendable {
                         readinessText: readinessText,
                         band: nil,
                         rows: [],
-                        sleepScoreText: nil,
+                        // Spec 012: Sleep Score shows while Calibrating too.
+                        sleepScoreText: sleepScoreText,
                         baselineNote: nil,
-                        calibratingText:
-                            "Readiness needs \(nightsForBaseline) Nights to form your Baseline. "
-                            + "You have \(calibratingNightsSoFar) so far.",
-                        verdictText: nil,
+                        calibratingText: calibratingExplanation,
+                        verdictText: calibratingExplanation,
                         whyRows: []
                     )
                 } else {
@@ -260,7 +267,7 @@ public struct TodayView: Equatable, Sendable {
                         baselineNote:
                             "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",
                         calibratingText: nil,
-                        verdictText: why?.verdict,
+                        verdictText: why?.verdict ?? missingHRVVerdict,
                         whyRows: why?.rows ?? []
                     )
                 }
