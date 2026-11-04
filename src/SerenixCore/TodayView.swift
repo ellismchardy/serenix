@@ -185,7 +185,6 @@ public struct TodayView: Equatable, Sendable {
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }
             } ?? []
         self.tiles = tiles
-        story = TodayStory(night: night, tiles: tiles, timeZone: timeZone)
         let restingHRTile = night.map { _ in
             RestingHRTile(restingHR: dayLoad?.restingHR, isToday: isToday)
         }
@@ -211,6 +210,17 @@ public struct TodayView: Equatable, Sendable {
                 sleepingHR: tiles.first { $0.metric == .sleepingHR }
             )
         }
+        story = TodayStory(
+            night: night,
+            tiles: tiles,
+            readiness: StoryReadiness(
+                text: readinessText,
+                band: readinessBand,
+                isCalibrating: calibratingNightsSoFar != nil,
+                advice: readinessAdvice
+            ),
+            timeZone: timeZone
+        )
 
         vsBaseline =
             if night == nil {

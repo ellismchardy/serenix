@@ -5,7 +5,7 @@ import Foundation
 public struct TodayStory: Equatable, Sendable {
     public let steps: [StoryStep]
 
-    init(night: Night?, tiles: [MetricTile], timeZone: TimeZone) {
+    init(night: Night?, tiles: [MetricTile], readiness: StoryReadiness, timeZone: TimeZone) {
         guard let night else {
             steps = []
             return
@@ -23,7 +23,13 @@ public struct TodayStory: Equatable, Sendable {
                 // Only the Nightly Metrics the Night has get a row (spec 012, Story body).
                 metrics: tiles.filter { night.value(of: $0.metric) != nil }
             ),
-            StoryStep(kind: .thisMorning, timeLabel: "", title: ""),
+            StoryStep(
+                kind: .thisMorning,
+                timeLabel: "This morning",
+                title: readiness.title,
+                // The Today view gives no advice while Calibrating (no band).
+                advice: readiness.advice
+            ),
             StoryStep(kind: .todaySoFar, timeLabel: "", title: ""),
         ]
     }
@@ -38,12 +44,38 @@ public struct StoryStep: Equatable, Sendable {
     public let title: String
     /// The Overnight step's rows, in tile order; empty for every other step.
     public let metrics: [MetricTile]
+    /// The This morning step's advice, as in the Readiness message; nil for every other step and
+    /// while Readiness is Calibrating.
+    public let advice: String?
 
-    init(kind: Kind, timeLabel: String, title: String, metrics: [MetricTile] = []) {
+    init(
+        kind: Kind,
+        timeLabel: String,
+        title: String,
+        metrics: [MetricTile] = [],
+        advice: String? = nil
+    ) {
         self.kind = kind
         self.timeLabel = timeLabel
         self.title = title
         self.metrics = metrics
+        self.advice = advice
+    }
+}
+
+/// The Readiness values the This morning step is drawn from, as the Today view worked them out.
+struct StoryReadiness {
+    /// The ring's text: the score, "—", or "n/4" while Calibrating.
+    let text: String
+    let band: ReadinessBand?
+    let isCalibrating: Bool
+    let advice: String?
+
+    /// "Readiness 72 — Ready", "Readiness calibrating — 2/4", or "Readiness —" without a score.
+    var title: String {
+        if isCalibrating { return "Readiness calibrating \u{2014} \(text)" }
+        guard let band else { return "Readiness \(text)" }
+        return "Readiness \(text) \u{2014} \(band.word)"
     }
 }
 

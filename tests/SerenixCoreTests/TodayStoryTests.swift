@@ -90,3 +90,54 @@ private func overnightStep(_ night: Night, earlier: [Night] = []) -> StoryStep? 
     let lowSpO2 = overnightStep(Night(day: nov1, spo2: 91))
     #expect(lowSpO2?.metrics.map(\.zone) == [.outOfRange])
 }
+
+// MARK: This morning step
+
+/// The This morning step for 1 Nov's Night, after `earlier` Nights.
+private func thisMorningStep(_ night: Night, earlier: [Night] = []) -> StoryStep? {
+    TodayView(
+        nights: earlier + [night],
+        dayLoads: [],
+        showing: nov1,
+        now: now,
+        timeZone: london,
+        sync: .idle,
+        profileName: nil
+    ).story.steps.first { $0.kind == .thisMorning }
+}
+
+/// Three earlier Nights at HRV 60 ms and Sleeping HR 50 bpm: Baselines of 60 ms and 50 bpm.
+private let threeCalibratedNightsBeforeNov1 = [oct29, oct30, oct31].map {
+    Night(day: $0, sleepingHR: 50, hrv: 60)
+}
+
+@Test func theThisMorningStepIsLabelledThisMorning() {
+    let step = thisMorningStep(Night(day: nov1, sleepingHR: 50, hrv: 60))
+    #expect(step?.timeLabel == "This morning")
+}
+
+@Test func theThisMorningStepShowsReadinessWithItsBandAndAdvice() {
+    // HRV 59 against 60 ms, Sleeping HR 50 against 50 bpm, Time Asleep 8 h against Sleep Need 8 h:
+    // Readiness 67, Ready (pinned in TodayViewTests' readinessShowsItsNumberAndBand).
+    let shown = Night(day: nov1, sleepingHR: 50, hrv: 59, timeAsleep: 28_800)
+    let step = thisMorningStep(shown, earlier: threeCalibratedNightsBeforeNov1)
+    #expect(step?.title == "Readiness 67 \u{2014} Ready")
+    #expect(
+        step?.advice
+            == "You've recovered well. A good day to push: go for a harder session if you feel like it."
+    )
+}
+
+@Test func whileCalibratingTheThisMorningStepCountsNightsAndGivesNoAdvice() {
+    let step = thisMorningStep(
+        Night(day: nov1, sleepingHR: 50, hrv: 60),
+        earlier: [Night(day: oct31, sleepingHR: 50, hrv: 60)]
+    )
+    #expect(step?.title == "Readiness calibrating \u{2014} 2/4")
+    #expect(step?.advice == nil)
+}
+
+@Test func otherStepsGiveNoAdvice() {
+    let steps = storyForNov1().steps.filter { $0.kind != .thisMorning }
+    #expect(steps.allSatisfy { $0.advice == nil })
+}
