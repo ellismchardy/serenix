@@ -1,9 +1,9 @@
 # 012 — Sleep tab
 
-**Status:** built
+**Status:** draft
 **Last updated:** 2026-11-04 (lanes and chart restyled from the graphs prototype's variant E:
 gradient block with Wake Bout notches, one-picture chart in the accent colour, smoothed curve;
-built)
+the missing-trace queue runs on every launch)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -141,10 +141,13 @@ Time in Bed covers Sleep Onset to Final Wake instead.
 between Sleep Onset and Final Wake, from the same sleep/wake labelling that finds the Sleep
 Period (spec 003), as its start and its length in whole minutes.
 
-**Nights built before this ships.** After the update, Serenix queues one rebuild (spec 003,
+**Nights missing a Heart Rate Trace.** Every time Serenix opens, it queues one rebuild (spec 003,
 Night rebuilds) for each stored Night that has no Heart Rate Trace and is still due by spec 003's
-30-day rule, once. Rebuilt Nights gain a Heart Rate Trace and Wake Bouts. Older Nights keep none
-and show the "not kept" note.
+30-day rule, unless that Night's rebuild is already queued. Rebuilt Nights gain a Heart Rate
+Trace and Wake Bouts, so they aren't queued again. Older Nights keep none and show the "not
+kept" note. This covers Nights stored before the Heart Rate Trace existed, and Nights whose
+Heart Rate Trace and Wake Bouts were lost, as when another build of Serenix that doesn't store
+them opens the same data.
 
 ## Design decisions
 - **`SerenixCore`: Night** gains an optional Heart Rate Trace (the steps' start times and
@@ -166,12 +169,14 @@ and show the "not kept" note.
   smoothing's reach (3 steps) and width (1.6 steps) are named constants (unit and source: this
   spec). Smoothing is for drawing only: the stored Heart Rate Trace, Sleeping HR and the y-axis
   use the steps as kept.
-- **`SerenixCore`: Night rebuilds** gains the one-off queue: given the stored Nights, now and the
-  time zone, the Nights to rebuild because they have no Heart Rate Trace and are still due.
+- **`SerenixCore`: Night rebuilds** gains the missing-trace queue: given the stored Nights, the
+  rebuilds already queued, now and the time zone, the rebuilds to add because their Night has no
+  Heart Rate Trace, is still due, and isn't queued yet.
 - **Shell.** A tab container holds the Day shown (moved out of the Today screen) and the
   back-from-background reset, and shows the Today screen and a new Sleep screen. The stored
-  Night gains the two optional fields (a lightweight SwiftData migration). The one-off queue runs
-  once after the update. The Sleep screen draws the Sleep view, holds which lane is open (reset to
+  Night gains the two optional fields (a lightweight SwiftData migration). The missing-trace queue runs
+  on every launch; there's no "already done" flag, since a flag can't see a Heart Rate Trace lost
+  after it was set. The Sleep screen draws the Sleep view, holds which lane is open (reset to
   the Sleep view's first open lane when the Day shown changes), draws the smoothed values as a
   monotone curve (it never overshoots between two values), and opens the existing Sleep popup
   from the Sleep Score buttons.
@@ -190,7 +195,7 @@ and show the "not kept" note.
   Records and the fixture night. Catches the Heart Rate Trace (steps, the non-zero mean, the
   150-record rule, its span) and the Wake Bouts. Misses storing them.
 - **Night rebuilds (`SerenixCore`)**, spec 003's seam, fed stored Nights, now and a time zone.
-  Catches which Nights the one-off queue picks. Misses running it once.
+  Catches which Nights the missing-trace queue picks. Misses running it on every launch.
 - **Sleep view (`SerenixCore`)**, fed hand-built Nights with Heart Rate Traces and Wake Bouts,
   the Day shown, now, the time zone and a birth year. Catches the Summary, Your week, Tonight and
   What stood out as above. Misses drawing (the monotone curve, colours), opening and closing lanes, the
@@ -212,10 +217,12 @@ Heart Rate Trace and Wake Bouts (Nights from History Records):
       minutes, and its Sleep Onset, Final Wake, Time in Bed and Time Asleep are unchanged
       (spec 003).
 
-Night rebuilds (one-off queue):
+Night rebuilds (missing-trace queue):
 - [x] With now 30 Nov 2026 12:00, stored Nights dated 31 Oct and 1 Nov with no Heart Rate Trace and
       29 Nov with one queue only 1 Nov (its History Records start exactly 30 days earlier, as in
       spec 003's example; 31 Oct's start before that).
+- [ ] With 1 Nov's rebuild already queued, nothing more is queued; once 1 Nov's Night has a Heart
+      Rate Trace, nothing is queued for it.
 
 Summary (Sleep view; a Night dated 3 Nov with Sleep Onset 23:00, Final Wake 07:00, and Nights
 dated 27 Oct to 2 Nov each with Time Asleep 8 h, so its Sleep Need is 8h 0m):
@@ -304,8 +311,10 @@ Build and phone:
 - [ ] On the phone (by hand): the Sleep tab reads Summary, Your week (Last night's lane open, its
       trace smooth), Tonight, What stood out; tapping another lane opens its chart and closes the
       first; tapping it again closes it.
-- [ ] On the phone (by hand): recent Nights show a Heart Rate Trace and Wake Bouts after the
-      one-off rebuild; a Night older than 30 days shows the "not kept" note.
+- [ ] On the phone (by hand): recent Nights show a Heart Rate Trace and Wake Bouts after a
+      launch; a Night older than 30 days shows the "not kept" note.
+- [ ] On the phone (by hand): after opening a build of Serenix without the Heart Rate Trace on the
+      same data and then this build again, recent Nights show their charts again after a launch.
 - [ ] On the phone (by hand): the Summary's and a lane's Sleep Score buttons open the Sleep popup.
 
 ## Non-goals (explicitly out of scope)
@@ -345,6 +354,10 @@ Build and phone:
   picking the Night shown below) were the alternatives. The first build's stacked layout
   (branch `prototype/sleep-screen`, variant A) was rejected after it was built: its charts read
   poorly and the three sections didn't connect.
+- The missing-trace queue first ran once only, behind a flag kept on the phone. On 2026-11-04
+  opening another branch's build (which doesn't store the two new fields) made SwiftData drop
+  them from every stored Night; the flag survived, so the Nights a sync didn't rebuild never got
+  their Heart Rate Trace back. Diagnosed with a temporary on-screen readout on PR #43.
 - Graphs prototype: branch `prototype/sleep-graphs`, file
   `src/SerenixApp/Prototype/sleep-graphs-prototype.html`, variant E ("B, smoother"): B's lane
   block with Wake Bout notches and its accent-coloured chart, with the smoothed monotone curve.
@@ -353,7 +366,7 @@ Build and phone:
 - Spec 002 deferred the tab bar and the Sleep screen to this spec. The earlier home-screen
   prototype's Sleep tab (variant C) put score chips and metric tiles there; this spec doesn't.
 - Extends spec 003: Nights from History Records also produce the Heart Rate Trace and Wake
-  Bouts, and Night rebuilds gain the one-off queue. Reuses spec 009 (Sleep Need and Sleep Debt)
+  Bouts, and Night rebuilds gain the missing-trace queue. Reuses spec 009 (Sleep Need and Sleep Debt)
   and spec 010 (Sleep Consistency's median). Terms: Heart Rate Trace, Wake Bout (GLOSSARY.md).
 - `docs/architecture.md` says History Records are kept 30 days, but nothing deletes them yet.
   This spec still treats Nights older than 30 days as having no Heart Rate Trace, as spec 003's
