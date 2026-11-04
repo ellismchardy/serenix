@@ -216,8 +216,9 @@ Weigh-ins.
 _Avoid_: moving average, smoothed weight, true weight
 
 **Weight Goal**:
-The weight change the user is working toward: a Start Weight on a start date, a Goal Weight, and
-a Pace.
+The weight the user is working toward: a Start Weight on a start date and a Goal Weight. A
+Weight Goal loses, gains or holds weight; one that loses or gains has a Pace, and one that holds
+has a band around its Goal Weight instead.
 _Avoid_: target, plan
 
 **Start Weight**:
