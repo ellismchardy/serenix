@@ -135,17 +135,6 @@ enum NightStore {
             try context.delete(model: StoredNight.self, where: #Predicate { $0.dateKey == key })
         }
         try context.save()
-        // [DEBUG-hrt] What this rebuild built, and what a fresh read finds after saving.
-        let debugKey = StoredNight.dateKey(rebuild.day)
-        let reread = try? ModelContext(container).fetch(
-            FetchDescriptor<StoredNight>(predicate: #Predicate { $0.dateKey == debugKey })
-        ).first
-        UserDefaults.standard.set(
-            "[DEBUG-hrt] last apply \(debugKey): records \(records.count), built "
-                + "\(night == nil ? "no Night" : "trace \(night?.heartRateTrace?.steps.count ?? -1) steps"), "
-                + "reread trace \(reread?.heartRateTraceJSON?.count ?? -1) B",
-            forKey: "debugHRTLastApply"
-        )
     }
 
     /// Whether the Nights built before spec 012 have been queued to gain a Heart Rate Trace, which
