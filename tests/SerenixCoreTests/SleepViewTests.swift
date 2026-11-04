@@ -2,8 +2,9 @@ import Foundation
 import SerenixCore
 import Testing
 
-// The Sleep tab's view (spec 012, Behavior: Sleep tab, Last night). Expected values are spec
-// 011's success criteria under "Last night", worked by hand from its rules.
+// The Sleep tab's view (spec 012). Expected values are spec 012's success criteria under
+// "Summary", "Your week", "A Night's lane and chart", "Tonight" and "What stood out", worked by
+// hand from its rules.
 
 /// 1–3 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
 private let london = TimeZone(identifier: "Europe/London")!

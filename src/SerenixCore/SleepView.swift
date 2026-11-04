@@ -275,9 +275,6 @@ public struct SleepWeek: Equatable, Sendable {
     static let usualEndHour = 10
     /// Hours between the axis' labels (spec 012: every 2 hours).
     static let labelEveryHours = 2
-    /// A Night's Sleep Onset is after noon or before its Final Wake, and its Final Wake before
-    /// noon, so `ClockTime.noonMinutes` splits evening times from morning ones.
-    private static let noonMinutes = ClockTime.noonMinutes
 
     init(to shown: Day, isToday: Bool, nights: [Night], timeZone: TimeZone, birthYear: Int?) {
         let days = (0..<Self.length).map { shown.adding(days: -$0) }
@@ -312,11 +309,11 @@ public struct SleepWeek: Equatable, Sendable {
         for night in weekNights {
             if let onset = night.sleepOnset {
                 let minutes = ClockTime.minutes(of: onset, in: timeZone)
-                if minutes >= Self.noonMinutes { start = min(start, minutes) }
+                if minutes >= ClockTime.noonMinutes { start = min(start, minutes) }
             }
             if let wake = night.finalWake {
                 let minutes = ClockTime.minutes(of: wake, in: timeZone)
-                if minutes < Self.noonMinutes { end = max(end, minutes) }
+                if minutes < ClockTime.noonMinutes { end = max(end, minutes) }
             }
         }
         let startHour = Int((start / 60).rounded(.down))
@@ -349,7 +346,7 @@ public struct SleepWeek: Equatable, Sendable {
     /// morning times sit on the axis' second day.
     public func axisFraction(of time: Date) -> Double {
         var minutes = ClockTime.minutes(of: time, in: timeZone)
-        if minutes < Self.noonMinutes { minutes += ClockTime.minutesPerDay }
+        if minutes < ClockTime.noonMinutes { minutes += ClockTime.minutesPerDay }
         let start = Double(axisStartHour * 60)
         let end = Double(axisEndHour * 60) + ClockTime.minutesPerDay
         return min(max((minutes - start) / (end - start), 0), 1)

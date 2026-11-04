@@ -35,12 +35,7 @@ struct SleepScreen: View {
             timeZone: .current,
             birthYear: profile.birthYear
         )
-        let openLane: Day? =
-            if let chosen = chosenLane {
-                chosen
-            } else {
-                sleep.week.firstOpenLane
-            }
+        let openLane = chosenLane ?? sleep.week.firstOpenLane
         ScreenChrome(
             connection: connection,
             profile: profile,
@@ -250,12 +245,7 @@ private struct SleepWeekView: View {
                 let width = geometry.size.width
                 let x = { (time: Date) -> CGFloat in week.axisFraction(of: time) * width }
                 ZStack(alignment: .leading) {
-                    ForEach(week.axisLabels, id: \.text) { label in
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.15))
-                            .frame(width: 1)
-                            .offset(x: label.fraction * width)
-                    }
+                    axisGridlines(width: width)
                     if let noNight = lane.noNightText {
                         Text(noNight).font(.caption2).foregroundStyle(.secondary)
                     }
@@ -302,6 +292,16 @@ private struct SleepWeekView: View {
         .accessibilityAction { if lane.noNightText == nil { toggle(lane.day) } }
     }
 
+    /// Faint lines down a lane at each axis label, across `width`.
+    private func axisGridlines(width: CGFloat) -> some View {
+        ForEach(week.axisLabels, id: \.text) { label in
+            Rectangle()
+                .fill(Color.secondary.opacity(0.15))
+                .frame(width: 1)
+                .offset(x: label.fraction * width)
+        }
+    }
+
     /// Tonight's lane: a dashed bar from Be asleep by to the usual wake, the time at its right.
     private func tonightRow(_ lane: SleepTonightLane) -> some View {
         HStack(spacing: laneSpacing) {
@@ -316,12 +316,7 @@ private struct SleepWeekView: View {
                 let start = week.axisFraction(of: lane.start) * width
                 let end = week.axisFraction(of: lane.end) * width
                 ZStack(alignment: .leading) {
-                    ForEach(week.axisLabels, id: \.text) { label in
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.15))
-                            .frame(width: 1)
-                            .offset(x: label.fraction * width)
-                    }
+                    axisGridlines(width: width)
                     Capsule()
                         .fill(Theme.accentSoft)
                         .overlay(
