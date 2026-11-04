@@ -23,7 +23,7 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Prefactor:** `Readiness` gains a breakdown (inputs: HRV, Sleeping HR, Time Asleep, Load,
+1. [x] **Prefactor:** `Readiness` gains a breakdown (inputs: HRV, Sleeping HR, Time Asleep, Load,
    each with a clamped score and re-weighted weight, or dropped; Z), and `score` is built from it.
    Extract the Today view's per-Night Readiness (Calibrating, Baselines, Sleep Need, previous Day's
    Load and typical Load) into one internal function that takes a Night date.

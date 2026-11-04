@@ -103,46 +103,25 @@ public struct TodayView: Equatable, Sendable {
         let night = nights.first { $0.day == day }
         noNightMessage = night != nil ? nil : isToday ? "No Night yet" : "No Night recorded"
 
-        // Readiness is Calibrating while either Baseline it's drawn from is (spec 002, Rings).
-        // "n/4" counts the Nights so far, by the metric with the fewest.
-        let readinessBaselines = night.map { night in
-            (
-                hrv: Baseline(.hrv, for: night, among: nights),
-                sleepingHR: Baseline(.sleepingHR, for: night, among: nights)
-            )
-        }
-        let calibratingNightsSoFar = readinessBaselines.flatMap { baselines in
-            baselines.hrv.isCalibrating || baselines.sleepingHR.isCalibrating
-                ? 1 + min(baselines.hrv.earlierNights, baselines.sleepingHR.earlierNights) : nil
-        }
+        // Worked out each time, never stored, so it follows the Nights and Days (spec 008).
+        let nightReadiness = NightReadiness(
+            for: day,
+            among: nights,
+            dayLoads: dayLoads,
+            birthYear: birthYear
+        )
+        let readinessBaselines = nightReadiness.baselines
+        let calibratingNightsSoFar = nightReadiness.calibratingNightsSoFar
         let nightsForBaseline = Baseline.minEarlierNights + 1
-        // The Day before the Day shown: "yesterday" in Readiness, its advice and its popup (spec
-        // 008, Inputs), worked out once so they can't disagree.
-        let previousDay = day.adding(days: -1)
-        let previousDayLoad = dayLoads.first { $0.day == previousDay }?.load
-        let previousDayTypicalLoad = typicalLoad(for: previousDay, among: dayLoads)
-        // The Night shown's Sleep Need, for Readiness, its popup and the Sleep popup (spec 009).
-        // Worked out each time, never stored, so it follows the Nights and the birth year.
-        let sleepNeed = SleepNeed(for: day, among: nights, birthYear: birthYear)
+        let previousDayLoad = nightReadiness.previousDayLoad
+        let previousDayTypicalLoad = nightReadiness.previousDayTypicalLoad
+        let sleepNeed = nightReadiness.sleepNeed
         if let calibratingNightsSoFar {
             readinessText = "\(calibratingNightsSoFar)/\(nightsForBaseline)"
             readinessBand = nil
             readinessFill = 0
         } else {
-            // Worked out each time, never stored, so it follows the Nights (spec 008).
-            let readiness: Int? =
-                if let night, let readinessBaselines {
-                    Readiness.score(
-                        of: night,
-                        hrv: readinessBaselines.hrv,
-                        sleepingHR: readinessBaselines.sleepingHR,
-                        sleepNeed: sleepNeed.sleepNeed,
-                        previousDayLoad: previousDayLoad,
-                        typicalLoad: previousDayTypicalLoad
-                    )
-                } else {
-                    nil
-                }
+            let readiness = nightReadiness.score
             readinessText = scoreText(readiness)
             readinessBand = readiness.map(ReadinessBand.init)
             readinessFill = ringFill(readiness)
