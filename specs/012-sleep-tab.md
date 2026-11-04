@@ -1,9 +1,9 @@
 # 012 — Sleep tab
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-04 (Sleep tab redesigned from prototype variant E: summary sentence,
 week lanes, Tonight card, What stood out; iOS 26 floating tab bar; the Summary's gap in minutes
-under an hour)
+under an hour; built)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -209,70 +209,70 @@ Night rebuilds (one-off queue):
 
 Summary (Sleep view; a Night dated 3 Nov with Sleep Onset 23:00, Final Wake 07:00, and Nights
 dated 27 Oct to 2 Nov each with Time Asleep 8 h, so its Sleep Need is 8h 0m):
-- [ ] With Time Asleep 7 h 45 m, its label is "Last night" and it reads "You slept 7h 45m, 15
+- [x] With Time Asleep 7 h 45 m, its label is "Last night" and it reads "You slept 7h 45m, 15
       minutes short of what you needed." and "23:00 – 07:00".
-- [ ] With Time Asleep 7 h 50 m it reads "You slept 7h 50m, about what you needed."; with
+- [x] With Time Asleep 7 h 50 m it reads "You slept 7h 50m, about what you needed."; with
       8 h 30 m, "You slept 8h 30m, 30 minutes more than you needed."
-- [ ] With Time Asleep 6 h 9 m it reads "You slept 6h 9m, 1h 51m short of what you needed."; with
+- [x] With Time Asleep 6 h 9 m it reads "You slept 6h 9m, 1h 51m short of what you needed."; with
       7 h 0 m, "You slept 7h 0m, 1h 0m short of what you needed."
-- [ ] With no Time Asleep it reads "Time Asleep wasn't worked out for this Night."
-- [ ] With 1 Nov shown, its label is that Day's name as the week strip writes it; with no Night on
+- [x] With no Time Asleep it reads "Time Asleep wasn't worked out for this Night."
+- [x] With 1 Nov shown, its label is that Day's name as the week strip writes it; with no Night on
       3 Nov, the Summary reads "No Night yet" and there is no What stood out, and with none on
       1 Nov, "No Night recorded".
 
 Your week (Sleep view; Nights dated 1 Nov with Time Asleep 6 h, 2 and 3 Nov with 8 h, each Sleep
 Onset 23:00, Final Wake 07:00, Time in Bed 22:50–07:10):
-- [ ] It has 7 lanes, 3 Nov first, then 2 Nov back to 28 Oct, named "Last", "Mon", "Sun", "Sat",
+- [x] It has 7 lanes, 3 Nov first, then 2 Nov back to 28 Oct, named "Last", "Mon", "Sun", "Sat",
       "Fri", "Thu", "Wed"; 28 to 31 Oct read "no Night".
-- [ ] Its title reads "avg 7h 20m · Sleep Debt 2h 0m".
-- [ ] Each Night's bar runs 23:00 to 07:00 on a 20:00 to 10:00 axis labelled "22", "00", "02",
+- [x] Its title reads "avg 7h 20m · Sleep Debt 2h 0m".
+- [x] Each Night's bar runs 23:00 to 07:00 on a 20:00 to 10:00 axis labelled "22", "00", "02",
       "04", "06", "08"; a Night from 19:30 widens it to 19:00.
-- [ ] 1 Nov's Time Asleep reads "6h 0m" and is marked short (Sleep Need 8h 0m); 2 Nov's "8h 0m"
+- [x] 1 Nov's Time Asleep reads "6h 0m" and is marked short (Sleep Need 8h 0m); 2 Nov's "8h 0m"
       (Sleep Need 8h 30m) is marked short; 3 Nov's (Sleep Need 8h 30m) is marked short.
-- [ ] 3 Nov's lane opens first; with no Night on 3 Nov, no lane opens first.
-- [ ] With 2 Nov shown, the lanes are 2 Nov back to 27 Oct and 2 Nov's is named "Mon".
-- [ ] With no Night in the week, the title reads only "Your week".
+- [x] 3 Nov's lane opens first; with no Night on 3 Nov, no lane opens first.
+- [x] With 2 Nov shown, the lanes are 2 Nov back to 27 Oct and 2 Nov's is named "Mon".
+- [x] With no Night in the week, the title reads only "Your week".
 
 A Night's lane and chart (Sleep view; the Night dated 3 Nov has Time in Bed 22:50–07:10, Sleep
 Onset 23:00, Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, and Wake Bouts at 02:10 for
 8 min and 04:30 for 7 min):
-- [ ] Its bar runs 23:00–02:10, 02:18–04:30 and 04:37–07:00, on a track 22:50–07:10.
-- [ ] Its chart runs 22:50 to 07:10, with hour ticks at 00:00, 02:00, 04:00 and 06:00.
+- [x] Its bar runs 23:00–02:10, 02:18–04:30 and 04:37–07:00, on a track 22:50–07:10.
+- [x] Its chart runs 22:50 to 07:10, with hour ticks at 00:00, 02:00, 04:00 and 06:00.
 - [x] The Sleeping HR line is at 52 and labelled "Sleeping HR 52"; with no Sleeping HR there is
       no line or label.
 - [x] The y-axis runs from the lowest step − 3 to the highest + 3 (steps 50 to 70: 47 to 73); a
       missing step breaks the line.
 - [x] A Sleeping HR outside the steps widens the y-axis to take it in: steps 50 to 70 with
       Sleeping HR 44 run 41 to 73.
-- [ ] The 47 to 73 axis has gridlines at 50, 55, 60, 65 and 70; a 41 to 83 axis has them at 50,
+- [x] The 47 to 73 axis has gridlines at 50, 55, 60, 65 and 70; a 41 to 83 axis has them at 50,
       60, 70 and 80.
-- [ ] The sleep/wake band runs 23:00 to 07:00 with Wake Bouts 02:10–02:18 and 04:30–04:37, and
+- [x] The sleep/wake band runs 23:00 to 07:00 with Wake Bouts 02:10–02:18 and 04:30–04:37, and
       under the chart reads "Woke 2 times · 15 min awake".
 - [x] One Wake Bout reads "Woke 1 time"; none reads "Didn't wake".
-- [ ] With no Time in Bed, the chart runs 23:00 to 07:00 and the bar has no track.
-- [ ] With no Heart Rate Trace, its chart is "Heart rate isn't kept for Nights older than 30
+- [x] With no Time in Bed, the chart runs 23:00 to 07:00 and the bar has no track.
+- [x] With no Heart Rate Trace, its chart is "Heart rate isn't kept for Nights older than 30
       days.", its bar has no gaps, and its Time Asleep still reads "7h 45m".
 
 Tonight (Sleep view; Nights dated 28 Oct to 3 Nov, each Sleep Onset 23:00, Final Wake 07:00):
-- [ ] With Time Asleep 8 h each, it reads "To get 8h 0m before your usual 07:00 wake, be asleep
+- [x] With Time Asleep 8 h each, it reads "To get 8h 0m before your usual 07:00 wake, be asleep
       by 23:00." and the Tonight lane runs 23:00 to 07:00.
-- [ ] With Time Asleep 7 h each (Sleep Debt 7 h, Sleep Need capped at 9 h), it reads "To get
+- [x] With Time Asleep 7 h each (Sleep Debt 7 h, Sleep Need capped at 9 h), it reads "To get
       9h 0m before your usual 07:00 wake, be asleep by 22:00."
-- [ ] With only Nights dated 1, 2 and 3 Nov, Final Wakes 06:50, 07:10 and 07:00 and Time Asleep
+- [x] With only Nights dated 1, 2 and 3 Nov, Final Wakes 06:50, 07:10 and 07:00 and Time Asleep
       8 h, it reads "… your usual 07:00 wake, be asleep by 23:00."
-- [ ] With only Nights dated 2 and 3 Nov, it reads only "A bedtime to aim for appears after 3
+- [x] With only Nights dated 2 and 3 Nov, it reads only "A bedtime to aim for appears after 3
       Nights", and there is no Tonight lane.
 - [x] With 2 Nov shown, there is no Tonight.
 
 What stood out (Sleep view; the 3 Nov Night above, and Nights dated 28 Oct to 2 Nov each with
 Sleep Onset 23:00):
-- [ ] Its rows read "Woke 2 times · 15 min awake" / "02:10 · 8 min · 04:30 · 7 min", "Fell asleep
+- [x] Its rows read "Woke 2 times · 15 min awake" / "02:10 · 8 min · 04:30 · 7 min", "Fell asleep
       around your usual time" / "Usual 23:00, last night 23:00", and "Heart rate settled to 52
       bpm".
-- [ ] With 3 Nov's Sleep Onset at 23:40, the bedtime row reads "Fell asleep 40 min later than
+- [x] With 3 Nov's Sleep Onset at 23:40, the bedtime row reads "Fell asleep 40 min later than
       usual"; at 22:20, "Fell asleep 40 min earlier than usual"; at 23:30, "around your usual
       time".
-- [ ] With only 2 earlier Nights, there is no bedtime row; with no Wake Bouts kept, no Wake Bouts
+- [x] With only 2 earlier Nights, there is no bedtime row; with no Wake Bouts kept, no Wake Bouts
       row; with no Sleeping HR, no heart rate row.
 
 Build and phone:
