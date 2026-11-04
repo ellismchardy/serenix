@@ -1,6 +1,6 @@
 # 006 — Load popup
 
-**Status:** draft
+**Status:** approved
 **Last updated:** 2026-11-04 (Days missing their HR Zones are queued on every launch, not once)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 

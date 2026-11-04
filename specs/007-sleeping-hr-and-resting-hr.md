@@ -1,6 +1,6 @@
 # 007 — Sleeping HR and Resting HR
 
-**Status:** draft
+**Status:** approved
 **Last updated:** 2026-11-04 (Days missing their values are queued on every launch, not once)
 
 ## Problem
