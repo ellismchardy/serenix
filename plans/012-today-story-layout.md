@@ -34,7 +34,7 @@ says which popup a tap opens via a new core enum `StoryTap` (`.sleep`, `.metric(
    - Seam: Today view · Done when: criterion 5.
 5. [x] **Slice:** every step and Overnight row carries its `StoryTap`.
    - Seam: Today view · Done when: criterion 6.
-6. [ ] **Shell:** `TodayLayout` (Rings/Story) + store in UserDefaults beside Appearance; "Today
+6. [x] **Shell:** `TodayLayout` (Rings/Story) + store in UserDefaults beside Appearance; "Today
    layout" picker in `ProfileMenu`; `StoryBodyView` drawn in `TodayScreen` under the week strip,
    taps → `openPopup`. Reuse `Theme`, `ScoreRing`, `themeCard()`, Zone colours.
    - Files: `src/SerenixApp/TodayLayoutStore.swift` (new), `StoryBodyView.swift` (new),

@@ -23,6 +23,8 @@ struct TodayScreen: View {
     /// message).
     @State private var closedMessages = ClosedReadinessMessages()
     @Environment(\.scenePhase) private var scenePhase
+    /// Rings or Story, from the profile menu (spec 012).
+    @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
 
     var body: some View {
         // The stored Nights (spec 003) and Day Loads (spec 005).
@@ -44,15 +46,20 @@ struct TodayScreen: View {
                 VStack(spacing: 24) {
                     topBar(today)
                     WeekStripView(strip: today.weekStrip) { show($0) }
-                    if let message = today.noNightMessage {
-                        Text(message)
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
+                    switch todayLayout {
+                    case .rings:
+                        if let message = today.noNightMessage {
+                            Text(message)
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
+                        rings(today)
+                        readinessMessage(today, for: shownDay)
+                        vsBaseline(today)
+                        tiles(today)
+                    case .story:
+                        StoryBodyView(today: today) { open($0, in: today) }
                     }
-                    rings(today)
-                    readinessMessage(today, for: shownDay)
-                    vsBaseline(today)
-                    tiles(today)
                 }
                 .padding()
             }
@@ -353,6 +360,22 @@ struct TodayScreen: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /// A tap in the Story opens the popup the Rings layout's would; Load opens the profile menu
+    /// while it asks for the age, as the Load ring does.
+    private func open(_ tap: StoryTap, in today: TodayView) {
+        switch tap {
+        case .sleep: open(.sleep, in: today)
+        case .metric(let metric): open(.metric(metric), in: today)
+        case .readiness: open(.readiness, in: today)
+        case .load:
+            if today.loadOpensProfileMenu {
+                showsProfileMenu = true
+            } else {
+                open(.load, in: today)
             }
         }
     }

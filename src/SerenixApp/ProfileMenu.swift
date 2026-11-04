@@ -17,6 +17,7 @@ struct ProfileMenu: View {
     /// The Today view's say on whether a sync is running, so 001's progress shows here.
     let showsSyncProgress: Bool
     @EnvironmentObject private var appearanceStore: AppearanceStore
+    @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
     @State private var draftName = ""
@@ -104,6 +105,14 @@ struct ProfileMenu: View {
                 Section("Appearance") {
                     Picker("Appearance", selection: $appearanceStore.selected) {
                         ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .listRowBackground(Theme.card)
+                // Spec 012: Rings or Story, applied to the Today screen at once.
+                Section("Today layout") {
+                    Picker("Today layout", selection: $todayLayout) {
+                        ForEach(TodayLayout.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
                 }
