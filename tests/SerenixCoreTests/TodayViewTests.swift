@@ -1077,15 +1077,48 @@ private func gridTileName(_ tile: TodayTile) -> String {
     #expect(withoutDayLoad.restingHRTile?.gauge == nil)
 }
 
-@Test func aDayWithoutANightHasNoRestingHRTileAndNoGrid() {
+/// Spec 002, "No Night for the Day": Resting HR comes from the Day, not the Night, so its tile
+/// still shows on today without a Night.
+@Test func todayWithoutANightStillShowsItsRestingHRTileSoFarTodayWithNoGrid() {
     let view = todayView(
         nights: [Night(day: oct31)],
-        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 61.6)],
+        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 58)],
         showing: nov1
     )
 
-    #expect(view.restingHRTile == nil)
+    #expect(view.restingHRTile?.valueText == "58 bpm")
+    #expect(view.restingHRTile?.statusText == "So far today")
+    #expect(view.restingHRPopup != nil)
     #expect(view.gridTiles.isEmpty)
+}
+
+/// Spec 002, "No Night for the Day": an earlier Day without a Night shows its Resting HR tile
+/// with no status.
+@Test func anEarlierDayWithoutANightStillShowsItsRestingHRTileWithNoStatus() {
+    let view = todayView(
+        nights: [Night(day: Day(year: 2026, month: 10, day: 30)), Night(day: nov1)],
+        dayLoads: [DayLoad(day: oct31, load: 12, restingHR: 58), DayLoad(day: nov1, load: 5)],
+        showing: oct31
+    )
+
+    #expect(view.restingHRTile?.valueText == "58 bpm")
+    #expect(view.restingHRTile?.statusText == nil)
+    #expect(view.restingHRPopup != nil)
+}
+
+/// Spec 002, "No Night for the Day": with neither a Night nor a Resting HR there is no tile.
+@Test func aDayWithoutANightOrRestingHRHasNoRestingHRTileOrPopup() {
+    let withoutRestingHR = todayView(
+        nights: [Night(day: oct31)],
+        dayLoads: [DayLoad(day: nov1, load: 5)],
+        showing: nov1
+    )
+    let withoutDayLoad = todayView(nights: [Night(day: oct31)], dayLoads: [], showing: nov1)
+
+    #expect(withoutRestingHR.restingHRTile == nil)
+    #expect(withoutRestingHR.restingHRPopup == nil)
+    #expect(withoutDayLoad.restingHRTile == nil)
+    #expect(withoutDayLoad.restingHRPopup == nil)
 }
 
 // MARK: Status words and gauges
@@ -2380,17 +2413,6 @@ private let restingHRDayLoadsOct5ToNov1: [DayLoad] =
         popup?.whatMovesItTexts
             == ["Caffeine", "Stress", "How still you were during the Day", "Fitness, over weeks"]
     )
-}
-
-@Test func aDayWithoutANightHasNoRestingHRPopup() {
-    let view = todayView(
-        nights: [Night(day: oct31)],
-        dayLoads: [DayLoad(day: nov1, load: 5, restingHR: 61.6)],
-        showing: nov1
-    )
-
-    #expect(view.restingHRTile == nil)
-    #expect(view.restingHRPopup == nil)
 }
 
 // MARK: Popups on a Day without a Night

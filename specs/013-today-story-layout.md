@@ -47,12 +47,13 @@ small time label, a title, and a card:
    Calibrating, the title is "Readiness calibrating — n/4" and there's no advice.
 4. **Today so far** (amber dot). Time label: "Today so far" on today, "That Day" on an earlier
    Day. Title: "Load <n>". Card: a bar of the Day's Load against the user's typical Load, the
-   Day's Resting HR when it has one. Tapping it opens the Load popup.
+   typical Load in words, and the Day's Resting HR when it has one, whether or not the Day has
+   a Night (Resting HR belongs to the Day, spec 007). Tapping it opens the Load popup.
 
 There are no rings and no vs your Baseline card in Story: the Zone pills carry that.
 
 **No Night for the Day.** Steps 1–3 are replaced by 002's message ("No Night yet" on today, "No
-Night recorded" on an earlier Day); step 4 still shows the Day's Load.
+Night recorded" on an earlier Day); step 4 still shows the Day's Load and its Resting HR.
 
 **Look.** The Look and Appearance are 002's: cards, accent and Zone colours, light and dark.
 
@@ -86,6 +87,9 @@ Night recorded" on an earlier Day); step 4 still shows the Day's Load.
 - [x] Today view tests: with no Night for the Day, the Story is 002's no-Night message plus the
       Load step; the Load step's time label is "Today so far" on today and "That Day" on an
       earlier Day.
+- [ ] On the phone: on a Day with no Night but a Resting HR, the Story's Load card shows the
+      Resting HR line. (Its value comes from the Today view's Resting HR tile, tested in spec
+      002.)
 - [x] Today view tests: each step (and each Overnight row) names the popup a tap opens: Sleep,
       the metric's, Readiness, Load.
 - [x] `swift test` passes and `swift format lint` is clean.

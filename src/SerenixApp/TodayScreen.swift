@@ -44,6 +44,7 @@ struct TodayScreen: View {
                     Text(message)
                         .font(.title3)
                         .foregroundStyle(.secondary)
+                    noNightRestingHR(today)
                 }
                 rings(today)
                 readinessMessage(today, for: shownDay)
@@ -185,8 +186,30 @@ struct TodayScreen: View {
         }
     }
 
+    /// On a Day with no Night, its Resting HR tile on its own under the message, when the Day
+    /// has one (spec 002, No Night for the Day): half the width, as a cell of the tile grid.
+    @ViewBuilder
+    private func noNightRestingHR(_ today: TodayView) -> some View {
+        if let tile = today.restingHRTile {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                restingHRButton(tile, in: today)
+            }
+        }
+    }
+
+    /// The Resting HR tile as a button opening its popup (spec 011), in the grid or on its own.
+    private func restingHRButton(_ tile: RestingHRTile, in today: TodayView) -> some View {
+        Button {
+            open(.restingHR, in: today)
+        } label: {
+            RestingHRTileView(tile: tile)
+        }
+        .buttonStyle(.plain)
+    }
+
     /// Under "Last night" or the date: Time Asleep across the full width, then the Nightly Metric
-    /// tiles and the Resting HR tile in a 2-column grid (spec 007); none on a Day without a Night.
+    /// tiles and the Resting HR tile in a 2-column grid (spec 007); none on a Day without a Night,
+    /// where the Resting HR tile shows under the message instead.
     private func tiles(_ today: TodayView) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             if today.noNightMessage == nil {
@@ -213,12 +236,7 @@ struct TodayScreen: View {
                             }
                             .buttonStyle(.plain)
                         case .restingHR(let tile):
-                            Button {
-                                open(.restingHR, in: today)
-                            } label: {
-                                RestingHRTileView(tile: tile)
-                            }
-                            .buttonStyle(.plain)
+                            restingHRButton(tile, in: today)
                         }
                     }
                 }
@@ -249,7 +267,8 @@ struct TodayScreen: View {
         }
     }
 
-    /// Opens a popup, unless the Today view has nothing for it to show (a Day without a Night).
+    /// Opens a popup, unless the Today view has nothing for it to show (e.g. the Night's popups
+    /// on a Day without a Night).
     private func open(_ popup: TodayPopup, in today: TodayView) {
         let hasContent =
             switch popup {

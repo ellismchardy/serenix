@@ -163,9 +163,11 @@ public struct TodayView: Equatable, Sendable {
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }
             } ?? []
         self.tiles = tiles
-        let restingHRTile = night.map { _ in
-            RestingHRTile(restingHR: dayLoad?.restingHR, isToday: isToday)
-        }
+        // Resting HR belongs to the Day (spec 007): with a Night its tile always shows ("—" when
+        // missing); without one, only when the Day has a Resting HR (spec 002, No Night).
+        let restingHRTile =
+            night != nil || dayLoad?.restingHR != nil
+            ? RestingHRTile(restingHR: dayLoad?.restingHR, isToday: isToday) : nil
         self.restingHRTile = restingHRTile
         restingHRPopup = restingHRTile.map { _ in
             RestingHRPopup(
