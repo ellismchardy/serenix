@@ -26,6 +26,11 @@ public struct Night: Equatable, Sendable {
     public var timeInBedStart: Date?
     /// UTC.
     public var timeInBedEnd: Date?
+    /// Nil when not kept: Nights built before spec 012, or never rebuilt since.
+    public var heartRateTrace: HeartRateTrace?
+    /// Oldest first; empty when the user didn't wake. Nil when not kept: Nights built before
+    /// spec 012, or never rebuilt since.
+    public var wakeBouts: [WakeBout]?
 
     public init(
         day: Day,
@@ -38,7 +43,9 @@ public struct Night: Equatable, Sendable {
         finalWake: Date? = nil,
         timeAsleep: TimeInterval? = nil,
         timeInBedStart: Date? = nil,
-        timeInBedEnd: Date? = nil
+        timeInBedEnd: Date? = nil,
+        heartRateTrace: HeartRateTrace? = nil,
+        wakeBouts: [WakeBout]? = nil
     ) {
         self.day = day
         self.sleepingHR = sleepingHR
@@ -51,6 +58,8 @@ public struct Night: Equatable, Sendable {
         self.timeAsleep = timeAsleep
         self.timeInBedStart = timeInBedStart
         self.timeInBedEnd = timeInBedEnd
+        self.heartRateTrace = heartRateTrace
+        self.wakeBouts = wakeBouts
     }
 }
 
@@ -99,6 +108,19 @@ extension Night {
     /// Time Asleep, or nil when it's missing, negative or not a plausible number.
     var plausibleTimeAsleep: TimeInterval? {
         plausible(timeAsleep).flatMap { $0 >= 0 ? $0 : nil }
+    }
+
+    /// Minutes awake within the Sleep Period, Final Wake − Sleep Onset − Time Asleep, in whole
+    /// minutes (spec 002, Sleep popup); nil when any is missing or it comes out negative. The
+    /// Sleep tab's Wake Bouts total reads the same (spec 012).
+    var minutesAwake: Int? {
+        guard let onset = sleepOnset, let wake = finalWake, let timeAsleep = plausibleTimeAsleep,
+            let minutes = Int(
+                exactly: ((wake.timeIntervalSince(onset) - timeAsleep) / 60).rounded()
+            ),
+            minutes >= 0
+        else { return nil }
+        return minutes
     }
 }
 

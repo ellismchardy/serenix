@@ -10,9 +10,9 @@ struct SerenixApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                // The name is asked for once, before the Today screen (spec 002, Profile).
+                // The name is asked for once, before the tabs (spec 002, Profile).
                 if profile.hasBeenAskedForName {
-                    TodayScreen(connection: connection, profile: profile)
+                    MainTabs(connection: connection, profile: profile)
                 } else {
                     NamePrompt(profile: profile)
                 }

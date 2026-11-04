@@ -24,6 +24,10 @@ final class StoredNight {
     var timeAsleep: TimeInterval?
     var timeInBedStart: Date?
     var timeInBedEnd: Date?
+    /// The Heart Rate Trace (spec 012) as JSON; nil for Nights built before it, until rebuilt.
+    var heartRateTraceJSON: Data?
+    /// The Wake Bouts (spec 012) as JSON; nil for Nights built before them, until rebuilt.
+    var wakeBoutsJSON: Data?
 
     init(_ night: Night) {
         dateKey = Self.dateKey(night.day)
@@ -40,6 +44,37 @@ final class StoredNight {
         timeAsleep = night.timeAsleep
         timeInBedStart = night.timeInBedStart
         timeInBedEnd = night.timeInBedEnd
+        heartRateTraceJSON = night.heartRateTrace.flatMap {
+            Self.encoded($0, logAs: "Heart Rate Trace")
+        }
+        wakeBoutsJSON = night.wakeBouts.flatMap { Self.encoded($0, logAs: "Wake Bouts") }
+    }
+
+    /// `value` as JSON; nil, logged, if it can't be written, so the Night is kept without it
+    /// rather than not at all. `name` is what the log calls it.
+    private static func encoded<Value: Encodable>(_ value: Value, logAs name: String) -> Data? {
+        do {
+            return try JSONEncoder().encode(value)
+        } catch {
+            nightLog.error(
+                "Couldn't keep \(name, privacy: .public): \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
+    }
+
+    /// The value stored as `json`; nil, logged, if it can't be read, so the Night shows without
+    /// it rather than not at all. `name` is what the log calls it.
+    private static func decoded<Value: Decodable>(_ json: Data?, logAs name: String) -> Value? {
+        guard let json else { return nil }
+        do {
+            return try JSONDecoder().decode(Value.self, from: json)
+        } catch {
+            nightLog.error(
+                "Couldn't read \(name, privacy: .public): \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
     }
 
     var night: Night {
@@ -54,7 +89,9 @@ final class StoredNight {
             finalWake: finalWake,
             timeAsleep: timeAsleep,
             timeInBedStart: timeInBedStart,
-            timeInBedEnd: timeInBedEnd
+            timeInBedEnd: timeInBedEnd,
+            heartRateTrace: Self.decoded(heartRateTraceJSON, logAs: "Heart Rate Trace"),
+            wakeBouts: Self.decoded(wakeBoutsJSON, logAs: "Wake Bouts")
         )
     }
 

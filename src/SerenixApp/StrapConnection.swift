@@ -382,6 +382,26 @@ final class StrapConnection: NSObject, ObservableObject {
         DayLoadStore.pendingRebuilds = pending
     }
 
+    /// Queues the stored Nights with no Heart Rate Trace that can still be rebuilt and aren't
+    /// queued yet (spec 012, Nights missing a Heart Rate Trace). Asked every time, with no "done"
+    /// flag: a Heart Rate Trace can be lost after any flag was set, e.g. by another build of
+    /// Serenix that doesn't store it opening the same data.
+    private static func queueTraceRebuilds(
+        for nights: [Night],
+        now: Date,
+        timeZone: TimeZone
+    ) {
+        let pending = NightStore.pendingRebuilds
+        let added = traceRebuilds(
+            for: nights,
+            alreadyQueued: pending,
+            now: now,
+            in: timeZone
+        )
+        guard !added.isEmpty else { return }
+        NightStore.pendingRebuilds = pending + added
+    }
+
     /// Takes away one queued copy of `rebuild`, leaving any copy queued while it was worked out.
     private static func removeOnePending(_ rebuild: NightRebuild) {
         var pending = NightStore.pendingRebuilds
@@ -410,9 +430,16 @@ final class StrapConnection: NSObject, ObservableObject {
             await previous?.value
             // What's stored shows first: a queue left by a run that was swiped away or ended by
             // iOS takes minutes to work out at launch, and the screen would be blank until then.
-            await showStoredNights(in: container)
+            let stored = await showStoredNights(in: container)
             await showStoredDayLoads(in: container)
             let now = Date()
+            // Nights missing a Heart Rate Trace are queued to gain one and their Wake Bouts, while
+            // their History Records are still due.
+            if let stored {
+                await MainActor.run {
+                    Self.queueTraceRebuilds(for: stored, now: now, timeZone: timeZone)
+                }
+            }
             let queued = await MainActor.run { NightStore.pendingRebuilds }
             for rebuild in queued {
                 await MainActor.run { self.rebuildInProgress = rebuild }
