@@ -58,7 +58,7 @@ Existing Sleep view code: `src/SerenixCore/SleepView.swift` (`SleepView`, `Sleep
      `tests/SerenixCoreTests/SleepViewTests.swift`, `src/SerenixApp/SleepScreen.swift`
    - Done when: the seven Your week criteria and "Its bar runs 23:00–02:10, 02:18–04:30 and
      04:37–07:00, on a track 22:50–07:10" pass; the old week-slot and bar tests are rewritten.
-4. [ ] **Slice: a lane's chart.** Each Night's lane carries its chart (moved from
+4. [x] **Slice: a lane's chart.** Each Night's lane carries its chart (moved from
    `SleepLastNight`): range, steps, Sleeping HR line, y-axis, plus bpm gridlines (every 5, every
    10 over a 30 bpm span), hour ticks every 2 hours inside the range, the "Woke 2 times · 15 min
    awake" text, or the not-kept note (and no bar gaps). The Sleep screen opens and closes a lane

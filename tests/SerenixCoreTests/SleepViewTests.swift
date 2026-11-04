@@ -135,172 +135,12 @@ private func summaryNights(timeAsleep: TimeInterval?) -> [Night] {
     #expect(view.summary?.sentence == "Time Asleep wasn't worked out for this Night.")
 }
 
-// MARK: Last night
-
-@Test func lastNightTodayIsSummarisedAndReadsInBedUp() {
+@Test func aNightTodayIsSummarisedAsLastNight() {
     let view = sleepView(nights: [nightOn3Nov()])
 
-    // Last night's old title and "7h 45m asleep" header are now the Summary's (spec 012).
     #expect(view.summary?.label == "Last night")
     #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
-    #expect(view.lastNight?.inBedText == "In bed 22:50 \u{00B7} Up 07:10")
     #expect(view.noNightMessage == nil)
-}
-
-@Test func lastNightsChartRunsFromTimeInBedsStartToItsEnd() {
-    let chart = sleepView(nights: [nightOn3Nov()]).lastNight?.chart
-
-    #expect(chart?.start == at(2, 22, 50))
-    #expect(chart?.end == at(3, 7, 10))
-}
-
-@Test func lastNightsChartHasTheHeartRateTracesStepsFiveMinutesApart() {
-    let steps = sleepView(nights: [nightOn3Nov()]).lastNight?.chart?.steps ?? []
-
-    #expect(steps.count == 100)
-    #expect(steps.first?.start == at(2, 22, 50))
-    #expect(steps.first?.bpm == 50)
-    #expect(steps.dropFirst().first?.start == at(2, 22, 55))
-    #expect(steps.dropFirst().first?.bpm == 70)
-    #expect(steps.last?.start == at(3, 7, 5))
-    #expect(steps.last?.bpm == 60)
-}
-
-/// Each step is drawn at its middle (22:52:30 for the first), but never past the chart's end:
-/// with Time in Bed ending 07:06, the last step (07:05) is drawn at 07:06, not 07:07:30.
-@Test func eachChartStepIsDrawnAtItsMiddleWithinTheChart() {
-    let steps =
-        sleepView(nights: [nightOn3Nov(timeInBedEnd: at(3, 7, 6))]).lastNight?.chart?.steps
-        ?? []
-
-    #expect(steps.first?.middle == at(2, 22, 52) + 30)
-    #expect(steps.last?.middle == at(3, 7, 6))
-}
-
-@Test func aMissingStepBreaksTheChartsLine() {
-    let steps = sleepView(nights: [nightOn3Nov()]).lastNight?.chart?.steps ?? []
-
-    #expect(steps.count == 100)
-    let third = steps.dropFirst(2).first
-    #expect(third?.start == at(2, 23))
-    #expect(third != nil && third?.bpm == nil)
-}
-
-@Test func theChartsYAxisRunsFromTheLowestStepLessThreeToTheHighestPlusThree() {
-    let chart = sleepView(nights: [nightOn3Nov()]).lastNight?.chart
-
-    #expect(chart?.lowestBPM == 47)
-    #expect(chart?.highestBPM == 73)
-}
-
-/// A Sleeping HR below every step widens the y-axis to take it in, so its line stays on the
-/// chart: steps 50 to 70 with Sleeping HR 44 run 41 to 73.
-@Test func aSleepingHROutsideTheStepsWidensTheYAxis() {
-    let chart = sleepView(nights: [nightOn3Nov(sleepingHR: 44)]).lastNight?.chart
-
-    #expect(chart?.lowestBPM == 41)
-    #expect(chart?.highestBPM == 73)
-}
-
-@Test func theSleepingHRLineIsAtTheNightsSleepingHRAndLabelled() {
-    let chart = sleepView(nights: [nightOn3Nov()]).lastNight?.chart
-
-    #expect(chart?.sleepingHR == 52)
-    #expect(chart?.sleepingHRLabel == "Sleeping HR 52")
-}
-
-@Test func withNoSleepingHRThereIsNoSleepingHRLineOrLabel() {
-    let chart = sleepView(nights: [nightOn3Nov(sleepingHR: nil)]).lastNight?.chart
-
-    #expect(chart != nil)
-    #expect(chart?.sleepingHR == nil)
-    #expect(chart?.sleepingHRLabel == nil)
-}
-
-@Test func theSleepWakeBandRunsFromSleepOnsetToFinalWakeWithEachWakeBout() {
-    let chart = sleepView(nights: [nightOn3Nov()]).lastNight?.chart
-
-    #expect(chart?.asleepStart == at(2, 23))
-    #expect(chart?.asleepEnd == at(3, 7))
-    #expect(
-        chart?.wakeBouts == [
-            DateInterval(start: at(3, 2, 10), end: at(3, 2, 18)),
-            DateInterval(start: at(3, 4, 30), end: at(3, 4, 37)),
-        ]
-    )
-    #expect(chart?.sleepOnsetText == "23:00")
-    #expect(chart?.finalWakeText == "07:00")
-}
-
-@Test func theWakeBoutsListReadsHowOftenAndHowLongWithARowPerWakeBout() {
-    let lastNight = sleepView(nights: [nightOn3Nov()]).lastNight
-
-    #expect(lastNight?.wakeSummary == "Woke 2 times \u{00B7} 15 min awake")
-    #expect(lastNight?.wakeBoutRows.map(\.startText) == ["02:10", "04:30"])
-    #expect(lastNight?.wakeBoutRows.map(\.lengthText) == ["8 min", "7 min"])
-    #expect(lastNight?.notKeptText == nil)
-}
-
-/// Spec 012: the total is the Sleep popup's minutes awake (Final Wake − Sleep Onset − Time
-/// Asleep), not the Wake Bouts' own sum: Time Asleep 7 h 40 m gives 20 though the bouts add to 15.
-@Test func theWakeBoutsTotalIsTheSleepPopupsMinutesAwake() {
-    let night = nightOn3Nov(timeAsleep: 7 * oneHour + 40 * oneMinute)
-    let lastNight = sleepView(nights: [night]).lastNight
-
-    #expect(lastNight?.wakeSummary == "Woke 2 times \u{00B7} 20 min awake")
-}
-
-/// Where the Sleep popup has no minutes awake (Time Asleep implausible), the list gives no total
-/// either, so the two never disagree.
-@Test func withNoMinutesAwakeTheWakeBoutsHaveNoTotal() {
-    let night = nightOn3Nov(timeAsleep: -oneHour)
-    let lastNight = sleepView(nights: [night]).lastNight
-
-    #expect(lastNight?.wakeSummary == "Woke 2 times")
-}
-
-@Test func oneWakeBoutReadsWokeOneTime() {
-    // Time Asleep 7 h 52 m, so the minutes awake (8 h − 7 h 52 m) are the one Wake Bout's 8.
-    let night = nightOn3Nov(
-        timeAsleep: 7 * oneHour + 52 * oneMinute,
-        wakeBouts: [WakeBout(start: at(3, 2, 10), minutes: 8)]
-    )
-    let lastNight = sleepView(nights: [night]).lastNight
-
-    #expect(lastNight?.wakeSummary == "Woke 1 time \u{00B7} 8 min awake")
-    #expect(lastNight?.wakeBoutRows.map(\.startText) == ["02:10"])
-    #expect(lastNight?.wakeBoutRows.map(\.lengthText) == ["8 min"])
-}
-
-@Test func noWakeBoutsReadsDidntWake() {
-    let night = nightOn3Nov(timeAsleep: 8 * oneHour, wakeBouts: [])
-    let lastNight = sleepView(nights: [night]).lastNight
-
-    #expect(lastNight?.wakeSummary == "Didn't wake")
-    #expect(lastNight?.wakeBoutRows.isEmpty == true)
-    #expect(lastNight?.chart?.wakeBouts == [])
-}
-
-@Test func withNoHeartRateTraceTheChartAndWakeBoutsAreReplacedByTheNotKeptNote() {
-    let night = nightOn3Nov(heartRateTrace: nil, wakeBouts: nil)
-    let view = sleepView(nights: [night])
-    let lastNight = view.lastNight
-
-    #expect(lastNight?.notKeptText == "Heart rate isn't kept for Nights older than 30 days.")
-    #expect(lastNight?.chart == nil)
-    #expect(lastNight?.wakeSummary == nil)
-    #expect(lastNight?.wakeBoutRows.isEmpty == true)
-    #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
-    #expect(lastNight?.inBedText == "In bed 22:50 \u{00B7} Up 07:10")
-}
-
-@Test func lastNightWithNoTimeInBedHasNoInBedUp() {
-    let view = sleepView(nights: [nightOn3Nov(timeInBedStart: nil, timeInBedEnd: nil)])
-
-    #expect(view.lastNight?.inBedText == nil)
-    #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
-    #expect(view.lastNight?.chart?.start == at(2, 23))
-    #expect(view.lastNight?.chart?.end == at(3, 7))
 }
 
 /// The label is the Day's name as the week strip writes it (spec 002), "Sun 1 Nov".
@@ -314,7 +154,7 @@ private func summaryNights(timeAsleep: TimeInterval?) -> [Night] {
     let view = sleepView(nights: [nightOn1Nov])
 
     #expect(view.summary == nil)
-    #expect(view.lastNight == nil)
+    #expect(view.week.lanes.first?.chart == nil)
     #expect(view.noNightMessage == "No Night yet")
 }
 
@@ -322,8 +162,233 @@ private func summaryNights(timeAsleep: TimeInterval?) -> [Night] {
     let view = sleepView(nights: [nightOn3Nov()], showing: nov1)
 
     #expect(view.summary == nil)
-    #expect(view.lastNight == nil)
+    #expect(view.week.lanes.first?.chart == nil)
     #expect(view.noNightMessage == "No Night recorded")
+}
+
+// MARK: A Night's chart
+
+// Spec 012's success criteria under "A Night's lane and chart": the Night dated 3 Nov
+// (`nightOn3Nov`), its chart in its lane, the first of Your week's lanes.
+
+/// The chart in the lane of `nightOn3Nov`-like `night`, the Day shown's.
+private func laneChart(_ night: Night) -> SleepChart? {
+    sleepView(nights: [night]).week.lanes.first?.chart
+}
+
+@Test func aNightsChartRunsFromTimeInBedsStartToItsEndWithHourTicksEveryTwoHours() {
+    let chart = laneChart(nightOn3Nov())
+
+    #expect(chart?.start == at(2, 22, 50))
+    #expect(chart?.end == at(3, 7, 10))
+    #expect(chart?.hourTicks.map(\.text) == ["00:00", "02:00", "04:00", "06:00"])
+    #expect(chart?.hourTicks.map(\.time) == [at(3, 0), at(3, 2), at(3, 4), at(3, 6)])
+}
+
+/// Each Night's lane carries its own chart, not only the Day shown's.
+@Test func anEarlierNightsLaneCarriesItsOwnChart() {
+    let nightOn2Nov = Night(
+        day: Day(year: 2026, month: 11, day: 2),
+        sleepingHR: 55,
+        sleepOnset: at(1, 23),
+        finalWake: at(2, 7),
+        timeAsleep: 8 * oneHour,
+        timeInBedStart: at(1, 22, 50),
+        timeInBedEnd: at(2, 7, 10),
+        heartRateTrace: HeartRateTrace(
+            start: at(1, 22, 50),
+            steps: Array(repeating: 60, count: 100)
+        ),
+        wakeBouts: []
+    )
+    let lanes = sleepView(nights: [nightOn2Nov, nightOn3Nov()]).week.lanes
+
+    #expect(lanes.count == 7)
+    let chart = lanes.dropFirst().first?.chart
+    #expect(chart?.start == at(1, 22, 50))
+    #expect(chart?.end == at(2, 7, 10))
+    #expect(chart?.sleepingHRLabel == "Sleeping HR 55")
+}
+
+@Test func aNightsChartHasTheHeartRateTracesStepsFiveMinutesApart() {
+    let steps = laneChart(nightOn3Nov())?.steps ?? []
+
+    #expect(steps.count == 100)
+    #expect(steps.first?.start == at(2, 22, 50))
+    #expect(steps.first?.bpm == 50)
+    #expect(steps.dropFirst().first?.start == at(2, 22, 55))
+    #expect(steps.dropFirst().first?.bpm == 70)
+    #expect(steps.last?.start == at(3, 7, 5))
+    #expect(steps.last?.bpm == 60)
+}
+
+/// Each step is drawn at its middle (22:52:30 for the first), but never past the chart's end:
+/// with Time in Bed ending 07:06, the last step (07:05) is drawn at 07:06, not 07:07:30.
+@Test func eachChartStepIsDrawnAtItsMiddleWithinTheChart() {
+    let steps = laneChart(nightOn3Nov(timeInBedEnd: at(3, 7, 6)))?.steps ?? []
+
+    #expect(steps.first?.middle == at(2, 22, 52) + 30)
+    #expect(steps.last?.middle == at(3, 7, 6))
+}
+
+@Test func aMissingStepBreaksTheChartsLine() {
+    let steps = laneChart(nightOn3Nov())?.steps ?? []
+
+    #expect(steps.count == 100)
+    let third = steps.dropFirst(2).first
+    #expect(third?.start == at(2, 23))
+    #expect(third != nil && third?.bpm == nil)
+}
+
+@Test func theChartsYAxisRunsFromTheLowestStepLessThreeToTheHighestPlusThree() {
+    let chart = laneChart(nightOn3Nov())
+
+    #expect(chart?.lowestBPM == 47)
+    #expect(chart?.highestBPM == 73)
+}
+
+/// A Sleeping HR below every step widens the y-axis to take it in, so its line stays on the
+/// chart: steps 50 to 70 with Sleeping HR 44 run 41 to 73.
+@Test func aSleepingHROutsideTheStepsWidensTheYAxis() {
+    let chart = laneChart(nightOn3Nov(sleepingHR: 44))
+
+    #expect(chart?.lowestBPM == 41)
+    #expect(chart?.highestBPM == 73)
+}
+
+/// The 47 to 73 axis (steps 50 to 70) spans 26 bpm, so its gridlines are every 5 bpm.
+@Test func aYAxisSpanningThirtyBPMOrLessHasGridlinesEveryFive() {
+    let chart = laneChart(nightOn3Nov())
+
+    #expect(chart?.lowestBPM == 47)
+    #expect(chart?.highestBPM == 73)
+    #expect(chart?.gridlines == [50, 55, 60, 65, 70])
+}
+
+/// Steps 44 to 80 give a 41 to 83 axis, spanning 42 bpm, so its gridlines are every 10 bpm.
+@Test func aYAxisSpanningMoreThanThirtyBPMHasGridlinesEveryTen() {
+    let trace = HeartRateTrace(
+        start: at(2, 22, 50),
+        steps: [44, 80] + Array(repeating: 60, count: 98)
+    )
+    let chart = laneChart(nightOn3Nov(heartRateTrace: trace))
+
+    #expect(chart?.lowestBPM == 41)
+    #expect(chart?.highestBPM == 83)
+    #expect(chart?.gridlines == [50, 60, 70, 80])
+}
+
+@Test func theSleepingHRLineIsAtTheNightsSleepingHRAndLabelled() {
+    let chart = laneChart(nightOn3Nov())
+
+    #expect(chart?.sleepingHR == 52)
+    #expect(chart?.sleepingHRLabel == "Sleeping HR 52")
+}
+
+@Test func withNoSleepingHRThereIsNoSleepingHRLineOrLabel() {
+    let chart = laneChart(nightOn3Nov(sleepingHR: nil))
+
+    #expect(chart != nil)
+    #expect(chart?.sleepingHR == nil)
+    #expect(chart?.sleepingHRLabel == nil)
+}
+
+@Test func theSleepWakeBandRunsFromSleepOnsetToFinalWakeWithEachWakeBoutAndReadsHowOftenTheyWoke() {
+    let lane = sleepView(nights: [nightOn3Nov()]).week.lanes.first
+
+    #expect(lane?.chart?.asleepStart == at(2, 23))
+    #expect(lane?.chart?.asleepEnd == at(3, 7))
+    #expect(
+        lane?.chart?.wakeBouts == [
+            DateInterval(start: at(3, 2, 10), end: at(3, 2, 18)),
+            DateInterval(start: at(3, 4, 30), end: at(3, 4, 37)),
+        ]
+    )
+    #expect(lane?.wakeText == "Woke 2 times \u{00B7} 15 min awake")
+    #expect(lane?.notKeptText == nil)
+}
+
+/// Spec 012: the total is the Sleep popup's minutes awake (Final Wake − Sleep Onset − Time
+/// Asleep), not the Wake Bouts' own sum: Time Asleep 7 h 40 m gives 20 though the bouts add to 15.
+@Test func theWokeTextsTotalIsTheSleepPopupsMinutesAwake() {
+    let night = nightOn3Nov(timeAsleep: 7 * oneHour + 40 * oneMinute)
+    let lane = sleepView(nights: [night]).week.lanes.first
+
+    #expect(lane?.wakeText == "Woke 2 times \u{00B7} 20 min awake")
+}
+
+/// Where the Sleep popup has no minutes awake (Time Asleep implausible), the "Woke" text gives no
+/// total either, so the two never disagree.
+@Test func withNoMinutesAwakeTheWokeTextHasNoTotal() {
+    let night = nightOn3Nov(timeAsleep: -oneHour)
+    let lane = sleepView(nights: [night]).week.lanes.first
+
+    #expect(lane?.wakeText == "Woke 2 times")
+}
+
+@Test func oneWakeBoutReadsWokeOneTime() {
+    // Time Asleep 7 h 52 m, so the minutes awake (8 h − 7 h 52 m) are the one Wake Bout's 8.
+    let night = nightOn3Nov(
+        timeAsleep: 7 * oneHour + 52 * oneMinute,
+        wakeBouts: [WakeBout(start: at(3, 2, 10), minutes: 8)]
+    )
+    let lane = sleepView(nights: [night]).week.lanes.first
+
+    #expect(lane?.wakeText == "Woke 1 time \u{00B7} 8 min awake")
+}
+
+@Test func noWakeBoutsReadsDidntWake() {
+    let night = nightOn3Nov(timeAsleep: 8 * oneHour, wakeBouts: [])
+    let lane = sleepView(nights: [night]).week.lanes.first
+
+    #expect(lane?.wakeText == "Didn't wake")
+    #expect(lane?.chart?.wakeBouts == [])
+}
+
+/// With a Heart Rate Trace but no Wake Bouts kept, the chart shows and there's no "Woke" text.
+@Test func withNoWakeBoutsKeptThereIsNoWokeText() {
+    let lane = sleepView(nights: [nightOn3Nov(wakeBouts: nil)]).week.lanes.first
+
+    #expect(lane?.chart != nil)
+    #expect(lane?.wakeText == nil)
+}
+
+@Test func withNoTimeInBedTheChartRunsFromSleepOnsetToFinalWakeAndTheBarHasNoTrack() {
+    let view = sleepView(nights: [nightOn3Nov(timeInBedStart: nil, timeInBedEnd: nil)])
+    let lane = view.week.lanes.first
+
+    #expect(lane?.chart?.start == at(2, 23))
+    #expect(lane?.chart?.end == at(3, 7))
+    #expect(lane != nil && lane?.timeInBed == nil)
+    #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
+}
+
+@Test func withNoHeartRateTraceTheChartIsReplacedByTheNotKeptNoteAndTheBarHasNoGaps() {
+    let night = nightOn3Nov(heartRateTrace: nil, wakeBouts: nil)
+    let lane = sleepView(nights: [night]).week.lanes.first
+
+    #expect(lane?.notKeptText == "Heart rate isn't kept for Nights older than 30 days.")
+    #expect(lane != nil && lane?.chart == nil)
+    #expect(lane?.wakeText == nil)
+    #expect(lane?.asleepSegments == [DateInterval(start: at(2, 23), end: at(3, 7))])
+    #expect(lane?.timeAsleepText == "7h 45m")
+}
+
+/// The not-kept rule follows the Heart Rate Trace: with Wake Bouts still on the Night, its bar
+/// still has no gaps and there's no "Woke" text (spec 012, Not kept).
+@Test func withNoHeartRateTraceButWakeBoutsTheBarStillHasNoGapsOrWokeText() {
+    let lane = sleepView(nights: [nightOn3Nov(heartRateTrace: nil)]).week.lanes.first
+
+    #expect(lane?.notKeptText == "Heart rate isn't kept for Nights older than 30 days.")
+    #expect(lane?.wakeText == nil)
+    #expect(lane?.asleepSegments == [DateInterval(start: at(2, 23), end: at(3, 7))])
+}
+
+/// Hour ticks sit strictly inside the chart: Time in Bed 22:00–08:00 has none at 22:00 or 08:00.
+@Test func aChartsHourTicksAreNeverAtItsEnds() {
+    let night = nightOn3Nov(timeInBedStart: at(2, 22), timeInBedEnd: at(3, 8))
+
+    #expect(laneChart(night)?.hourTicks.map(\.text) == ["00:00", "02:00", "04:00", "06:00"])
 }
 
 // MARK: Sleep tab
@@ -511,6 +576,9 @@ private let yourWeekNights = [
         #expect(lane.asleepSegments.isEmpty)
         #expect(lane.timeInBed == nil)
         #expect(lane.isShort == false)
+        #expect(lane.chart == nil)
+        #expect(lane.notKeptText == nil)
+        #expect(lane.wakeText == nil)
     }
 }
 

@@ -7,13 +7,11 @@ public struct SleepView: Equatable, Sendable {
     public let weekStrip: WeekStrip
     /// A bedtime to aim for tonight; nil when the Day shown isn't today.
     public let tonight: SleepTonight?
-    /// The 7 Days to the Day shown: Time Asleep against Sleep Need, and when the user slept.
+    /// The 7 Days to the Day shown as lanes, each Night's chart inside its lane.
     public let week: SleepWeek
     /// The Night dated the Day shown in one sentence; nil when that Day has no Night.
     public let summary: SleepSummary?
-    /// About the Night dated the Day shown; nil when that Day has no Night.
-    public let lastNight: SleepLastNight?
-    /// "No Night yet" for today, "No Night recorded" for an earlier Day, in place of Last night;
+    /// "No Night yet" for today, "No Night recorded" for an earlier Day, in place of the Summary;
     /// nil when there's a Night (spec 002, as on the Today tab).
     public let noNightMessage: String?
 
@@ -52,9 +50,6 @@ public struct SleepView: Equatable, Sendable {
                 sleepNeed: SleepNeed(for: day, among: nights, birthYear: birthYear).sleepNeed,
                 timeZone: timeZone
             )
-        }
-        lastNight = night.map {
-            SleepLastNight($0, title: isToday ? "Last night" : day.text, timeZone: timeZone)
         }
         noNightMessage = night != nil ? nil : TodayView.noNightMessage(isToday: isToday)
     }
@@ -205,7 +200,8 @@ public struct SleepWeek: Equatable, Sendable {
                 name: isToday && day == shown ? "Last" : day.weekdayName,
                 night: nights.first { $0.day == day },
                 nights: nights,
-                birthYear: birthYear
+                birthYear: birthYear,
+                timeZone: timeZone
             )
         }
         titleText = "Your week"
@@ -294,13 +290,33 @@ public struct SleepLane: Equatable, Sendable {
     public let timeAsleepText: String?
     /// Whether Time Asleep fell 15 min or more under the Night's own Sleep Need (spec 009).
     public let isShort: Bool
+    /// The Night's Heart Rate Trace with its sleep/wake band, shown when the lane is open; nil
+    /// with no Night or no Heart Rate Trace.
+    public let chart: SleepChart?
+    /// In place of the chart when the Night has no Heart Rate Trace; nil otherwise.
+    public let notKeptText: String?
+    /// Under the chart, e.g. "Woke 2 times · 15 min awake", "Didn't wake"; nil when the Night's
+    /// Wake Bouts aren't kept.
+    public let wakeText: String?
 
     /// How far under its Sleep Need a Night's Time Asleep is marked short, minutes (spec 012:
     /// 15, as the Summary's "short").
     static let shortByMinutes = SleepSummary.aboutWithinMinutes
 
-    init(day: Day, name: String, night: Night?, nights: [Night], birthYear: Int?) {
+    init(
+        day: Day,
+        name: String,
+        night: Night?,
+        nights: [Night],
+        birthYear: Int?,
+        timeZone: TimeZone
+    ) {
         self.day = day
+        chart = night.flatMap { SleepChart($0, timeZone: timeZone) }
+        notKeptText =
+            night != nil && night?.heartRateTrace == nil
+            ? "Heart rate isn't kept for Nights older than 30 days." : nil
+        wakeText = night.flatMap(Self.wakeText)
         self.name = name
         noNightText = night == nil ? "no Night" : nil
         asleepSegments = night.map(Self.asleepSegments) ?? []
@@ -324,6 +340,17 @@ public struct SleepLane: Equatable, Sendable {
             }
     }
 
+    /// "Woke 2 times · 15 min awake", "Didn't wake"; nil when the Wake Bouts aren't kept, or the
+    /// Night has no Heart Rate Trace (spec 012, Not kept: the note stands in for all of it).
+    private static func wakeText(of night: Night) -> String? {
+        guard night.heartRateTrace != nil, let bouts = night.wakeBouts else { return nil }
+        if bouts.isEmpty { return "Didn't wake" }
+        let woke = "Woke \(bouts.count) time\(bouts.count == 1 ? "" : "s")"
+        // The Sleep popup's minutes awake (spec 002), which the Wake Bouts add up to; no total
+        // where the Sleep popup has none ("—"), so the two never disagree.
+        return night.minutesAwake.map { "\(woke) \u{00B7} \($0) min awake" } ?? woke
+    }
+
     /// Sleep Onset to Final Wake with each Wake Bout cut out, oldest first.
     private static func asleepSegments(of night: Night) -> [DateInterval] {
         guard let onset = night.sleepOnset, let wake = night.finalWake, wake > onset else {
@@ -331,7 +358,9 @@ public struct SleepLane: Equatable, Sendable {
         }
         var segments: [DateInterval] = []
         var from = onset
-        for bout in (night.wakeBouts ?? []).sorted(by: { $0.start < $1.start }) {
+        // A Night with no Heart Rate Trace has no gaps (spec 012, Not kept).
+        let bouts = night.heartRateTrace == nil ? [] : night.wakeBouts ?? []
+        for bout in bouts.sorted(by: { $0.start < $1.start }) {
             let boutStart = max(bout.start, onset)
             let boutEnd = min(bout.end, wake)
             guard boutEnd > boutStart else { continue }
@@ -343,69 +372,8 @@ public struct SleepLane: Equatable, Sendable {
     }
 }
 
-/// The Sleep tab's Last night section, about one Night (spec 012, Last night).
-public struct SleepLastNight: Equatable, Sendable {
-    /// "Last night" when the Day shown is today, else the Day, e.g. "Sun 1 Nov".
-    public let title: String
-    /// e.g. "7h 45m asleep"; "— asleep" without a Time Asleep.
-    public let timeAsleepText: String
-    /// e.g. "In bed 22:50 · Up 07:10", from Time in Bed; nil without it.
-    public let inBedText: String?
-    /// The Heart Rate Trace with its sleep/wake band; nil when the Night has no Heart Rate Trace.
-    public let chart: SleepChart?
-    /// e.g. "Woke 2 times · 15 min awake", "Didn't wake"; nil with no chart or no Wake Bouts kept.
-    public let wakeSummary: String?
-    /// One per Wake Bout, oldest first; empty with none, or none kept.
-    public let wakeBoutRows: [SleepWakeBoutRow]
-    /// In place of the chart, band and Wake Bouts when the Night has no Heart Rate Trace.
-    public let notKeptText: String?
-
-    init(_ night: Night, title: String, timeZone: TimeZone) {
-        self.title = title
-        timeAsleepText = "\(night.plausibleTimeAsleep.map(durationText) ?? missingText) asleep"
-        inBedText = night.timeInBedStart.flatMap { start in
-            night.timeInBedEnd.map { end in
-                "In bed \(clockText(start, in: timeZone)) \u{00B7} Up \(clockText(end, in: timeZone))"
-            }
-        }
-        chart = SleepChart(night, timeZone: timeZone)
-        notKeptText = chart == nil ? "Heart rate isn't kept for Nights older than 30 days." : nil
-        let bouts = chart == nil ? [] : night.wakeBouts ?? []
-        wakeBoutRows = bouts.map {
-            SleepWakeBoutRow(
-                start: $0.start,
-                startText: clockText($0.start, in: timeZone),
-                lengthText: "\($0.minutes) min"
-            )
-        }
-        let woke = "Woke \(bouts.count) time\(bouts.count == 1 ? "" : "s")"
-        wakeSummary =
-            if chart == nil || night.wakeBouts == nil {
-                nil
-            } else if bouts.isEmpty {
-                "Didn't wake"
-            } else if let awake = night.minutesAwake {
-                // The Sleep popup's minutes awake (spec 002), which the Wake Bouts add up to.
-                "\(woke) \u{00B7} \(awake) min awake"
-            } else {
-                // No total where the Sleep popup has none ("—"), so the two never disagree.
-                woke
-            }
-    }
-}
-
-/// One Wake Bout in Last night's list (spec 012).
-public struct SleepWakeBoutRow: Equatable, Sendable {
-    /// UTC: when it started; unique, unlike its clock text across a clock change.
-    public let start: Date
-    /// When it started, e.g. "02:10".
-    public let startText: String
-    /// How long it lasted, e.g. "8 min".
-    public let lengthText: String
-}
-
-/// Last night's chart (spec 012): the Heart Rate Trace against the Night's Sleeping HR, over a
-/// sleep/wake band.
+/// A Night's chart, opened in its lane (spec 012): the Heart Rate Trace against the Night's
+/// Sleeping HR and bpm gridlines, over a sleep/wake band with hour ticks.
 public struct SleepChart: Equatable, Sendable {
     /// UTC: the chart's left end, Time in Bed's start (or Sleep Onset without Time in Bed).
     public let start: Date
@@ -427,13 +395,20 @@ public struct SleepChart: Equatable, Sendable {
     public let asleepEnd: Date
     /// Each Wake Bout over the band, start to end; empty with none, or none kept.
     public let wakeBouts: [DateInterval]
-    /// Under the band's ends, e.g. "23:00" and "07:00".
-    public let sleepOnsetText: String
-    /// Under the band's right end, e.g. "07:00".
-    public let finalWakeText: String
+    /// Faint lines across the chart, bpm, e.g. [50, 55, 60, 65, 70] on a 47–73 axis.
+    public let gridlines: [Double]
+    /// Under the band, on the even clock hours inside the chart: "00:00", "02:00" …
+    public let hourTicks: [SleepChartTick]
 
     /// Room above and below the steps on the y-axis, bpm (spec 012: 3).
     static let axisMargin = 3.0
+    /// Gridlines every this many bpm (spec 012: 5) …
+    static let gridlineStep = 5.0
+    /// … or every this many when the axis spans more than `wideAxisSpan` bpm (spec 012: 10, 30).
+    static let wideGridlineStep = 10.0
+    static let wideAxisSpan = 30.0
+    /// Hours between ticks under the band, on even clock hours (spec 012: 2).
+    static let tickEveryHours = 2
 
     /// Nil without a Heart Rate Trace, or without Sleep Onset and Final Wake for the band.
     init?(_ night: Night, timeZone: TimeZone) {
@@ -458,9 +433,45 @@ public struct SleepChart: Equatable, Sendable {
         asleepStart = onset
         asleepEnd = wake
         wakeBouts = (night.wakeBouts ?? []).map { DateInterval(start: $0.start, end: $0.end) }
-        sleepOnsetText = clockText(onset, in: timeZone)
-        finalWakeText = clockText(wake, in: timeZone)
+        let step =
+            highestBPM - lowestBPM > Self.wideAxisSpan ? Self.wideGridlineStep : Self.gridlineStep
+        gridlines = Array(
+            stride(from: (lowestBPM / step).rounded(.up) * step, through: highestBPM, by: step)
+        )
+        hourTicks = Self.hourTicks(from: start, to: end, in: timeZone)
     }
+
+    /// The whole local hours strictly between `start` and `end` that fall on an even clock hour.
+    private static func hourTicks(from start: Date, to end: Date, in timeZone: TimeZone)
+        -> [SleepChartTick]
+    {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        guard
+            var hour = calendar.nextDate(
+                after: start,
+                matching: DateComponents(minute: 0, second: 0),
+                matchingPolicy: .nextTime
+            )
+        else { return [] }
+        var ticks: [SleepChartTick] = []
+        while hour < end {
+            if calendar.component(.hour, from: hour) % tickEveryHours == 0 {
+                ticks.append(SleepChartTick(time: hour, text: clockText(hour, in: timeZone)))
+            }
+            guard let next = calendar.date(byAdding: .hour, value: 1, to: hour) else { break }
+            hour = next
+        }
+        return ticks
+    }
+}
+
+/// One hour tick under a Night's chart.
+public struct SleepChartTick: Equatable, Sendable {
+    /// UTC.
+    public let time: Date
+    /// e.g. "02:00".
+    public let text: String
 }
 
 /// One 5-minute step of the chart's line.
