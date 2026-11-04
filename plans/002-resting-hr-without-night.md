@@ -21,7 +21,7 @@ HR, and show nothing when it has neither. On approval this plan is saved as
      `tests/SerenixCoreTests/TodayViewTests.swift`
    - Done when: spec 002's new test criterion — no-Night Day with Resting HR 58 → tile "58 bpm",
      "So far today" on today / nil status earlier, and a popup; no Resting HR → neither.
-2. [ ] **Shell (Rings):** in `tiles(_:)` (`src/SerenixApp/TodayScreen.swift:190`), when
+2. [x] **Shell (Rings):** in `tiles(_:)` (`src/SerenixApp/TodayScreen.swift:190`), when
    `noNightMessage != nil` and `restingHRTile` exists, draw it alone (half width, like a grid
    cell) as a button opening `.restingHR` — reuse `RestingHRTileView`. Story needs no change:
    `StoryBodyView`'s Load card already reads `today.restingHRTile`.
