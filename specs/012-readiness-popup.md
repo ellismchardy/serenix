@@ -1,7 +1,7 @@
 # 012 — Readiness popup
 
-**Status:** draft
-**Last updated:** 2026-11-04
+**Status:** approved
+**Last updated:** 2026-11-04 (approved)
 
 ## Problem
 The Readiness popup (specs 002 and 008) shows the number, the band word and a table of four
