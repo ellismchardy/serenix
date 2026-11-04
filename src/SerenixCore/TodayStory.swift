@@ -1,6 +1,6 @@
 import Foundation
 
-/// The Story layout's body for the Day shown (spec 012): a timeline from the Night to the Day
+/// The Story layout's body for the Day shown (spec 013): a timeline from the Night to the Day
 /// so far, drawn from the same values as the Rings layout.
 public struct TodayStory: Equatable, Sendable {
     public let steps: [StoryStep]
@@ -40,7 +40,7 @@ public struct TodayStory: Equatable, Sendable {
                 kind: .overnight,
                 timeLabel: "Overnight",
                 title: "Nightly Metrics",
-                // Only the Nightly Metrics the Night has get a row (spec 012, Story body).
+                // Only the Nightly Metrics the Night has get a row (spec 013, Story body).
                 metrics: tiles.filter { night.value(of: $0.metric) != nil }
             ),
             StoryStep(
@@ -55,7 +55,7 @@ public struct TodayStory: Equatable, Sendable {
     }
 }
 
-/// One step of the Story: a small time label over a title (spec 012, Story body).
+/// One step of the Story: a small time label over a title (spec 013, Story body).
 public struct StoryStep: Equatable, Sendable {
     public enum Kind: Equatable, Sendable { case sleep, overnight, thisMorning, todaySoFar }
 
@@ -101,7 +101,7 @@ public struct StoryStep: Equatable, Sendable {
     }
 }
 
-/// A popup a tap in the Story opens (spec 012): the same popups as the Rings layout's.
+/// A popup a tap in the Story opens (spec 013): the same popups as the Rings layout's.
 public enum StoryTap: Equatable, Sendable {
     case sleep
     case metric(NightlyMetric)
@@ -125,7 +125,7 @@ struct StoryReadiness {
     }
 }
 
-/// The Day's Load ÷ its typical Load, capped at 1 (spec 012, Story body); nil without both.
+/// The Day's Load ÷ its typical Load, capped at 1 (spec 013, Story body); nil without both.
 private func loadAgainstTypical(_ load: Int?, _ typical: TypicalLoad) -> Double? {
     guard let load, case .value(let typical) = typical, typical > 0 else { return nil }
     return min(Double(load) / Double(typical), 1)

@@ -1,4 +1,4 @@
-# 012 — Today Story layout
+# 013 — Today Story layout
 
 **Status:** built
 **Last updated:** 2026-11-04

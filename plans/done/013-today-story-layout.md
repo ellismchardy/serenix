@@ -1,13 +1,13 @@
-# Plan: 012 — Today Story layout
+# Plan: 013 — Today Story layout
 
-**For spec:** specs/012-today-story-layout.md
+**For spec:** specs/013-today-story-layout.md
 **Type:** feature
-**Branch:** feat/today-story-layout (already created from main; spec 012 sits there uncommitted)
+**Branch:** feat/today-story-layout (already created from main; spec 013 sits there uncommitted)
 
 ## Context
 You picked prototype variant C (Story timeline, `prototype/homescreen-v2`) and want a setting to
-switch the Today screen between Rings (spec 002) and Story. Spec 012 is approved. On approval,
-this plan is saved to `plans/012-today-story-layout.md` and committed with the spec as the
+switch the Today screen between Rings (spec 002) and Story. Spec 013 is approved. On approval,
+this plan is saved to `plans/013-today-story-layout.md` and committed with the spec as the
 first commit; then `/execute` works it one task at a time.
 
 ## Approach

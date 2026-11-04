@@ -16,8 +16,6 @@ struct SleepScore: Equatable, Sendable {
     /// The fewest earlier Nights with both Sleep Onset and Final Wake that Sleep Consistency needs
     /// (spec 010: 3; a median of fewer is noise).
     static let fewestConsistencyNights = 3
-    /// Minutes in a day, for clock times.
-    private static let minutesPerDay = 24.0 * 60
     /// The share of the Sleep Period asleep at or above which Sleep Efficiency is 100 (spec 010:
     /// 95%). Unitless.
     static let fullEfficiency = 0.95
@@ -106,28 +104,9 @@ struct SleepScore: Equatable, Sendable {
         }
         guard earlier.count >= fewestConsistencyNights else { return nil }
         return (
-            onset: median(of: earlier.map { clockDifference(onset, $0.onset, in: timeZone) }),
-            wake: median(of: earlier.map { clockDifference(wake, $0.wake, in: timeZone) })
+            onset: median(of: earlier.map { ClockTime.difference(onset, $0.onset, in: timeZone) }),
+            wake: median(of: earlier.map { ClockTime.difference(wake, $0.wake, in: timeZone) })
         )
-    }
-
-    /// Minutes from `other`'s local clock time to `time`'s, the shortest way round the clock:
-    /// −720 to +720, so 00:10 is 20 minutes after 23:50. (IEEE remainder rounds to the nearest
-    /// whole day, so exactly 12 h keeps its sign.)
-    private static func clockDifference(_ time: Date, _ other: Date, in timeZone: TimeZone)
-        -> Double
-    {
-        (clockMinutes(time, in: timeZone) - clockMinutes(other, in: timeZone))
-            .remainder(dividingBy: minutesPerDay)
-    }
-
-    /// Minutes since local midnight of `date` in `timeZone`.
-    private static func clockMinutes(_ date: Date, in timeZone: TimeZone) -> Double {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let parts = calendar.dateComponents([.hour, .minute, .second], from: date)
-        return Double(parts.hour ?? 0) * 60 + Double(parts.minute ?? 0)
-            + Double(parts.second ?? 0) / 60
     }
 
     /// `value` on a straight line from 0 (at `zeroAt`) to 100 (at `fullAt`), held at 0 and 100

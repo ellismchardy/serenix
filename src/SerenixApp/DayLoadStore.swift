@@ -20,6 +20,10 @@ final class StoredDayLoad {
     /// The Day's Resting HR, bpm (spec 007); nil for a Day without one, including every Day stored
     /// before spec 007 (optional, so the store migrates by itself).
     var restingHR: Double?
+    /// Whether this Day's HR Zones and Resting HR were kept when it was worked out (spec 007, Days
+    /// missing their values). Nil reads as not kept: a Day stored before this field, or one whose
+    /// values another build of Serenix that doesn't store them dropped (it drops this too).
+    var valuesKept: Bool?
 
     init(_ dayLoad: DayLoad) {
         dateKey = StoredNight.dateKey(dayLoad.day)
@@ -29,6 +33,7 @@ final class StoredDayLoad {
         load = dayLoad.load
         missingReason = dayLoad.missingReason?.rawValue
         restingHR = dayLoad.restingHR
+        valuesKept = dayLoad.valuesKept
         heartRate = dayLoad.heartRate.flatMap { heartRate in
             do {
                 return try JSONEncoder().encode(heartRate)
@@ -57,7 +62,8 @@ final class StoredDayLoad {
                     return nil
                 }
             },
-            restingHR: restingHR
+            restingHR: restingHR,
+            valuesKept: valuesKept ?? false
         )
     }
 }

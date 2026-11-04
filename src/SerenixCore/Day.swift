@@ -32,9 +32,21 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
     /// Midday on this Day in `timeZone`, on the Gregorian calendar whatever the phone's own
     /// calendar is, so no daylight-saving change can move it onto a neighbouring Day.
     func midday(in timeZone: TimeZone) -> Date {
+        date(atMinutes: 12 * 60, in: timeZone)
+    }
+
+    /// `minutes` past local midnight on this Day in `timeZone` (e.g. 1380 for 23:00), on the
+    /// Gregorian calendar.
+    func date(atMinutes minutes: Int, in timeZone: TimeZone) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        let components = DateComponents(year: year, month: month, day: dayOfMonth, hour: 12)
+        let components = DateComponents(
+            year: year,
+            month: month,
+            day: dayOfMonth,
+            hour: minutes / 60,
+            minute: minutes % 60
+        )
         // Only a Day far outside any real date has none; it falls back to the start of time
         // rather than crashing (docs/architecture.md, Errors).
         return calendar.date(from: components) ?? .distantPast
@@ -73,6 +85,11 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
     /// The weekday's letter for the week strip, e.g. "M".
     var weekdayLetter: String {
         weekdayIndex.map { Self.weekdayLetters[$0] } ?? missingText
+    }
+
+    /// The weekday's short name, e.g. "Mon", as `text` starts.
+    var weekdayName: String {
+        weekdayIndex.map { Self.weekdayNames[$0] } ?? missingText
     }
 
     /// The month and year, e.g. "November 2026".
@@ -158,18 +175,24 @@ public struct DayLoad: Equatable, Codable, Sendable {
     /// The Day's Resting HR (spec 007), bpm; nil when the Day has none, including every Day
     /// stored before spec 007 until it's rebuilt.
     public var restingHR: Double?
+    /// Whether `heartRate` and `restingHR` were kept when the Day was worked out, even when either
+    /// is missing (spec 007, Days missing their values). A Day worked out by `load(of:)` has them
+    /// kept; a stored Day without them is queued to be worked out again while still due.
+    public var valuesKept: Bool
 
     public init(
         day: Day,
         load: Int?,
         missingReason: LoadMissing? = nil,
         heartRate: DayHeartRate? = nil,
-        restingHR: Double? = nil
+        restingHR: Double? = nil,
+        valuesKept: Bool = true
     ) {
         self.day = day
         self.load = load
         self.missingReason = missingReason
         self.heartRate = heartRate
         self.restingHR = restingHR
+        self.valuesKept = valuesKept
     }
 }

@@ -109,7 +109,7 @@ struct ProfileMenu: View {
                     .pickerStyle(.segmented)
                 }
                 .listRowBackground(Theme.card)
-                // Spec 012: Rings or Story, applied to the Today screen at once.
+                // Spec 013: Rings or Story, applied to the Today screen at once.
                 Section("Today layout") {
                     Picker("Today layout", selection: $todayLayout) {
                         ForEach(TodayLayout.allCases) { Text($0.label).tag($0) }

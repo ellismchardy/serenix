@@ -219,17 +219,7 @@ public struct SleepPopup: Equatable, Sendable {
         let timeAsleep = night.plausibleTimeAsleep
         timeAsleepText = timeAsleep.map(durationText) ?? missingText
         sleepNeedBar = SleepNeedBar(timeAsleep: timeAsleep, sleepNeed: sleepNeed.sleepNeed)
-        minutesAwakeText =
-            if let onset = night.sleepOnset, let wake = night.finalWake, let timeAsleep,
-                let minutes = Int(
-                    exactly: ((wake.timeIntervalSince(onset) - timeAsleep) / 60).rounded()
-                ),
-                minutes >= 0
-            {
-                "\(minutes) min"
-            } else {
-                missingText
-            }
+        minutesAwakeText = night.minutesAwake.map { "\($0) min" } ?? missingText
     }
 
     /// The detail of the part named `name`; "—" if there's no such part.

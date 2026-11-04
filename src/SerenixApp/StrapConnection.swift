@@ -114,19 +114,6 @@ final class StrapConnection: NSObject, ObservableObject {
             lastDataRange = HistoryDataRange(oldest: oldest, newest: newest)
         }
         refreshStoreStats()
-        // Days worked out before spec 006 have no HR Zones: work out every Day whose History
-        // Records may still be here once, on the first launch with HR Zones (spec 006).
-        if !defaults.bool(forKey: heartRateZonesBackfilledKey) {
-            queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current))
-            defaults.set(true, forKey: heartRateZonesBackfilledKey)
-        }
-        // Days worked out before spec 007 have no Resting HR, and their Load used Nights' Sleeping
-        // HR: work out every Day whose History Records may still be here once, on the first launch
-        // with Resting HR (spec 007, Updating the app).
-        if !defaults.bool(forKey: restingHRBackfilledKey) {
-            queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current))
-            defaults.set(true, forKey: restingHRBackfilledKey)
-        }
         rebuildNights()
     }
 
@@ -382,6 +369,26 @@ final class StrapConnection: NSObject, ObservableObject {
         DayLoadStore.pendingRebuilds = pending
     }
 
+    /// Queues the stored Nights with no Heart Rate Trace that can still be rebuilt and aren't
+    /// queued yet (spec 012, Nights missing a Heart Rate Trace). Asked every time, with no "done"
+    /// flag: a Heart Rate Trace can be lost after any flag was set, e.g. by another build of
+    /// Serenix that doesn't store it opening the same data.
+    private static func queueTraceRebuilds(
+        for nights: [Night],
+        now: Date,
+        timeZone: TimeZone
+    ) {
+        let pending = NightStore.pendingRebuilds
+        let added = traceRebuilds(
+            for: nights,
+            alreadyQueued: pending,
+            now: now,
+            in: timeZone
+        )
+        guard !added.isEmpty else { return }
+        NightStore.pendingRebuilds = pending + added
+    }
+
     /// Takes away one queued copy of `rebuild`, leaving any copy queued while it was worked out.
     private static func removeOnePending(_ rebuild: NightRebuild) {
         var pending = NightStore.pendingRebuilds
@@ -396,8 +403,9 @@ final class StrapConnection: NSObject, ObservableObject {
         DayLoadStore.pendingRebuilds = pending
     }
 
-    /// Shows every stored Night and Day Load, then works out, off the main thread and one date at
-    /// a time, every queued Night rebuild still due, then every queued Day rebuild still due (so
+    /// Shows every stored Night and Day Load, queues the Nights missing a Heart Rate Trace and the
+    /// Days missing their values, then works out, off the main thread and one date at a time,
+    /// every queued Night rebuild still due, then every queued Day rebuild still due (so
     /// a Day's Load sees that morning's Night), then shows them again. A rebuild that fails goes
     /// to the back of its queue, to be tried after the next sync or launch; it never stops what's
     /// stored from showing.
@@ -410,9 +418,32 @@ final class StrapConnection: NSObject, ObservableObject {
             await previous?.value
             // What's stored shows first: a queue left by a run that was swiped away or ended by
             // iOS takes minutes to work out at launch, and the screen would be blank until then.
-            await showStoredNights(in: container)
-            await showStoredDayLoads(in: container)
+            let stored = await showStoredNights(in: container)
+            let storedDays = await showStoredDayLoads(in: container)
             let now = Date()
+            // Nights missing a Heart Rate Trace are queued to gain one and their Wake Bouts, while
+            // their History Records are still due.
+            if let stored {
+                await MainActor.run {
+                    Self.queueTraceRebuilds(for: stored, now: now, timeZone: timeZone)
+                }
+            }
+            // Days whose HR Zones and Resting HR weren't kept (stored before them, or dropped by
+            // another build of Serenix) are queued to gain them, while their History Records are
+            // still due (spec 007, Days missing their values). Asked on every pass, with no "done"
+            // flag: values can be lost after any flag was set.
+            if let storedDays {
+                await MainActor.run {
+                    self.queueDayRebuilds(
+                        dayRebuilds(
+                            missingValuesIn: storedDays,
+                            alreadyQueued: DayLoadStore.pendingRebuilds,
+                            now: now,
+                            in: timeZone
+                        )
+                    )
+                }
+            }
             let queued = await MainActor.run { NightStore.pendingRebuilds }
             for rebuild in queued {
                 await MainActor.run { self.rebuildInProgress = rebuild }
@@ -492,15 +523,18 @@ final class StrapConnection: NSObject, ObservableObject {
         }
     }
 
-    /// Reads every stored Day Load off the main thread and shows it.
-    nonisolated private func showStoredDayLoads(in container: ModelContainer) async {
+    /// Reads every stored Day Load off the main thread and shows it; nil if they can't be read.
+    @discardableResult
+    nonisolated private func showStoredDayLoads(in container: ModelContainer) async -> [DayLoad]? {
         do {
             let stored = try DayLoadStore.dayLoads(in: container)
             await MainActor.run { self.dayLoads = stored }
+            return stored
         } catch {
             storeLog.error(
                 "Couldn't read stored Day Loads: \(error.localizedDescription, privacy: .public)"
             )
+            return nil
         }
     }
 
@@ -982,10 +1016,6 @@ private let strapFirmwareKey = "strapFirmware"
 private let batteryLevelKey = "batteryLevel"
 private let dataRangeOldestKey = "dataRangeOldest"
 private let dataRangeNewestKey = "dataRangeNewest"
-/// Set once every due Day has been queued to gain HR Zones (spec 006).
-private let heartRateZonesBackfilledKey = "heartRateZonesBackfilled"
-/// Set once every due Day has been queued to gain a Resting HR (spec 007).
-private let restingHRBackfilledKey = "restingHRBackfilled"
 
 /// Seconds to look for or connect to the Strap before the attempt fails (spec 001: "can't be
 /// found or connected"). An assumption: a Strap in range connects within a second or two.

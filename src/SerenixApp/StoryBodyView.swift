@@ -1,7 +1,7 @@
 import SerenixCore
 import SwiftUI
 
-/// The Story layout's body under the week strip (spec 012): the Today view's Story as a
+/// The Story layout's body under the week strip (spec 013): the Today view's Story as a
 /// timeline of steps, each a dot on a line with a time label, a title and a card. Taps go back
 /// to the Today screen, which opens the popup as the Rings layout would.
 struct StoryBodyView: View {

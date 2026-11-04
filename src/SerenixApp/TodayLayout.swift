@@ -1,4 +1,4 @@
-/// How the Today screen lays out the Day shown (spec 012): Rings (spec 002's layout) or Story.
+/// How the Today screen lays out the Day shown (spec 013): Rings (spec 002's layout) or Story.
 /// Kept on this phone with `@AppStorage(TodayLayout.storageKey)`; Rings until changed.
 enum TodayLayout: String, CaseIterable, Identifiable {
     case rings
