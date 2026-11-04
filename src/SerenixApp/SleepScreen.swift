@@ -233,7 +233,7 @@ private struct SleepWeekView: View {
         .themeCard()
     }
 
-    /// One lane: its name, its Night's bar on the axis (or "no Night"), and its Time Asleep, in
+    /// One lane: its name, its Night's block on the axis (or "no Night"), and its Time Asleep, in
     /// amber when short of its Sleep Need. A Night's lane opens and closes on tap.
     private func laneRow(_ lane: SleepLane) -> some View {
         HStack(spacing: laneSpacing) {
@@ -252,24 +252,37 @@ private struct SleepWeekView: View {
                     if let timeInBed = lane.timeInBed {
                         Capsule()
                             .fill(Theme.accentSoft)
-                            .frame(width: max(x(timeInBed.end) - x(timeInBed.start), 4), height: 4)
+                            .frame(
+                                width: max(x(timeInBed.end) - x(timeInBed.start), 4),
+                                height: laneBlockHeight
+                            )
                             .offset(x: x(timeInBed.start))
                     }
-                    ForEach(lane.asleepSegments, id: \.start) { segment in
+                    if let asleep = lane.asleep {
+                        // Lighter at Sleep Onset, the accent colour by Final Wake.
                         Capsule()
-                            .fill(Theme.accent)
-                            .frame(width: max(x(segment.end) - x(segment.start), 3), height: 12)
-                            .offset(x: x(segment.start))
+                            .fill(
+                                LinearGradient(
+                                    colors: [Theme.accentMiddle, Theme.accent],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(
+                                width: max(x(asleep.end) - x(asleep.start), 4),
+                                height: laneBlockHeight
+                            )
+                            .offset(x: x(asleep.start))
                     }
-                    // A thin amber mark in each gap the Wake Bouts leave.
-                    ForEach(
-                        Array(zip(lane.asleepSegments, lane.asleepSegments.dropFirst())),
-                        id: \.0.start
-                    ) { pair in
-                        Capsule()
+                    // Each Wake Bout as an amber notch standing above and below the block.
+                    ForEach(lane.wakeNotches, id: \.self) { notch in
+                        RoundedRectangle(cornerRadius: 1.5)
                             .fill(.orange)
-                            .frame(width: max(x(pair.1.start) - x(pair.0.end), 2), height: 3)
-                            .offset(x: x(pair.0.end))
+                            .frame(
+                                width: max(x(notch.end) - x(notch.start), 2.5),
+                                height: laneNotchHeight
+                            )
+                            .offset(x: x(notch.start))
                     }
                 }
                 .frame(maxHeight: .infinity)
@@ -346,7 +359,7 @@ private struct SleepWeekView: View {
     private func openPanel(_ lane: SleepLane) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if let chart = lane.chart {
-                SleepChartView(chart: chart, asleepSegments: lane.asleepSegments)
+                SleepChartView(chart: chart)
             } else if let notKept = lane.notKeptText {
                 Text(notKept)
                     .font(.footnote)
@@ -372,8 +385,6 @@ private struct SleepWeekView: View {
 /// a dotted line at Sleeping HR; under it the sleep/wake band and hour ticks.
 private struct SleepChartView: View {
     let chart: SleepChart
-    /// The bar's asleep stretches, Sleep Onset to Final Wake broken at each Wake Bout.
-    let asleepSegments: [DateInterval]
 
     var body: some View {
         VStack(spacing: 6) {
@@ -501,18 +512,16 @@ private struct SleepChartView: View {
             let width = geometry.size.width - chartLabelGutter
             ZStack(alignment: .leading) {
                 Capsule().fill(Theme.accentSoft).frame(width: width)
-                ForEach(asleepSegments, id: \.start) { segment in
-                    Capsule()
-                        .fill(Theme.accent)
-                        .frame(
-                            width: max(
-                                xPosition(segment.end, width: width)
-                                    - xPosition(segment.start, width: width),
-                                3
-                            )
+                Capsule()
+                    .fill(Theme.accent)
+                    .frame(
+                        width: max(
+                            xPosition(chart.asleepEnd, width: width)
+                                - xPosition(chart.asleepStart, width: width),
+                            3
                         )
-                        .offset(x: xPosition(segment.start, width: width))
-                }
+                    )
+                    .offset(x: xPosition(chart.asleepStart, width: width))
                 ForEach(chart.wakeBouts, id: \.start) { bout in
                     Capsule()
                         .fill(.orange)
@@ -561,6 +570,10 @@ private let laneValueWidth: CGFloat = 52
 private let laneSpacing: CGFloat = 6
 /// The height of a lane's bar area and of a row of axis labels or hour ticks, points.
 private let laneBarHeight: CGFloat = 18
+/// The height of a lane's block, points.
+private let laneBlockHeight: CGFloat = 12
+/// The height of a Wake Bout notch, standing 3 points above and below the block, points.
+private let laneNotchHeight: CGFloat = 18
 private let axisLabelHeight: CGFloat = 14
 /// A Night's chart: its height, the room at its right for bpm labels, and its band's height,
 /// points.

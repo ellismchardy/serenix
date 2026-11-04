@@ -367,9 +367,13 @@ public struct SleepLane: Equatable, Sendable {
     public let name: String
     /// "no Night" when the Day has no Night; nil otherwise.
     public let noNightText: String?
-    /// Sleep Onset to Final Wake, split at each Wake Bout, UTC; empty with no Night.
-    public let asleepSegments: [DateInterval]
-    /// Time in Bed, drawn as a thin track under the bar; nil without one.
+    /// Sleep Onset to Final Wake, the lane's unbroken block, UTC; nil with no Night or without
+    /// both Sleep Onset and Final Wake.
+    public let asleep: DateInterval?
+    /// Each Wake Bout, start to end, clamped to the block, oldest first: the block's amber
+    /// notches. Empty with no Night, no Heart Rate Trace (spec 012, Not kept) or no Wake Bouts.
+    public let wakeNotches: [DateInterval]
+    /// Time in Bed, drawn as a soft track under the block; nil without one.
     public let timeInBed: DateInterval?
     /// The Night's Time Asleep, e.g. "6h 0m", "—" when not worked out; nil with no Night.
     public let timeAsleepText: String?
@@ -404,7 +408,17 @@ public struct SleepLane: Equatable, Sendable {
         wakeText = night.flatMap(Self.wakeText)
         self.name = name
         noNightText = night == nil ? "no Night" : nil
-        asleepSegments = night.map(Self.asleepSegments) ?? []
+        let asleep = night.flatMap { night -> DateInterval? in
+            guard let onset = night.sleepOnset, let wake = night.finalWake, wake > onset
+            else { return nil }
+            return DateInterval(start: onset, end: wake)
+        }
+        self.asleep = asleep
+        if let night, let asleep {
+            wakeNotches = Self.wakeNotches(of: night, in: asleep)
+        } else {
+            wakeNotches = []
+        }
         timeInBed = night.flatMap { night in
             guard let start = night.timeInBedStart, let end = night.timeInBedEnd, end > start
             else { return nil }
@@ -436,24 +450,15 @@ public struct SleepLane: Equatable, Sendable {
         return night.minutesAwake.map { "\(woke) \u{00B7} \($0) min awake" } ?? woke
     }
 
-    /// Sleep Onset to Final Wake with each Wake Bout cut out, oldest first.
-    private static func asleepSegments(of night: Night) -> [DateInterval] {
-        guard let onset = night.sleepOnset, let wake = night.finalWake, wake > onset else {
-            return []
+    /// Each Wake Bout clamped to `block`, oldest first; none for a Night with no Heart Rate Trace
+    /// (spec 012, Not kept).
+    private static func wakeNotches(of night: Night, in block: DateInterval) -> [DateInterval] {
+        guard night.heartRateTrace != nil else { return [] }
+        return (night.wakeBouts ?? []).sorted { $0.start < $1.start }.compactMap { bout in
+            let start = max(bout.start, block.start)
+            let end = min(bout.end, block.end)
+            return end > start ? DateInterval(start: start, end: end) : nil
         }
-        var segments: [DateInterval] = []
-        var from = onset
-        // A Night with no Heart Rate Trace has no gaps (spec 012, Not kept).
-        let bouts = night.heartRateTrace == nil ? [] : night.wakeBouts ?? []
-        for bout in bouts.sorted(by: { $0.start < $1.start }) {
-            let boutStart = max(bout.start, onset)
-            let boutEnd = min(bout.end, wake)
-            guard boutEnd > boutStart else { continue }
-            if boutStart > from { segments.append(DateInterval(start: from, end: boutStart)) }
-            from = max(from, boutEnd)
-        }
-        if wake > from { segments.append(DateInterval(start: from, end: wake)) }
-        return segments
     }
 }
 

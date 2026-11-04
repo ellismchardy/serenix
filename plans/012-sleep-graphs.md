@@ -24,7 +24,7 @@ files, so they run in order.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice: the lane's block and notches.** `SleepLane.asleepSegments` becomes
+1. [x] **Slice: the lane's block and notches.** `SleepLane.asleepSegments` becomes
    `asleep: DateInterval?` (Sleep Onset to Final Wake, unbroken) and `wakeNotches:
    [DateInterval]` (each Wake Bout, clamped to the block; empty without a Heart Rate Trace or
    with Wake Bouts not kept). The Sleep screen draws the Time in Bed track, the block shaded

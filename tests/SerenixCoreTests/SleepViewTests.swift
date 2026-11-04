@@ -366,25 +366,27 @@ private func laneChart(_ night: Night) -> SleepChart? {
     #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
 }
 
-@Test func withNoHeartRateTraceTheChartIsReplacedByTheNotKeptNoteAndTheBarHasNoGaps() {
+@Test func withNoHeartRateTraceTheChartIsReplacedByTheNotKeptNoteAndTheBlockHasNoNotches() {
     let night = nightOn3Nov(heartRateTrace: nil, wakeBouts: nil)
     let lane = sleepView(nights: [night]).week.lanes.first
 
     #expect(lane?.notKeptText == "Heart rate isn't kept for Nights older than 30 days.")
     #expect(lane != nil && lane?.chart == nil)
     #expect(lane?.wakeText == nil)
-    #expect(lane?.asleepSegments == [DateInterval(start: at(2, 23), end: at(3, 7))])
+    #expect(lane?.asleep == DateInterval(start: at(2, 23), end: at(3, 7)))
+    #expect(lane?.wakeNotches == [])
     #expect(lane?.timeAsleepText == "7h 45m")
 }
 
-/// The not-kept rule follows the Heart Rate Trace: with Wake Bouts still on the Night, its bar
-/// still has no gaps and there's no "Woke" text (spec 012, Not kept).
-@Test func withNoHeartRateTraceButWakeBoutsTheBarStillHasNoGapsOrWokeText() {
+/// The not-kept rule follows the Heart Rate Trace: with Wake Bouts still on the Night, its block
+/// still has no notches and there's no "Woke" text (spec 012, Not kept).
+@Test func withNoHeartRateTraceButWakeBoutsTheBlockStillHasNoNotchesOrWokeText() {
     let lane = sleepView(nights: [nightOn3Nov(heartRateTrace: nil)]).week.lanes.first
 
     #expect(lane?.notKeptText == "Heart rate isn't kept for Nights older than 30 days.")
     #expect(lane?.wakeText == nil)
-    #expect(lane?.asleepSegments == [DateInterval(start: at(2, 23), end: at(3, 7))])
+    #expect(lane?.asleep == DateInterval(start: at(2, 23), end: at(3, 7)))
+    #expect(lane?.wakeNotches == [])
 }
 
 /// Hour ticks sit strictly inside the chart: Time in Bed 22:00–08:00 has none at 22:00 or 08:00.
@@ -594,7 +596,7 @@ private let yourWeekNights = [
     #expect(lanes.map(\.name) == ["Last", "Mon", "Sun", "Sat", "Fri", "Thu", "Wed"])
 }
 
-@Test func yourWeekDaysWithNoNightReadNoNightAndHaveNoBar() {
+@Test func yourWeekDaysWithNoNightReadNoNightAndHaveNoBlock() {
     let lanes = sleepView(nights: yourWeekNights).week.lanes
 
     #expect(lanes.count == 7)
@@ -602,7 +604,8 @@ private let yourWeekNights = [
     #expect(lanes.map(\.noNightText) == noNightTexts)
     for lane in lanes.suffix(4) {
         #expect(lane.timeAsleepText == nil)
-        #expect(lane.asleepSegments.isEmpty)
+        #expect(lane.asleep == nil)
+        #expect(lane.wakeNotches.isEmpty)
         #expect(lane.timeInBed == nil)
         #expect(lane.isShort == false)
         #expect(lane.chart == nil)
@@ -642,7 +645,7 @@ private let yourWeekNights = [
     #expect(week.lanes.map(\.noNightText) == noNightTexts)
 }
 
-/// A Night whose Time Asleep wasn't worked out still has its bar; its Time Asleep reads "—" and
+/// A Night whose Time Asleep wasn't worked out still has its block; its Time Asleep reads "—" and
 /// it isn't marked short. With no Time Asleep in the week there's no Sleep Debt either, so the
 /// title reads only "Your week".
 @Test func aNightWithNoTimeAsleepReadsADashAndIsntShort() {
@@ -652,23 +655,24 @@ private let yourWeekNights = [
 
     #expect(week.lanes.first?.timeAsleepText == "\u{2014}")
     #expect(week.lanes.first?.isShort == false)
-    #expect(week.lanes.first?.asleepSegments == [DateInterval(start: at(2, 23), end: at(3, 7))])
+    #expect(week.lanes.first?.asleep == DateInterval(start: at(2, 23), end: at(3, 7)))
     #expect(week.summaryText == nil)
 }
 
-/// Without Wake Bouts each Night's bar is one segment, Sleep Onset to Final Wake, on its Time in
-/// Bed track.
-@Test func eachNightsBarRunsFromSleepOnsetToFinalWakeOnItsTimeInBedTrack() {
+/// Without Wake Bouts each Night's block runs Sleep Onset to Final Wake with no notches, on its
+/// Time in Bed track.
+@Test func eachNightsBlockRunsFromSleepOnsetToFinalWakeOnItsTimeInBedTrack() {
     let lanes = sleepView(nights: yourWeekNights).week.lanes
 
     #expect(lanes.count == 7)
-    #expect(
-        lanes.prefix(3).map(\.asleepSegments) == [
-            [DateInterval(start: at(2, 23), end: at(3, 7))],
-            [DateInterval(start: at(1, 23), end: at(2, 7))],
-            [DateInterval(start: at(month: 10, 31, 23), end: at(1, 7))],
-        ]
-    )
+    let blocks: [DateInterval?] = [
+        DateInterval(start: at(2, 23), end: at(3, 7)),
+        DateInterval(start: at(1, 23), end: at(2, 7)),
+        DateInterval(start: at(month: 10, 31, 23), end: at(1, 7)),
+    ]
+    #expect(lanes.prefix(3).map(\.asleep) == blocks)
+    let noNotches: [[DateInterval]] = [[], [], []]
+    #expect(lanes.prefix(3).map(\.wakeNotches) == noNotches)
     let tracks: [DateInterval?] = [
         DateInterval(start: at(2, 22, 50), end: at(3, 7, 10)),
         DateInterval(start: at(1, 22, 50), end: at(2, 7, 10)),
@@ -774,19 +778,45 @@ private let yourWeekNights = [
 
 // MARK: A Night's lane
 
-/// Spec 012, "A Night's lane and chart": the bar is split at each Wake Bout (02:10 for 8 min,
-/// 04:30 for 7 min) and sits on the Time in Bed track.
-@Test func aNightsBarBreaksAtEachWakeBoutOnItsTimeInBedTrack() {
+/// Spec 012, "A Night's lane and chart": the block runs Sleep Onset to Final Wake unbroken, with a
+/// notch at each Wake Bout (02:10 for 8 min, 04:30 for 7 min), on the Time in Bed track.
+@Test func aNightsBlockIsUnbrokenWithANotchAtEachWakeBoutOnItsTimeInBedTrack() {
     let lane = sleepView(nights: [nightOn3Nov()]).week.lanes.first
 
+    #expect(lane?.asleep == DateInterval(start: at(2, 23), end: at(3, 7)))
     #expect(
-        lane?.asleepSegments == [
-            DateInterval(start: at(2, 23), end: at(3, 2, 10)),
-            DateInterval(start: at(3, 2, 18), end: at(3, 4, 30)),
-            DateInterval(start: at(3, 4, 37), end: at(3, 7)),
+        lane?.wakeNotches == [
+            DateInterval(start: at(3, 2, 10), end: at(3, 2, 18)),
+            DateInterval(start: at(3, 4, 30), end: at(3, 4, 37)),
         ]
     )
     #expect(lane?.timeInBed == DateInterval(start: at(2, 22, 50), end: at(3, 7, 10)))
+}
+
+/// Wake Bouts stored out of order still give their notches oldest first.
+@Test func aNightsNotchesRunOldestFirstWhateverOrderItsWakeBoutsAreIn() {
+    let night = nightOn3Nov(wakeBouts: [
+        WakeBout(start: at(3, 4, 30), minutes: 7),
+        WakeBout(start: at(3, 2, 10), minutes: 8),
+    ])
+    let lane = sleepView(nights: [night]).week.lanes.first
+
+    #expect(
+        lane?.wakeNotches == [
+            DateInterval(start: at(3, 2, 10), end: at(3, 2, 18)),
+            DateInterval(start: at(3, 4, 30), end: at(3, 4, 37)),
+        ]
+    )
+}
+
+/// A Wake Bout at 06:55 for 10 min runs past Final Wake (07:00), so its notch stops at 07:00,
+/// inside the block.
+@Test func aWakeBoutRunningPastFinalWakeHasItsNotchClampedToTheBlock() {
+    let night = nightOn3Nov(wakeBouts: [WakeBout(start: at(3, 6, 55), minutes: 10)])
+    let lane = sleepView(nights: [night]).week.lanes.first
+
+    #expect(lane?.asleep == DateInterval(start: at(2, 23), end: at(3, 7)))
+    #expect(lane?.wakeNotches == [DateInterval(start: at(3, 6, 55), end: at(3, 7))])
 }
 
 // MARK: What stood out
