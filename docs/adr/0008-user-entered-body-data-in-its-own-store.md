@@ -4,9 +4,9 @@
 **Status:** accepted
 
 Everything Serenix stored until now comes from the Strap and can be rebuilt from History Records.
-What the user types on the Body tab (Weigh-ins, Intake, Complete Days, Check-ins, BP Readings and
-Weight Goals) can't be rebuilt. So it lives in a **SwiftData store file of its own**, apart from
-History Records and Nights. It is **kept forever**, any single entry can be edited or deleted, and
+What the user types on the Body tab (Weigh-ins, Intake, Complete Days, Check-ins, BP Readings, and
+Weight Goals both current and ended) can't be rebuilt. So it lives in a **SwiftData store file of
+its own**, apart from History Records and Nights. It is **kept forever**, any single entry can be edited or deleted, and
 it is stored **raw**: each entry with its time, never Trend Weight, Weekly Rate, Expenditure, BP
 Category or Habit Links. Those are worked out each time they're shown, as Sleep Score and
 Readiness are. Values are stored in metric units, and the Profile's unit choice applies only on

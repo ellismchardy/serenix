@@ -4,10 +4,10 @@
 
 ## Answer
 - The 0.5–1%/wk loss band comes from sports nutrition, not from medical safety limits. Helms et al. 2014 recommend it for natural bodybuilders "to maximize muscle retention". Garthe et al. 2011 found that athletes losing 0.7%/wk gained lean mass, while athletes losing 1.4%/wk did not. Public-health guidance uses absolute rates instead: 1–2 lb/wk (CDC) and 0.5–1 kg/wk (NHS/NICE, not yet checked against their own pages). For an 80 kg adult that is about 0.6–1.25%/wk, so the two roughly agree.
-- **Weight loss:** keep the current thresholds. Warn above 0.5%/wk and say "too fast" above 1%/wk.
+- **Weight loss:** keep the prototype's thresholds. Warn above 0.5%/wk and say "too fast" above 1%/wk.
 - **Lean users:** the sources support a slower pace (Helms 2014; Aragon 2017; Ann N Y Acad Sci 2000), but none gives a numeric body-fat cut-off. The Profile has no body fat, so keep the same thresholds and add a line to the warning text that leaner people should lose more slowly.
 - **Weight gain:** use separate, lower caps. Target 0.25–0.5%/wk (Iraki et al. 2019; about 0.25%/wk for advanced lifters) and warn above 0.5%/wk. A "too fast" level of 1%/wk is a judgement call: no source names a gain cap. Garthe 2013 found that a larger surplus added mostly fat.
-- **Never block,** as the spec already says. None of these sources treats these rates as hard safety limits for healthy adults.
+- **Never block,** as the wayfinder map already says. None of these sources treats these rates as hard safety limits for healthy adults.
 
 ## Findings
 - **Helms, Aragon & Fitschen (2014):** "Caloric intake should be set at a level that results in bodyweight losses of approximately 0.5 to 1%/wk to maximize muscle retention." They also write that "the leaner the competitor becomes the greater the risk for LBM loss" and suggest a more gradual approach towards the end of a diet. [JISSN 11:20, PMC4033492](https://pmc.ncbi.nlm.nih.gov/articles/PMC4033492/)

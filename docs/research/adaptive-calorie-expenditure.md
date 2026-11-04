@@ -7,8 +7,8 @@
   weight first (exponential moving average, α ≈ 0.1/day, i.e. a ~10-day time constant, as in
   Walker's "Hacker's Diet"), then compute the balance over a rolling window, then smooth the
   expenditure estimate itself so it moves slowly.
-- **Recommended sketch:** (1) trend weight `T_t = T_{t-1} + 0.1·(w_t − T_{t-1})`, carrying T
-  forward on days without a weigh-in; (2) over the last 14–21 Days, `TDEE = mean(intake on
+- **Recommended sketch:** (1) trend weight `T_t = T_{t-1} + α·(w_t − T_{t-1})` with the
+  time-aware α = 1 − 0.9^Δd from `trend-weight-smoothing.md` (decided in issue #61); (2) over the last 14–21 Days, `TDEE = mean(intake on
   fully logged Days) − ρ·(T_end − T_start)/n_days`, with ρ = 7,700 kcal/kg for loss/gain
   under ~1 kg/week (or ρ ≈ 5,000–6,500 early in a diet / for lean people, see Findings);
   (3) blend `TDEE_new = 0.9·TDEE_old + 0.1·TDEE_window` per Day (or cap the change at
@@ -17,8 +17,7 @@
   Days and ≥ ~8 weigh-ins spanning at least 10 Days; before that use a formula prior
   (Mifflin-St Jeor RMR × activity factor, or RMR + Serenix's own Load-based activity estimate)
   and blend toward the data estimate as Days accrue (Bayesian-style weighting).
-- **Missed / partial days:** exclude Days the user marks incomplete (or that fall far below
-  their usual intake) from the intake mean instead of counting them as low intake; the weight
+- **Missed / partial days:** count only Complete Days (the user's own marker, per issue #59) in the intake mean instead of counting them as low intake; the weight
   side still uses the whole span. Under-logging biases TDEE low by exactly the unlogged
   kcal, so incomplete Days must not be treated as zero.
 - **7,700 kcal/kg accuracy:** fine as a short-horizon converter for moderate change in adults

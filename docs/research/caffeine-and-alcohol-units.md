@@ -3,7 +3,7 @@
 **Date:** 2026-11-04 · **Unblocks:** check-in presets for caffeine and alcohol — issue #57
 
 ## Answer
-- **Store grams of ethanol, display in the user's local unit.** Grams convert cleanly to any national unit: UK unit = 8 g (10 ml), AU/NZ standard drink = 10 g, US standard drink = 14 g. Default the display to the UK unit (the owner is UK-based); the unit choice can follow locale later. Grams = volume ml × ABV × 0.789.
+- **Store grams of ethanol, display in the user's local unit.** Grams convert cleanly to any national unit: UK unit = 8 g (10 ml), AU/NZ standard drink = 10 g, US standard drink = 14 g. Default the display to the UK unit (the owner is UK-based); US (14 g) and AU/NZ (10 g) units follow the user's locale (issue #57). Grams = volume ml × ABV × 0.789.
 - **Alcohol presets** (grams of ethanol, UK units, US drinks):
 
   | Preset | Volume | ABV | g ethanol | UK units | US drinks |

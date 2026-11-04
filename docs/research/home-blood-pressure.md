@@ -3,7 +3,7 @@
 **Date:** 2026-11-04 · **Unblocks:** blood pressure check-in design (issue #56)
 
 ## Answer
-- **Protocol (the sources agree):** seated after 5 min of quiet rest, back supported, feet flat, cuff on bare upper arm at heart level. No caffeine, exercise or smoking in the 30 min before. Take **2 readings 1 min apart**, **morning** (before medication and food) and **evening**, for **7 days** (at least 3–4). **Discard day 1** and average the rest (NICE, ESH). Between monitoring weeks, one session now and then is enough.
+- **Protocol (the sources agree):** seated after 5 min of quiet rest, back supported, feet flat, cuff on bare upper arm at heart level. No caffeine, exercise or smoking in the 30 min before. Take **2 readings 1 min apart**, **morning** (before medication and food) and **evening**, for **7 days** (at least 3–4). **Discard day 1** and average the rest (NICE, ESH; not yet checked against their own pages — see *Open / uncertain*). Between monitoring weeks, one session now and then is enough.
 - **Bands: use home thresholds, not office ones.** A home average of 135/85 matches an office reading of 140/90. AHA/ACC 2025 keeps its 2017 categories and maps them to home values. Suggested table (a category applies when systolic **or** diastolic meets it):
 
   | Serenix band | Home average (mm Hg) | Source basis |

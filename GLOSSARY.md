@@ -262,7 +262,7 @@ _Avoid_: budget, calorie goal
 
 **Deficit Check**:
 Serenix's watch for HRV and Sleeping HR worsening against Baseline while the user eats below
-their Expenditure.
+their Expenditure, which can lead it to suggest a Diet Break.
 _Avoid_: recovery guard (uses WHOOP's "recovery"), overreaching alert
 
 **Diet Break**:

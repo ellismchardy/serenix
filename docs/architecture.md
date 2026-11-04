@@ -31,7 +31,7 @@ The app is split in two (ADR 0002):
 | Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records | `src/SerenixCore/` |
 | Metrics & scores | Nightly Metrics, Baseline, Sleep Need, Sleep Score, Readiness, Resting HR, Load | `src/SerenixCore/` |
 | BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |
-| Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever) | `src/SerenixApp/` |
+| Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever); a separate SwiftData store for user-entered Body data (kept forever, ADR 0008) | `src/SerenixApp/` |
 | Health export | Writes Resting HR (Sleeping HR never as resting heart rate), HRV, SpO2, respiratory rate and sleep to Apple Health | `src/SerenixApp/` |
 | UI | SwiftUI screens | `src/SerenixApp/` |
 

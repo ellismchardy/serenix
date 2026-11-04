@@ -28,7 +28,7 @@ Verified 2026-11-04 against abstracts from Europe PMC, which gives PubMed metada
   - The IOM fat AMDR (20–35%) and protein AMDR (10–35%) were not confirmed. One NAP slide deck listed protein as 10–30%, which may apply to children.
   - EFSA's fat (20–35%) and carbohydrate (45–60%) reference intakes were not confirmed.
   - The Thomas 2016 carb g/kg ranges and fat floor were not confirmed.
-- **Which body weight to use with obesity:** the sources do not agree on one method. The options are goal weight, adjusted body weight, or lean mass, which Serenix cannot measure. A practical rule: if BMI is over 30, use the weight at BMI 25 for the user's height. This needs height in the Profile, which it does not hold today.
+- **Which body weight to use with obesity:** the sources do not agree on one method. The options are goal weight, adjusted body weight, or lean mass, which Serenix cannot measure. A practical rule: if BMI is over 30, use the weight at BMI 25 for the user's height. This needs height in the Profile, which ADR 0008 adds (body weight comes from Trend Weight, not the Profile).
 - **Profile gaps:** the Profile has no body weight or height, so these fields would have to be added before any of these rules can run.
 - **Small evidence base for the cut range:** 2.3–3.1 g/kg rests on small studies of lean, trained people. 2.2 g/kg is a conservative default just below that range.
 - **Load to activity level:** the sources describe activity in hours of training. A mapping from Serenix's Load to activity level would be Serenix's own choice and needs its own spec.
