@@ -32,7 +32,7 @@ rebuilds seam, then verify.
    - Done when: "With 1 Nov's rebuild already queued, nothing more is queued; once 1 Nov's Night
      has a Heart Rate Trace, nothing is queued for it" passes, and the existing missing-trace
      tests still pass with an empty queue passed in.
-2. [ ] **Verify:** full suite + lint + typecheck green; every automated success criterion in
+2. [x] **Verify:** full suite + lint + typecheck green; every automated success criterion in
    spec 012 checked; no `hasQueuedTraceRebuilds` left. Carried to the PR checklist: the macOS CI
    build, and the two phone checks (recent Nights show their charts after a launch; after
    opening another build and then this one, they come back after a launch — on the owner's

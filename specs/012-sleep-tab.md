@@ -1,9 +1,9 @@
 # 012 — Sleep tab
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-04 (lanes and chart restyled from the graphs prototype's variant E:
 gradient block with Wake Bout notches, one-picture chart in the accent colour, smoothed curve;
-the missing-trace queue runs on every launch)
+the missing-trace queue runs on every launch; built)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -221,7 +221,7 @@ Night rebuilds (missing-trace queue):
 - [x] With now 30 Nov 2026 12:00, stored Nights dated 31 Oct and 1 Nov with no Heart Rate Trace and
       29 Nov with one queue only 1 Nov (its History Records start exactly 30 days earlier, as in
       spec 003's example; 31 Oct's start before that).
-- [ ] With 1 Nov's rebuild already queued, nothing more is queued; once 1 Nov's Night has a Heart
+- [x] With 1 Nov's rebuild already queued, nothing more is queued; once 1 Nov's Night has a Heart
       Rate Trace, nothing is queued for it.
 
 Summary (Sleep view; a Night dated 3 Nov with Sleep Onset 23:00, Final Wake 07:00, and Nights
