@@ -65,7 +65,7 @@ earlier Night, or a change of birth year, updates them with nothing to rebuild.
 
 **Readiness** (spec 008, changed with this spec): the Time Asleep score is −(hours short of the
 Night's Sleep Need), and the Readiness popup's Time Asleep row shows the Night's Sleep Need as
-its reference.
+its reference (superseded by spec 012: the row's reason says how far short of Sleep Need it was).
 
 ## Design decisions
 - **`SerenixCore`: Sleep Need (new).** A pure function: given the Night's date, the earlier
