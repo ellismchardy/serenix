@@ -6,7 +6,9 @@ import SwiftUI
 /// whatever `Onboarding` returns and saves each answer to the Profile as it's given.
 struct OnboardingScreen: View {
     @ObservedObject var profile: ProfileStore
-    @State private var conversation = Onboarding()
+    @State private var conversation = Onboarding(
+        currentYear: Calendar.current.component(.year, from: Date())
+    )
     @State private var text = ""
     @FocusState private var fieldIsFocused: Bool
 

@@ -33,7 +33,7 @@ strictly ordered, because each one extends the same `Onboarding` type and screen
      is set.
    - Done when: the fresh-conversation, name, "Show me Today/Set up later finish" (Set up later
      half) and "counts as finished for existing users" criteria pass as tests.
-2. [ ] **Slice:** questions for birth year, sex and Max HR, with validation.
+2. [x] **Slice:** questions for birth year, sex and Max HR, with validation.
    - Seam: Onboarding conversation · Files: `src/SerenixCore/Onboarding.swift`,
      `tests/SerenixCoreTests/OnboardingTests.swift`, `src/SerenixApp/OnboardingScreen.swift`
    - Covers: the birth year range checked against the current year passed in, the out-of-range

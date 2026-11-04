@@ -36,13 +36,33 @@ public struct Onboarding: Equatable, Sendable {
     /// A ready-made answer the user can tap.
     public enum Chip: Equatable, Sendable {
         case skip
+        case ratherNot
+        case female
+        case male
+        case preferNotToSay
+        case dontKnow
         case setUpLater
 
         /// The chip's text, which is also the user's bubble when tapped.
         public var label: String {
             switch self {
             case .skip: "Skip"
+            case .ratherNot: "Rather not"
+            case .female: "Female"
+            case .male: "Male"
+            case .preferNotToSay: "Prefer not to say"
+            case .dontKnow: "Don't know"
             case .setUpLater: "Set up later"
+            }
+        }
+
+        /// The sex a sex chip stands for; nil for any other chip.
+        public var sex: Sex? {
+            switch self {
+            case .female: .female
+            case .male: .male
+            case .preferNotToSay: .preferNotToSay
+            default: nil
             }
         }
     }
@@ -53,22 +73,30 @@ public struct Onboarding: Equatable, Sendable {
         case chipTapped(Chip)
     }
 
-    /// An answer for the shell to save to the Profile as soon as it's given.
+    /// An answer for the shell to save to the Profile as soon as it's given. A skipped question
+    /// leaves its field unset.
     public enum ProfileChange: Equatable, Sendable {
         /// Trimmed; nil when skipped or blank.
         case name(String?)
+        case birthYear(Int?)
+        case sex(Sex)
+        /// In bpm.
+        case maxHR(Int?)
     }
 
-    private enum Step: Equatable, Sendable { case name, pair, finished }
+    private enum Step: Equatable, Sendable { case name, birthYear, sex, maxHR, pair, finished }
 
     public private(set) var bubbles: [Bubble]
     private var step = Step.name
+    /// For checking a birth year against spec 005's range; passed in so the logic stays testable.
+    private let currentYear: Int
 
     /// After Set up later or Show me Today.
     public var isFinished: Bool { step == .finished }
 
     /// A fresh conversation: Hello, then the name question.
-    public init() {
+    public init(currentYear: Int) {
+        self.currentYear = currentYear
         bubbles = [
             Bubble(
                 .serenix,
@@ -83,6 +111,9 @@ public struct Onboarding: Equatable, Sendable {
     public var controls: Controls {
         switch step {
         case .name: Controls(field: .name, placeholder: "Your name", chips: [.skip])
+        case .birthYear: Controls(field: .number, placeholder: "e.g. 1992", chips: [.ratherNot])
+        case .sex: Controls(field: nil, placeholder: nil, chips: [.female, .male, .preferNotToSay])
+        case .maxHR: Controls(field: .number, placeholder: "e.g. 185", chips: [.dontKnow])
         case .pair: Controls(field: nil, placeholder: nil, chips: [.setUpLater])
         case .finished: Controls(field: nil, placeholder: nil, chips: [])
         }
@@ -96,10 +127,32 @@ public struct Onboarding: Equatable, Sendable {
             return answerName(trimmed.isEmpty ? nil : trimmed)
         case (.name, .chipTapped(.skip)):
             return answerName(nil)
+
+        case (.birthYear, .submitted(let text)):
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let year = Int(trimmed), Profile.allowedBirthYears(in: currentYear).contains(year)
+            else { return askAgain(after: trimmed, Self.birthYearRetry) }
+            return answer(String(year), then: .sex, .birthYear(year))
+        case (.birthYear, .chipTapped(.ratherNot)):
+            return answer(Chip.ratherNot.label, then: .sex, .birthYear(nil))
+
+        case (.sex, .chipTapped(let chip)):
+            guard let sex = chip.sex else { return nil }
+            return answer(chip.label, then: .maxHR, .sex(sex))
+
+        case (.maxHR, .submitted(let text)):
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let bpm = Int(trimmed), Profile.allowedMaxHR.contains(bpm)
+            else { return askAgain(after: trimmed, Self.maxHRRetry) }
+            return answer(String(bpm), then: .pair, .maxHR(bpm))
+        case (.maxHR, .chipTapped(.dontKnow)):
+            return answer(Chip.dontKnow.label, then: .pair, .maxHR(nil))
+
         case (.pair, .chipTapped(.setUpLater)):
             bubbles.append(Bubble(.user, Chip.setUpLater.label))
             step = .finished
             return nil
+
         default:
             // An answer the open question doesn't offer is ignored.
             return nil
@@ -122,13 +175,44 @@ public struct Onboarding: Equatable, Sendable {
         bubbles.append(
             Bubble(.serenix, name.map { "Nice to meet you, \($0)." } ?? "Nice to meet you.")
         )
-        bubbles.append(
-            Bubble(
-                .serenix,
-                "Last thing: let's find your Strap. Put it on and keep your phone close."
-            )
-        )
-        step = .pair
+        step = .birthYear
+        bubbles.append(question(for: step))
         return .name(name)
     }
+
+    /// Shows the user's answer, moves to `next` and asks its question.
+    private mutating func answer(_ shown: String, then next: Step, _ change: ProfileChange)
+        -> ProfileChange
+    {
+        bubbles.append(Bubble(.user, shown))
+        step = next
+        bubbles.append(question(for: next))
+        return change
+    }
+
+    /// Shows what was typed and the retry line; the same question stays open. Nothing typed is
+    /// ignored.
+    private mutating func askAgain(after typed: String, _ retry: String) -> ProfileChange? {
+        guard !typed.isEmpty else { return nil }
+        bubbles.append(Bubble(.user, typed))
+        bubbles.append(Bubble(.serenix, retry))
+        return nil
+    }
+
+    private func question(for step: Step) -> Bubble {
+        let text =
+            switch step {
+            case .name: "What should I call you?"
+            case .birthYear:
+                "What year were you born? It sets how much sleep you need and estimates your Max HR."
+            case .sex: "Which sex should I use for heart-rate calculations?"
+            case .maxHR: "Do you know your Max HR from a test?"
+            case .pair, .finished:
+                "Last thing: let's find your Strap. Put it on and keep your phone close."
+            }
+        return Bubble(.serenix, text)
+    }
+
+    private static let birthYearRetry = "I didn't get that — a year like 1992?"
+    private static let maxHRRetry = "I didn't get that — a number of beats per minute, like 185?"
 }

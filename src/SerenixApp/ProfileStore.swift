@@ -1,9 +1,12 @@
 import Foundation
-import SerenixCore
 
 /// The Profile (GLOSSARY): the user's name, and optionally their birth year, sex and Max HR, kept
 /// in UserDefaults on this phone. It is never sent anywhere, and never written to the Sync Log or
 /// any shared log or report (specs 002 and 005).
+import SerenixCore
+
+/// Set by spec 002's old name prompt, now removed: kept only so existing installs skip Onboarding.
+
 @MainActor
 final class ProfileStore: ObservableObject {
     /// Stored trimmed, nil when blank, by `rename(to:)`; the Today view trims again on read.
@@ -20,21 +23,21 @@ final class ProfileStore: ObservableObject {
     @Published var birthYear: Int? {
         didSet {
             defaults.set(birthYear, forKey: birthYearKey)
-            onLoadInputsChange?()
+            if birthYear != oldValue { onLoadInputsChange?() }
         }
     }
     /// Prefer not to say when not set.
     @Published var sex: Sex {
         didSet {
             defaults.set(sex.rawValue, forKey: sexKey)
-            onLoadInputsChange?()
+            if sex != oldValue { onLoadInputsChange?() }
         }
     }
     /// The Max HR the user entered, in bpm; nil when not set.
     @Published var maxHR: Int? {
         didSet {
             defaults.set(maxHR, forKey: maxHRKey)
-            onLoadInputsChange?()
+            if maxHR != oldValue { onLoadInputsChange?() }
         }
     }
     /// Called after birth year, sex or Max HR changes, whoever changed it, so every Day still on
@@ -69,6 +72,9 @@ final class ProfileStore: ObservableObject {
     func apply(_ change: Onboarding.ProfileChange) {
         switch change {
         case .name(let name): rename(to: name)
+        case .birthYear(let year): birthYear = year
+        case .sex(let sex): self.sex = sex
+        case .maxHR(let bpm): maxHR = bpm
         }
     }
 
@@ -78,7 +84,6 @@ final class ProfileStore: ObservableObject {
         self.name = trimmed.isEmpty ? nil : trimmed
     }
 }
-
 extension ProfileStore {
     /// The Profile as kept on the phone, readable off the main thread (UserDefaults is
     /// thread-safe) for working out Load (spec 005).
@@ -92,11 +97,9 @@ extension ProfileStore {
         )
     }
 }
-
 private let nameKey = "profileName"
 private let birthYearKey = "profileBirthYear"
 private let sexKey = "profileSex"
 private let maxHRKey = "profileMaxHR"
-/// Set by spec 002's old name prompt, now removed: kept only so existing installs skip Onboarding.
 private let namePromptAnsweredKey = "profileNameAsked"
 private let onboardingFinishedKey = "onboardingFinished"
