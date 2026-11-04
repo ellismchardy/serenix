@@ -20,7 +20,7 @@ says which popup a tap opens via a new core enum `StoryTap` (`.sleep`, `.metric(
 `AppearanceStore` and a `StoryBodyView` swapped in under the week strip in `TodayScreen`.
 
 ## Tasks
-1. [ ] **Slice (tracer):** `TodayView.story` with the four steps in order and the Sleep step's
+1. [x] **Slice (tracer):** `TodayView.story` with the four steps in order and the Sleep step's
    time label ("23:18 → 06:51", local) and title ("You slept 7h 12m").
    - Seam: Today view · Files: `src/SerenixCore/TodayStory.swift` (new), `TodayView.swift`,
      `tests/SerenixCoreTests/TodayStoryTests.swift`

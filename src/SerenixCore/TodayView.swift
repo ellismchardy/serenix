@@ -67,6 +67,8 @@ public struct TodayView: Equatable, Sendable {
     /// The 2-column grid under Time Asleep: Sleeping HR, Resting HR, then the other Nightly
     /// Metrics (spec 007, Today screen); none on a Day without a Night.
     public let gridTiles: [TodayTile]
+    /// The Story layout's timeline for the Day shown (spec 012).
+    public let story: TodayStory
 
     public init(
         nights: [Night],
@@ -176,6 +178,7 @@ public struct TodayView: Equatable, Sendable {
         self.syncPill = syncPill
         syncOffersRetry = syncPill?.canBeDismissed ?? false
 
+        story = TodayStory(night: night, timeZone: timeZone)
         tilesHeading = isToday ? "Last night" : day.text
         timeAsleepTile = night.map { TimeAsleepTile(for: $0, timeZone: timeZone) }
         let tiles =
