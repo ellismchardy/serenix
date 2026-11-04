@@ -30,7 +30,7 @@ its band. No existing test pins the ring, so none need rewriting; the shell's ri
    - Done when: the three "Band scale" criteria pass (segments 0–0.34, 0.34–0.67, 0.67–1 on
      every Night; markers 0.70 / 0.38 Steady / 0.07 Take it easy with the tick at 0.70; no
      marker or tick while Calibrating or with no HRV).
-2. [ ] **Shell:** redraw the popup's top card in variant B's layout: large number in the band's
+2. [x] **Shell:** redraw the popup's top card in variant B's layout: large number in the band's
    colour with the band word, the verdict, and the band scale (Night's band full colour, others
    faded, marker, "usual 70" tick, band words under their segments); greyed number and an
    all-faded scale with no marker while Calibrating or missing. Drop the ring card and the

@@ -28,11 +28,7 @@ struct TodayPopupView: View {
                 switch popup {
                 case .readiness:
                     if let readiness = today.readinessPopup {
-                        ReadinessPopupView(
-                            popup: readiness,
-                            fill: today.readinessFill,
-                            date: today.shownDate
-                        )
+                        ReadinessPopupView(popup: readiness, date: today.shownDate)
                     }
                 case .sleep:
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
@@ -59,8 +55,6 @@ struct TodayPopupView: View {
 /// Your week, and Sleep Score.
 private struct ReadinessPopupView: View {
     let popup: ReadinessPopup
-    /// The ring's fill, 0 to 1, as on the Today screen.
-    let fill: Double
     let date: Date
 
     var body: some View {
@@ -71,7 +65,7 @@ private struct ReadinessPopupView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
-        ringCard
+        bandScaleCard
         if !popup.whyRows.isEmpty {
             PopupSectionTitle("Why, biggest effect first")
             VStack(alignment: .leading, spacing: 0) {
@@ -89,30 +83,101 @@ private struct ReadinessPopupView: View {
         }
     }
 
-    private var ringCard: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                RingArc(fill: fill, colour: popup.band?.colour ?? Theme.accent, lineWidth: 10)
+    /// The number large in its band's colour with the band word, the verdict, and the band scale
+    /// (spec 012, header prototype variant B). Greyed with no marker while Calibrating or missing.
+    private var bandScaleCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(popup.readinessText)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.system(size: 56, weight: .heavy, design: .rounded))
                     .monospacedDigit()
-            }
-            .frame(width: 96, height: 96)
-            VStack(alignment: .leading, spacing: 8) {
+                    .foregroundStyle(popup.band?.colour ?? .secondary)
                 if let band = popup.band {
-                    Text(band.word)
-                        .font(.caption.bold())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(band.colour, in: Capsule())
-                }
-                if let verdict = popup.verdictText {
-                    Text(verdict).font(.headline)
+                    Text(band.word).font(.title3.bold())
                 }
             }
+            if let verdict = popup.verdictText {
+                Text(verdict).font(.subheadline.weight(.semibold))
+            }
+            ReadinessBandScaleView(
+                segments: popup.scaleSegments,
+                band: popup.band,
+                marker: popup.scaleMarker,
+                usualTick: popup.usualTick
+            )
+            .padding(.top, 8)
         }
         .popupCard()
+    }
+}
+
+/// The Readiness popup's band scale: the three bands from 0 to 100, the Night's at full colour,
+/// a marker at its Readiness and a "usual 70" tick, with each band's word under its segment.
+private struct ReadinessBandScaleView: View {
+    let segments: [ReadinessScaleSegment]
+    /// Nil while Calibrating or missing: every segment is faded.
+    let band: ReadinessBand?
+    let marker: Double?
+    let usualTick: Double?
+    /// How much a band other than the Night's is faded, 0 to 1.
+    private let fadedOpacity = 0.25
+    /// The bar's height, in points.
+    private let barHeight: CGFloat = 12
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                ZStack(alignment: .leading) {
+                    HStack(spacing: 2) {
+                        ForEach(segments, id: \.from) { segment in
+                            Rectangle()
+                                .fill(segment.band.colour)
+                                .opacity(segment.band == band ? 1 : fadedOpacity)
+                                .frame(width: max(0, (segment.to - segment.from) * width - 2))
+                        }
+                    }
+                    .frame(height: barHeight)
+                    .clipShape(Capsule())
+                    if let usualTick {
+                        Rectangle()
+                            .fill(.secondary)
+                            .frame(width: 1, height: barHeight + 8)
+                            .offset(x: usualTick * width - 0.5)
+                    }
+                    if let marker {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(.primary)
+                            .frame(width: 4, height: barHeight + 10)
+                            .offset(x: max(0, min(marker * width - 2, width - 4)))
+                    }
+                }
+                .frame(height: barHeight + 10)
+                if let usualTick {
+                    Text("usual \(Int((usualTick * 100).rounded()))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                        .position(x: usualTick * width, y: barHeight + 18)
+                }
+            }
+            .frame(height: barHeight + 26)
+            GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    ForEach(segments, id: \.from) { segment in
+                        Text(segment.band.word)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(width: (segment.to - segment.from) * geometry.size.width)
+                    }
+                }
+            }
+            .frame(height: 14)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(band.map { "Readiness band: \($0.word)" } ?? "No Readiness band yet")
     }
 }
 
