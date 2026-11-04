@@ -178,7 +178,6 @@ public struct TodayView: Equatable, Sendable {
         self.syncPill = syncPill
         syncOffersRetry = syncPill?.canBeDismissed ?? false
 
-        story = TodayStory(night: night, timeZone: timeZone)
         tilesHeading = isToday ? "Last night" : day.text
         timeAsleepTile = night.map { TimeAsleepTile(for: $0, timeZone: timeZone) }
         let tiles =
@@ -186,6 +185,7 @@ public struct TodayView: Equatable, Sendable {
                 NightlyMetric.tileOrder.map { MetricTile($0, for: night, among: nights) }
             } ?? []
         self.tiles = tiles
+        story = TodayStory(night: night, tiles: tiles, timeZone: timeZone)
         let restingHRTile = night.map { _ in
             RestingHRTile(restingHR: dayLoad?.restingHR, isToday: isToday)
         }

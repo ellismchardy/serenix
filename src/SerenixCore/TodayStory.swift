@@ -5,7 +5,7 @@ import Foundation
 public struct TodayStory: Equatable, Sendable {
     public let steps: [StoryStep]
 
-    init(night: Night?, timeZone: TimeZone) {
+    init(night: Night?, tiles: [MetricTile], timeZone: TimeZone) {
         guard let night else {
             steps = []
             return
@@ -16,7 +16,13 @@ public struct TodayStory: Equatable, Sendable {
                 timeLabel: sleepSpanText(night, timeZone),
                 title: sleptText(night)
             ),
-            StoryStep(kind: .overnight, timeLabel: "", title: ""),
+            StoryStep(
+                kind: .overnight,
+                timeLabel: "Overnight",
+                title: "Nightly Metrics",
+                // Only the Nightly Metrics the Night has get a row (spec 012, Story body).
+                metrics: tiles.filter { night.value(of: $0.metric) != nil }
+            ),
             StoryStep(kind: .thisMorning, timeLabel: "", title: ""),
             StoryStep(kind: .todaySoFar, timeLabel: "", title: ""),
         ]
@@ -30,6 +36,15 @@ public struct StoryStep: Equatable, Sendable {
     public let kind: Kind
     public let timeLabel: String
     public let title: String
+    /// The Overnight step's rows, in tile order; empty for every other step.
+    public let metrics: [MetricTile]
+
+    init(kind: Kind, timeLabel: String, title: String, metrics: [MetricTile] = []) {
+        self.kind = kind
+        self.timeLabel = timeLabel
+        self.title = title
+        self.metrics = metrics
+    }
 }
 
 /// Sleep Onset → Final Wake in local time, e.g. "23:18 → 06:51"; empty when either is missing.

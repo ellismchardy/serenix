@@ -25,7 +25,7 @@ says which popup a tap opens via a new core enum `StoryTap` (`.sleep`, `.metric(
    - Seam: Today view · Files: `src/SerenixCore/TodayStory.swift` (new), `TodayView.swift`,
      `tests/SerenixCoreTests/TodayStoryTests.swift`
    - Done when: spec criteria 1–2 pass.
-2. [ ] **Slice:** Overnight step lists only the Night's Nightly Metrics, each with its Zone.
+2. [x] **Slice:** Overnight step lists only the Night's Nightly Metrics, each with its Zone.
    - Seam: Today view · Done when: criterion 3.
 3. [ ] **Slice:** This morning title ("Readiness 72 — Ready"), advice; Calibrating
    ("Readiness calibrating — 2/4", no advice).
