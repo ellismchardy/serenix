@@ -75,6 +75,11 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
         weekdayIndex.map { Self.weekdayLetters[$0] } ?? missingText
     }
 
+    /// The weekday's short name, e.g. "Mon", as `text` starts.
+    var weekdayName: String {
+        weekdayIndex.map { Self.weekdayNames[$0] } ?? missingText
+    }
+
     /// The month and year, e.g. "November 2026".
     var monthTitle: String {
         Self.monthTitles.indices.contains(month - 1)

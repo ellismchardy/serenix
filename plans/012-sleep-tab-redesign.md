@@ -47,7 +47,7 @@ Existing Sleep view code: `src/SerenixCore/SleepView.swift` (`SleepView`, `Sleep
      `tests/SerenixCoreTests/SleepViewTests.swift`, `src/SerenixApp/SleepScreen.swift`
    - Done when: the five Summary criteria pass; Last night's old title and "asleep" text tests
      are rewritten to the Summary's.
-3. [ ] **Slice: Your week lanes.** Reshape `SleepWeek` into lanes: D first, then back to D − 6,
+3. [x] **Slice: Your week lanes.** Reshape `SleepWeek` into lanes: D first, then back to D − 6,
    named "Last" / weekday short names / "no Night"; each Night's bar segments (Sleep Onset to
    Final Wake split at Wake Bouts), its Time in Bed track, its Time Asleep text and short flag
    (15 min or more under its own Sleep Need); the 20:00–10:00 axis widened to whole hours with

@@ -248,107 +248,113 @@ private struct SleepChartView: View {
     }
 }
 
-/// Your week (spec 012): Time Asleep against each Night's Sleep Need, then when the user slept,
-/// for the 7 Days to the Day shown; the Day shown in the accent colour, the others lighter.
+/// Your week (spec 012): a lane for each of the 7 Days, the Day shown first, each Night's bar on
+/// one evening-to-morning axis with faint hour lines, broken at its Wake Bouts.
 private struct SleepWeekView: View {
     let week: SleepWeek
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Your week").font(.headline)
-            Text("Time Asleep against Sleep Need")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            HStack(alignment: .bottom, spacing: 8) {
-                ForEach(week.days, id: \.day) { day in
-                    VStack(spacing: 4) {
-                        needBar(day).frame(height: needChartHeight)
-                        Text(day.letter).font(.caption2).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            Text("When you slept")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            VStack(spacing: 6) {
-                ForEach(week.days, id: \.day) { day in
-                    sleptBar(day).frame(height: sleptRowHeight)
-                }
-            }
-            HStack {
-                Text(week.axisStartText)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(week.titleText).font(.headline)
                 Spacer()
-                Text(week.axisEndText)
+                if let summary = week.summaryText {
+                    Text(summary).font(.footnote).foregroundStyle(.secondary)
+                }
             }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
+            .padding(.bottom, 8)
+            ForEach(week.lanes, id: \.day) { lane in
+                laneRow(lane)
+                if lane.day != week.lanes.last?.day { Divider() }
+            }
+            HStack(spacing: laneSpacing) {
+                Color.clear.frame(width: laneNameWidth, height: 1)
+                GeometryReader { geometry in
+                    ForEach(week.axisLabels, id: \.text) { label in
+                        Text(label.text)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
+                            .position(
+                                x: label.fraction * geometry.size.width,
+                                y: axisLabelHeight / 2
+                            )
+                    }
+                }
+                .frame(height: axisLabelHeight)
+                Color.clear.frame(width: laneValueWidth, height: 1)
+            }
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(14)
         .themeCard()
     }
 
-    /// The Night's Time Asleep as a bar, with a dashed mark at its Sleep Need; an empty track
-    /// with no Night.
-    private func needBar(_ day: SleepWeekDay) -> some View {
-        GeometryReader { geometry in
-            let height = geometry.size.height
-            let scale = { (seconds: TimeInterval) -> CGFloat in
-                height * min(seconds / needChartTop, 1)
-            }
-            ZStack(alignment: .bottom) {
-                Capsule().fill(Theme.accentSoft).frame(height: 3)
-                if let timeAsleep = day.timeAsleep {
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(colour(day))
-                        .frame(height: scale(timeAsleep))
-                }
-                if let sleepNeed = day.sleepNeed {
-                    // One dashed segment across the bar, at the Sleep Need's height.
-                    Path { path in
-                        path.move(to: CGPoint(x: 0, y: height - scale(sleepNeed)))
-                        path.addLine(
-                            to: CGPoint(x: geometry.size.width, y: height - scale(sleepNeed))
-                        )
+    /// One lane: its name, its Night's bar on the axis (or "no Night"), and its Time Asleep, in
+    /// amber when short of its Sleep Need.
+    private func laneRow(_ lane: SleepLane) -> some View {
+        HStack(spacing: laneSpacing) {
+            Text(lane.name)
+                .font(.footnote.weight(.semibold))
+                .frame(width: laneNameWidth, alignment: .leading)
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                let x = { (time: Date) -> CGFloat in week.axisFraction(of: time) * width }
+                ZStack(alignment: .leading) {
+                    ForEach(week.axisLabels, id: \.text) { label in
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.15))
+                            .frame(width: 1)
+                            .offset(x: label.fraction * width)
                     }
-                    .stroke(Color.primary, style: StrokeStyle(lineWidth: 2, dash: [3, 2]))
+                    if let noNight = lane.noNightText {
+                        Text(noNight).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    if let track = lane.timeInBed {
+                        Capsule()
+                            .fill(Theme.accentSoft)
+                            .frame(width: max(x(track.end) - x(track.start), 4), height: 4)
+                            .offset(x: x(track.start))
+                    }
+                    ForEach(lane.asleepSegments, id: \.start) { segment in
+                        Capsule()
+                            .fill(Theme.accent)
+                            .frame(width: max(x(segment.end) - x(segment.start), 3), height: 12)
+                            .offset(x: x(segment.start))
+                    }
+                    // A thin amber mark in each gap the Wake Bouts leave.
+                    ForEach(
+                        Array(zip(lane.asleepSegments, lane.asleepSegments.dropFirst())),
+                        id: \.0.start
+                    ) { pair in
+                        Capsule()
+                            .fill(.orange)
+                            .frame(width: max(x(pair.1.start) - x(pair.0.end), 2), height: 3)
+                            .offset(x: x(pair.0.end))
+                    }
                 }
+                .frame(maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .frame(height: laneBarHeight)
+            Text(lane.timeAsleepText ?? "")
+                .font(.footnote.weight(.semibold).monospacedDigit())
+                .foregroundStyle(lane.isShort ? Color.orange : Color.primary)
+                .frame(width: laneValueWidth, alignment: .trailing)
         }
+        .padding(.vertical, 7)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            day.timeAsleepText.map { "\($0) asleep against \(day.sleepNeedText ?? "")" }
-                ?? "No Night"
+            "\(lane.name): \(lane.noNightText ?? lane.timeAsleepText ?? "")\(lane.isShort ? ", short" : "")"
         )
     }
-
-    /// The Night from Sleep Onset to Final Wake on the evening-to-morning axis; nothing with no
-    /// Night.
-    private func sleptBar(_ day: SleepWeekDay) -> some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width
-            if let onset = day.sleepOnset, let wake = day.finalWake {
-                let start = week.axisFraction(of: onset) * width
-                let end = week.axisFraction(of: wake) * width
-                Capsule()
-                    .fill(colour(day))
-                    .frame(width: max(end - start, 4))
-                    .offset(x: start)
-            }
-        }
-    }
-
-    private func colour(_ day: SleepWeekDay) -> Color {
-        day.isShown ? Theme.accent : Theme.accent.opacity(0.35)
-    }
-
 }
 
-/// Your week's Time Asleep chart: its height, points, and the Time Asleep at its top, seconds
-/// (10 h fits the 9 h Sleep Need cap with room).
-private let needChartHeight: CGFloat = 120
-private let needChartTop: TimeInterval = 10 * 60 * 60
-/// When you slept: each Night's row height, points.
-private let sleptRowHeight: CGFloat = 10
+/// Your week's lane columns: the name's and the Time Asleep's widths, and the gap between
+/// columns, points.
+private let laneNameWidth: CGFloat = 40
+private let laneValueWidth: CGFloat = 52
+private let laneSpacing: CGFloat = 6
+/// The height of a lane's bar area and of the axis labels' row, points.
+private let laneBarHeight: CGFloat = 18
+private let axisLabelHeight: CGFloat = 14

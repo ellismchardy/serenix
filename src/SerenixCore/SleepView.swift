@@ -37,7 +37,13 @@ public struct SleepView: Equatable, Sendable {
             isToday
             ? SleepTonight(today: day, nights: nights, timeZone: timeZone, birthYear: birthYear)
             : nil
-        week = SleepWeek(to: day, nights: nights, timeZone: timeZone, birthYear: birthYear)
+        week = SleepWeek(
+            to: day,
+            isToday: isToday,
+            nights: nights,
+            timeZone: timeZone,
+            birthYear: birthYear
+        )
         let night = nights.first { $0.day == day }
         summary = night.map {
             SleepSummary(
@@ -52,6 +58,15 @@ public struct SleepView: Equatable, Sendable {
         }
         noNightMessage = night != nil ? nil : TodayView.noNightMessage(isToday: isToday)
     }
+}
+
+/// How many minutes `timeAsleep` falls short of `sleepNeed` (negative when over), each in whole
+/// minutes as shown so the gap agrees with the times written; nil when either can't be shown.
+func shortfallMinutes(timeAsleep: TimeInterval, sleepNeed: TimeInterval) -> Int? {
+    guard let asleep = Int(exactly: (timeAsleep / 60).rounded()),
+        let need = Int(exactly: (sleepNeed / 60).rounded())
+    else { return nil }
+    return need - asleep
 }
 
 /// The Sleep tab's Summary (spec 012, Summary): the Night dated the Day shown in one sentence,
@@ -72,11 +87,7 @@ public struct SleepSummary: Equatable, Sendable {
         self.label = label
         if let timeAsleep = night.plausibleTimeAsleep {
             let slept = "You slept \(durationText(timeAsleep))"
-            // In whole minutes as each is shown, so the gap agrees with the Time Asleep written.
-            if let asleep = Int(exactly: (timeAsleep / 60).rounded()),
-                let need = Int(exactly: (sleepNeed / 60).rounded())
-            {
-                let gap = need - asleep
+            if let gap = shortfallMinutes(timeAsleep: timeAsleep, sleepNeed: sleepNeed) {
                 sentence =
                     if gap >= Self.aboutWithinMinutes {
                         "\(slept), \(Self.gapText(gap)) short of what you needed."
@@ -150,76 +161,108 @@ public struct SleepTonight: Equatable, Sendable {
     }
 }
 
-/// The Sleep tab's Your week section (spec 012, Your week): the 7 Days D − 6 to D.
+/// The Sleep tab's Your week section (spec 012, Your week): a lane for each of the 7 Days, the
+/// Day shown first, on one clock axis.
 public struct SleepWeek: Equatable, Sendable {
-    /// Seven Days, oldest first, ending on the Day shown.
-    public let days: [SleepWeekDay]
-    /// The evening hour the When you slept axis starts: 20, or earlier in whole hours to fit a
-    /// Night's Sleep Onset.
+    /// "Your week".
+    public let titleText: String
+    /// "avg 7h 20m · Sleep Debt 2h 0m": the mean Time Asleep of the week's Nights and the week's
+    /// Sleep Debt ("avg 7h 20m" alone with none); nil with no Night in the week.
+    public let summaryText: String?
+    /// Seven lanes, the Day shown first, then back to six Days before it.
+    public let lanes: [SleepLane]
+    /// The evening hour the axis starts: 20, or earlier in whole hours to fit a Night's Sleep
+    /// Onset.
     public let axisStartHour: Int
-    /// The morning hour the When you slept axis ends: 10, or later in whole hours to fit a
-    /// Night's Final Wake.
+    /// The morning hour the axis ends: 10, or later in whole hours to fit a Night's Final Wake.
     public let axisEndHour: Int
-    /// The axis' ends as clock times, e.g. "20:00" and "10:00".
-    public let axisStartText: String
-    public let axisEndText: String
+    /// The axis' labels, on the even clock hours inside it: "22", "00" … "08".
+    public let axisLabels: [SleepAxisLabel]
+    /// The lane open when the tab is shown: the Day shown when it has a Night, else none.
+    public let firstOpenLane: Day?
     /// The time zone the axis was worked out in, so times are placed on it the same way.
     let timeZone: TimeZone
 
     /// How many Days Your week shows (spec 012: 7, D − 6 to D).
     static let length = 7
-    /// The When you slept axis' usual start, an evening hour (spec 012: 20:00).
+    /// The axis' usual start, an evening hour (spec 012: 20:00).
     static let usualStartHour = 20
-    /// The When you slept axis' usual end, a morning hour (spec 012: 10:00).
+    /// The axis' usual end, a morning hour (spec 012: 10:00).
     static let usualEndHour = 10
+    /// Hours between the axis' labels (spec 012: every 2 hours).
+    static let labelEveryHours = 2
     /// Minutes past midnight of noon. A Night's window runs noon to noon (GLOSSARY, Night window),
     /// so its Sleep Onset is after noon or before its Final Wake, and its Final Wake before noon:
     /// noon splits evening times from morning ones.
     private static let noonMinutes = 12.0 * 60
 
-    init(to shown: Day, nights: [Night], timeZone: TimeZone, birthYear: Int?) {
-        days = (0..<Self.length).reversed().map { back in
-            let day = shown.adding(days: -back)
-            let night = nights.first { $0.day == day }
-            let need = night.map { _ in
-                SleepNeed(for: day, among: nights, birthYear: birthYear).sleepNeed
-            }
-            let timeAsleep = night?.plausibleTimeAsleep
-            return SleepWeekDay(
+    init(to shown: Day, isToday: Bool, nights: [Night], timeZone: TimeZone, birthYear: Int?) {
+        let days = (0..<Self.length).map { shown.adding(days: -$0) }
+        let weekNights = days.compactMap { day in nights.first { $0.day == day } }
+        lanes = days.map { day in
+            SleepLane(
                 day: day,
-                letter: day.weekdayLetter,
-                isShown: day == shown,
-                timeAsleepText: night.map { _ in timeAsleep.map(durationText) ?? missingText },
-                sleepNeedText: need.map(durationText),
-                timeAsleep: timeAsleep,
-                sleepNeed: need,
-                sleepOnset: night?.sleepOnset,
-                finalWake: night?.finalWake
+                name: isToday && day == shown ? "Last" : day.weekdayName,
+                night: nights.first { $0.day == day },
+                nights: nights,
+                birthYear: birthYear
             )
         }
+        titleText = "Your week"
+        let timesAsleep = weekNights.compactMap(\.plausibleTimeAsleep)
+        // The week D − 6 to D is the look-back of the Night dated D + 1 (spec 009), as Tonight's
+        // Sleep Need uses.
+        let weekDebt = SleepNeed(for: shown.adding(days: 1), among: nights, birthYear: birthYear)
+        summaryText =
+            timesAsleep.isEmpty
+            ? nil
+            : Self.summaryText(
+                average: timesAsleep.reduce(0, +) / Double(timesAsleep.count),
+                sleepDebt: weekDebt.sleepDebt
+            )
+        firstOpenLane = weekNights.contains { $0.day == shown } ? shown : nil
         // Widened to whole hours for an evening Sleep Onset before 20:00 or a morning Final Wake
         // after 10:00.
         var start = Double(Self.usualStartHour * 60)
         var end = Double(Self.usualEndHour * 60)
-        for day in days {
-            if let onset = day.sleepOnset {
+        for night in weekNights {
+            if let onset = night.sleepOnset {
                 let minutes = ClockTime.minutes(of: onset, in: timeZone)
                 if minutes >= Self.noonMinutes { start = min(start, minutes) }
             }
-            if let wake = day.finalWake {
+            if let wake = night.finalWake {
                 let minutes = ClockTime.minutes(of: wake, in: timeZone)
                 if minutes < Self.noonMinutes { end = max(end, minutes) }
             }
         }
-        axisStartHour = Int((start / 60).rounded(.down))
-        axisEndHour = Int((end / 60).rounded(.up))
-        axisStartText = ClockTime.text(minutes: Double(axisStartHour * 60))
-        axisEndText = ClockTime.text(minutes: Double(axisEndHour * 60))
+        let startHour = Int((start / 60).rounded(.down))
+        let endHour = Int((end / 60).rounded(.up))
+        axisStartHour = startHour
+        axisEndHour = endHour
+        // Hours past the first midnight run on past 24, so the morning sits after the evening.
+        let lastHour = endHour + 24
+        axisLabels = ((startHour + 1)..<lastHour)
+            .filter { $0 % Self.labelEveryHours == 0 }
+            .map { hour in
+                SleepAxisLabel(
+                    text: hour % 24 < 10 ? "0\(hour % 24)" : "\(hour % 24)",
+                    fraction: Double(hour - startHour) / Double(lastHour - startHour)
+                )
+            }
         self.timeZone = timeZone
     }
 
-    /// Where `time` falls on the When you slept axis, 0 at its evening start to 1 at its
-    /// morning end; morning times sit on the axis' second day.
+    /// "avg 7h 20m · Sleep Debt 2h 0m", or "avg 7h 20m" with no Sleep Debt (under a minute).
+    private static func summaryText(average: TimeInterval, sleepDebt: TimeInterval) -> String {
+        let averageText = "avg \(durationText(average))"
+        guard let debtMinutes = Int(exactly: (sleepDebt / 60).rounded()), debtMinutes > 0 else {
+            return averageText
+        }
+        return "\(averageText) · Sleep Debt \(durationText(sleepDebt))"
+    }
+
+    /// Where `time` falls on Your week's axis, 0 at its evening start to 1 at its morning end;
+    /// morning times sit on the axis' second day.
     public func axisFraction(of time: Date) -> Double {
         var minutes = ClockTime.minutes(of: time, in: timeZone)
         if minutes < Self.noonMinutes { minutes += ClockTime.minutesPerDay }
@@ -229,25 +272,75 @@ public struct SleepWeek: Equatable, Sendable {
     }
 }
 
-/// One Day in Your week; its Night's values are nil for an empty slot (no Night).
-public struct SleepWeekDay: Equatable, Sendable {
+/// One label under Your week's lanes, e.g. "02", where it sits along the axis.
+public struct SleepAxisLabel: Equatable, Sendable {
+    public let text: String
+    /// 0 at the axis' evening start to 1 at its morning end.
+    public let fraction: Double
+}
+
+/// One Day's lane in Your week (spec 012): its Night's bar on the shared axis, or "no Night".
+public struct SleepLane: Equatable, Sendable {
     public let day: Day
-    /// Its weekday's first letter, as the week strip writes it, e.g. "M".
-    public let letter: String
-    /// Whether it's the Day shown, drawn in the accent colour.
-    public let isShown: Bool
-    /// The Night's Time Asleep, e.g. "6h 0m"; nil with no Night.
+    /// "Last" for the Day shown when it's today, else the weekday's short name, e.g. "Mon".
+    public let name: String
+    /// "no Night" when the Day has no Night; nil otherwise.
+    public let noNightText: String?
+    /// Sleep Onset to Final Wake, split at each Wake Bout, UTC; empty with no Night.
+    public let asleepSegments: [DateInterval]
+    /// Time in Bed, drawn as a thin track under the bar; nil without one.
+    public let timeInBed: DateInterval?
+    /// The Night's Time Asleep, e.g. "6h 0m", "—" when not worked out; nil with no Night.
     public let timeAsleepText: String?
-    /// The Night's own Sleep Need (spec 009), e.g. "8h 30m"; nil with no Night.
-    public let sleepNeedText: String?
-    /// Seconds, for the bar; nil with no Night (or no plausible Time Asleep).
-    public let timeAsleep: TimeInterval?
-    /// Seconds, for the Sleep Need mark; nil with no Night.
-    public let sleepNeed: TimeInterval?
-    /// UTC, for When you slept; nil with no Night.
-    public let sleepOnset: Date?
-    /// UTC, for When you slept; nil with no Night.
-    public let finalWake: Date?
+    /// Whether Time Asleep fell 15 min or more under the Night's own Sleep Need (spec 009).
+    public let isShort: Bool
+
+    /// How far under its Sleep Need a Night's Time Asleep is marked short, minutes (spec 012:
+    /// 15, as the Summary's "short").
+    static let shortByMinutes = SleepSummary.aboutWithinMinutes
+
+    init(day: Day, name: String, night: Night?, nights: [Night], birthYear: Int?) {
+        self.day = day
+        self.name = name
+        noNightText = night == nil ? "no Night" : nil
+        asleepSegments = night.map(Self.asleepSegments) ?? []
+        timeInBed = night.flatMap { night in
+            guard let start = night.timeInBedStart, let end = night.timeInBedEnd, end > start
+            else { return nil }
+            return DateInterval(start: start, end: end)
+        }
+        let timeAsleep = night?.plausibleTimeAsleep
+        timeAsleepText = night.map { _ in timeAsleep.map(durationText) ?? missingText }
+        isShort =
+            if let timeAsleep,
+                let shortfall = shortfallMinutes(
+                    timeAsleep: timeAsleep,
+                    sleepNeed: SleepNeed(for: day, among: nights, birthYear: birthYear).sleepNeed
+                )
+            {
+                shortfall >= Self.shortByMinutes
+            } else {
+                false
+            }
+    }
+
+    /// Sleep Onset to Final Wake with each Wake Bout cut out, oldest first.
+    private static func asleepSegments(of night: Night) -> [DateInterval] {
+        guard let onset = night.sleepOnset, let wake = night.finalWake, wake > onset else {
+            return []
+        }
+        var segments: [DateInterval] = []
+        var from = onset
+        for bout in (night.wakeBouts ?? []).sorted(by: { $0.start < $1.start }) {
+            let boutStart = max(bout.start, onset)
+            let boutEnd = min(bout.end, wake)
+            guard boutEnd > boutStart else { continue }
+            if boutStart > from { segments.append(DateInterval(start: from, end: boutStart)) }
+            from = max(from, boutEnd)
+        }
+        if wake > from { segments.append(DateInterval(start: from, end: wake)) }
+        return segments
+    }
 }
 
 /// The Sleep tab's Last night section, about one Night (spec 012, Last night).

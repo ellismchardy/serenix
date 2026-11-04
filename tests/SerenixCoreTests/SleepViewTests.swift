@@ -454,88 +454,147 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
 // MARK: Your week
 
 // Spec 012's success criteria under "Your week": Nights dated 1 Nov (Time Asleep 6 h), 2 and
-// 3 Nov (8 h), each 23:00 the evening before to 07:00. No birth year, so Usual Need is 8 h.
+// 3 Nov (8 h), each Sleep Onset 23:00 the evening before, Final Wake 07:00, Time in Bed
+// 22:50–07:10. No birth year, so Usual Need is 8 h.
 
-/// The Nights dated 1 Nov (Time Asleep 6 h), 2 Nov and 3 Nov (8 h), each 23:00 to 07:00.
-private let yourWeekNights = [
-    tonightNight(month: 11, 1, timeAsleep: 6 * oneHour),
-    tonightNight(month: 11, 2, timeAsleep: 8 * oneHour),
-    tonightNight(month: 11, 3, timeAsleep: 8 * oneHour),
-]
-
-@Test func yourWeekHasSevenSlotsFromSixDaysBeforeToTheDayShownOldestFirst() {
-    let week = sleepView(nights: yourWeekNights).week
-
-    #expect(
-        week.days.map(\.day) == [
-            Day(year: 2026, month: 10, day: 28),
-            Day(year: 2026, month: 10, day: 29),
-            Day(year: 2026, month: 10, day: 30),
-            Day(year: 2026, month: 10, day: 31),
-            Day(year: 2026, month: 11, day: 1),
-            Day(year: 2026, month: 11, day: 2),
-            Day(year: 2026, month: 11, day: 3),
-        ]
+/// The Night dated `month`/`day` 2026: Time in Bed 22:50 (the evening before) to 07:10, Sleep
+/// Onset 23:00, Final Wake 07:00, and `timeAsleep`.
+private func weekNight(month: Int = 11, _ day: Int, timeAsleep: TimeInterval) -> Night {
+    Night(
+        day: Day(year: 2026, month: month, day: day),
+        sleepOnset: at(month: month, day, 0) - oneHour,
+        finalWake: at(month: month, day, 7),
+        timeAsleep: timeAsleep,
+        timeInBedStart: at(month: month, day, 0) - oneHour - 10 * oneMinute,
+        timeInBedEnd: at(month: month, day, 7, 10)
     )
-    #expect(week.days.map(\.letter) == ["W", "T", "F", "S", "S", "M", "T"])
 }
 
-@Test func yourWeekDaysWithNoNightAreEmptySlots() {
-    let days = sleepView(nights: yourWeekNights).week.days
+/// The Nights dated 1 Nov (Time Asleep 6 h), 2 Nov and 3 Nov (8 h).
+private let yourWeekNights = [
+    weekNight(1, timeAsleep: 6 * oneHour),
+    weekNight(2, timeAsleep: 8 * oneHour),
+    weekNight(3, timeAsleep: 8 * oneHour),
+]
 
-    #expect(days.count == 7)
-    for slot in days.prefix(4) {
-        #expect(slot.timeAsleepText == nil)
-        #expect(slot.sleepNeedText == nil)
-        #expect(slot.timeAsleep == nil)
-        #expect(slot.sleepNeed == nil)
-        #expect(slot.sleepOnset == nil)
-        #expect(slot.finalWake == nil)
+@Test func yourWeekHasSevenLanesFromTheDayShownBackToSixDaysBefore() {
+    let lanes = sleepView(nights: yourWeekNights).week.lanes
+
+    #expect(
+        lanes.map(\.day) == [
+            Day(year: 2026, month: 11, day: 3),
+            Day(year: 2026, month: 11, day: 2),
+            Day(year: 2026, month: 11, day: 1),
+            Day(year: 2026, month: 10, day: 31),
+            Day(year: 2026, month: 10, day: 30),
+            Day(year: 2026, month: 10, day: 29),
+            Day(year: 2026, month: 10, day: 28),
+        ]
+    )
+}
+
+/// Today's lane is "Last"; the rest are their weekdays' short names (3 Nov 2026 is a Tuesday).
+@Test func yourWeeksLanesAreNamedLastThenByWeekday() {
+    let lanes = sleepView(nights: yourWeekNights).week.lanes
+
+    #expect(lanes.map(\.name) == ["Last", "Mon", "Sun", "Sat", "Fri", "Thu", "Wed"])
+}
+
+@Test func yourWeekDaysWithNoNightReadNoNightAndHaveNoBar() {
+    let lanes = sleepView(nights: yourWeekNights).week.lanes
+
+    #expect(lanes.count == 7)
+    let noNightTexts: [String?] = [nil, nil, nil, "no Night", "no Night", "no Night", "no Night"]
+    #expect(lanes.map(\.noNightText) == noNightTexts)
+    for lane in lanes.suffix(4) {
+        #expect(lane.timeAsleepText == nil)
+        #expect(lane.asleepSegments.isEmpty)
+        #expect(lane.timeInBed == nil)
+        #expect(lane.isShort == false)
     }
 }
 
-/// Each Night's own Sleep Need (spec 009): 1 Nov has no Nights before it, so 8 h; 2 and 3 Nov
-/// each repay 1 Nov's 2 h of Sleep Debt, adding a quarter of it, 30 min.
-@Test func yourWeekSetsEachNightsTimeAsleepAgainstItsOwnSleepNeed() {
-    let days = sleepView(nights: yourWeekNights).week.days
-
-    #expect(days.count == 7)
-    #expect(days.suffix(3).map(\.timeAsleepText) == ["6h 0m", "8h 0m", "8h 0m"])
-    #expect(days.suffix(3).map(\.sleepNeedText) == ["8h 0m", "8h 30m", "8h 30m"])
-    let timeAsleeps: [TimeInterval?] = [6 * oneHour, 8 * oneHour, 8 * oneHour]
-    #expect(days.suffix(3).map(\.timeAsleep) == timeAsleeps)
-    let eightAndAHalfHours: TimeInterval = 8 * oneHour + 30 * oneMinute
-    let sleepNeeds: [TimeInterval?] = [8 * oneHour, eightAndAHalfHours, eightAndAHalfHours]
-    #expect(days.suffix(3).map(\.sleepNeed) == sleepNeeds)
-}
-
-@Test func whenYouSleptRunsEachNightFromSleepOnsetToFinalWakeOnATwentyToTenAxis() {
+/// The mean Time Asleep of 6 h, 8 h and 8 h is 7 h 20 m; 1 Nov's 2 h short of Usual Need is the
+/// week's Sleep Debt (spec 009).
+@Test func yourWeeksTitleReadsTheAverageTimeAsleepAndTheWeeksSleepDebt() {
     let week = sleepView(nights: yourWeekNights).week
 
-    #expect(week.days.count == 7)
-    let sleepOnsets: [Date?] = [at(month: 10, 31, 23), at(1, 23), at(2, 23)]
-    let finalWakes: [Date?] = [at(1, 7), at(2, 7), at(3, 7)]
-    #expect(week.days.suffix(3).map(\.sleepOnset) == sleepOnsets)
-    #expect(week.days.suffix(3).map(\.finalWake) == finalWakes)
+    #expect(week.titleText == "Your week")
+    #expect(week.summaryText == "avg 7h 20m \u{00B7} Sleep Debt 2h 0m")
+}
+
+/// No Night falls short of Usual Need, so there's no Sleep Debt to write.
+@Test func withNoSleepDebtYourWeeksTitleReadsOnlyTheAverage() {
+    let nights = [
+        weekNight(1, timeAsleep: 8 * oneHour),
+        weekNight(2, timeAsleep: 8 * oneHour),
+        weekNight(3, timeAsleep: 8 * oneHour),
+    ]
+    let week = sleepView(nights: nights).week
+
+    #expect(week.titleText == "Your week")
+    #expect(week.summaryText == "avg 8h 0m")
+}
+
+@Test func withNoNightInTheWeekYourWeeksTitleReadsOnlyYourWeek() {
+    let week = sleepView(nights: []).week
+
+    #expect(week.titleText == "Your week")
+    #expect(week.summaryText == nil)
+    let noNightTexts: [String?] = Array(repeating: "no Night", count: 7)
+    #expect(week.lanes.map(\.noNightText) == noNightTexts)
+}
+
+/// A Night whose Time Asleep wasn't worked out still has its bar; its Time Asleep reads "—" and
+/// it isn't marked short. With no Time Asleep in the week there's no Sleep Debt either, so the
+/// title reads only "Your week".
+@Test func aNightWithNoTimeAsleepReadsADashAndIsntShort() {
+    var night = weekNight(3, timeAsleep: 8 * oneHour)
+    night.timeAsleep = nil
+    let week = sleepView(nights: [night]).week
+
+    #expect(week.lanes.first?.timeAsleepText == "\u{2014}")
+    #expect(week.lanes.first?.isShort == false)
+    #expect(week.lanes.first?.asleepSegments == [DateInterval(start: at(2, 23), end: at(3, 7))])
+    #expect(week.summaryText == nil)
+}
+
+/// Without Wake Bouts each Night's bar is one segment, Sleep Onset to Final Wake, on its Time in
+/// Bed track.
+@Test func eachNightsBarRunsFromSleepOnsetToFinalWakeOnItsTimeInBedTrack() {
+    let lanes = sleepView(nights: yourWeekNights).week.lanes
+
+    #expect(lanes.count == 7)
+    #expect(
+        lanes.prefix(3).map(\.asleepSegments) == [
+            [DateInterval(start: at(2, 23), end: at(3, 7))],
+            [DateInterval(start: at(1, 23), end: at(2, 7))],
+            [DateInterval(start: at(month: 10, 31, 23), end: at(1, 7))],
+        ]
+    )
+    let tracks: [DateInterval?] = [
+        DateInterval(start: at(2, 22, 50), end: at(3, 7, 10)),
+        DateInterval(start: at(1, 22, 50), end: at(2, 7, 10)),
+        DateInterval(start: at(month: 10, 31, 22, 50), end: at(1, 7, 10)),
+    ]
+    #expect(lanes.prefix(3).map(\.timeInBed) == tracks)
+}
+
+@Test func yourWeeksAxisRunsTwentyToTenLabelledEveryTwoHours() {
+    let week = sleepView(nights: yourWeekNights).week
+
     #expect(week.axisStartHour == 20)
     #expect(week.axisEndHour == 10)
+    #expect(week.axisLabels.map(\.text) == ["22", "00", "02", "04", "06", "08"])
 }
 
 /// On the 20:00–10:00 axis (14 h), 23:00 sits 3/14 of the way along and 07:00 the next morning
 /// 11/14.
-@Test func whenYouSleptPlacesEachTimeAlongTheAxis() {
+@Test func yourWeekPlacesEachTimeAlongTheAxis() {
     let week = sleepView(nights: yourWeekNights).week
 
     #expect(week.axisFraction(of: at(2, 23)) == 3.0 / 14)
     #expect(week.axisFraction(of: at(3, 7)) == 11.0 / 14)
-}
-
-/// The axis' ends read as clock times.
-@Test func whenYouSleptsAxisEndsReadAsClockTimes() {
-    let week = sleepView(nights: yourWeekNights).week
-
-    #expect(week.axisStartText == "20:00")
-    #expect(week.axisEndText == "10:00")
 }
 
 /// A Final Wake after 10:00 widens the axis' end to the next whole hour (10:15 → 11:00); a Sleep
@@ -551,10 +610,9 @@ private let yourWeekNights = [
 
     #expect(week.axisStartHour == 20)
     #expect(week.axisEndHour == 11)
-    #expect(week.axisEndText == "11:00")
 }
 
-@Test func aNightFromNineteenThirtyWidensTheWhenYouSleptAxisToNineteen() {
+@Test func aNightFromNineteenThirtyWidensYourWeeksAxisToNineteen() {
     let earlyNight = Night(
         day: Day(year: 2026, month: 10, day: 31),
         sleepOnset: at(month: 10, 30, 19, 30),
@@ -567,17 +625,69 @@ private let yourWeekNights = [
     #expect(week.axisEndHour == 10)
 }
 
-@Test func yourWeekMarksTheDayShown() {
-    let days = sleepView(nights: yourWeekNights).week.days
+/// Each Night's own Sleep Need (spec 009): 1 Nov has no Nights before it, so 8h 0m; 2 and 3 Nov
+/// each repay 1 Nov's 2 h of Sleep Debt, so 8h 30m. All three fall 15 min or more short.
+@Test func eachNightsTimeAsleepIsMarkedShortAgainstItsOwnSleepNeed() {
+    let lanes = sleepView(nights: yourWeekNights).week.lanes
 
-    #expect(days.map(\.isShown) == [false, false, false, false, false, false, true])
+    #expect(lanes.count == 7)
+    let timeAsleepTexts: [String?] = ["8h 0m", "8h 0m", "6h 0m"]
+    #expect(lanes.prefix(3).map(\.timeAsleepText) == timeAsleepTexts)
+    #expect(lanes.prefix(3).map(\.isShort) == [true, true, true])
 }
 
-@Test func withAnEarlierDayShownYourWeekEndsOnItAndMarksIt() {
-    let week = sleepView(nights: yourWeekNights, showing: Day(year: 2026, month: 11, day: 2)).week
+/// 3 Nov's Sleep Need is 8h 30m: 8 h 15 m is 15 min short, so marked; 8 h 16 m is 14 min short,
+/// so not.
+@Test func aNightIsMarkedShortFromFifteenMinutesUnderItsSleepNeed() {
+    let fifteenShort = sleepView(nights: [
+        weekNight(1, timeAsleep: 6 * oneHour),
+        weekNight(2, timeAsleep: 8 * oneHour),
+        weekNight(3, timeAsleep: 8 * oneHour + 15 * oneMinute),
+    ])
+    let fourteenShort = sleepView(nights: [
+        weekNight(1, timeAsleep: 6 * oneHour),
+        weekNight(2, timeAsleep: 8 * oneHour),
+        weekNight(3, timeAsleep: 8 * oneHour + 16 * oneMinute),
+    ])
 
-    #expect(week.days.first?.day == Day(year: 2026, month: 10, day: 27))
-    #expect(week.days.last?.day == Day(year: 2026, month: 11, day: 2))
-    #expect(week.days.count == 7)
-    #expect(week.days.map(\.isShown) == [false, false, false, false, false, false, true])
+    #expect(fifteenShort.week.lanes.first?.isShort == true)
+    #expect(fourteenShort.week.lanes.first?.isShort == false)
+}
+
+@Test func theDayShownsLaneOpensFirst() {
+    #expect(sleepView(nights: yourWeekNights).week.firstOpenLane == nov3)
+}
+
+@Test func withNoNightOnTheDayShownNoLaneOpensFirst() {
+    let week = sleepView(nights: Array(yourWeekNights.prefix(2))).week
+
+    #expect(week.firstOpenLane == nil)
+}
+
+/// 2 Nov 2026 is a Monday; it isn't today, so its lane takes its weekday's name.
+@Test func withAnEarlierDayShownYourWeeksLanesRunBackFromIt() {
+    let lanes =
+        sleepView(nights: yourWeekNights, showing: Day(year: 2026, month: 11, day: 2)).week.lanes
+
+    #expect(lanes.count == 7)
+    #expect(lanes.first?.day == Day(year: 2026, month: 11, day: 2))
+    #expect(lanes.last?.day == Day(year: 2026, month: 10, day: 27))
+    #expect(lanes.first?.name == "Mon")
+}
+
+// MARK: A Night's lane
+
+/// Spec 012, "A Night's lane and chart": the bar is split at each Wake Bout (02:10 for 8 min,
+/// 04:30 for 7 min) and sits on the Time in Bed track.
+@Test func aNightsBarBreaksAtEachWakeBoutOnItsTimeInBedTrack() {
+    let lane = sleepView(nights: [nightOn3Nov()]).week.lanes.first
+
+    #expect(
+        lane?.asleepSegments == [
+            DateInterval(start: at(2, 23), end: at(3, 2, 10)),
+            DateInterval(start: at(3, 2, 18), end: at(3, 4, 30)),
+            DateInterval(start: at(3, 4, 37), end: at(3, 7)),
+        ]
+    )
+    #expect(lane?.timeInBed == DateInterval(start: at(2, 22, 50), end: at(3, 7, 10)))
 }
