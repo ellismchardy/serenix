@@ -53,11 +53,10 @@ public struct ReadinessWhyRow: Equatable, Sendable {
     static func list(
         _ breakdown: Readiness.Breakdown,
         rows: [Readiness.Input: ReadinessPopupRow],
-        sleepShortfall: TimeInterval,
         previousDayLoad: Int?,
         typicalLoad: TypicalLoad
     ) -> (rows: [ReadinessWhyRow], verdict: String) {
-        let inputs: [Readiness.Input] = [.hrv, .sleepingHR, .timeAsleep, .previousDayLoad]
+        let inputs = Readiness.Input.allCases
         let points = breakdown.points
         let counted = inputs.indices.map { index -> (row: ReadinessWhyRow, points: Int?) in
             let input = inputs[index]
@@ -93,7 +92,7 @@ public struct ReadinessWhyRow: Equatable, Sendable {
                         input,
                         score: part.score,
                         row: row,
-                        sleepShortfall: sleepShortfall,
+                        sleepShortfall: breakdown.sleepShortfall,
                         typicalLoad: typicalLoad
                     ),
                     // Maps the clamped score, −limit to +limit, onto 0 to 1.
@@ -162,8 +161,8 @@ public struct ReadinessWhyRow: Equatable, Sendable {
                 "No Load for yesterday, so it's left out."
             }
         case .sleepingHR: "No Sleeping HR for this Night, so it's left out."
-        // Can't be dropped: without HRV there's no Readiness, and a Night always has Time Asleep
-        // (spec 008, Calibrating and missing).
+        // Without HRV there's no Readiness (spec 008). Time Asleep is dropped only when the stored
+        // value is implausible, a case spec 012 gives no reason for.
         case .hrv, .timeAsleep: missingText
         }
     }
@@ -173,19 +172,19 @@ public struct ReadinessWhyRow: Equatable, Sendable {
     static let verdictPointsThreshold = 3
 }
 
-/// One input to Readiness in the Readiness popup (spec 008, Readiness popup).
+/// One input's value and what it's measured against, for the Readiness popup's Why rows (spec 012).
 struct ReadinessPopupRow: Equatable, Sendable {
     /// e.g. "HRV", "Time Asleep", "Yesterday's Load".
-    public let name: String
+    let name: String
     /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.
-    public let valueText: String
+    let valueText: String
     /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
     /// ms" ("Calibrating" while it is), the Night's Sleep Need for Time Asleep ("8h 0m"), or
     /// "Typical 45" ("Calibrating" while typical Load is) for Yesterday's Load.
-    public let referenceText: String
+    let referenceText: String
     /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep; a signed whole
     /// number ("+40", "−5", "±0") for Yesterday's Load.
-    public let differenceText: String
+    let differenceText: String
 
     init(_ tile: MetricTile) {
         name = tile.metric.name

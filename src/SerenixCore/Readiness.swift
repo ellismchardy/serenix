@@ -74,9 +74,10 @@ enum Readiness {
         {
             inputs.append((.sleepingHR, -(value - median) / spread, sleepingHRWeight))
         }
+        var sleepShortfall: TimeInterval = 0
         if let timeAsleep = night.plausibleTimeAsleep {
-            let hoursShort = max(sleepNeed - timeAsleep, 0) / secondsPerHour
-            inputs.append((.timeAsleep, -hoursShort, timeAsleepWeight))
+            sleepShortfall = max(sleepNeed - timeAsleep, 0)
+            inputs.append((.timeAsleep, -sleepShortfall / secondsPerHour, timeAsleepWeight))
         }
         // The previous Day's Load costs only above its typical Load; dropped while either is
         // missing.
@@ -94,12 +95,13 @@ enum Readiness {
                     score: min(max(input.score, -scoreLimit), scoreLimit),
                     weight: input.weight / totalWeight
                 )
-            }
+            },
+            sleepShortfall: sleepShortfall
         )
     }
 
-    /// One of Readiness's four inputs (spec 008, Inputs).
-    enum Input: Hashable, Sendable {
+    /// One of Readiness's four inputs (spec 008, Inputs), in that order.
+    enum Input: Hashable, Sendable, CaseIterable {
         case hrv, sleepingHR, timeAsleep, previousDayLoad
 
         /// As in the Readiness popup (specs 008, 012).
@@ -124,8 +126,11 @@ enum Readiness {
 
     /// The inputs that counted towards one Night's Readiness; a dropped input has no Part.
     struct Breakdown: Equatable, Sendable {
-        /// In the order HRV, Sleeping HR, Time Asleep, previous Day's Load.
+        /// In `Input.allCases` order.
         let parts: [Part]
+        /// How far Time Asleep fell short of Sleep Need, unclamped, in seconds; 0 when it met it
+        /// or was dropped.
+        let sleepShortfall: TimeInterval
 
         /// The weighted sum of the scores (spec 008's Z), in score units.
         var weightedScore: Double {

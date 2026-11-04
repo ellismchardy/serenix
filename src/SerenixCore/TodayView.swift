@@ -205,33 +205,24 @@ public struct TodayView: Equatable, Sendable {
             }
 
         // Readiness's inputs in spec 008's order: HRV, Sleeping HR, Time Asleep, Yesterday's Load.
-        let readinessRows =
-            VsBaseline.metrics.compactMap { metric in
-                tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
-            } + [
-                ReadinessPopupRow(
-                    timeAsleep: night?.plausibleTimeAsleep,
-                    sleepNeed: sleepNeed.sleepNeed
-                ),
-                ReadinessPopupRow(
-                    previousDayLoad: previousDayLoad,
-                    typical: previousDayTypicalLoad
-                ),
-            ]
-        let inputRows: [Readiness.Input: ReadinessPopupRow] = Dictionary(
-            uniqueKeysWithValues: readinessRows.compactMap { row in
-                let inputs: [Readiness.Input] = [.hrv, .sleepingHR, .timeAsleep, .previousDayLoad]
-                return inputs.first { $0.name == row.name }.map { ($0, row) }
-            }
+        var inputRows: [Readiness.Input: ReadinessPopupRow] = [
+            .timeAsleep: ReadinessPopupRow(
+                timeAsleep: night?.plausibleTimeAsleep,
+                sleepNeed: sleepNeed.sleepNeed
+            ),
+            .previousDayLoad: ReadinessPopupRow(
+                previousDayLoad: previousDayLoad,
+                typical: previousDayTypicalLoad
+            ),
+        ]
+        inputRows[.hrv] = tiles.first { $0.metric == .hrv }.map(ReadinessPopupRow.init)
+        inputRows[.sleepingHR] = tiles.first { $0.metric == .sleepingHR }.map(
+            ReadinessPopupRow.init
         )
         let why = nightReadiness.breakdown.map {
             ReadinessWhyRow.list(
                 $0,
                 rows: inputRows,
-                sleepShortfall: max(
-                    sleepNeed.sleepNeed - (night?.plausibleTimeAsleep ?? sleepNeed.sleepNeed),
-                    0
-                ),
                 previousDayLoad: previousDayLoad,
                 typicalLoad: previousDayTypicalLoad
             )
