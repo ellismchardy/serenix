@@ -41,6 +41,8 @@ public struct Onboarding: Equatable, Sendable {
         case male
         case preferNotToSay
         case dontKnow
+        case findMyStrap
+        case tryAgain
         case setUpLater
 
         /// The chip's text, which is also the user's bubble when tapped.
@@ -52,6 +54,8 @@ public struct Onboarding: Equatable, Sendable {
             case .male: "Male"
             case .preferNotToSay: "Prefer not to say"
             case .dontKnow: "Don't know"
+            case .findMyStrap: "Find my Strap"
+            case .tryAgain: "Try again"
             case .setUpLater: "Set up later"
             }
         }
@@ -71,6 +75,10 @@ public struct Onboarding: Equatable, Sendable {
         /// Text sent from the field.
         case submitted(String)
         case chipTapped(Chip)
+        /// Pairing outcomes the shell reports while Serenix is looking for the Strap.
+        case strapNotFound
+        case pairingRefused
+        case strapConnected(model: String)
     }
 
     /// An answer for the shell to save to the Profile as soon as it's given. A skipped question
@@ -84,7 +92,9 @@ public struct Onboarding: Equatable, Sendable {
         case maxHR(Int?)
     }
 
-    private enum Step: Equatable, Sendable { case name, birthYear, sex, maxHR, pair, finished }
+    private enum Step: Equatable, Sendable {
+        case name, birthYear, sex, maxHR, pair, looking, pairFailed, connected, finished
+    }
 
     public private(set) var bubbles: [Bubble]
     private var step = Step.name
@@ -93,6 +103,9 @@ public struct Onboarding: Equatable, Sendable {
 
     /// After Set up later or Show me Today.
     public var isFinished: Bool { step == .finished }
+
+    /// While true, the shell connects to the Strap and reports how it went.
+    public var isLookingForStrap: Bool { step == .looking }
 
     /// A fresh conversation: Hello, then the name question.
     public init(currentYear: Int) {
@@ -114,8 +127,9 @@ public struct Onboarding: Equatable, Sendable {
         case .birthYear: Controls(field: .number, placeholder: "e.g. 1992", chips: [.ratherNot])
         case .sex: Controls(field: nil, placeholder: nil, chips: [.female, .male, .preferNotToSay])
         case .maxHR: Controls(field: .number, placeholder: "e.g. 185", chips: [.dontKnow])
-        case .pair: Controls(field: nil, placeholder: nil, chips: [.setUpLater])
-        case .finished: Controls(field: nil, placeholder: nil, chips: [])
+        case .pair: Controls(field: nil, placeholder: nil, chips: [.findMyStrap, .setUpLater])
+        case .pairFailed: Controls(field: nil, placeholder: nil, chips: [.tryAgain, .setUpLater])
+        case .looking, .connected, .finished: Controls(field: nil, placeholder: nil, chips: [])
         }
     }
 
@@ -148,7 +162,24 @@ public struct Onboarding: Equatable, Sendable {
         case (.maxHR, .chipTapped(.dontKnow)):
             return answer(Chip.dontKnow.label, then: .pair, .maxHR(nil))
 
-        case (.pair, .chipTapped(.setUpLater)):
+        case (.pair, .chipTapped(.findMyStrap)):
+            return startLooking(after: .findMyStrap)
+        case (.pairFailed, .chipTapped(.tryAgain)):
+            return startLooking(after: .tryAgain)
+        case (.looking, .strapNotFound):
+            bubbles.append(Bubble(.serenix, Self.notFoundAdvice))
+            step = .pairFailed
+            return nil
+        case (.looking, .pairingRefused):
+            bubbles.append(Bubble(.serenix, Self.pairingRefusedAdvice))
+            step = .pairFailed
+            return nil
+        case (.looking, .strapConnected(let model)):
+            bubbles.append(Bubble(.serenix, "Found it — \(model)."))
+            step = .connected
+            return nil
+
+        case (.pair, .chipTapped(.setUpLater)), (.pairFailed, .chipTapped(.setUpLater)):
             bubbles.append(Bubble(.user, Chip.setUpLater.label))
             step = .finished
             return nil
@@ -190,6 +221,13 @@ public struct Onboarding: Equatable, Sendable {
         return change
     }
 
+    private mutating func startLooking(after chip: Chip) -> ProfileChange? {
+        bubbles.append(Bubble(.user, chip.label))
+        bubbles.append(Bubble(.serenix, "Looking for your Strap…"))
+        step = .looking
+        return nil
+    }
+
     /// Shows what was typed and the retry line; the same question stays open. Nothing typed is
     /// ignored.
     private mutating func askAgain(after typed: String, _ retry: String) -> ProfileChange? {
@@ -207,12 +245,19 @@ public struct Onboarding: Equatable, Sendable {
                 "What year were you born? It sets how much sleep you need and estimates your Max HR."
             case .sex: "Which sex should I use for heart-rate calculations?"
             case .maxHR: "Do you know your Max HR from a test?"
-            case .pair, .finished:
+            // Only questions are asked; the pairing steps never come here.
+            case .pair, .looking, .pairFailed, .connected, .finished:
                 "Last thing: let's find your Strap. Put it on and keep your phone close."
             }
         return Bubble(.serenix, text)
     }
 
+    private static let notFoundAdvice =
+        "I couldn't find your Strap. Make sure it's charged and close by, and that the WHOOP app "
+        + "isn't connected to it — close it, or turn off its Bluetooth access."
+    private static let pairingRefusedAdvice =
+        "Pairing didn't finish. Put your Strap in pairing mode and try again — it stays in "
+        + "pairing mode for a minute or two."
     private static let birthYearRetry = "I didn't get that — a year like 1992?"
     private static let maxHRRetry = "I didn't get that — a number of beats per minute, like 185?"
 }

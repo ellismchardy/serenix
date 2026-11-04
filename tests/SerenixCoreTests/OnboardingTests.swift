@@ -130,8 +130,120 @@ private func walkToThePairStep(_ onboarding: inout Onboarding) {
     #expect(onboarding.controls.field == nil)
     #expect(onboarding.controls.placeholder == nil)
     #expect(onboarding.controls.chips.contains(.setUpLater))
+    #expect(onboarding.controls.chips == [.findMyStrap, .setUpLater])
     #expect(Onboarding.Chip.setUpLater.label == "Set up later")
+    #expect(onboarding.isLookingForStrap == false)
     #expect(onboarding.isFinished == false)
+}
+
+private let lookingBubble = Onboarding.Bubble(.serenix, "Looking for your Strap…")
+
+private let notFoundBubble = Onboarding.Bubble(
+    .serenix,
+    "I couldn't find your Strap. Make sure it's charged and close by, and that the WHOOP app isn't connected to it — close it, or turn off its Bluetooth access."
+)
+
+private let pairingRefusedBubble = Onboarding.Bubble(
+    .serenix,
+    "Pairing didn't finish. Put your Strap in pairing mode and try again — it stays in pairing mode for a minute or two."
+)
+
+private let failureControls = Onboarding.Controls(
+    field: nil,
+    placeholder: nil,
+    chips: [.tryAgain, .setUpLater]
+)
+
+private let lookingControls = Onboarding.Controls(field: nil, placeholder: nil, chips: [])
+
+private func walkToLookingForTheStrap(_ onboarding: inout Onboarding) {
+    walkToThePairStep(&onboarding)
+    _ = onboarding.handle(.chipTapped(.findMyStrap))
+}
+
+@Test func tappingFindMyStrapStartsLookingForTheStrap() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToThePairStep(&onboarding)
+    let before = onboarding.bubbles
+    let change = onboarding.handle(.chipTapped(.findMyStrap))
+    #expect(Onboarding.Chip.findMyStrap.label == "Find my Strap")
+    #expect(change == nil)
+    #expect(onboarding.bubbles == before + [.init(.user, "Find my Strap"), lookingBubble])
+    #expect(onboarding.controls == lookingControls)
+    #expect(onboarding.isLookingForStrap == true)
+    #expect(onboarding.isFinished == false)
+}
+
+@Test func aStrapNotFoundOffersTryAgainOrSetUpLater() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToLookingForTheStrap(&onboarding)
+    let before = onboarding.bubbles
+    _ = onboarding.handle(.strapNotFound)
+    #expect(onboarding.bubbles == before + [notFoundBubble])
+    #expect(onboarding.controls == failureControls)
+    #expect(Onboarding.Chip.tryAgain.label == "Try again")
+    #expect(onboarding.isLookingForStrap == false)
+    #expect(onboarding.isFinished == false)
+}
+
+@Test func refusedPairingOffersTryAgainOrSetUpLater() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToLookingForTheStrap(&onboarding)
+    let before = onboarding.bubbles
+    _ = onboarding.handle(.pairingRefused)
+    #expect(onboarding.bubbles == before + [pairingRefusedBubble])
+    #expect(onboarding.controls == failureControls)
+    #expect(onboarding.isLookingForStrap == false)
+    #expect(onboarding.isFinished == false)
+}
+
+@Test(arguments: [Onboarding.Event.strapNotFound, .pairingRefused])
+func tryAgainAfterAFailureLooksForTheStrapAgain(failure: Onboarding.Event) {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToLookingForTheStrap(&onboarding)
+    _ = onboarding.handle(failure)
+    let before = onboarding.bubbles
+    let change = onboarding.handle(.chipTapped(.tryAgain))
+    #expect(change == nil)
+    #expect(onboarding.bubbles == before + [.init(.user, "Try again"), lookingBubble])
+    #expect(onboarding.controls == lookingControls)
+    #expect(onboarding.isLookingForStrap == true)
+}
+
+@Test(arguments: [Onboarding.Event.strapNotFound, .pairingRefused])
+func setUpLaterAfterAFailureFinishesOnboarding(failure: Onboarding.Event) {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToLookingForTheStrap(&onboarding)
+    _ = onboarding.handle(failure)
+    _ = onboarding.handle(.chipTapped(.setUpLater))
+    #expect(onboarding.isFinished == true)
+}
+
+@Test func aConnectedStrapShowsFoundItWithTheModel() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToLookingForTheStrap(&onboarding)
+    let before = onboarding.bubbles
+    _ = onboarding.handle(.strapConnected(model: "Whoop 5.0"))
+    #expect(onboarding.bubbles == before + [.init(.serenix, "Found it — Whoop 5.0.")])
+    #expect(onboarding.isLookingForStrap == false)
+    #expect(onboarding.isFinished == false)
+}
+
+@Test func pairingEventsAreIgnoredWhenNotLookingForTheStrap() {
+    var atPairStep = Onboarding(currentYear: 2026)
+    walkToThePairStep(&atPairStep)
+    let before = atPairStep.bubbles
+    _ = atPairStep.handle(.strapConnected(model: "Whoop 5.0"))
+    #expect(atPairStep.bubbles == before)
+    #expect(atPairStep.isLookingForStrap == false)
+
+    var afterFailure = Onboarding(currentYear: 2026)
+    walkToLookingForTheStrap(&afterFailure)
+    _ = afterFailure.handle(.strapNotFound)
+    let beforeSecond = afterFailure.bubbles
+    _ = afterFailure.handle(.strapNotFound)
+    #expect(afterFailure.bubbles == beforeSecond)
+    #expect(afterFailure.controls == failureControls)
 }
 
 @Test func tappingSetUpLaterFinishesOnboarding() {

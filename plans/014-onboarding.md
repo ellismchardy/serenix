@@ -40,7 +40,7 @@ strictly ordered, because each one extends the same `Onboarding` type and screen
      bubbles that keep the question open, the Rather not, Don't know and sex chips, and a
      Profile change emitted for each answer (the shell saves it, which queues Load per spec 005).
    - Done when: the birth year, sex and Max HR criteria pass.
-3. [ ] **Slice:** pairing (Find my Strap, Looking, not found, refused, Try again, Connected).
+3. [x] **Slice:** pairing (Find my Strap, Looking, not found, refused, Try again, Connected).
    - Seam: Onboarding conversation · Files: `src/SerenixCore/Onboarding.swift`,
      `tests/SerenixCoreTests/OnboardingTests.swift`, `src/SerenixApp/OnboardingScreen.swift`
    - Covers: pairing events (found, not found, refused, connected with model) and their bubbles

@@ -14,7 +14,7 @@ struct SerenixApp: App {
                 if profile.hasFinishedOnboarding {
                     MainTabs(connection: connection, profile: profile)
                 } else {
-                    OnboardingScreen(profile: profile)
+                    OnboardingScreen(connection: connection, profile: profile)
                 }
             }
             .onAppear {
