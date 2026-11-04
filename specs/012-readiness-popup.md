@@ -1,7 +1,7 @@
 # 012 — Readiness popup
 
-**Status:** approved
-**Last updated:** 2026-11-04 (approved)
+**Status:** built
+**Last updated:** 2026-11-04 (built; by-hand checks carried to the PR)
 
 ## Problem
 The Readiness popup (specs 002 and 008) shows the number, the band word and a table of four
@@ -114,33 +114,33 @@ Unless a criterion says otherwise, spec 008's set-up: a Night dated 15 Nov 2026 
 Sleeping HR 52 bpm and Time Asleep 8 h; four earlier Nights the same; no Days (Load dropped).
 
 Automated (`swift test`), Today view:
-- [ ] The usual Night: Readiness 70, Ready, verdict "Your body looks recovered.", every input
+- [x] The usual Night: Readiness 70, Ready, verdict "Your body looks recovered.", every input
       "±0 pts" with gauge at 0.5, weights "56%", "28%", "17%", and Yesterday's Load last,
       "dropped", reason "No Load for yesterday, so it's left out.", no gauge.
-- [ ] HRV 50: Readiness 38; HRV "−32 pts", reason "−17% against your usual 60 ms.", gauge at
+- [x] HRV 50: Readiness 38; HRV "−32 pts", reason "−17% against your usual 60 ms.", gauge at
       0.2974 (to 4 dp), first in the list; verdict "HRV pulled it down most."
-- [ ] All four off (HRV 50, Sleeping HR 57, Time Asleep 5 h 30 m, 14 Nov at Load 85 over typical
+- [x] All four off (HRV 50, Sleeping HR 57, Time Asleep 5 h 30 m, 14 Nov at Load 85 over typical
       45): Readiness 7; points HRV −23, Sleeping HR −19, Time Asleep −14, Yesterday's Load −7
       (adding to −63), listed in that order; weights 50%, 25%, 15%, 10%; Time Asleep's reason
       "2h 30m short of your Sleep Need."; Load's "Above your typical 45."; Sleeping HR's gauge at
       0.1667 (to 4 dp).
-- [ ] HRV 72 and Time Asleep 6 h: Readiness 82; HRV "+24 pts", Time Asleep "−12 pts", Sleeping
+- [x] HRV 72 and Time Asleep 6 h: Readiness 82; HRV "+24 pts", Time Asleep "−12 pts", Sleeping
       HR "±0 pts"; list order Time Asleep, Sleeping HR, HRV; verdict "Time Asleep pulled it down
       most."
-- [ ] Inputs that cancel (Z = 0, e.g. HRV score +1 and Sleeping HR score −2): Readiness 70; HRV
+- [x] Inputs that cancel (Z = 0, e.g. HRV score +1 and Sleeping HR score −2): Readiness 70; HRV
       "+23 pts", Sleeping HR "−23 pts".
-- [ ] HRV clamped at −3 (HRV 20): its gauge is at 0.
-- [ ] A Night with no Sleeping HR: Sleeping HR last, "dropped", reason "No Sleeping HR for this
+- [x] HRV clamped at −3 (HRV 20): its gauge is at 0.
+- [x] A Night with no Sleeping HR: Sleeping HR last, "dropped", reason "No Sleeping HR for this
       Night, so it's left out."; with typical Load calibrating, Load's reason is "Typical Load is
       still calibrating, so it's left out."
-- [ ] Time Asleep 10 h: reason "Enough for your Sleep Need."; Load at or below typical: "No more
+- [x] Time Asleep 10 h: reason "Enough for your Sleep Need."; Load at or below typical: "No more
       than your typical 45."
-- [ ] Calibrating (2 Nights): no band, no Why rows, verdict spec 002's Calibrating explanation.
-- [ ] No HRV: Readiness "—", no band, no Why rows, verdict "No HRV for this Night, so there's no
+- [x] Calibrating (2 Nights): no band, no Why rows, verdict spec 002's Calibrating explanation.
+- [x] No HRV: Readiness "—", no band, no Why rows, verdict "No HRV for this Night, so there's no
       Readiness."
-- [ ] The week holds 15 Nov and the 6 Days before, oldest first, with weekday labels; a Day with
+- [x] The week holds 15 Nov and the 6 Days before, oldest first, with weekday labels; a Day with
       no Night and a Calibrating Day have no Readiness; 15 Nov is the Day shown.
-- [ ] Points always add up to Readiness − 70 when Readiness has a number.
+- [x] Points always add up to Readiness − 70 when Readiness has a number.
 
 By hand on the phone:
 - [ ] Tapping the Readiness ring opens the popup with the ring, pill, verdict, Why list with

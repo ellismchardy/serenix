@@ -65,7 +65,7 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
      `tests/SerenixCoreTests/ReadinessTests.swift`, `SleepNeedTests.swift`, `SleepScoreTests.swift`
      (wherever the old rows are asserted)
    - Done when: suite green with no references to the old rows; the shell compiles on CI.
-7. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift` and
+7. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift` and
    `swift build` green; every automated criterion in spec 012 is ticked. Carried to the PR
    checklist: the macOS CI build, and the by-hand phone check (open from the ring, every section
    in Light and Dark, closes on a tap outside or a swipe down).
