@@ -54,7 +54,7 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
    task 1's per-Night Readiness, so each Night is judged against its own Baselines.
    - Seam: Today view · Files: same as 2
    - Done when: the week criterion passes.
-6. [ ] **Shell + contract:** redraw `ReadinessPopupView` in variant E's layout (ring card with pill
+6. [x] **Shell + contract:** redraw `ReadinessPopupView` in variant E's layout (ring card with pill
    and verdict, Why rows with gauges, week bars, Sleep Score) using the existing popup cards,
    `ScoreRing` and `ReadinessBand.colour`. Remove `rows`, `baselineNote`, `calibratingText` (now the
    same as `verdictText` while Calibrating) and `ReadinessPopupRow`

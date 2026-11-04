@@ -1432,7 +1432,7 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
 
 // MARK: Readiness popup
 
-@Test func readinessPopupShowsEachInputAgainstItsReferenceAndHowManyNightsFormTheBaseline() {
+@Test func readinessPopupShowsEachInputWithItsReason() {
     // Time Asleep 5 h, 3 h short of Sleep Need 8 h, the most it can cost: Readiness 81.
     // The previous Day, 31 Oct, has Load 12, but only 30 Oct comes before it, so typical Load
     // is calibrating. Sleep Score (spec 010): Time Asleep 5 h against Sleep Need 8 h, with no
@@ -1445,23 +1445,27 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     )
     let popup = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
         .readinessPopup
+    func row(_ name: String) -> ReadinessWhyRow? { popup?.whyRows.first { $0.name == name } }
 
     #expect(popup?.readinessText == "81")
     #expect(popup?.band == .ready)
     #expect(
-        popup?.rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load"]
+        Set(popup?.whyRows.map(\.name) ?? [])
+            == ["HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load"]
     )
-    #expect(popup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "5h 0m", "12"])
-    #expect(popup?.rows.map(\.referenceText) == ["60 ms", "52 bpm", "8h 0m", "Calibrating"])
-    // A whole-hour difference keeps its minutes, as the Time Asleep tile does ("7h 0m").
+    #expect(row("HRV")?.valueText == "68 ms")
+    #expect(row("Sleeping HR")?.valueText == "49 bpm")
+    #expect(row("Time Asleep")?.valueText == "5h 0m")
+    #expect(row("Yesterday's Load")?.valueText == "12")
+    #expect(row("HRV")?.reasonText == "+14% against your usual 60 ms.")
+    #expect(row("Sleeping HR")?.reasonText == "\u{2212}3 bpm against your usual 52 bpm.")
+    // A whole-hour shortfall keeps its minutes, as the Time Asleep tile does ("7h 0m").
+    #expect(row("Time Asleep")?.reasonText == "3h 0m short of your Sleep Need.")
     #expect(
-        popup?.rows.map(\.differenceText) == [
-            "+14%", "\u{2212}3 bpm", "\u{2212}3h 0m", "\u{2014}",
-        ]
+        row("Yesterday's Load")?.reasonText
+            == "Typical Load is still calibrating, so it's left out."
     )
     #expect(popup?.sleepScoreText == "63")
-    #expect(popup?.baselineNote == "Baseline: your last 3 Nights")
-    #expect(popup?.calibratingText == nil)
 }
 
 /// Spec 007: vs your Baseline and the Readiness popup name the Night's metric "Sleeping HR".
@@ -1470,45 +1474,21 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(baselineComparisons(view)?.map(\.metric.name) == ["HRV", "Sleeping HR"])
+    let rows = view.readinessPopup?.whyRows ?? []
+    func row(_ name: String) -> ReadinessWhyRow? { rows.first { $0.name == name } }
+    #expect(Set(rows.map(\.name)) == ["HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load"])
+    // This Night has no Time Asleep, so its row reads "—". The previous Day, 31 Oct, has Load 12
+    // with typical Load calibrating.
+    #expect(row("HRV")?.valueText == "68 ms")
+    #expect(row("Sleeping HR")?.valueText == "49 bpm")
+    #expect(row("Time Asleep")?.valueText == "\u{2014}")
+    #expect(row("Yesterday's Load")?.valueText == "12")
+    #expect(row("HRV")?.reasonText == "+14% against your usual 60 ms.")
+    #expect(row("Sleeping HR")?.reasonText == "\u{2212}3 bpm against your usual 52 bpm.")
     #expect(
-        view.readinessPopup?.rows.map(\.name) == [
-            "HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load",
-        ]
+        row("Yesterday's Load")?.reasonText
+            == "Typical Load is still calibrating, so it's left out."
     )
-    // This Night has no Time Asleep, so its row reads "—" against Sleep Need 8 h. The previous
-    // Day, 31 Oct, has Load 12 with typical Load calibrating.
-    #expect(
-        view.readinessPopup?.rows.map(\.valueText) == ["68 ms", "49 bpm", "\u{2014}", "12"]
-    )
-    #expect(
-        view.readinessPopup?.rows.map(\.referenceText) == [
-            "60 ms", "52 bpm", "8h 0m", "Calibrating",
-        ]
-    )
-    #expect(
-        view.readinessPopup?.rows.map(\.differenceText) == [
-            "+14%", "\u{2212}3 bpm", "\u{2014}", "\u{2014}",
-        ]
-    )
-}
-
-@Test func readinessPopupBaselineNoteCountsAtMostFourteenNights() {
-    let earlier = nightsBeforeNov1(
-        hrv: Array(repeating: 60, count: 20),
-        sleepingHR: Array(repeating: 52, count: 20)
-    )
-    let night = Night(day: nov1, sleepingHR: 49, hrv: 68.4)
-    let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
-
-    #expect(popup?.baselineNote == "Baseline: your last 14 Nights")
-}
-
-@Test func readinessPopupBaselineNoteCountsByTheMetricWithFewerEarlierNights() {
-    let earlier = nightsBeforeNov1(hrv: [60, 60, 60, 60, 60], sleepingHR: [52, 52, 52, 52])
-    let night = Night(day: nov1, sleepingHR: 49, hrv: 68.4)
-    let popup = todayView(nights: earlier + [night], showing: nov1).readinessPopup
-
-    #expect(popup?.baselineNote == "Baseline: your last 4 Nights")
 }
 
 @Test func readinessPopupExplainsCalibratingWithTheNightsSoFar() {
@@ -1523,12 +1503,11 @@ private func baselineComparisons(_ view: TodayView) -> [BaselineComparison]? {
     #expect(popup?.readinessText == "3/4")
     #expect(popup?.band == nil)
     #expect(
-        popup?.calibratingText
+        popup?.verdictText
             == "Readiness needs 4 Nights to form your Baseline. You have 3 so far."
     )
-    // Spec 002, Popups: while Calibrating it explains "instead", so no rows.
-    #expect(popup?.baselineNote == nil)
-    #expect(popup?.rows == [])
+    // Spec 012, Calibrating: no Why list.
+    #expect(popup?.whyRows == [])
     // Spec 012: the Sleep Score shows as usual while Calibrating.
     #expect(popup?.sleepScoreText == "84")
 }

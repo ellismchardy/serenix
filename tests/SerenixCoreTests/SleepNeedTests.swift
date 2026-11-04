@@ -229,12 +229,11 @@ private let usualNightOn15Nov = nightOn15Nov(hrv: 60, sleepingHR: 52)
     let view = todayView(
         nights: usualEarlierNights(Array(repeating: 6 * oneHour, count: 4)) + [usualNightOn15Nov]
     )
-    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Time Asleep" }
 
     #expect(view.readinessText == "62")
     #expect(row?.valueText == "8h 0m")
-    #expect(row?.referenceText == "9h 0m")
-    #expect(row?.differenceText == "\u{2212}1h 0m")
+    #expect(row?.reasonText == "1h 0m short of your Sleep Need.")
 }
 
 @Test func readinessAgainstSleepNeedOf8Hours30ReadsSteady() {

@@ -261,20 +261,18 @@ public struct TodayView: Equatable, Sendable {
                 weekdayText: weekDay.weekdayName,
                 readinessText: scoreText(score),
                 band: score.map(ReadinessBand.init),
+                fill: ringFill(score),
                 isDayShown: offset == 0
             )
         }
         readinessPopup =
-            if let readinessBaselines {
-                if let calibratingNightsSoFar {
+            if readinessBaselines != nil {
+                if calibratingExplanation != nil {
                     ReadinessPopup(
                         readinessText: readinessText,
                         band: nil,
-                        rows: [],
                         // Spec 012: Sleep Score shows while Calibrating too.
                         sleepScoreText: sleepScoreText,
-                        baselineNote: nil,
-                        calibratingText: calibratingExplanation,
                         verdictText: calibratingExplanation,
                         whyRows: [],
                         week: readinessWeek
@@ -283,11 +281,7 @@ public struct TodayView: Equatable, Sendable {
                     ReadinessPopup(
                         readinessText: readinessText,
                         band: readinessBand,
-                        rows: readinessRows,
                         sleepScoreText: sleepScoreText,
-                        baselineNote:
-                            "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",
-                        calibratingText: nil,
                         verdictText: why?.verdict ?? missingHRVVerdict,
                         whyRows: why?.rows ?? [],
                         week: readinessWeek
@@ -315,12 +309,6 @@ public struct TodayView: Equatable, Sendable {
 
     /// Days in the Readiness popup's Your week, the Day shown included (spec 012).
     private static let readinessWeekDays = 7
-
-    /// How many Nights Readiness's Baselines are taken over: the fewer of HRV's and Sleeping HR's,
-    /// at most `Baseline.maxNights`.
-    private static func baselineNights(_ baselines: (hrv: Baseline, sleepingHR: Baseline)) -> Int {
-        min(Baseline.maxNights, baselines.hrv.earlierNights, baselines.sleepingHR.earlierNights)
-    }
 
     /// A Nightly Metric's popup; nil on a Day without a Night.
     public func metricPopup(_ metric: NightlyMetric) -> MetricPopup? {

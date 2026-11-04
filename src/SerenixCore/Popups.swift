@@ -1,20 +1,15 @@
 import Foundation
 
-/// The Readiness popup (specs 002 and 008): Readiness with each of its inputs against what it's
-/// measured against, and Sleep Score, or instead, while Calibrating, why there's no Readiness yet.
+/// The Readiness popup (spec 012): Readiness with its band and verdict, each input's effect on it,
+/// the last 7 Days, and Sleep Score.
 public struct ReadinessPopup: Equatable, Sendable {
-    /// As on the ring: the number, or "n/4" while Calibrating.
+    /// As on the ring: the number, "n/4" while Calibrating, or "—" when missing.
     public let readinessText: String
     public let band: ReadinessBand?
-    /// HRV, Sleeping HR, Time Asleep, then Yesterday's Load; none while Calibrating.
-    public let rows: [ReadinessPopupRow]
-    /// Nil while Calibrating.
+    /// The Night's Sleep Score, shown whether or not Readiness is Calibrating.
     public let sleepScoreText: String?
-    /// "Baseline: your last N Nights"; nil while Calibrating.
-    public let baselineNote: String?
-    /// Why there's no Readiness yet; nil once there's a Baseline.
-    public let calibratingText: String?
-    /// The sentence beside the ring (spec 012, Verdict); nil without a Readiness.
+    /// The sentence beside the ring (spec 012, Verdict), or why there's no Readiness: spec 002's
+    /// Calibrating explanation, or no HRV.
     public let verdictText: String?
     /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
     /// none without a Readiness.
@@ -31,6 +26,8 @@ public struct ReadinessWeekBar: Equatable, Sendable {
     public let readinessText: String
     /// Nil with no Readiness.
     public let band: ReadinessBand?
+    /// The bar's height, 0 to 1: Readiness out of 100, as the ring's fill; 0 with no Readiness.
+    public let fill: Double
     /// Outlined: the Day the popup is for.
     public let isDayShown: Bool
 }
@@ -177,7 +174,7 @@ public struct ReadinessWhyRow: Equatable, Sendable {
 }
 
 /// One input to Readiness in the Readiness popup (spec 008, Readiness popup).
-public struct ReadinessPopupRow: Equatable, Sendable {
+struct ReadinessPopupRow: Equatable, Sendable {
     /// e.g. "HRV", "Time Asleep", "Yesterday's Load".
     public let name: String
     /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.

@@ -317,6 +317,8 @@ private func usualNight(onNov day: Int) -> Night {
 
     #expect(week.map(\.readinessText) == ["38", "70", "70", "70", "70", "70", "70"])
     #expect(week.map(\.band) == [.steady, .ready, .ready, .ready, .ready, .ready, .ready])
+    // A bar's height is its Readiness out of 100, as the ring's fill.
+    #expect(week.map(\.fill) == [0.38, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7])
 }
 
 @Test func aDayWithNoNightAndACalibratingDayHaveNoReadiness() throws {
@@ -329,6 +331,7 @@ private func usualNight(onNov day: Int) -> Night {
     for index in [0, 1, 2, 3, 4] {
         #expect(week[index].readinessText == "—")
         #expect(week[index].band == nil)
+        #expect(week[index].fill == 0)
     }
     #expect(week.last?.readinessText == "70")
     #expect(week.last?.band == .ready)

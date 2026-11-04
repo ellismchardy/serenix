@@ -27,7 +27,13 @@ struct TodayPopupView: View {
             VStack(alignment: .leading, spacing: 16) {
                 switch popup {
                 case .readiness:
-                    if let readiness = today.readinessPopup { ReadinessPopupView(popup: readiness) }
+                    if let readiness = today.readinessPopup {
+                        ReadinessPopupView(
+                            popup: readiness,
+                            fill: today.readinessFill,
+                            date: today.shownDate
+                        )
+                    }
                 case .sleep:
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
                 case .metric(let metric):
@@ -48,48 +54,182 @@ struct TodayPopupView: View {
     }
 }
 
+/// The Readiness popup (spec 012), the layout of prototype variant E (branch
+/// `prototype/readiness-popup-ui`): the ring with its band and verdict, why, biggest effect first,
+/// Your week, and Sleep Score.
 private struct ReadinessPopupView: View {
     let popup: ReadinessPopup
+    /// The ring's fill, 0 to 1, as on the Today screen.
+    let fill: Double
+    let date: Date
 
     var body: some View {
-        Text("Readiness").font(.headline)
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(popup.readinessText).font(.largeTitle.bold()).monospacedDigit()
-            if let band = popup.band {
-                Text(band.word).font(.title3.bold()).foregroundStyle(band.colour)
+        HStack {
+            Text("Readiness").font(.headline)
+            Spacer()
+            Text(date, format: .dateTime.weekday(.abbreviated).day().month())
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        ringCard
+        if !popup.whyRows.isEmpty {
+            PopupSectionTitle("Why, biggest effect first")
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(popup.whyRows.enumerated()), id: \.offset) { index, row in
+                    if index > 0 { Divider() }
+                    ReadinessWhyRowView(row: row)
+                }
             }
+            .popupCard()
         }
-        if let calibrating = popup.calibratingText {
-            Text(calibrating).foregroundStyle(.secondary)
-        }
-        if !popup.rows.isEmpty { rows }
+        PopupSectionTitle("Your week")
+        ReadinessWeekView(bars: popup.week)
         if let sleepScore = popup.sleepScoreText {
-            LabeledContent("Sleep Score", value: sleepScore)
-        }
-        if let note = popup.baselineNote {
-            Text(note).font(.footnote).foregroundStyle(.secondary)
+            LabeledContent("Sleep Score", value: sleepScore).popupCard()
         }
     }
 
-    /// Readiness's inputs: last night, what it's measured against, and the difference.
-    private var rows: some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
-            GridRow {
-                Text("")
-                Text("Value").foregroundStyle(.secondary)
-                Text("Against").foregroundStyle(.secondary)
-                Text("")
+    private var ringCard: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                RingArc(fill: fill, colour: popup.band?.colour ?? Theme.accent, lineWidth: 10)
+                Text(popup.readinessText)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .monospacedDigit()
             }
-            .font(.footnote)
-            ForEach(popup.rows, id: \.name) { row in
-                GridRow {
-                    Text(row.name)
-                    Text(row.valueText).monospacedDigit()
-                    Text(row.referenceText).monospacedDigit()
-                    Text(row.differenceText).monospacedDigit()
+            .frame(width: 96, height: 96)
+            VStack(alignment: .leading, spacing: 8) {
+                if let band = popup.band {
+                    Text(band.word)
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(band.colour, in: Capsule())
+                }
+                if let verdict = popup.verdictText {
+                    Text(verdict).font(.headline)
                 }
             }
         }
+        .popupCard()
+    }
+}
+
+/// One input in the Readiness popup's Why list: name, weight, value, points, reason and gauge.
+private struct ReadinessWhyRowView: View {
+    let row: ReadinessWhyRow
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(row.name).bold()
+                Text(row.weightText).font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text(row.valueText).bold().monospacedDigit()
+                if let points = row.pointsText {
+                    Text(points).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                }
+            }
+            Text(row.reasonText).font(.footnote).foregroundStyle(.secondary)
+            if let position = row.gaugePosition { gauge(at: position) }
+        }
+        .padding(.vertical, 10)
+    }
+
+    /// Worse on the left, usual in the middle, better on the right.
+    private func gauge(at position: Double) -> some View {
+        VStack(spacing: 3) {
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .red, location: 0),
+                                    .init(color: .orange, location: 0.3),
+                                    .init(color: Theme.accentSoft, location: 0.45),
+                                    .init(color: Theme.accentSoft, location: 0.55),
+                                    .init(color: .green, location: 0.7),
+                                    .init(color: .green, location: 1),
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 8)
+                    Rectangle()
+                        .fill(.secondary)
+                        .frame(width: 1, height: 12)
+                        .offset(x: width / 2)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(.primary)
+                        .frame(width: 4, height: 16)
+                        .offset(x: max(0, min(position * width - 2, width - 4)))
+                }
+                .frame(height: 16)
+            }
+            .frame(height: 16)
+            HStack {
+                Text("worse")
+                Spacer()
+                Text("usual")
+                Spacer()
+                Text("better")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(row.reasonText)
+    }
+}
+
+/// The Readiness popup's Your week: a bar per Day, oldest first, its height the Day's Readiness.
+private struct ReadinessWeekView: View {
+    let bars: [ReadinessWeekBar]
+    /// The height of a bar at Readiness 100, in points.
+    private let fullHeight: CGFloat = 70
+    /// The height of a hatched bar for a Day with no Readiness, in points.
+    private let noReadinessHeight: CGFloat = 18
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 6) {
+            ForEach(Array(bars.enumerated()), id: \.offset) { _, bar in
+                VStack(spacing: 3) {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(bar.band?.colour ?? .clear)
+                        .overlay {
+                            if bar.band == nil {
+                                Hatch()
+                                    .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                            }
+                        }
+                        .overlay {
+                            if bar.isDayShown {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .strokeBorder(Color.primary, lineWidth: 2)
+                            }
+                        }
+                        .frame(height: height(of: bar))
+                    Text(bar.weekdayText).font(.caption2).foregroundStyle(.secondary)
+                    Text(bar.readinessText).font(.caption2).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .popupCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            bars.map { "\($0.weekdayText) \($0.readinessText)" }.joined(separator: ", ")
+        )
+    }
+
+    private func height(of bar: ReadinessWeekBar) -> CGFloat {
+        guard bar.band != nil else { return noReadinessHeight }
+        return max(4, fullHeight * bar.fill)
     }
 }
 
