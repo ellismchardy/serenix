@@ -203,3 +203,95 @@ _Avoid_: heart rate zone (in code), training zone, Zone (alone)
 
 **Stress**:
 Serenix's measure of physiological stress through a Day.
+
+## Body
+
+**Weigh-in**:
+One reading of the user's body weight on a Day. When a Day has several, the lowest counts.
+_Avoid_: weight entry, measurement
+
+**Trend Weight**:
+The user's body weight with the day-to-day swings of water and food smoothed out of their
+Weigh-ins.
+_Avoid_: moving average, smoothed weight, true weight
+
+**Weight Goal**:
+The weight change the user is working toward: a Start Weight on a start date, a Goal Weight, and
+a Pace.
+_Avoid_: target, plan
+
+**Start Weight**:
+The Trend Weight a Weight Goal counts progress from.
+
+**Goal Weight**:
+The weight a Weight Goal aims to reach.
+
+**Pace**:
+The change in weight per week a Weight Goal plans for, whether the user chose it as a rate or as
+a date to reach Goal Weight by.
+_Avoid_: speed, target rate
+
+**Weekly Rate**:
+How fast Trend Weight is actually changing, per week.
+_Avoid_: speed, velocity
+
+**Milestone**:
+A mark on the way from Start Weight to Goal Weight, passed when Trend Weight reaches it.
+_Avoid_: checkpoint
+
+**Intake**:
+The calories and macros the user logs as eaten on a Day.
+_Avoid_: consumption, food log total
+
+**Complete Day**:
+A Day the user marks as having all of its Intake logged.
+_Avoid_: closed day, finished log
+
+**Calories Burned**:
+Serenix's estimate of the energy the user spent on a Day, from their heart rate and Load.
+_Avoid_: active energy, TDEE
+
+**Expenditure**:
+Serenix's estimate of the energy the user spends per day, worked out from their Intake on
+Complete Days and the change in their Trend Weight.
+_Avoid_: TDEE, maintenance, metabolism
+
+**Calorie Target**:
+The Intake the user aims for each Day.
+_Avoid_: budget, calorie goal
+
+**Deficit Check**:
+Serenix's watch for HRV and Sleeping HR worsening against Baseline while the user eats below
+their Expenditure.
+_Avoid_: recovery guard (WHOOP's term), overreaching alert
+
+**Diet Break**:
+A planned stretch of eating at Expenditure in the middle of a Weight Goal that loses weight.
+_Avoid_: refeed (a shorter thing), maintenance phase
+
+**Check-in**:
+What the user logs about one Day's habits and how they felt: Water, Caffeine, Alcohol, Mood and
+Motivation.
+_Avoid_: journal (WHOOP's term), tags, diary
+
+**Alcohol**:
+The alcohol the user drank on a Day, kept as grams of ethanol and shown in the units of their
+country.
+_Avoid_: drinks (as a measure)
+
+**Habit Link**:
+An association Serenix finds between a Check-in habit and a Nightly Metric or score, with no
+claim that one causes the other.
+_Avoid_: correlation, insight, discovery
+
+**BP Reading**:
+One measurement of the user's systolic and diastolic blood pressure, with their pulse.
+_Avoid_: BP entry, measurement
+
+**BP Session**:
+Two or more BP Readings taken a minute apart at one sitting, averaged.
+
+**BP Category**:
+Where a BP Session's average, or a single very high BP Reading, sits: Normal, Elevated, High
+stage 1, High stage 2 or Very high.
+_Avoid_: Zone (a Nightly Metric against its Baseline), status
