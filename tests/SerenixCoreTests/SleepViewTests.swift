@@ -438,22 +438,32 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
 @Test func tonightWithNoSleepDebtIsUsualWakeLessUsualNeed() throws {
     let tonight = try #require(sleepView(nights: weekOfNights(timeAsleep: 8 * oneHour)).tonight)
 
-    #expect(tonight.beAsleepByText == "Be asleep by 23:00")
-    #expect(tonight.sleepNeedText == "Sleep Need 8h 0m")
-    #expect(tonight.usualWakeText == "You usually wake at 07:00")
-    #expect(tonight.sleepDebtText == nil)
-    #expect(tonight.waitingText == nil)
+    #expect(tonight.sentence == "To get 8h 0m before your usual 07:00 wake, be asleep by 23:00.")
+}
+
+@Test func tonightsLaneRunsFromBeAsleepByTonightToTheUsualWakeTomorrow() throws {
+    let tonight = try #require(sleepView(nights: weekOfNights(timeAsleep: 8 * oneHour)).tonight)
+    let lane = try #require(tonight.lane)
+
+    #expect(lane.start == at(3, 23))
+    #expect(lane.end == at(4, 7))
+    #expect(lane.text == "23:00")
 }
 
 /// Sleep Debt 7 h (1 h short each Night) would add 1 h 45 m, but Sleep Need is capped at 9 h.
-@Test func tonightWithSleepDebtAimsEarlierAndShowsTheSleepDebt() throws {
+@Test func tonightWithSleepDebtAimsEarlier() throws {
     let tonight = try #require(sleepView(nights: weekOfNights(timeAsleep: 7 * oneHour)).tonight)
 
-    #expect(tonight.beAsleepByText == "Be asleep by 22:00")
-    #expect(tonight.sleepNeedText == "Sleep Need 9h 0m")
-    #expect(tonight.usualWakeText == "You usually wake at 07:00")
-    #expect(tonight.sleepDebtText == "\u{00B7} 7h 0m of Sleep Debt this week")
-    #expect(tonight.waitingText == nil)
+    #expect(tonight.sentence == "To get 9h 0m before your usual 07:00 wake, be asleep by 22:00.")
+}
+
+@Test func tonightsLaneWithSleepDebtStartsEarlier() throws {
+    let tonight = try #require(sleepView(nights: weekOfNights(timeAsleep: 7 * oneHour)).tonight)
+    let lane = try #require(tonight.lane)
+
+    #expect(lane.start == at(3, 22))
+    #expect(lane.end == at(4, 7))
+    #expect(lane.text == "22:00")
 }
 
 @Test func tonightsUsualWakeTimeIsTheMedianFinalWake() {
@@ -464,8 +474,9 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
     ]
     let tonight = sleepView(nights: nights).tonight
 
-    #expect(tonight?.usualWakeText == "You usually wake at 07:00")
-    #expect(tonight?.beAsleepByText == "Be asleep by 23:00")
+    #expect(
+        tonight?.sentence == "To get 8h 0m before your usual 07:00 wake, be asleep by 23:00."
+    )
 }
 
 @Test func withFewerThanThreeNightsTonightReadsOnlyThatABedtimeAppearsAfterThree() throws {
@@ -475,11 +486,8 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
     ]
     let tonight = try #require(sleepView(nights: nights).tonight)
 
-    #expect(tonight.waitingText == "A bedtime to aim for appears after 3 Nights")
-    #expect(tonight.beAsleepByText == nil)
-    #expect(tonight.sleepNeedText == nil)
-    #expect(tonight.usualWakeText == nil)
-    #expect(tonight.sleepDebtText == nil)
+    #expect(tonight.sentence == "A bedtime to aim for appears after 3 Nights")
+    #expect(tonight.lane == nil)
 }
 
 @Test func anEarlierDayShownHasNoTonight() {
@@ -499,8 +507,7 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
     ]
     let tonight = try #require(sleepView(nights: nights).tonight)
 
-    #expect(tonight.usualWakeText == "You usually wake at 07:00")
-    #expect(tonight.beAsleepByText == "Be asleep by 23:00")
+    #expect(tonight.sentence == "To get 8h 0m before your usual 07:00 wake, be asleep by 23:00.")
 }
 
 /// The bedtime wraps round midnight: a usual wake of 06:00 with Sleep Need 9 h is 21:00.
@@ -512,8 +519,27 @@ private func weekOfNights(timeAsleep: TimeInterval) -> [Night] {
         + (1...3).map { tonightNight(month: 11, $0, wakeHour: 6, timeAsleep: 7 * oneHour) }
     let tonight = try #require(sleepView(nights: nights).tonight)
 
-    #expect(tonight.usualWakeText == "You usually wake at 06:00")
-    #expect(tonight.beAsleepByText == "Be asleep by 21:00")
+    #expect(tonight.sentence == "To get 9h 0m before your usual 06:00 wake, be asleep by 21:00.")
+    #expect(tonight.lane?.start == at(3, 21))
+    #expect(tonight.lane?.end == at(4, 6))
+}
+
+/// A bedtime after midnight puts the Tonight lane's start on tomorrow's date: born 1950 (76, so
+/// Usual Need 7h 30m, spec 009), each Night 7h 30m asleep (no Sleep Debt) waking 08:00, so be
+/// asleep by 00:30 on 4 Nov.
+@Test func aBedtimeAfterMidnightStartsTonightsLaneTomorrow() throws {
+    let nights =
+        (28...31).map {
+            tonightNight(month: 10, $0, wakeHour: 8, timeAsleep: 7.5 * oneHour)
+        }
+        + (1...3).map { tonightNight(month: 11, $0, wakeHour: 8, timeAsleep: 7.5 * oneHour) }
+    let view = SleepView(nights: nights, showing: nov3, now: now, timeZone: london, birthYear: 1950)
+    let tonight = try #require(view.tonight)
+
+    #expect(tonight.sentence == "To get 7h 30m before your usual 08:00 wake, be asleep by 00:30.")
+    #expect(tonight.lane?.start == at(4, 0, 30))
+    #expect(tonight.lane?.end == at(4, 8))
+    #expect(tonight.lane?.text == "00:30")
 }
 
 // MARK: Your week

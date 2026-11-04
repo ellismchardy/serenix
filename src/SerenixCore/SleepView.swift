@@ -114,16 +114,11 @@ public struct SleepSummary: Equatable, Sendable {
 /// The Sleep tab's Tonight section (spec 012, Tonight): when to be asleep tonight to get the
 /// Sleep Need of the Night that will be dated tomorrow, against the usual Final Wake.
 public struct SleepTonight: Equatable, Sendable {
-    /// e.g. "Be asleep by 23:00"; nil before there are enough Nights.
-    public let beAsleepByText: String?
-    /// e.g. "Sleep Need 8h 0m"; nil before there are enough Nights.
-    public let sleepNeedText: String?
-    /// e.g. "You usually wake at 07:00"; nil before there are enough Nights.
-    public let usualWakeText: String?
-    /// e.g. "· 2h 0m of Sleep Debt this week"; nil with no Sleep Debt or before enough Nights.
-    public let sleepDebtText: String?
-    /// "A bedtime to aim for appears after 3 Nights" in place of the rest; nil once there's one.
-    public let waitingText: String?
+    /// "To get 8h 0m before your usual 07:00 wake, be asleep by 23:00.", or "A bedtime to aim for
+    /// appears after 3 Nights" before there are enough Nights.
+    public let sentence: String
+    /// Your week's Tonight lane, Be asleep by to the usual wake; nil without a bedtime.
+    public let lane: SleepTonightLane?
 
     /// The fewest Nights with a Final Wake in the week to today that a bedtime needs (spec 012:
     /// 3, as Sleep Consistency's median).
@@ -135,25 +130,38 @@ public struct SleepTonight: Equatable, Sendable {
         let window = SleepNeed.window(before: tomorrow)
         let wakes = nights.filter { window.contains($0.day) }.compactMap(\.finalWake)
         guard wakes.count >= Self.fewestNights else {
-            beAsleepByText = nil
-            sleepNeedText = nil
-            usualWakeText = nil
-            sleepDebtText = nil
-            waitingText = "A bedtime to aim for appears after \(Self.fewestNights) Nights"
+            sentence = "A bedtime to aim for appears after \(Self.fewestNights) Nights"
+            lane = nil
             return
         }
         let need = SleepNeed(for: tomorrow, among: nights, birthYear: birthYear)
         // In whole minutes as each is shown, so the three times always agree.
         let usualWake = ClockTime.median(of: wakes, in: timeZone).rounded(.down)
         let needMinutes = (need.sleepNeed / 60).rounded()
-        beAsleepByText = "Be asleep by \(ClockTime.text(minutes: usualWake - needMinutes))"
-        sleepNeedText = "Sleep Need \(durationText(need.sleepNeed))"
-        usualWakeText = "You usually wake at \(ClockTime.text(minutes: usualWake))"
-        sleepDebtText =
-            need.sleepDebt > 0
-            ? "\u{00B7} \(durationText(need.sleepDebt)) of Sleep Debt this week" : nil
-        waitingText = nil
+        let bedtime = ClockTime.wrapped(usualWake - needMinutes)
+        let bedtimeText = ClockTime.text(minutes: bedtime)
+        sentence =
+            "To get \(durationText(need.sleepNeed)) before your usual "
+            + "\(ClockTime.text(minutes: usualWake)) wake, be asleep by \(bedtimeText)."
+        // A bedtime before noon is after midnight, on tomorrow's date.
+        let bedtimeDay = bedtime < ClockTime.noonMinutes ? tomorrow : today
+        lane = SleepTonightLane(
+            start: bedtimeDay.date(atMinutes: Int(bedtime), in: timeZone),
+            end: tomorrow.date(atMinutes: Int(usualWake), in: timeZone),
+            text: bedtimeText
+        )
     }
+}
+
+/// Your week's Tonight lane (spec 012): a dashed bar from tonight's Be asleep by to the usual wake
+/// tomorrow morning.
+public struct SleepTonightLane: Equatable, Sendable {
+    /// UTC: tonight's Be asleep by.
+    public let start: Date
+    /// UTC: the usual wake time tomorrow morning.
+    public let end: Date
+    /// The Be asleep by time, e.g. "23:00".
+    public let text: String
 }
 
 /// The Sleep tab's Your week section (spec 012, Your week): a lane for each of the 7 Days, the
@@ -186,10 +194,9 @@ public struct SleepWeek: Equatable, Sendable {
     static let usualEndHour = 10
     /// Hours between the axis' labels (spec 012: every 2 hours).
     static let labelEveryHours = 2
-    /// Minutes past midnight of noon. A Night's window runs noon to noon (GLOSSARY, Night window),
-    /// so its Sleep Onset is after noon or before its Final Wake, and its Final Wake before noon:
-    /// noon splits evening times from morning ones.
-    private static let noonMinutes = 12.0 * 60
+    /// A Night's Sleep Onset is after noon or before its Final Wake, and its Final Wake before
+    /// noon, so `ClockTime.noonMinutes` splits evening times from morning ones.
+    private static let noonMinutes = ClockTime.noonMinutes
 
     init(to shown: Day, isToday: Bool, nights: [Night], timeZone: TimeZone, birthYear: Int?) {
         let days = (0..<Self.length).map { shown.adding(days: -$0) }

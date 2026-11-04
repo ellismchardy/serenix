@@ -32,9 +32,21 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
     /// Midday on this Day in `timeZone`, on the Gregorian calendar whatever the phone's own
     /// calendar is, so no daylight-saving change can move it onto a neighbouring Day.
     func midday(in timeZone: TimeZone) -> Date {
+        date(atMinutes: 12 * 60, in: timeZone)
+    }
+
+    /// `minutes` past local midnight on this Day in `timeZone` (e.g. 1380 for 23:00), on the
+    /// Gregorian calendar.
+    func date(atMinutes minutes: Int, in timeZone: TimeZone) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        let components = DateComponents(year: year, month: month, day: dayOfMonth, hour: 12)
+        let components = DateComponents(
+            year: year,
+            month: month,
+            day: dayOfMonth,
+            hour: minutes / 60,
+            minute: minutes % 60
+        )
         // Only a Day far outside any real date has none; it falls back to the start of time
         // rather than crashing (docs/architecture.md, Errors).
         return calendar.date(from: components) ?? .distantPast

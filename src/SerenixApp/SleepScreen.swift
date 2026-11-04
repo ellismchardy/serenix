@@ -57,15 +57,16 @@ struct SleepScreen: View {
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
-            if let tonight = sleep.tonight {
-                tonightCard(tonight)
-            }
             SleepWeekView(
                 week: sleep.week,
+                tonightLane: sleep.tonight?.lane,
                 openLane: openLane,
                 toggle: { day in chosenLane = .some(openLane == day ? nil : day) },
                 showSleepScore: { sleepPopupDay = $0 }
             )
+            if let tonight = sleep.tonight {
+                tonightCard(tonight)
+            }
         }
         .sheet(
             isPresented: Binding(
@@ -95,29 +96,25 @@ struct SleepScreen: View {
         }
     }
 
-    /// Tonight (spec 012): when to be asleep, tonight's Sleep Need and the usual wake time, or
-    /// that a bedtime needs more Nights.
+    /// Tonight (spec 012): one sentence on when to be asleep, on a card in the accent colour.
     private func tonightCard(_ tonight: SleepTonight) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Tonight").font(.footnote).foregroundStyle(.secondary)
-            if let waiting = tonight.waitingText {
-                Text(waiting).font(.subheadline)
-            }
-            if let beAsleepBy = tonight.beAsleepByText {
-                Text(beAsleepBy).font(.title2.bold())
-            }
-            if let sleepNeed = tonight.sleepNeedText {
-                Text(sleepNeed).font(.subheadline)
-            }
-            if let usualWake = tonight.usualWakeText {
-                Text([usualWake, tonight.sleepDebtText].compactMap { $0 }.joined(separator: " "))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Tonight").font(.footnote).opacity(0.85)
+            Text(tonight.sentence)
+                .font(.title3.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .themeCard()
+        .padding(18)
+        .background(
+            LinearGradient(
+                colors: [Theme.accent, Theme.accentMiddle],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: Theme.cardRadius)
+        )
     }
 
     /// The Summary (spec 012): the Night in one sentence, then the Sleep Score button and Sleep
@@ -165,6 +162,8 @@ private struct SleepScoreButton: View {
 /// opens its Night's chart under it and closes any other.
 private struct SleepWeekView: View {
     let week: SleepWeek
+    /// Tonight's dashed lane, first; nil when the Day shown isn't today or there's no bedtime.
+    let tonightLane: SleepTonightLane?
     /// The lane whose chart is open; nil when none is.
     let openLane: Day?
     let toggle: (Day) -> Void
@@ -180,6 +179,10 @@ private struct SleepWeekView: View {
                 }
             }
             .padding(.bottom, 8)
+            if let tonightLane {
+                tonightRow(tonightLane)
+                Divider()
+            }
             ForEach(week.lanes, id: \.day) { lane in
                 laneRow(lane)
                 if lane.day == openLane, lane.noNightText == nil {
@@ -273,6 +276,50 @@ private struct SleepWeekView: View {
         .accessibilityAddTraits(lane.noNightText == nil ? .isButton : [])
         .accessibilityValue(lane.day == openLane ? "Open" : "")
         .accessibilityAction { if lane.noNightText == nil { toggle(lane.day) } }
+    }
+
+    /// Tonight's lane: a dashed bar from Be asleep by to the usual wake, the time at its right.
+    private func tonightRow(_ lane: SleepTonightLane) -> some View {
+        HStack(spacing: laneSpacing) {
+            Text("Tonight")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: laneNameWidth, alignment: .leading)
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                let start = week.axisFraction(of: lane.start) * width
+                let end = week.axisFraction(of: lane.end) * width
+                ZStack(alignment: .leading) {
+                    ForEach(week.axisLabels, id: \.text) { label in
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.15))
+                            .frame(width: 1)
+                            .offset(x: label.fraction * width)
+                    }
+                    Capsule()
+                        .fill(Theme.accentSoft)
+                        .overlay(
+                            Capsule().strokeBorder(
+                                Theme.accent,
+                                style: StrokeStyle(lineWidth: 1.2, dash: [3, 3])
+                            )
+                        )
+                        .frame(width: max(end - start, 4), height: 12)
+                        .offset(x: start)
+                }
+                .frame(maxHeight: .infinity)
+            }
+            .frame(height: laneBarHeight)
+            Text(lane.text)
+                .font(.footnote.weight(.semibold).monospacedDigit())
+                .foregroundStyle(Theme.accent)
+                .frame(width: laneValueWidth, alignment: .trailing)
+        }
+        .padding(.vertical, 7)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Tonight: be asleep by \(lane.text)")
     }
 
     /// Under an open lane: its Night's chart (or the not-kept note), then how often it woke and

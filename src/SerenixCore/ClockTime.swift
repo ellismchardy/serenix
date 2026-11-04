@@ -5,6 +5,9 @@ import Foundation
 enum ClockTime {
     /// Minutes in a day, for clock times.
     static let minutesPerDay = 24.0 * 60
+    /// Minutes past midnight of noon. A Night's window runs noon to noon (GLOSSARY, Night window),
+    /// so noon splits evening clock times from morning ones.
+    static let noonMinutes = 12.0 * 60
 
     /// Minutes since local midnight of `date` in `timeZone`.
     static func minutes(of date: Date, in timeZone: TimeZone) -> Double {

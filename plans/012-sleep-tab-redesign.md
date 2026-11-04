@@ -72,7 +72,7 @@ Existing Sleep view code: `src/SerenixCore/SleepView.swift` (`SleepView`, `Sleep
      and "Woke" text, no Time in Bed, no Heart Rate Trace); the already-ticked Sleeping HR,
      y-axis and "Woke 1 time" tests pass against the lane's chart; the old Last night tests are
      moved or removed.
-5. [ ] **Slice: Tonight card and lane.** `SleepTonight` becomes the sentence "To get 8h 0m before
+5. [x] **Slice: Tonight card and lane.** `SleepTonight` becomes the sentence "To get 8h 0m before
    your usual 07:00 wake, be asleep by 23:00." (or the "after 3 Nights" text) and the Tonight
    lane's range (Be asleep by to the usual wake, none without a bedtime). The Sleep screen draws
    the dashed Tonight lane at the top of Your week and the purple Tonight card under it.
