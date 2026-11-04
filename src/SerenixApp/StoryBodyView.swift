@@ -22,7 +22,10 @@ struct StoryBodyView: View {
                 StoryStepRow(
                     step: step,
                     dotColour: dotColour(step),
-                    isLast: index == steps.count - 1
+                    isLast: index == steps.count - 1,
+                    // The title opens the step's popup too, so This morning still opens
+                    // Readiness while Calibrating, when it has no card.
+                    onTitleTap: step.tap.map { tap in { onTap(tap) } }
                 ) {
                     card(step)
                 }
@@ -52,7 +55,11 @@ struct StoryBodyView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-        case .todaySoFar: tappable(step) { loadCard(step) }
+        case .todaySoFar:
+            tappable(step) { loadCard(step) }
+                .accessibilityHint(
+                    today.loadOpensProfileMenu ? "Opens your profile" : "Shows your Load"
+                )
         }
     }
 
@@ -161,6 +168,8 @@ private struct StoryStepRow<Card: View>: View {
     let step: StoryStep
     let dotColour: Color
     let isLast: Bool
+    /// Opens the step's popup from its title; nil for Overnight, whose rows are tapped instead.
+    let onTitleTap: (() -> Void)?
     @ViewBuilder let card: () -> Card
 
     var body: some View {
@@ -173,7 +182,14 @@ private struct StoryStepRow<Card: View>: View {
             }
             VStack(alignment: .leading, spacing: 6) {
                 Text(step.timeLabel).font(.footnote).foregroundStyle(.secondary)
-                Text(step.title).font(.headline)
+                if let onTitleTap {
+                    Button(action: onTitleTap) {
+                        Text(step.title).font(.headline)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text(step.title).font(.headline)
+                }
                 card()
             }
             .padding(.bottom, isLast ? 0 : 22)

@@ -97,11 +97,7 @@ struct TodayScreen: View {
             // The Load ring opens the profile menu while it asks for the age (spec 005, Add your
             // age), and the Load popup otherwise (spec 006).
             Button {
-                if today.loadOpensProfileMenu {
-                    showsProfileMenu = true
-                } else {
-                    open(.load, in: today)
-                }
+                openLoad(today)
             } label: {
                 loadRing(today).contentShape(Rectangle())
             }
@@ -237,12 +233,17 @@ struct TodayScreen: View {
         case .sleep: open(.sleep, in: today)
         case .metric(let metric): open(.metric(metric), in: today)
         case .readiness: open(.readiness, in: today)
-        case .load:
-            if today.loadOpensProfileMenu {
-                showsProfileMenu = true
-            } else {
-                open(.load, in: today)
-            }
+        case .load: openLoad(today)
+        }
+    }
+
+    /// The profile menu while Load asks for the age (spec 005, Add your age), else the Load
+    /// popup (spec 006); for the Load ring and the Story's Load step alike.
+    private func openLoad(_ today: TodayView) {
+        if today.loadOpensProfileMenu {
+            showsProfileMenu = true
+        } else {
+            open(.load, in: today)
         }
     }
 

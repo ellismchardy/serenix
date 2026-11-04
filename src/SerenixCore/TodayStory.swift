@@ -137,7 +137,7 @@ private func sleepSpanText(_ night: Night, _ timeZone: TimeZone) -> String {
     return "\(clockText(onset, in: timeZone)) \u{2192} \(clockText(wake, in: timeZone))"
 }
 
-/// "You slept 7h 12m", or "You slept –" without a Time Asleep.
+/// "You slept 7h 12m", or "You slept —" without a Time Asleep.
 private func sleptText(_ night: Night) -> String {
-    "You slept \(night.timeAsleep.map(durationText) ?? "–")"
+    "You slept \(night.timeAsleep.map(durationText) ?? missingText)"
 }
