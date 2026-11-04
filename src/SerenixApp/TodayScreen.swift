@@ -192,14 +192,19 @@ struct TodayScreen: View {
     private func noNightRestingHR(_ today: TodayView) -> some View {
         if let tile = today.restingHRTile {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                Button {
-                    open(.restingHR, in: today)
-                } label: {
-                    RestingHRTileView(tile: tile)
-                }
-                .buttonStyle(.plain)
+                restingHRButton(tile, in: today)
             }
         }
+    }
+
+    /// The Resting HR tile as a button opening its popup (spec 011), in the grid or on its own.
+    private func restingHRButton(_ tile: RestingHRTile, in today: TodayView) -> some View {
+        Button {
+            open(.restingHR, in: today)
+        } label: {
+            RestingHRTileView(tile: tile)
+        }
+        .buttonStyle(.plain)
     }
 
     /// Under "Last night" or the date: Time Asleep across the full width, then the Nightly Metric
@@ -231,12 +236,7 @@ struct TodayScreen: View {
                             }
                             .buttonStyle(.plain)
                         case .restingHR(let tile):
-                            Button {
-                                open(.restingHR, in: today)
-                            } label: {
-                                RestingHRTileView(tile: tile)
-                            }
-                            .buttonStyle(.plain)
+                            restingHRButton(tile, in: today)
                         }
                     }
                 }
@@ -267,7 +267,8 @@ struct TodayScreen: View {
         }
     }
 
-    /// Opens a popup, unless the Today view has nothing for it to show (a Day without a Night).
+    /// Opens a popup, unless the Today view has nothing for it to show (e.g. the Night's popups
+    /// on a Day without a Night).
     private func open(_ popup: TodayPopup, in today: TodayView) {
         let hasContent =
             switch popup {
