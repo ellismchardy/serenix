@@ -103,6 +103,7 @@ final class ProfileStore: ObservableObject {
         self.name = trimmed.isEmpty ? nil : trimmed
     }
 }
+
 extension ProfileStore {
     /// The Profile as kept on the phone, readable off the main thread (UserDefaults is
     /// thread-safe) for working out Load (spec 005).
@@ -116,6 +117,7 @@ extension ProfileStore {
         )
     }
 }
+
 private let nameKey = "profileName"
 private let birthYearKey = "profileBirthYear"
 private let sexKey = "profileSex"

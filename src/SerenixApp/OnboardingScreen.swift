@@ -63,8 +63,18 @@ struct OnboardingScreen: View {
             guard looking else { return }
             connection.syncNow()
             // The phase may already answer (Bluetooth off, or a link already up), with no change
-            // to come.
-            if let event = pairingEvent(for: connection.phase) { handle(event) }
+            // to come. A failure left from an earlier try doesn't count: Try again must retry.
+            switch connection.phase {
+            case .bluetoothUnavailable, .connected, .syncing, .synced:
+                if let event = pairingEvent(for: connection.phase) { handle(event) }
+                // A sync that already finished (one Serenix started itself after a relaunch)
+                // ends the Syncing bubble at once.
+                if conversation.syncLine != nil, let event = syncEvent(for: connection.phase) {
+                    handle(event)
+                }
+            case .idle, .searching, .connecting, .failed:
+                break
+            }
         }
         .onChange(of: connection.phase) { _, phase in
             if conversation.isLookingForStrap, let event = pairingEvent(for: phase) {

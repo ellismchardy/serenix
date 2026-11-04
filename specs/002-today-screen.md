@@ -186,8 +186,8 @@ one describes the Night shown:
 
 Tapping the Load ring does nothing in this spec (spec 006 now opens the Load popup from it).
 
-**Profile.** The user's name, kept only on the phone (GLOSSARY). On first launch it is asked for
-in Onboarding (spec 014), which replaced this spec's one-question name prompt. The name is
+**Profile.** The user's name, kept only on the phone (GLOSSARY). On first launch it is asked
+for in Onboarding (spec 014), which replaced this spec's one-question name prompt. The name is
 trimmed of spaces; a blank name counts as none. It can be added or changed from the profile menu. It is never sent anywhere, and never
 appears in the Sync Log, a shared log or any report.
 

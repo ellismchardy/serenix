@@ -339,9 +339,9 @@ public struct Onboarding: Equatable, Sendable {
                 "What year were you born? It sets how much sleep you need and estimates your Max HR."
             case .sex: "Which sex should I use for heart-rate calculations?"
             case .maxHR: "Do you know your Max HR from a test?"
-            // Only questions are asked; the pairing steps never come here.
-            case .pair, .looking, .pairFailed, .connected, .finished:
-                "Last thing: let's find your Strap. Put it on and keep your phone close."
+            case .pair: "Last thing: let's find your Strap. Put it on and keep your phone close."
+            // Asked only on arriving at a step: these are reached by pairing, not by a question.
+            case .looking, .pairFailed, .connected, .finished: ""
             }
         return Bubble(.serenix, text)
     }
