@@ -49,7 +49,7 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
    explanation, or "No HRV for this Night, so there's no Readiness." Sleep Score shows in both.
    - Seam: Today view · Files: same as 2
    - Done when: the Calibrating and No HRV criteria pass.
-5. [ ] **Slice:** Your week: the Day shown and the 6 Days before, oldest first, with weekday label,
+5. [x] **Slice:** Your week: the Day shown and the 6 Days before, oldest first, with weekday label,
    Readiness or none (no Night, missing or Calibrating), band, and which Day is the one shown. Uses
    task 1's per-Night Readiness, so each Night is judged against its own Baselines.
    - Seam: Today view · Files: same as 2

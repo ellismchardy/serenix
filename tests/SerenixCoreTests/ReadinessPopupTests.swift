@@ -277,3 +277,59 @@ private func expectGauge(_ position: Double?, isAbout expected: Double) {
     #expect(popup?.verdictText == "No HRV for this Night, so there's no Readiness.")
     #expect(popup != nil && popup?.sleepScoreText != nil)
 }
+
+// MARK: Your week
+
+/// A usual Night (HRV 60, Sleeping HR 52, 8 h) dated `day` November 2026.
+private func usualNight(onNov day: Int) -> Night {
+    Night(
+        day: Day(year: 2026, month: 11, day: day),
+        sleepingHR: 52,
+        hrv: 60,
+        timeAsleep: 8 * oneHour
+    )
+}
+
+@Test func theWeekHoldsTheDayShownAndTheSixDaysBeforeOldestFirst() {
+    let nights = (1...14).map { usualNight(onNov: $0) } + [nightOn15Nov(hrv: 50)]
+    let week = todayView(nights: nights).readinessPopup?.week ?? []
+
+    #expect(week.map(\.weekdayText) == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+    #expect(week.map(\.isDayShown) == [false, false, false, false, false, false, true])
+}
+
+@Test func eachWeekBarReadsItsDaysReadinessAgainstItsOwnBaselines() {
+    // 9 Nov has HRV 50 against four usual earlier Nights (5–8 Nov, typical Spread): Readiness 38,
+    // as in spec 008. 10–15 Nov are usual Nights at their Baseline's median of 60 ms: Readiness 70
+    // whatever their Spread (spec 008).
+    let nights =
+        (5...8).map { usualNight(onNov: $0) }
+        + [
+            Night(
+                day: Day(year: 2026, month: 11, day: 9),
+                sleepingHR: 52,
+                hrv: 50,
+                timeAsleep: 8 * oneHour
+            )
+        ]
+        + (10...14).map { usualNight(onNov: $0) } + [nightOn15Nov()]
+    let week = todayView(nights: nights).readinessPopup?.week ?? []
+
+    #expect(week.map(\.readinessText) == ["38", "70", "70", "70", "70", "70", "70"])
+    #expect(week.map(\.band) == [.steady, .ready, .ready, .ready, .ready, .ready, .ready])
+}
+
+@Test func aDayWithNoNightAndACalibratingDayHaveNoReadiness() throws {
+    // Nights on 10, 11, 12, 14 and 15 Nov: 15 Nov has 4 earlier Nights, so it reads a number.
+    // 9 and 13 Nov have no Night; 10–12 Nov have fewer than 3 earlier Nights (Calibrating).
+    let nights = [10, 11, 12, 14].map { usualNight(onNov: $0) } + [nightOn15Nov()]
+    let week = todayView(nights: nights).readinessPopup?.week ?? []
+
+    try #require(week.count == 7)
+    for index in [0, 1, 2, 3, 4] {
+        #expect(week[index].readinessText == "—")
+        #expect(week[index].band == nil)
+    }
+    #expect(week.last?.readinessText == "70")
+    #expect(week.last?.band == .ready)
+}

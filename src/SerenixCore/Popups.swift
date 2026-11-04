@@ -19,6 +19,20 @@ public struct ReadinessPopup: Equatable, Sendable {
     /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
     /// none without a Readiness.
     public let whyRows: [ReadinessWhyRow]
+    /// Your week: the Day shown and the 6 Days before it, oldest first (spec 012).
+    public let week: [ReadinessWeekBar]
+}
+
+/// One Day in the Readiness popup's Your week (spec 012).
+public struct ReadinessWeekBar: Equatable, Sendable {
+    /// "Mon" to "Sun".
+    public let weekdayText: String
+    /// That Day's Readiness, or "—" with none (no Night, missing or Calibrating).
+    public let readinessText: String
+    /// Nil with no Readiness.
+    public let band: ReadinessBand?
+    /// Outlined: the Day the popup is for.
+    public let isDayShown: Bool
 }
 
 /// One input in the Readiness popup's Why list (spec 012).

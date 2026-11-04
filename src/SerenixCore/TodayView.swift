@@ -244,6 +244,26 @@ public struct TodayView: Equatable, Sendable {
         // Readiness is missing when the Night has no HRV, an HRV of 0 counting as none (spec 008).
         let hasHRV = (night?.value(of: .hrv)).map { $0 > 0 } ?? false
         let missingHRVVerdict = hasHRV ? nil : "No HRV for this Night, so there's no Readiness."
+        // Your week: each Day's Readiness against its own Baselines, as if it were shown (spec
+        // 012). The Day shown reuses its own; worked out each time, never stored.
+        let readinessWeek = (-(Self.readinessWeekDays - 1)...0).map { offset in
+            let weekDay = day.adding(days: offset)
+            let score =
+                offset == 0
+                ? nightReadiness.score
+                : NightReadiness(
+                    for: weekDay,
+                    among: nights,
+                    dayLoads: dayLoads,
+                    birthYear: birthYear
+                ).score
+            return ReadinessWeekBar(
+                weekdayText: weekDay.weekdayName,
+                readinessText: scoreText(score),
+                band: score.map(ReadinessBand.init),
+                isDayShown: offset == 0
+            )
+        }
         readinessPopup =
             if let readinessBaselines {
                 if let calibratingNightsSoFar {
@@ -256,7 +276,8 @@ public struct TodayView: Equatable, Sendable {
                         baselineNote: nil,
                         calibratingText: calibratingExplanation,
                         verdictText: calibratingExplanation,
-                        whyRows: []
+                        whyRows: [],
+                        week: readinessWeek
                     )
                 } else {
                     ReadinessPopup(
@@ -268,7 +289,8 @@ public struct TodayView: Equatable, Sendable {
                             "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",
                         calibratingText: nil,
                         verdictText: why?.verdict ?? missingHRVVerdict,
-                        whyRows: why?.rows ?? []
+                        whyRows: why?.rows ?? [],
+                        week: readinessWeek
                     )
                 }
             } else {
@@ -290,6 +312,9 @@ public struct TodayView: Equatable, Sendable {
                 tiles.map { MetricPopup($0, for: night, among: nights) }
             } ?? []
     }
+
+    /// Days in the Readiness popup's Your week, the Day shown included (spec 012).
+    private static let readinessWeekDays = 7
 
     /// How many Nights Readiness's Baselines are taken over: the fewer of HRV's and Sleeping HR's,
     /// at most `Baseline.maxNights`.
