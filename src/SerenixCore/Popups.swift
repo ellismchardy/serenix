@@ -14,6 +14,83 @@ public struct ReadinessPopup: Equatable, Sendable {
     public let baselineNote: String?
     /// Why there's no Readiness yet; nil once there's a Baseline.
     public let calibratingText: String?
+    /// The sentence beside the ring (spec 012, Verdict); nil without a Readiness.
+    public let verdictText: String?
+    /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
+    /// none without a Readiness.
+    public let whyRows: [ReadinessWhyRow]
+}
+
+/// One input in the Readiness popup's Why list (spec 012).
+public struct ReadinessWhyRow: Equatable, Sendable {
+    /// "HRV", "Sleeping HR", "Time Asleep" or "Yesterday's Load".
+    public let name: String
+    /// The re-weighted weight as a whole percentage ("56%"), or "dropped".
+    public let weightText: String
+    /// As in spec 008's popup rows ("50 ms", "7h 30m", "85", or "—").
+    public let valueText: String
+    /// "−23 pts", "+12 pts" or "±0 pts"; nil when dropped.
+    public let pointsText: String?
+
+    /// The Why rows in order, and the verdict, from Readiness's breakdown and spec 008's rows
+    /// for each input.
+    static func list(
+        _ breakdown: Readiness.Breakdown,
+        rows: [Readiness.Input: ReadinessPopupRow]
+    ) -> (rows: [ReadinessWhyRow], verdict: String) {
+        let inputs: [Readiness.Input] = [.hrv, .sleepingHR, .timeAsleep, .previousDayLoad]
+        let points = breakdown.points
+        let counted = inputs.indices.map { index -> (row: ReadinessWhyRow, points: Int?) in
+            let input = inputs[index]
+            let name = input.name
+            let valueText = rows[input]?.valueText ?? missingText
+            guard let partIndex = breakdown.parts.firstIndex(where: { $0.input == input }) else {
+                return (
+                    ReadinessWhyRow(
+                        name: name,
+                        weightText: "dropped",
+                        valueText: valueText,
+                        pointsText: nil
+                    ),
+                    nil
+                )
+            }
+            let part = breakdown.parts[partIndex]
+            let percent = Int((part.weight * 100).rounded(.toNearestOrAwayFromZero))
+            return (
+                ReadinessWhyRow(
+                    name: name,
+                    weightText: "\(percent)%",
+                    valueText: valueText,
+                    pointsText: "\(signedText(points[partIndex])) pts"
+                ),
+                points[partIndex]
+            )
+        }
+        // Lowest points first; dropped last; ties keep the inputs' order (a stable sort).
+        let ordered = counted.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.points, rhs.element.points) {
+            case (let left?, let right?): left != right ? left < right : lhs.offset < rhs.offset
+            case (.some, .none): true
+            case (.none, .some): false
+            case (.none, .none): lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+        let lowest = ordered.first
+        let verdict =
+            if let lowest, let lowestPoints = lowest.points,
+                lowestPoints <= -verdictPointsThreshold
+            {
+                "\(lowest.row.name) pulled it down most."
+            } else {
+                "Your body looks recovered."
+            }
+        return (ordered.map(\.row), verdict)
+    }
+
+    /// An input that costs this many points or more is named in the verdict (spec 012,
+    /// Verdict), in Readiness points.
+    static let verdictPointsThreshold = 3
 }
 
 /// One input to Readiness in the Readiness popup (spec 008, Readiness popup).

@@ -29,7 +29,7 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
    Load and typical Load) into one internal function that takes a Night date.
    - Files: `src/SerenixCore/Readiness.swift`, `src/SerenixCore/TodayView.swift`
    - Done when: existing suite still green, with no behaviour change.
-2. [ ] **Slice (tracer):** popup verdict and Why rows: name, weight text, value text, points
+2. [x] **Slice (tracer):** popup verdict and Why rows: name, weight text, value text, points
    (share of curve(Z) − curve(0), with the slope at Z = 0, and largest-remainder rounding to
    Readiness − 70), ordered by points with dropped inputs last. Add the new fields beside the old
    `rows`.

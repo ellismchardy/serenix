@@ -204,6 +204,27 @@ public struct TodayView: Equatable, Sendable {
                 )
             }
 
+        // Readiness's inputs in spec 008's order: HRV, Sleeping HR, Time Asleep, Yesterday's Load.
+        let readinessRows =
+            VsBaseline.metrics.compactMap { metric in
+                tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
+            } + [
+                ReadinessPopupRow(
+                    timeAsleep: night?.plausibleTimeAsleep,
+                    sleepNeed: sleepNeed.sleepNeed
+                ),
+                ReadinessPopupRow(
+                    previousDayLoad: previousDayLoad,
+                    typical: previousDayTypicalLoad
+                ),
+            ]
+        let inputRows: [Readiness.Input: ReadinessPopupRow] = Dictionary(
+            uniqueKeysWithValues: readinessRows.compactMap { row in
+                let inputs: [Readiness.Input] = [.hrv, .sleepingHR, .timeAsleep, .previousDayLoad]
+                return inputs.first { $0.name == row.name }.map { ($0, row) }
+            }
+        )
+        let why = nightReadiness.breakdown.map { ReadinessWhyRow.list($0, rows: inputRows) }
         readinessPopup =
             if let readinessBaselines {
                 if let calibratingNightsSoFar {
@@ -215,28 +236,21 @@ public struct TodayView: Equatable, Sendable {
                         baselineNote: nil,
                         calibratingText:
                             "Readiness needs \(nightsForBaseline) Nights to form your Baseline. "
-                            + "You have \(calibratingNightsSoFar) so far."
+                            + "You have \(calibratingNightsSoFar) so far.",
+                        verdictText: nil,
+                        whyRows: []
                     )
                 } else {
                     ReadinessPopup(
                         readinessText: readinessText,
                         band: readinessBand,
-                        rows: VsBaseline.metrics.compactMap { metric in
-                            tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
-                        } + [
-                            ReadinessPopupRow(
-                                timeAsleep: night?.plausibleTimeAsleep,
-                                sleepNeed: sleepNeed.sleepNeed
-                            ),
-                            ReadinessPopupRow(
-                                previousDayLoad: previousDayLoad,
-                                typical: previousDayTypicalLoad
-                            ),
-                        ],
+                        rows: readinessRows,
                         sleepScoreText: sleepScoreText,
                         baselineNote:
                             "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",
-                        calibratingText: nil
+                        calibratingText: nil,
+                        verdictText: why?.verdict,
+                        whyRows: why?.rows ?? []
                     )
                 }
             } else {

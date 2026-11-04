@@ -99,8 +99,18 @@ enum Readiness {
     }
 
     /// One of Readiness's four inputs (spec 008, Inputs).
-    enum Input: Equatable, Sendable {
+    enum Input: Hashable, Sendable {
         case hrv, sleepingHR, timeAsleep, previousDayLoad
+
+        /// As in the Readiness popup (specs 008, 012).
+        var name: String {
+            switch self {
+            case .hrv: "HRV"
+            case .sleepingHR: "Sleeping HR"
+            case .timeAsleep: "Time Asleep"
+            case .previousDayLoad: "Yesterday's Load"
+            }
+        }
     }
 
     /// One input that counted towards Readiness.
@@ -124,9 +134,47 @@ enum Readiness {
 
         /// Readiness, 0–100, rounded with halves up.
         var score: Int {
-            let readiness = 100 / (1 + exp(-curveSlope * (weightedScore + curveOffset)))
             // Readiness is never negative, so rounding away from zero is rounding halves up.
-            return Int(readiness.rounded(.toNearestOrAwayFromZero))
+            Int(curve(weightedScore).rounded(.toNearestOrAwayFromZero))
         }
+
+        /// Each counted input's whole points, in `parts` order: its share of how far Readiness
+        /// is from a usual Night, adding up to `score` − the usual Night's Readiness (spec 012,
+        /// Points).
+        var points: [Int] {
+            let weighted = weightedScore
+            // Readiness moved per score unit; at Z = 0, the curve's slope there. Inputs that cancel
+            // leave Z a rounding error away from 0, where the difference quotient loses precision.
+            let perUnit =
+                abs(weighted) < Readiness.flatWeightedScore
+                ? curveSlope * curve(0) * (1 - curve(0) / 100)
+                : (curve(weighted) - curve(0)) / weighted
+            let raw = parts.map { $0.score * $0.weight * perUnit }
+            var points = raw.map { Int($0.rounded(.down)) }
+            // Largest remainder: hand out (or take back) the points rounding down left over, so
+            // they add up exactly.
+            let shortfall = (score - Readiness.usualScore) - points.reduce(0, +)
+            let byRemainder = raw.indices.sorted {
+                raw[$0] - Double(points[$0]) > raw[$1] - Double(points[$1])
+            }
+            if shortfall > 0 {
+                for index in byRemainder.prefix(shortfall) { points[index] += 1 }
+            } else if shortfall < 0 {
+                for index in byRemainder.suffix(-shortfall) { points[index] -= 1 }
+            }
+            return points
+        }
+    }
+
+    /// The usual Night's Readiness (spec 008, Score): what the points start from.
+    static let usualScore = 70
+
+    /// A weighted score closer to 0 than this counts as 0 when splitting points (spec 012,
+    /// Points), in score units: far below any real input's effect, far above rounding error.
+    static let flatWeightedScore = 1e-9
+
+    /// Readiness before rounding, 0–100, for a weighted score Z (spec 008, Score).
+    static func curve(_ weighted: Double) -> Double {
+        100 / (1 + exp(-curveSlope * (weighted + curveOffset)))
     }
 }

@@ -1,0 +1,183 @@
+import Foundation
+import SerenixCore
+import Testing
+
+// The Readiness popup's verdict and "Why" rows (spec 012, Success criteria: verdict, weights,
+// points). Expected values are spec 012's literals.
+
+/// 15 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
+private let london = TimeZone(identifier: "Europe/London")!
+
+/// 2026-11-15T08:12:00Z, 08:12 local in London.
+private let now = Date(timeIntervalSince1970: 1_794_730_320)
+
+private let nov14 = Day(year: 2026, month: 11, day: 14)
+private let nov15 = Day(year: 2026, month: 11, day: 15)
+
+private let oneHour: TimeInterval = 3_600
+
+private func todayView(nights: [Night], dayLoads: [DayLoad] = []) -> TodayView {
+    TodayView(
+        nights: nights,
+        dayLoads: dayLoads,
+        showing: nov15,
+        now: now,
+        timeZone: london,
+        sync: .idle,
+        profileName: nil
+    )
+}
+
+/// `count` earlier Nights before 15 Nov, each HRV 60 ms, Sleeping HR 52 bpm, Time Asleep 8 h:
+/// Spreads HRV 0.15 (ln RMSSD) and Sleeping HR 2.5 bpm; Sleep Need 8 h.
+private func usualNightsBefore15Nov(count: Int = 4) -> [Night] {
+    (1...count).map { daysBefore in
+        Night(
+            day: Day(year: 2026, month: 11, day: 15 - daysBefore),
+            sleepingHR: 52,
+            hrv: 60,
+            timeAsleep: 8 * oneHour
+        )
+    }
+}
+
+private func nightOn15Nov(
+    hrv: Double? = 60,
+    sleepingHR: Double? = 52,
+    timeAsleep: TimeInterval = 8 * oneHour
+) -> Night {
+    Night(day: nov15, sleepingHR: sleepingHR, hrv: hrv, timeAsleep: timeAsleep)
+}
+
+private func readinessView(
+    for night: Night,
+    earlierNights: Int = 4,
+    dayLoads: [DayLoad] = []
+) -> TodayView {
+    todayView(nights: usualNightsBefore15Nov(count: earlierNights) + [night], dayLoads: dayLoads)
+}
+
+/// `count` Days before 14 Nov at Load 45 (typical Load 45 with 4 of them).
+private func daysBefore14NovAtLoad45(count: Int = 4) -> [DayLoad] {
+    (1...count).map { daysBefore in
+        DayLoad(day: Day(year: 2026, month: 11, day: 14 - daysBefore), load: 45)
+    }
+}
+
+/// Four Days before 14 Nov at Load 45, and 14 Nov at `load`.
+private func dayLoadsWith14NovAt(_ load: Int) -> [DayLoad] {
+    daysBefore14NovAtLoad45() + [DayLoad(day: nov14, load: load)]
+}
+
+/// Parses "−23 pts", "+12 pts", "±0 pts" (U+2212 minus) into whole points.
+private func points(_ text: String?) -> Int? {
+    guard let text, text.hasSuffix(" pts") else { return nil }
+    let number = text.dropLast(4)
+    if number.hasPrefix("±") { return Int(number.dropFirst()) }
+    if number.hasPrefix("\u{2212}") { return Int(number.dropFirst()).map { -$0 } }
+    if number.hasPrefix("+") { return Int(number.dropFirst()) }
+    return nil
+}
+
+private func row(_ name: String, in view: TodayView) -> ReadinessWhyRow? {
+    view.readinessPopup?.whyRows.first { $0.name == name }
+}
+
+private func allFourOffView() -> TodayView {
+    readinessView(
+        for: nightOn15Nov(hrv: 50, sleepingHR: 57, timeAsleep: 5 * oneHour + 30 * 60),
+        dayLoads: dayLoadsWith14NovAt(85)
+    )
+}
+
+private func hrv72AndSixHoursView() -> TodayView {
+    readinessView(for: nightOn15Nov(hrv: 72, timeAsleep: 6 * oneHour))
+}
+
+// MARK: Usual Night
+
+@Test func aUsualNightReadsRecoveredWithEveryInputAtZeroPoints() {
+    let view = readinessView(for: nightOn15Nov())
+    let popup = view.readinessPopup
+
+    #expect(popup?.verdictText == "Your body looks recovered.")
+    #expect(row("HRV", in: view)?.pointsText == "±0 pts")
+    #expect(row("Sleeping HR", in: view)?.pointsText == "±0 pts")
+    #expect(row("Time Asleep", in: view)?.pointsText == "±0 pts")
+    #expect(row("HRV", in: view)?.weightText == "56%")
+    #expect(row("Sleeping HR", in: view)?.weightText == "28%")
+    #expect(row("Time Asleep", in: view)?.weightText == "17%")
+}
+
+@Test func aDroppedYesterdaysLoadIsListedLastWithNoPoints() {
+    let view = readinessView(for: nightOn15Nov())
+    let last = view.readinessPopup?.whyRows.last
+
+    #expect(last?.name == "Yesterday's Load")
+    #expect(last?.weightText == "dropped")
+    #expect(last?.pointsText == nil)
+}
+
+// MARK: One input off
+
+@Test func anHRVBelowBaselineIsListedFirstAndPulledItDownMost() {
+    let view = readinessView(for: nightOn15Nov(hrv: 50))
+    let popup = view.readinessPopup
+
+    #expect(popup?.whyRows.first?.name == "HRV")
+    #expect(popup?.whyRows.first?.pointsText == "\u{2212}32 pts")
+    #expect(popup?.verdictText == "HRV pulled it down most.")
+}
+
+// MARK: All four off
+
+@Test func allFourInputsOffAreListedByPointsWithTheirWeights() {
+    let popup = allFourOffView().readinessPopup
+    let rows = popup?.whyRows ?? []
+
+    #expect(rows.map(\.name) == ["HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load"])
+    #expect(
+        rows.map(\.pointsText) == [
+            "\u{2212}23 pts", "\u{2212}19 pts", "\u{2212}14 pts", "\u{2212}7 pts",
+        ]
+    )
+    #expect(rows.map(\.weightText) == ["50%", "25%", "15%", "10%"])
+}
+
+// MARK: Mixed
+
+@Test func aRaisingHRVAndAShortNightAreListedFromMostNegative() {
+    let view = hrv72AndSixHoursView()
+    let popup = view.readinessPopup
+
+    #expect(view.readinessText == "82")
+    #expect(row("HRV", in: view)?.pointsText == "+24 pts")
+    #expect(row("Time Asleep", in: view)?.pointsText == "\u{2212}12 pts")
+    #expect(row("Sleeping HR", in: view)?.pointsText == "±0 pts")
+    #expect(
+        popup?.whyRows.prefix(3).map(\.name) == ["Time Asleep", "Sleeping HR", "HRV"]
+    )
+    #expect(popup?.verdictText == "Time Asleep pulled it down most.")
+}
+
+@Test func cancellingInputsShowTheirOwnPointsAndRead70() {
+    // HRV score exactly +1: ln(HRV) one Spread (0.15) above ln(60).
+    let hrvOneSpreadAbove = 60 * exp(0.15)
+    let view = readinessView(for: nightOn15Nov(hrv: hrvOneSpreadAbove, sleepingHR: 57))
+
+    #expect(view.readinessText == "70")
+    #expect(row("HRV", in: view)?.pointsText == "+23 pts")
+    #expect(row("Sleeping HR", in: view)?.pointsText == "\u{2212}23 pts")
+}
+
+// MARK: Points add up
+
+@Test(arguments: ["allFourOff", "hrv72AndSixHours"])
+func pointsAddUpToReadinessLess70(_ scenario: String) throws {
+    let view = scenario == "allFourOff" ? allFourOffView() : hrv72AndSixHoursView()
+    let rows = try #require(view.readinessPopup?.whyRows)
+    let readiness = try #require(Int(view.readinessText))
+
+    let sum = rows.compactMap { points($0.pointsText) }.reduce(0, +)
+    #expect(sum == readiness - 70)
+}
