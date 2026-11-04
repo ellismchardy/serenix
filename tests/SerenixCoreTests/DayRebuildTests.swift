@@ -130,3 +130,138 @@ private func novemberRebuild(day: Int) -> DayRebuild {
         ]
     )
 }
+
+/// A stored Day dated `day` in `month` 2026, with no Load, whose values were kept or not (spec
+/// 007, Days missing their values).
+private func storedDay(_ month: Int, _ day: Int, valuesKept: Bool) -> DayLoad {
+    DayLoad(day: Day(year: 2026, month: month, day: day), load: nil, valuesKept: valuesKept)
+}
+
+/// Spec 007, "Days missing their values": with now 30 Nov 2026 12:00, stored Days 10 Nov and
+/// 12 Nov without their values kept and 11 Nov with them kept, and nothing queued, queue 10 Nov
+/// then 12 Nov, each reading its local midnight to the next; 11 Nov isn't queued.
+@Test func storedDaysWithoutTheirValuesKeptAreQueuedOldestFirst() {
+    let stored = [
+        storedDay(11, 12, valuesKept: false),
+        storedDay(11, 11, valuesKept: true),
+        storedDay(11, 10, valuesKept: false),
+    ]
+
+    let found = dayRebuilds(
+        missingValuesIn: stored,
+        alreadyQueued: [],
+        now: endOfNovember2026,
+        in: london
+    )
+
+    #expect(
+        found == [
+            DayRebuild(
+                day: Day(year: 2026, month: 11, day: 10),
+                records: DateInterval(
+                    start: utcDate(2026, 11, 10, 0, 0),
+                    end: utcDate(2026, 11, 11, 0, 0)
+                )
+            ),
+            DayRebuild(
+                day: Day(year: 2026, month: 11, day: 12),
+                records: DateInterval(
+                    start: utcDate(2026, 11, 12, 0, 0),
+                    end: utcDate(2026, 11, 13, 0, 0)
+                )
+            ),
+        ]
+    )
+}
+
+/// Spec 007, "Days missing their values": with 10 Nov's rebuild already queued, only 12 Nov is
+/// added.
+@Test func storedDayWithoutItsValuesWhoseRebuildIsAlreadyQueuedIsNotQueuedAgain() {
+    let stored = [storedDay(11, 10, valuesKept: false), storedDay(11, 12, valuesKept: false)]
+
+    let found = dayRebuilds(
+        missingValuesIn: stored,
+        alreadyQueued: [novemberRebuild(day: 10)],
+        now: endOfNovember2026,
+        in: london
+    )
+
+    #expect(found == [novemberRebuild(day: 12)])
+}
+
+/// Spec 007, "Days missing their values": with both 10 Nov's and 12 Nov's rebuilds already
+/// queued, nothing is added.
+@Test func storedDaysWithoutTheirValuesAllAlreadyQueuedAddNothing() {
+    let stored = [storedDay(11, 10, valuesKept: false), storedDay(11, 12, valuesKept: false)]
+
+    let found = dayRebuilds(
+        missingValuesIn: stored,
+        alreadyQueued: [novemberRebuild(day: 12), novemberRebuild(day: 10)],
+        now: endOfNovember2026,
+        in: london
+    )
+
+    #expect(found == [])
+}
+
+/// Spec 007, "Days missing their values": with now 30 Nov 2026 12:00, a stored Day 31 Oct without
+/// its values kept is no longer due (its records start more than 30 days earlier), so it isn't
+/// queued.
+@Test func storedDayWithoutItsValuesNoLongerDueIsNotQueued() {
+    let found = dayRebuilds(
+        missingValuesIn: [storedDay(10, 31, valuesKept: false)],
+        alreadyQueued: [],
+        now: endOfNovember2026,
+        in: london
+    )
+
+    #expect(found == [])
+}
+
+/// Spec 007, "Days missing their values": with now 30 Nov 2026 12:00, a stored Day 1 Dec without
+/// its values kept (a Strap clock ahead) starts after now, so it isn't queued.
+@Test func storedDayWithoutItsValuesAfterNowIsNotQueued() {
+    let found = dayRebuilds(
+        missingValuesIn: [storedDay(12, 1, valuesKept: false)],
+        alreadyQueued: [],
+        now: endOfNovember2026,
+        in: london
+    )
+
+    #expect(found == [])
+}
+
+/// Spec 007, "Days missing their values": a Day worked out by Load of a Day with no History
+/// Records has no Resting HR and no HR Zones, yet its values are kept.
+@Test func dayWorkedOutWithNoRecordsHasItsValuesKept() {
+    let worked = load(
+        of: Day(year: 2026, month: 11, day: 4),
+        records: [],
+        days: [],
+        profile: Profile(name: nil, maxHR: 190),
+        in: london
+    )
+
+    #expect(worked.restingHR == nil)
+    #expect(worked.heartRate == nil)
+    #expect(worked.valuesKept)
+}
+
+/// Spec 007, "Days missing their values": a Day worked out by Load of a Day with records but a
+/// Profile with no Max HR and no birth year has no HR Zones, yet its values are kept.
+@Test func dayWorkedOutWithNoMaxHRHasItsValuesKept() {
+    // An hour at 120 bpm from 10:00 on 4 Nov 2026 (London is on GMT).
+    let records = historyRecords(at: 120, for: 3600, from: utcDate(2026, 11, 4, 10, 0))
+
+    let worked = load(
+        of: Day(year: 2026, month: 11, day: 4),
+        records: records,
+        days: [],
+        profile: Profile(name: nil),
+        in: london
+    )
+
+    #expect(worked.missingReason == .noMaxHR)
+    #expect(worked.heartRate == nil)
+    #expect(worked.valuesKept)
+}

@@ -22,7 +22,7 @@ the Day rebuilds seam (Core and shell together, so nothing is half-wired), then 
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice: the missing-values queue on every rebuild pass.** `DayLoad.valuesKept` (default
+1. [x] **Slice: the missing-values queue on every rebuild pass.** `DayLoad.valuesKept` (default
    true); `dayRebuilds(missingValuesIn:alreadyQueued:now:in:)` in Day rebuilds.
    `StoredDayLoad` gains `valuesKept: Bool?`, written true and read as `?? false`.
    `StrapConnection.rebuildNights()` queues what the function returns, from the stored Day Loads

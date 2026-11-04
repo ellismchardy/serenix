@@ -31,6 +31,23 @@ public func dayRebuilds(after recordTimes: [Date], now: Date, in timeZone: TimeZ
         .filter { $0.isDue(at: now) }
 }
 
+/// The rebuilds to queue for the stored `days` whose values weren't kept (`DayLoad.valuesKept`:
+/// stored before HR Zones or Resting HR existed, or dropped since by another build of Serenix)
+/// and that are still due at `now` (`DayRebuild.isDue(at:)`), oldest first; any already in
+/// `alreadyQueued` are left out. The shell asks on every rebuild pass (spec 007, Days missing
+/// their values), so a Day is never queued twice.
+public func dayRebuilds(
+    missingValuesIn days: [DayLoad],
+    alreadyQueued: [DayRebuild],
+    now: Date,
+    in timeZone: TimeZone
+) -> [DayRebuild] {
+    Set(days.filter { !$0.valuesKept }.map(\.day))
+        .sorted()
+        .map { DayRebuild(day: $0, records: $0.span(in: timeZone)) }
+        .filter { $0.isDue(at: now) && !alreadyQueued.contains($0) }
+}
+
 /// Every Day still due at `now`, oldest first: the Days whose History Records may still be on the
 /// phone, for working out Load again after a Profile change (spec 005, Profile changes).
 public func dayRebuildsDue(now: Date, in timeZone: TimeZone) -> [DayRebuild] {

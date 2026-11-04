@@ -158,18 +158,24 @@ public struct DayLoad: Equatable, Codable, Sendable {
     /// The Day's Resting HR (spec 007), bpm; nil when the Day has none, including every Day
     /// stored before spec 007 until it's rebuilt.
     public var restingHR: Double?
+    /// Whether `heartRate` and `restingHR` were kept when the Day was worked out, even when either
+    /// is missing (spec 007, Days missing their values). A Day worked out by `load(of:)` has them
+    /// kept; a stored Day without them is queued to be worked out again while still due.
+    public var valuesKept: Bool
 
     public init(
         day: Day,
         load: Int?,
         missingReason: LoadMissing? = nil,
         heartRate: DayHeartRate? = nil,
-        restingHR: Double? = nil
+        restingHR: Double? = nil,
+        valuesKept: Bool = true
     ) {
         self.day = day
         self.load = load
         self.missingReason = missingReason
         self.heartRate = heartRate
         self.restingHR = restingHR
+        self.valuesKept = valuesKept
     }
 }
