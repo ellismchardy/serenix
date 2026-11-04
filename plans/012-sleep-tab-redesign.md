@@ -27,7 +27,7 @@ Existing Sleep view code: `src/SerenixCore/SleepView.swift` (`SleepView`, `Sleep
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Chore: build the app with Xcode 26.** Point the macOS CI job at Xcode 26 and the iOS 26
+1. [x] **Chore: build the app with Xcode 26.** Point the macOS CI job at Xcode 26 and the iOS 26
    SDK (a `macos-26` runner, or `xcode-select` to Xcode 26 on `macos-15`: confirm which image has
    it from GitHub's runner-images readme), keeping the iOS 17 deployment target. Amend ADR 0003's
    build setup with a dated note. Fix anything Xcode 26's Swift compiler rejects in the shell.
