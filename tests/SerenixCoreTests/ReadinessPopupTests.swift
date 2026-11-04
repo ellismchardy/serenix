@@ -181,3 +181,73 @@ func pointsAddUpToReadinessLess70(_ scenario: String) throws {
     let sum = rows.compactMap { points($0.pointsText) }.reduce(0, +)
     #expect(sum == readiness - 70)
 }
+
+// MARK: Reasons and gauge (spec 012, Reasons; gauge in Why)
+
+private func expectGauge(_ position: Double?, isAbout expected: Double) {
+    guard let position else {
+        Issue.record("gaugePosition is nil, expected \(expected)")
+        return
+    }
+    #expect(abs(position - expected) < 0.00005)
+}
+
+@Test func anHRVBelowBaselineGivesItsPercentAgainstUsualAndAGaugeLeftOfCentre() {
+    let hrv = row("HRV", in: readinessView(for: nightOn15Nov(hrv: 50)))
+
+    #expect(hrv?.reasonText == "\u{2212}17% against your usual 60 ms.")
+    expectGauge(hrv?.gaugePosition, isAbout: 0.2974)
+}
+
+@Test func allFourInputsOffGiveTheirReasons() {
+    let view = allFourOffView()
+
+    #expect(row("Time Asleep", in: view)?.reasonText == "2h 30m short of your Sleep Need.")
+    #expect(row("Yesterday's Load", in: view)?.reasonText == "Above your typical 45.")
+    #expect(row("Sleeping HR", in: view)?.reasonText == "+5 bpm against your usual 52 bpm.")
+    expectGauge(row("Sleeping HR", in: view)?.gaugePosition, isAbout: 0.1667)
+}
+
+@Test func anHRVScoreClampedAtMinusThreeSitsAtTheGaugesLeftEnd() {
+    let hrv = row("HRV", in: readinessView(for: nightOn15Nov(hrv: 20)))
+
+    #expect(hrv?.gaugePosition == 0)
+}
+
+@Test func aUsualNightWithNoDaysLeavesOutYesterdaysLoadWithNoGauge() {
+    let view = readinessView(for: nightOn15Nov())
+    let load = row("Yesterday's Load", in: view)
+
+    #expect(load?.reasonText == "No Load for yesterday, so it's left out.")
+    #expect(load != nil && load?.gaugePosition == nil)
+    expectGauge(row("HRV", in: view)?.gaugePosition, isAbout: 0.5)
+}
+
+@Test func aNightWithNoSleepingHRLeavesItOutWithNoGauge() {
+    let shr = row("Sleeping HR", in: readinessView(for: nightOn15Nov(sleepingHR: nil)))
+
+    #expect(shr?.reasonText == "No Sleeping HR for this Night, so it's left out.")
+    #expect(shr != nil && shr?.gaugePosition == nil)
+}
+
+@Test func aCalibratingTypicalLoadLeavesOutYesterdaysLoad() {
+    let dayLoads = daysBefore14NovAtLoad45(count: 3) + [DayLoad(day: nov14, load: 85)]
+    let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoads)
+
+    #expect(
+        row("Yesterday's Load", in: view)?.reasonText
+            == "Typical Load is still calibrating, so it's left out."
+    )
+}
+
+@Test func aLongNightIsEnoughForTheSleepNeed() {
+    let view = readinessView(for: nightOn15Nov(timeAsleep: 10 * oneHour))
+
+    #expect(row("Time Asleep", in: view)?.reasonText == "Enough for your Sleep Need.")
+}
+
+@Test func aLoadAtOrBelowTypicalSaysNoMoreThanTypical() {
+    let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoadsWith14NovAt(40))
+
+    #expect(row("Yesterday's Load", in: view)?.reasonText == "No more than your typical 45.")
+}

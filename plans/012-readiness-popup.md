@@ -38,7 +38,7 @@ seam. Last, switch the shell to the new fields and delete the old rows (contract
      `ReadinessPopupTests.swift`)
    - Done when: the criteria for the usual Night (weights and order), HRV 50, all four off, HRV 72 +
      6 h, cancelling inputs, and points adding up to Readiness − 70 pass.
-3. [ ] **Slice:** reasons and gauges: each row's reason (HRV and Sleeping HR from spec 008's row
+3. [x] **Slice:** reasons and gauges: each row's reason (HRV and Sleeping HR from spec 008's row
    texts, Time Asleep short or enough, Load above or no more, the three dropped reasons) and gauge
    at 0.5 + score / 6, with none when dropped.
    - Seam: Today view · Files: same as 2

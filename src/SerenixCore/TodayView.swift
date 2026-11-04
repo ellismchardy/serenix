@@ -224,7 +224,18 @@ public struct TodayView: Equatable, Sendable {
                 return inputs.first { $0.name == row.name }.map { ($0, row) }
             }
         )
-        let why = nightReadiness.breakdown.map { ReadinessWhyRow.list($0, rows: inputRows) }
+        let why = nightReadiness.breakdown.map {
+            ReadinessWhyRow.list(
+                $0,
+                rows: inputRows,
+                sleepShortfall: max(
+                    sleepNeed.sleepNeed - (night?.plausibleTimeAsleep ?? sleepNeed.sleepNeed),
+                    0
+                ),
+                previousDayLoad: previousDayLoad,
+                typicalLoad: previousDayTypicalLoad
+            )
+        }
         readinessPopup =
             if let readinessBaselines {
                 if let calibratingNightsSoFar {

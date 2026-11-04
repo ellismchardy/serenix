@@ -31,26 +31,41 @@ public struct ReadinessWhyRow: Equatable, Sendable {
     public let valueText: String
     /// "−23 pts", "+12 pts" or "±0 pts"; nil when dropped.
     public let pointsText: String?
+    /// Why the input scored as it did, in plain words (spec 012, Reasons).
+    public let reasonText: String
+    /// Where the marker sits on the worse–usual–better gauge, 0 to 1 (0.5 is usual); nil when
+    /// dropped.
+    public let gaugePosition: Double?
 
     /// The Why rows in order, and the verdict, from Readiness's breakdown and spec 008's rows
     /// for each input.
     static func list(
         _ breakdown: Readiness.Breakdown,
-        rows: [Readiness.Input: ReadinessPopupRow]
+        rows: [Readiness.Input: ReadinessPopupRow],
+        sleepShortfall: TimeInterval,
+        previousDayLoad: Int?,
+        typicalLoad: TypicalLoad
     ) -> (rows: [ReadinessWhyRow], verdict: String) {
         let inputs: [Readiness.Input] = [.hrv, .sleepingHR, .timeAsleep, .previousDayLoad]
         let points = breakdown.points
         let counted = inputs.indices.map { index -> (row: ReadinessWhyRow, points: Int?) in
             let input = inputs[index]
             let name = input.name
-            let valueText = rows[input]?.valueText ?? missingText
+            let row = rows[input]
+            let valueText = row?.valueText ?? missingText
             guard let partIndex = breakdown.parts.firstIndex(where: { $0.input == input }) else {
                 return (
                     ReadinessWhyRow(
                         name: name,
                         weightText: "dropped",
                         valueText: valueText,
-                        pointsText: nil
+                        pointsText: nil,
+                        reasonText: droppedReason(
+                            input,
+                            previousDayLoad: previousDayLoad,
+                            typicalLoad: typicalLoad
+                        ),
+                        gaugePosition: nil
                     ),
                     nil
                 )
@@ -62,7 +77,16 @@ public struct ReadinessWhyRow: Equatable, Sendable {
                     name: name,
                     weightText: "\(percent)%",
                     valueText: valueText,
-                    pointsText: "\(signedText(points[partIndex])) pts"
+                    pointsText: "\(signedText(points[partIndex])) pts",
+                    reasonText: reason(
+                        input,
+                        score: part.score,
+                        row: row,
+                        sleepShortfall: sleepShortfall,
+                        typicalLoad: typicalLoad
+                    ),
+                    // Maps the clamped score, −limit to +limit, onto 0 to 1.
+                    gaugePosition: 0.5 + part.score / (2 * Readiness.scoreLimit)
                 ),
                 points[partIndex]
             )
@@ -86,6 +110,51 @@ public struct ReadinessWhyRow: Equatable, Sendable {
                 "Your body looks recovered."
             }
         return (ordered.map(\.row), verdict)
+    }
+
+    /// Why a counted input scored as it did (spec 012, Reasons).
+    private static func reason(
+        _ input: Readiness.Input,
+        score: Double,
+        row: ReadinessPopupRow?,
+        sleepShortfall: TimeInterval,
+        typicalLoad: TypicalLoad
+    ) -> String {
+        switch input {
+        case .hrv, .sleepingHR:
+            return "\(row?.differenceText ?? missingText) against your usual "
+                + "\(row?.referenceText ?? missingText)."
+        case .timeAsleep:
+            let minutesShort = Int((sleepShortfall / 60).rounded())
+            guard minutesShort > 0 else { return "Enough for your Sleep Need." }
+            return "\(hoursMinutesText(minutesShort)) short of your Sleep Need."
+        case .previousDayLoad:
+            let typical =
+                if case .value(let typical) = typicalLoad { "\(typical)" } else { missingText }
+            return score < 0
+                ? "Above your typical \(typical)." : "No more than your typical \(typical)."
+        }
+    }
+
+    /// Why an input was left out of Readiness (spec 012, Reasons). HRV is never dropped: without
+    /// it there's no Readiness.
+    private static func droppedReason(
+        _ input: Readiness.Input,
+        previousDayLoad: Int?,
+        typicalLoad: TypicalLoad
+    ) -> String {
+        switch input {
+        case .previousDayLoad:
+            if previousDayLoad != nil, case .calibrating = typicalLoad {
+                "Typical Load is still calibrating, so it's left out."
+            } else {
+                "No Load for yesterday, so it's left out."
+            }
+        case .sleepingHR: "No Sleeping HR for this Night, so it's left out."
+        // Can't be dropped: without HRV there's no Readiness, and a Night always has Time Asleep
+        // (spec 008, Calibrating and missing).
+        case .hrv, .timeAsleep: missingText
+        }
     }
 
     /// An input that costs this many points or more is named in the verdict (spec 012,
