@@ -73,7 +73,7 @@ strictly ordered, because each one extends the same `Onboarding` type and screen
      advice.
    - Done when: the pair-step criterion's "refused gives the pairing-mode advice" holds for an
      unpaired Strap only, and the pill's behaviour is unchanged.
-6. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests
+6. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests
    Package.swift` and `swift build` are all green, and every spec criterion except the phone
    checks is ticked. Carried to the PR checklist: the macOS CI build, and the by-hand phone
    checks listed in the spec's last criterion.

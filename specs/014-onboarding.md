@@ -1,6 +1,6 @@
 # 014 — Onboarding
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-04
 
 ## Problem
@@ -111,28 +111,28 @@ Log, shared logs and reports, as before.
   real CoreBluetooth and iOS's pairing prompt, which are checked by hand on a phone (ADR 0002).
 
 ## Success criteria (must be checkable)
-- [ ] A fresh conversation shows the Hello bubbles then "What should I call you?" with a name
+- [x] A fresh conversation shows the Hello bubbles then "What should I call you?" with a name
       field and a Skip chip.
-- [ ] Answering "  Ellis " saves the name "Ellis" and the next bubble is "Nice to meet you,
+- [x] Answering "  Ellis " saves the name "Ellis" and the next bubble is "Nice to meet you,
       Ellis."; Skip (or a blank name) saves no name and says "Nice to meet you."
-- [ ] Birth year: with the current year 2026, 1926 and 2013 are accepted and saved; 1925, 2014
+- [x] Birth year: with the current year 2026, 1926 and 2013 are accepted and saved; 1925, 2014
       and "abc" give "I didn't get that — a year like 1992?" and keep the question open; Rather
       not saves no birth year and moves on.
-- [ ] Sex: each of the three chips saves that sex and moves on.
-- [ ] Max HR: 100 and 230 are accepted; 99, 231 and "abc" give the out-of-range bubble and keep
+- [x] Sex: each of the three chips saves that sex and moves on.
+- [x] Max HR: 100 and 230 are accepted; 99, 231 and "abc" give the out-of-range bubble and keep
       the question open; Don't know saves no Max HR.
-- [ ] At the pair step, Find my Strap shows "Looking for your Strap…"; not found gives the
+- [x] At the pair step, Find my Strap shows "Looking for your Strap…"; not found gives the
       WHOOP-app advice with Try again and Set up later; refused gives the pairing-mode advice with
       the same chips; Try again goes back to Looking.
-- [ ] Connected shows "Found it — <model>." and the Syncing bubble with Show me Today offered at
+- [x] Connected shows "Found it — <model>." and the Syncing bubble with Show me Today offered at
       once; sync progress 0.4 shows 40%; completed shows "✓ Synced"; failed says so and Show me
       Today stays.
-- [ ] Show me Today and Set up later each mark Onboarding finished; nothing else does.
-- [ ] Resuming with a saved name and birth year opens with Hello, the two saved answers as the
+- [x] Show me Today and Set up later each mark Onboarding finished; nothing else does.
+- [x] Resuming with a saved name and birth year opens with Hello, the two saved answers as the
       user's bubbles, and the Sex question open.
-- [ ] Onboarding counts as finished when the old NamePrompt was answered or a History Sync has
+- [x] Onboarding counts as finished when the old NamePrompt was answered or a History Sync has
       completed.
-- [ ] `swift test` passes.
+- [x] `swift test` passes.
 - [ ] On a phone (by hand): a fresh install opens to Onboarding, not Today; going through it with
       the Strap pairs it, starts the sync and lands on Today with the name in the greeting and
       Load worked out from the birth year; closing the app at the Sex question and reopening
