@@ -36,7 +36,7 @@ the Day rebuilds seam (Core and shell together, so nothing is half-wired), then 
      first and kept Days not; already-queued skipped; not-due skipped; a Day from Load of a Day
      with no Resting HR or HR Zones has its values kept), and no `heartRateZonesBackfilled` or
      `restingHRBackfilled` is left in the source.
-2. [ ] **Verify:** full suite + lint + typecheck green; every unticked automated criterion in
+2. [x] **Verify:** full suite + lint + typecheck green; every unticked automated criterion in
    specs 006 and 007 checked. Carried to the PR checklist: the macOS CI build, and the phone
    checks (after opening another build of Serenix that doesn't store HR Zones or Resting HR,
    then this one, Days of the last 30 show them again after a launch, with no new sync; a

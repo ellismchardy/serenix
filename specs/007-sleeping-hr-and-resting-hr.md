@@ -1,7 +1,7 @@
 # 007 — Sleeping HR and Resting HR
 
-**Status:** approved
-**Last updated:** 2026-11-04 (Days missing their values are queued on every launch, not once)
+**Status:** built
+**Last updated:** 2026-11-04 (Days missing their values are queued on every launch, not once; built)
 
 ## Problem
 Serenix calls the lowest sustained heart rate during a Sleep Period "Resting HR", as WHOOP and Oura
@@ -180,14 +180,14 @@ second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55
       it reads "58 bpm" and no status; a Day without one reads "—" with an empty gauge.
 - [x] Today view: Take it easy with Sleeping HR 56 against Baseline 52 says "Sleeping HR is up 4
       bpm"; vs your Baseline and the Readiness popup name "Sleeping HR".
-- [ ] Day rebuilds: with now 30 Nov 2026 12:00, stored Days 10 Nov and 12 Nov without their values
+- [x] Day rebuilds: with now 30 Nov 2026 12:00, stored Days 10 Nov and 12 Nov without their values
       kept and 11 Nov with them kept, and nothing queued, queue 10 Nov then 12 Nov, each reading
       its local midnight to the next; 11 Nov isn't queued.
-- [ ] Day rebuilds: with 10 Nov's rebuild already queued, only 12 Nov is added; with both
+- [x] Day rebuilds: with 10 Nov's rebuild already queued, only 12 Nov is added; with both
       queued, nothing is.
-- [ ] Day rebuilds: with now 30 Nov 2026 12:00, a stored Day 31 Oct without its values kept
+- [x] Day rebuilds: with now 30 Nov 2026 12:00, a stored Day 31 Oct without its values kept
       isn't queued (no longer due); one stored 1 Dec isn't either (a Strap clock ahead).
-- [ ] Day rebuilds: a Day worked out by Load of a Day has its values kept, even with no Resting
+- [x] Day rebuilds: a Day worked out by Load of a Day has its values kept, even with no Resting
       HR and no HR Zones (no records, or no Max HR).
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app; no `heartRateZonesBackfilled` or `restingHRBackfilled` key is left in the
