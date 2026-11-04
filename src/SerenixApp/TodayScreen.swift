@@ -50,7 +50,7 @@ struct TodayScreen: View {
                 vsBaseline(today)
                 tiles(today)
             case .story:
-                StoryBodyView(today: today) { open($0, in: today) }
+                StoryBodyView(today: today) { openStoryTap($0, in: today) }
             }
         }
         .sheet(item: $openPopup) { popup in
@@ -228,7 +228,9 @@ struct TodayScreen: View {
 
     /// A tap in the Story opens the popup the Rings layout's would; Load opens the profile menu
     /// while it asks for the age, as the Load ring does.
-    private func open(_ tap: StoryTap, in today: TodayView) {
+    /// Named apart from `open(_:in:)`: StoryTap and TodayPopup share case names, so one
+    /// overloaded name makes `.sleep` ambiguous.
+    private func openStoryTap(_ tap: StoryTap, in today: TodayView) {
         switch tap {
         case .sleep: open(.sleep, in: today)
         case .metric(let metric): open(.metric(metric), in: today)
