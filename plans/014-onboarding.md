@@ -61,6 +61,18 @@ strictly ordered, because each one extends the same `Onboarding` type and screen
      already answered, so a skipped question also counts as answered. The answers are replayed
      as the user's bubbles, and the conversation opens at the first unanswered step.
    - Done when: the resume criterion passes.
+5b. [x] **Slice (added after task 3's review):** only an unpaired Strap gets the pairing-mode advice.
+   - Seam: Onboarding conversation, plus the sync pill (`SerenixCore`, spec 002) · Files:
+     `src/SerenixCore/SyncStatus.swift`, `src/SerenixCore/Onboarding.swift`,
+     `tests/SerenixCoreTests/OnboardingTests.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`,
+     `src/SerenixApp/StrapConnection.swift`, `src/SerenixApp/OnboardingScreen.swift`
+   - Covers: a new `SyncFailureCause.strapNotPaired`, used only when subscribing fails; the
+     sync pill shows it exactly as `.other` ("Sync failed" with the reason). The phase-to-pairing
+     mapping moves from the shell into `Onboarding`, so it's tested: only `.strapNotPaired`
+     gives "Pairing didn't finish"; every other pre-connection failure gives the not-found
+     advice.
+   - Done when: the pair-step criterion's "refused gives the pairing-mode advice" holds for an
+     unpaired Strap only, and the pill's behaviour is unchanged.
 6. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests
    Package.swift` and `swift build` are all green, and every spec criterion except the phone
    checks is ticked. Carried to the PR checklist: the macOS CI build, and the by-hand phone

@@ -268,6 +268,22 @@ public struct Onboarding: Equatable, Sendable {
         }
     }
 
+    /// How the Strap connection's phase answers "Looking for your Strap…", if it does yet. Only an
+    /// unpaired Strap gets the pairing-mode advice; every other failure gets the not-found advice,
+    /// including rare ones (not a Whoop 5.0, a missing characteristic, the History Record store),
+    /// where "charged, close by, WHOOP app closed" is the most useful thing left to try. A finished
+    /// sync also means it connected, in case the phases between were missed.
+    public static func pairingEvent(for phase: StrapPhase, model: String) -> Event? {
+        switch phase {
+        case .connected, .syncing, .synced: .strapConnected(model: model)
+        case .failed(_, .strapNotPaired): .pairingRefused
+        case .failed(_, .strapUnreachable), .failed(_, .cancelled), .failed(_, .other),
+            .bluetoothUnavailable:
+            .strapNotFound
+        case .idle, .searching, .connecting: nil
+        }
+    }
+
     /// Whether Onboarding counts as finished: once finished explicitly, and from launch for
     /// existing installs that answered spec 002's old name prompt or have completed a History
     /// Sync.

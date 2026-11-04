@@ -259,6 +259,8 @@ private let nightsOct1ToNov1 =
 private let strapNotFound =
     "Couldn't find the Strap. Check it's nearby and charged, then try again."
 private let badFrame = "A Frame from the Strap failed its CRC check."
+private let strapNotPaired =
+    "Couldn't subscribe to the Strap. If it isn't paired yet, put it in pairing mode and try again."
 
 @Test(
     arguments: [
@@ -269,6 +271,10 @@ private let badFrame = "A Frame from the Strap failed its CRC check."
             strapNotFound + " Serenix will try again next time you open it.", false
         ),
         (.failed(reason: badFrame, cause: .other), .failed, "Sync failed", badFrame, false),
+        (
+            .failed(reason: strapNotPaired, cause: .strapNotPaired), .failed, "Sync failed",
+            strapNotPaired, false
+        ),
     ] as [(SyncStatus, SyncPillKind, String, String?, Bool)]
 )
 func syncPillShowsWhereTheHistorySyncHasGot(

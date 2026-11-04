@@ -905,7 +905,7 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
             fail(
                 "Couldn't subscribe to the Strap (\(error.localizedDescription)). If it isn't "
                     + "paired yet, put it in pairing mode and try again.",
-                .other
+                .strapNotPaired
             )
             return
         }

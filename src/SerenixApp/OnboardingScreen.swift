@@ -94,20 +94,10 @@ struct OnboardingScreen: View {
 
     /// How the connection's phase answers "Looking for your Strap…", if it does yet.
     private func pairingEvent(for phase: StrapPhase) -> Onboarding.Event? {
-        switch phase {
-        // A finished sync also means it connected, in case SwiftUI skipped the phases between.
-        case .connected, .syncing, .synced:
-            .strapConnected(model: connection.strapModel ?? connection.strapName ?? "your Strap")
-        case .bluetoothUnavailable, .failed(_, .strapUnreachable), .failed(_, .cancelled):
-            .strapNotFound
-        // Subscribing fails when the Strap isn't paired (spec 001). `.other` also covers rarer
-        // failures (not a Whoop 5.0, a missing characteristic, the History Record store), which
-        // get the same pairing advice for now: `StrapConnection` doesn't tell them apart.
-        case .failed(_, .other):
-            .pairingRefused
-        case .idle, .searching, .connecting:
-            nil
-        }
+        Onboarding.pairingEvent(
+            for: phase,
+            model: connection.strapModel ?? connection.strapName ?? "your Strap"
+        )
     }
 
     @ViewBuilder private var controls: some View {

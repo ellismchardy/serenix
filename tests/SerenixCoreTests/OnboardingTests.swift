@@ -584,3 +584,24 @@ func anUnusableMaxHRIsAskedAgain(typed: String) {
     )
     #expect(onboarding.controls == maxHRControls)
 }
+
+@Test(
+    arguments: [
+        (StrapPhase.connected, Onboarding.Event.strapConnected(model: "Whoop 5.0")),
+        (.syncing, .strapConnected(model: "Whoop 5.0")),
+        (.synced, .strapConnected(model: "Whoop 5.0")),
+        (.failed("Couldn't subscribe.", .strapNotPaired), .pairingRefused),
+        (.failed("Timed out.", .strapUnreachable), .strapNotFound),
+        (.failed("This doesn't look like a Whoop 5.0 Strap.", .other), .strapNotFound),
+        (.failed("Cancelled.", .cancelled), .strapNotFound),
+        (.bluetoothUnavailable("Bluetooth is off."), .strapNotFound),
+    ] as [(StrapPhase, Onboarding.Event)]
+)
+func onlyAnUnpairedStrapGetsThePairingAdvice(phase: StrapPhase, event: Onboarding.Event) {
+    #expect(Onboarding.pairingEvent(for: phase, model: "Whoop 5.0") == event)
+}
+
+@Test(arguments: [StrapPhase.idle, .searching, .connecting])
+func aStrapStillBeingLookedForGivesNoPairingEvent(phase: StrapPhase) {
+    #expect(Onboarding.pairingEvent(for: phase, model: "Whoop 5.0") == nil)
+}
