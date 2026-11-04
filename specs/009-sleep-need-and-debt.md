@@ -65,7 +65,7 @@ earlier Night, or a change of birth year, updates them with nothing to rebuild.
 
 **Readiness** (spec 008, changed with this spec): the Time Asleep score is −(hours short of the
 Night's Sleep Need), and the Readiness popup's Time Asleep row shows the Night's Sleep Need as
-its reference.
+its reference (superseded by spec 012: the row's reason says how far short of Sleep Need it was).
 
 ## Design decisions
 - **`SerenixCore`: Sleep Need (new).** A pure function: given the Night's date, the earlier
@@ -131,7 +131,7 @@ Build and phone:
 - [ ] On the phone (by hand): the Sleep popup shows Sleep Need and Sleep Debt under Time Asleep,
       and they match the Time Asleep of the Nights before.
 - [ ] On the phone (by hand): setting a birth year 65 or more years back lowers Sleep Need by
-      30 m straight away, and the Readiness popup's Time Asleep reference follows.
+      30 m straight away, and the Readiness popup's Time Asleep reason follows (spec 012).
 
 ## Non-goals (explicitly out of scope)
 - Learning Usual Need from the user's own Nights: later, with tuning.

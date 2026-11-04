@@ -75,8 +75,8 @@ and Days. So when a later sync fills in the previous Day's Load, or rebuilds a N
 Baseline, Readiness follows with nothing stored to update. Nights no longer carry a stored
 Readiness.
 
-**Readiness popup.** Spec 002's popup gains two rows after HRV and Sleeping HR, each with a value,
-a reference and a difference:
+**Readiness popup** (superseded by spec 012, whose Why rows replace these). Spec 002's popup gains
+two rows after HRV and Sleeping HR, each with a value, a reference and a difference:
 - **Time Asleep:** the Night's Time Asleep ("7h 30m"), the Night's Sleep Need as the reference
   ("8h 0m"), and the difference in hours and minutes ("−30m", "+1h 10m", "±0").
 - **Yesterday's Load:** the previous Day's Load ("85"), its typical Load ("Typical 45"), and the
@@ -157,7 +157,7 @@ Missing, dropped and Calibrating:
 
 Popup:
 - [x] The Readiness popup lists HRV, Sleeping HR, Time Asleep and Yesterday's Load, in that
-      order.
+      order (superseded by spec 012, which orders them by points).
 - [x] Its Time Asleep row: 7 h 30 m reads "7h 30m", "8h 0m", "−30m"; 9 h 10 m reads "+1h 10m";
       8 h reads "±0".
 - [x] Yesterday's Load 85 over typical 45 reads "85", "Typical 45", "+40"; 40 reads "−5"; with no
@@ -171,7 +171,7 @@ Build and phone:
 - [ ] On the phone (by hand): installed over the previous build, past Nights with 4 or more
       Nights before them show a Readiness number, band colour and Readiness message.
 - [ ] On the phone (by hand): the Readiness popup shows the four rows, and its numbers match that
-      Night's tiles and the previous Day's Load popup.
+      Night's tiles and the previous Day's Load popup (now spec 012's Why rows).
 
 ## Non-goals (explicitly out of scope)
 - Retuning the Readiness advice, its reasons or Load caps to typical Load.

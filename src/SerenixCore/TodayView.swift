@@ -104,46 +104,25 @@ public struct TodayView: Equatable, Sendable {
         let night = nights.first { $0.day == day }
         noNightMessage = night != nil ? nil : Self.noNightMessage(isToday: isToday)
 
-        // Readiness is Calibrating while either Baseline it's drawn from is (spec 002, Rings).
-        // "n/4" counts the Nights so far, by the metric with the fewest.
-        let readinessBaselines = night.map { night in
-            (
-                hrv: Baseline(.hrv, for: night, among: nights),
-                sleepingHR: Baseline(.sleepingHR, for: night, among: nights)
-            )
-        }
-        let calibratingNightsSoFar = readinessBaselines.flatMap { baselines in
-            baselines.hrv.isCalibrating || baselines.sleepingHR.isCalibrating
-                ? 1 + min(baselines.hrv.earlierNights, baselines.sleepingHR.earlierNights) : nil
-        }
+        // Worked out each time, never stored, so it follows the Nights and Days (spec 008).
+        let nightReadiness = NightReadiness(
+            for: day,
+            among: nights,
+            dayLoads: dayLoads,
+            birthYear: birthYear
+        )
+        let readinessBaselines = nightReadiness.baselines
+        let calibratingNightsSoFar = nightReadiness.calibratingNightsSoFar
         let nightsForBaseline = Baseline.minEarlierNights + 1
-        // The Day before the Day shown: "yesterday" in Readiness, its advice and its popup (spec
-        // 008, Inputs), worked out once so they can't disagree.
-        let previousDay = day.adding(days: -1)
-        let previousDayLoad = dayLoads.first { $0.day == previousDay }?.load
-        let previousDayTypicalLoad = typicalLoad(for: previousDay, among: dayLoads)
-        // The Night shown's Sleep Need, for Readiness, its popup and the Sleep popup (spec 009).
-        // Worked out each time, never stored, so it follows the Nights and the birth year.
-        let sleepNeed = SleepNeed(for: day, among: nights, birthYear: birthYear)
+        let previousDayLoad = nightReadiness.previousDayLoad
+        let previousDayTypicalLoad = nightReadiness.previousDayTypicalLoad
+        let sleepNeed = nightReadiness.sleepNeed
         if let calibratingNightsSoFar {
             readinessText = "\(calibratingNightsSoFar)/\(nightsForBaseline)"
             readinessBand = nil
             readinessFill = 0
         } else {
-            // Worked out each time, never stored, so it follows the Nights (spec 008).
-            let readiness: Int? =
-                if let night, let readinessBaselines {
-                    Readiness.score(
-                        of: night,
-                        hrv: readinessBaselines.hrv,
-                        sleepingHR: readinessBaselines.sleepingHR,
-                        sleepNeed: sleepNeed.sleepNeed,
-                        previousDayLoad: previousDayLoad,
-                        typicalLoad: previousDayTypicalLoad
-                    )
-                } else {
-                    nil
-                }
+            let readiness = nightReadiness.score
             readinessText = scoreText(readiness)
             readinessBand = readiness.map(ReadinessBand.init)
             readinessFill = ringFill(readiness)
@@ -242,39 +221,93 @@ public struct TodayView: Equatable, Sendable {
                 )
             }
 
+        // Readiness's inputs in spec 008's order: HRV, Sleeping HR, Time Asleep, Yesterday's Load.
+        var inputRows: [Readiness.Input: ReadinessPopupRow] = [
+            .timeAsleep: ReadinessPopupRow(
+                timeAsleep: night?.plausibleTimeAsleep,
+                sleepNeed: sleepNeed.sleepNeed
+            ),
+            .previousDayLoad: ReadinessPopupRow(
+                previousDayLoad: previousDayLoad,
+                typical: previousDayTypicalLoad
+            ),
+        ]
+        inputRows[.hrv] = tiles.first { $0.metric == .hrv }.map(ReadinessPopupRow.init)
+        inputRows[.sleepingHR] = tiles.first { $0.metric == .sleepingHR }.map(
+            ReadinessPopupRow.init
+        )
+        let why = nightReadiness.breakdown.map {
+            ReadinessWhyRow.list(
+                $0,
+                rows: inputRows,
+                previousDayLoad: previousDayLoad,
+                typicalLoad: previousDayTypicalLoad
+            )
+        }
+        // Spec 002's Calibrating explanation: the popup's verdict while Calibrating (spec 012).
+        let calibratingExplanation = calibratingNightsSoFar.map {
+            "Readiness needs \(nightsForBaseline) Nights to form your Baseline. "
+                + "You have \($0) so far."
+        }
+        // Readiness is missing when the Night has no HRV, an HRV of 0 counting as none (spec 008).
+        let hasHRV = (night?.value(of: .hrv)).map { $0 > 0 } ?? false
+        let missingHRVVerdict = hasHRV ? nil : "No HRV for this Night, so there's no Readiness."
+        // The band scale's marker and "usual 70" tick: only with a Readiness, none while
+        // Calibrating or missing (spec 012).
+        let readinessScaleMarker = nightReadiness.score.map(ringFill)
+        let readinessUsualTick =
+            nightReadiness.score == nil ? nil : ringFill(Readiness.usualScore)
+        // The band scale's segments, the same on every Night (spec 012).
+        let readinessScale = ReadinessBand.lowestFirst.map { band in
+            ReadinessScaleSegment(band: band, from: band.stretch.from, to: band.stretch.to)
+        }
+        // Your week: each Day's Readiness against its own Baselines, as if it were shown (spec
+        // 012). The Day shown reuses its own; worked out each time, never stored.
+        let readinessWeek = (-(Self.readinessWeekDays - 1)...0).map { offset in
+            let weekDay = day.adding(days: offset)
+            let score =
+                offset == 0
+                ? nightReadiness.score
+                : NightReadiness(
+                    for: weekDay,
+                    among: nights,
+                    dayLoads: dayLoads,
+                    birthYear: birthYear
+                ).score
+            return ReadinessWeekBar(
+                weekdayText: weekDay.weekdayName,
+                readinessText: scoreText(score),
+                band: score.map(ReadinessBand.init),
+                fill: ringFill(score),
+                isDayShown: offset == 0
+            )
+        }
         readinessPopup =
-            if let readinessBaselines {
-                if let calibratingNightsSoFar {
+            if readinessBaselines != nil {
+                if calibratingExplanation != nil {
                     ReadinessPopup(
                         readinessText: readinessText,
                         band: nil,
-                        rows: [],
-                        sleepScoreText: nil,
-                        baselineNote: nil,
-                        calibratingText:
-                            "Readiness needs \(nightsForBaseline) Nights to form your Baseline. "
-                            + "You have \(calibratingNightsSoFar) so far."
+                        // Spec 012: Sleep Score shows while Calibrating too.
+                        sleepScoreText: sleepScoreText,
+                        verdictText: calibratingExplanation,
+                        whyRows: [],
+                        week: readinessWeek,
+                        scaleSegments: readinessScale,
+                        scaleMarker: readinessScaleMarker,
+                        usualTick: readinessUsualTick
                     )
                 } else {
                     ReadinessPopup(
                         readinessText: readinessText,
                         band: readinessBand,
-                        rows: VsBaseline.metrics.compactMap { metric in
-                            tiles.first { $0.metric == metric }.map(ReadinessPopupRow.init)
-                        } + [
-                            ReadinessPopupRow(
-                                timeAsleep: night?.plausibleTimeAsleep,
-                                sleepNeed: sleepNeed.sleepNeed
-                            ),
-                            ReadinessPopupRow(
-                                previousDayLoad: previousDayLoad,
-                                typical: previousDayTypicalLoad
-                            ),
-                        ],
                         sleepScoreText: sleepScoreText,
-                        baselineNote:
-                            "Baseline: your last \(Self.baselineNights(readinessBaselines)) Nights",
-                        calibratingText: nil
+                        verdictText: why?.verdict ?? missingHRVVerdict,
+                        whyRows: why?.rows ?? [],
+                        week: readinessWeek,
+                        scaleSegments: readinessScale,
+                        scaleMarker: readinessScaleMarker,
+                        usualTick: readinessUsualTick
                     )
                 }
             } else {
@@ -297,11 +330,8 @@ public struct TodayView: Equatable, Sendable {
             } ?? []
     }
 
-    /// How many Nights Readiness's Baselines are taken over: the fewer of HRV's and Sleeping HR's,
-    /// at most `Baseline.maxNights`.
-    private static func baselineNights(_ baselines: (hrv: Baseline, sleepingHR: Baseline)) -> Int {
-        min(Baseline.maxNights, baselines.hrv.earlierNights, baselines.sleepingHR.earlierNights)
-    }
+    /// Days in the Readiness popup's Your week, the Day shown included (spec 012).
+    private static let readinessWeekDays = 7
 
     /// A Nightly Metric's popup; nil on a Day without a Night.
     public func metricPopup(_ metric: NightlyMetric) -> MetricPopup? {

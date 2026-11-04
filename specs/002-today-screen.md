@@ -159,7 +159,8 @@ popup charts and in Baseline, never counted as 0.
 
 **Popups.** Each slides up over the screen and closes on a tap outside or a swipe down. Each
 one describes the Night shown:
-- **Readiness** (from the Readiness ring) shows:
+- **Readiness** (from the Readiness ring) shows (superseded by spec 012, which redesigns this
+  popup and shows Sleep Score while Calibrating too):
   - the number and band word
   - HRV and Sleeping HR, each with value, Baseline (whole numbers) and difference
   - Sleep Score

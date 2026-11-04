@@ -82,6 +82,11 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
         return calendar.dateComponents([.day], from: from, to: to).day ?? 0
     }
 
+    /// The weekday's short name, e.g. "Mon", for the Readiness popup's Your week (spec 012).
+    var weekdayName: String {
+        weekdayIndex.map { Self.weekdayNames[$0] } ?? missingText
+    }
+
     /// The weekday's letter for the week strip, e.g. "M".
     var weekdayLetter: String {
         weekdayIndex.map { Self.weekdayLetters[$0] } ?? missingText

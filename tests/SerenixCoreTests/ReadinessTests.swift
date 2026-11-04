@@ -292,89 +292,71 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
 
 // MARK: Readiness popup
 
-@Test func readinessPopupListsHRVThenSleepingHRThenTimeAsleepThenYesterdaysLoad() {
-    let view = readinessView(for: nightOn15Nov())
-
-    #expect(
-        view.readinessPopup?.rows.map(\.name) == [
-            "HRV", "Sleeping HR", "Time Asleep", "Yesterday's Load",
-        ]
-    )
-}
-
 @Test func readinessPopupShowsYesterdaysLoadAboveTypicalLoad() {
     let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoadsWith14NovAt(85))
-    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "85")
-    #expect(row?.referenceText == "Typical 45")
-    #expect(row?.differenceText == "+40")
+    #expect(row?.reasonText == "Above your typical 45.")
 }
 
 @Test func readinessPopupShowsYesterdaysLoadBelowTypicalLoad() {
     let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoadsWith14NovAt(40))
-    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "40")
-    #expect(row?.referenceText == "Typical 45")
-    #expect(row?.differenceText == "\u{2212}5")
+    #expect(row?.reasonText == "No more than your typical 45.")
 }
 
 @Test func readinessPopupShowsYesterdaysLoadAtTypicalLoad() {
     let view = readinessView(for: nightOn15Nov(), dayLoads: dayLoadsWith14NovAt(45))
-    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "45")
-    #expect(row?.referenceText == "Typical 45")
-    #expect(row?.differenceText == "\u{00B1}0")
+    #expect(row?.reasonText == "No more than your typical 45.")
 }
 
-@Test func readinessPopupShowsNoYesterdaysLoadAgainstTypicalLoad() {
+@Test func readinessPopupLeavesOutAMissingYesterdaysLoad() {
     let view = readinessView(for: nightOn15Nov(), dayLoads: daysBefore14NovAtLoad45())
-    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "\u{2014}")
-    #expect(row?.referenceText == "Typical 45")
-    #expect(row?.differenceText == "\u{2014}")
+    #expect(row?.reasonText == "No Load for yesterday, so it's left out.")
 }
 
-@Test func readinessPopupShowsYesterdaysLoadWithTypicalLoadCalibrating() {
+@Test func readinessPopupLeavesOutYesterdaysLoadWhileTypicalLoadIsCalibrating() {
     let view = readinessView(
         for: nightOn15Nov(),
         dayLoads: daysBefore14NovAtLoad45(count: 3) + [DayLoad(day: nov14, load: 85)]
     )
-    let row = view.readinessPopup?.rows.first { $0.name == "Yesterday's Load" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Yesterday's Load" }
 
     #expect(row?.valueText == "85")
-    #expect(row?.referenceText == "Calibrating")
-    #expect(row?.differenceText == "\u{2014}")
+    #expect(row?.reasonText == "Typical Load is still calibrating, so it's left out.")
 }
 
 @Test func readinessPopupShowsTimeAsleepShortOfSleepNeed() {
     let view = readinessView(for: nightOn15Nov(timeAsleep: 7 * oneHour + 30 * 60))
-    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Time Asleep" }
 
     #expect(row?.valueText == "7h 30m")
-    #expect(row?.referenceText == "8h 0m")
-    #expect(row?.differenceText == "\u{2212}30m")
+    #expect(row?.reasonText == "30m short of your Sleep Need.")
 }
 
 @Test func readinessPopupShowsTimeAsleepPastSleepNeed() {
     let view = readinessView(for: nightOn15Nov(timeAsleep: 9 * oneHour + 10 * 60))
-    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Time Asleep" }
 
     #expect(row?.valueText == "9h 10m")
-    #expect(row?.referenceText == "8h 0m")
-    #expect(row?.differenceText == "+1h 10m")
+    #expect(row?.reasonText == "Enough for your Sleep Need.")
 }
 
 @Test func readinessPopupShowsTimeAsleepOfExactlySleepNeed() {
     let view = readinessView(for: nightOn15Nov(timeAsleep: 8 * oneHour))
-    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Time Asleep" }
 
     #expect(row?.valueText == "8h 0m")
-    #expect(row?.referenceText == "8h 0m")
-    #expect(row?.differenceText == "\u{00B1}0")
+    #expect(row?.reasonText == "Enough for your Sleep Need.")
 }
 
 // MARK: Bad stored values (docs/architecture.md, Errors)
@@ -382,12 +364,11 @@ func theSleepingHRZoneIgnoresItsSpread(sleepingHR: Double, zone: Zone) {
 @Test func aNegativeTimeAsleepCountsAsMissingInReadinessAndThePopup() {
     // Dropped, so HRV and Sleeping HR at their Baselines give the usual 70.
     let view = readinessView(for: nightOn15Nov(timeAsleep: -8 * oneHour))
-    let row = view.readinessPopup?.rows.first { $0.name == "Time Asleep" }
+    let row = view.readinessPopup?.whyRows.first { $0.name == "Time Asleep" }
 
     #expect(view.readinessText == "70")
     #expect(row?.valueText == "—")
-    #expect(row?.referenceText == "8h 0m")
-    #expect(row?.differenceText == "—")
+    #expect(row?.weightText == "dropped")
 }
 
 @Test func anInfiniteHRVCountsAsNoHRV() {

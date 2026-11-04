@@ -1,34 +1,203 @@
 import Foundation
 
-/// The Readiness popup (specs 002 and 008): Readiness with each of its inputs against what it's
-/// measured against, and Sleep Score, or instead, while Calibrating, why there's no Readiness yet.
+/// The Readiness popup (spec 012): Readiness with its band and verdict, each input's effect on it,
+/// the last 7 Days, and Sleep Score.
 public struct ReadinessPopup: Equatable, Sendable {
-    /// As on the ring: the number, or "n/4" while Calibrating.
+    /// As on the ring: the number, "n/4" while Calibrating, or "—" when missing.
     public let readinessText: String
     public let band: ReadinessBand?
-    /// HRV, Sleeping HR, Time Asleep, then Yesterday's Load; none while Calibrating.
-    public let rows: [ReadinessPopupRow]
-    /// Nil while Calibrating.
+    /// The Night's Sleep Score, shown whether or not Readiness is Calibrating.
     public let sleepScoreText: String?
-    /// "Baseline: your last N Nights"; nil while Calibrating.
-    public let baselineNote: String?
-    /// Why there's no Readiness yet; nil once there's a Baseline.
-    public let calibratingText: String?
+    /// The sentence beside the ring (spec 012, Verdict), or why there's no Readiness: spec 002's
+    /// Calibrating explanation, or no HRV.
+    public let verdictText: String?
+    /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
+    /// none without a Readiness.
+    public let whyRows: [ReadinessWhyRow]
+    /// Your week: the Day shown and the 6 Days before it, oldest first (spec 012).
+    public let week: [ReadinessWeekBar]
+    /// The band scale's three segments, lowest band first, whatever the Night (spec 012).
+    public let scaleSegments: [ReadinessScaleSegment]
+    /// Where Readiness sits on the band scale, Readiness / 100; nil while Calibrating or missing.
+    public let scaleMarker: Double?
+    /// The "usual 70" tick on the band scale, 0.70; nil while Calibrating or missing.
+    public let usualTick: Double?
 }
 
-/// One input to Readiness in the Readiness popup (spec 008, Readiness popup).
-public struct ReadinessPopupRow: Equatable, Sendable {
-    /// e.g. "HRV", "Time Asleep", "Yesterday's Load".
+/// One band's stretch of the Readiness popup's band scale, 0 to 1 (spec 012).
+public struct ReadinessScaleSegment: Equatable, Sendable {
+    public let band: ReadinessBand
+    public let from: Double
+    public let to: Double
+}
+
+/// One Day in the Readiness popup's Your week (spec 012).
+public struct ReadinessWeekBar: Equatable, Sendable {
+    /// "Mon" to "Sun".
+    public let weekdayText: String
+    /// That Day's Readiness, or "—" with none (no Night, missing or Calibrating).
+    public let readinessText: String
+    /// Nil with no Readiness.
+    public let band: ReadinessBand?
+    /// The bar's height, 0 to 1: Readiness out of 100, as the ring's fill; 0 with no Readiness.
+    public let fill: Double
+    /// Outlined: the Day the popup is for.
+    public let isDayShown: Bool
+}
+
+/// One input in the Readiness popup's Why list (spec 012).
+public struct ReadinessWhyRow: Equatable, Sendable {
+    /// "HRV", "Sleeping HR", "Time Asleep" or "Yesterday's Load".
     public let name: String
-    /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.
+    /// The re-weighted weight as a whole percentage ("56%"), or "dropped".
+    public let weightText: String
+    /// As in spec 008's popup rows ("50 ms", "7h 30m", "85", or "—").
     public let valueText: String
+    /// "−23 pts", "+12 pts" or "±0 pts"; nil when dropped.
+    public let pointsText: String?
+    /// Why the input scored as it did, in plain words (spec 012, Reasons).
+    public let reasonText: String
+    /// Where the marker sits on the worse–usual–better gauge, 0 to 1 (0.5 is usual); nil when
+    /// dropped.
+    public let gaugePosition: Double?
+
+    /// The Why rows in order, and the verdict, from Readiness's breakdown and spec 008's rows
+    /// for each input.
+    static func list(
+        _ breakdown: Readiness.Breakdown,
+        rows: [Readiness.Input: ReadinessPopupRow],
+        previousDayLoad: Int?,
+        typicalLoad: TypicalLoad
+    ) -> (rows: [ReadinessWhyRow], verdict: String) {
+        let inputs = Readiness.Input.allCases
+        let points = breakdown.points
+        let counted = inputs.indices.map { index -> (row: ReadinessWhyRow, points: Int?) in
+            let input = inputs[index]
+            let name = input.name
+            let row = rows[input]
+            let valueText = row?.valueText ?? missingText
+            guard let partIndex = breakdown.parts.firstIndex(where: { $0.input == input }) else {
+                return (
+                    ReadinessWhyRow(
+                        name: name,
+                        weightText: "dropped",
+                        valueText: valueText,
+                        pointsText: nil,
+                        reasonText: droppedReason(
+                            input,
+                            previousDayLoad: previousDayLoad,
+                            typicalLoad: typicalLoad
+                        ),
+                        gaugePosition: nil
+                    ),
+                    nil
+                )
+            }
+            let part = breakdown.parts[partIndex]
+            let percent = Int((part.weight * 100).rounded(.toNearestOrAwayFromZero))
+            return (
+                ReadinessWhyRow(
+                    name: name,
+                    weightText: "\(percent)%",
+                    valueText: valueText,
+                    pointsText: "\(signedText(points[partIndex])) pts",
+                    reasonText: reason(
+                        input,
+                        score: part.score,
+                        row: row,
+                        sleepShortfall: breakdown.sleepShortfall,
+                        typicalLoad: typicalLoad
+                    ),
+                    // Maps the clamped score, −limit to +limit, onto 0 to 1.
+                    gaugePosition: 0.5 + part.score / (2 * Readiness.scoreLimit)
+                ),
+                points[partIndex]
+            )
+        }
+        // Lowest points first; dropped last; ties keep the inputs' order (a stable sort).
+        let ordered = counted.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.points, rhs.element.points) {
+            case (let left?, let right?): left != right ? left < right : lhs.offset < rhs.offset
+            case (.some, .none): true
+            case (.none, .some): false
+            case (.none, .none): lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+        let lowest = ordered.first
+        let verdict =
+            if let lowest, let lowestPoints = lowest.points,
+                lowestPoints <= -verdictPointsThreshold
+            {
+                "\(lowest.row.name) pulled it down most."
+            } else {
+                "Your body looks recovered."
+            }
+        return (ordered.map(\.row), verdict)
+    }
+
+    /// Why a counted input scored as it did (spec 012, Reasons).
+    private static func reason(
+        _ input: Readiness.Input,
+        score: Double,
+        row: ReadinessPopupRow?,
+        sleepShortfall: TimeInterval,
+        typicalLoad: TypicalLoad
+    ) -> String {
+        switch input {
+        case .hrv, .sleepingHR:
+            return "\(row?.differenceText ?? missingText) against your usual "
+                + "\(row?.referenceText ?? missingText)."
+        case .timeAsleep:
+            let minutesShort = Int((sleepShortfall / 60).rounded())
+            guard minutesShort > 0 else { return "Enough for your Sleep Need." }
+            return "\(hoursMinutesText(minutesShort)) short of your Sleep Need."
+        case .previousDayLoad:
+            let typical =
+                if case .value(let typical) = typicalLoad { "\(typical)" } else { missingText }
+            return score < 0
+                ? "Above your typical \(typical)." : "No more than your typical \(typical)."
+        }
+    }
+
+    /// Why an input was left out of Readiness (spec 012, Reasons). HRV is never dropped: without
+    /// it there's no Readiness.
+    private static func droppedReason(
+        _ input: Readiness.Input,
+        previousDayLoad: Int?,
+        typicalLoad: TypicalLoad
+    ) -> String {
+        switch input {
+        case .previousDayLoad:
+            if previousDayLoad != nil, case .calibrating = typicalLoad {
+                "Typical Load is still calibrating, so it's left out."
+            } else {
+                "No Load for yesterday, so it's left out."
+            }
+        case .sleepingHR: "No Sleeping HR for this Night, so it's left out."
+        // Without HRV there's no Readiness (spec 008). Time Asleep is dropped only when the stored
+        // value is implausible, a case spec 012 gives no reason for.
+        case .hrv, .timeAsleep: missingText
+        }
+    }
+
+    /// An input that costs this many points or more is named in the verdict (spec 012,
+    /// Verdict), in Readiness points.
+    static let verdictPointsThreshold = 3
+}
+
+/// One input's value and what it's measured against, for the Readiness popup's Why rows (spec 012).
+struct ReadinessPopupRow: Equatable, Sendable {
+    /// e.g. "HRV", "Time Asleep", "Yesterday's Load".
+    let name: String
+    /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.
+    let valueText: String
     /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
     /// ms" ("Calibrating" while it is), the Night's Sleep Need for Time Asleep ("8h 0m"), or
     /// "Typical 45" ("Calibrating" while typical Load is) for Yesterday's Load.
-    public let referenceText: String
+    let referenceText: String
     /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep; a signed whole
     /// number ("+40", "−5", "±0") for Yesterday's Load.
-    public let differenceText: String
+    let differenceText: String
 
     init(_ tile: MetricTile) {
         name = tile.metric.name
