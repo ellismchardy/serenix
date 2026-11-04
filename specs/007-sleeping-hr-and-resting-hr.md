@@ -1,7 +1,7 @@
 # 007 — Sleeping HR and Resting HR
 
 **Status:** built
-**Last updated:** 2026-11-03 (spec 011: the Resting HR tile opens a popup)
+**Last updated:** 2026-11-04 (Days missing their values are queued on every launch, not once; built)
 
 ## Problem
 Serenix calls the lowest sustained heart rate during a Sleep Period "Resting HR", as WHOOP and Oura
@@ -84,8 +84,16 @@ temperature, SpO2. The Resting HR tile shows the Day shown:
 - no Zone (white) and an empty gauge; tapping it opens the Resting HR popup (spec 011)
 
 **Updating the app.** Nights stored by an earlier build keep their value, now as Sleeping HR.
-Days stored by an earlier build have no Resting HR until rebuilt; those whose History Records are
-still on the phone (the last 30 days) are rebuilt once after the update, as for a Profile change.
+
+**Days missing their values.** Each stored Day notes that its HR Zones (spec 006) and Resting HR
+were kept when it was worked out, even when either is legitimately missing (no Max HR, no still
+stretch). A Day without that note was stored by an earlier build, or opened by another build of
+Serenix that doesn't store these values and dropped them. Every time Serenix opens, and on every
+other Day rebuild pass (after a sync, after a Profile change), it queues one Day rebuild (spec 005)
+for each stored Day without the note that is still due by spec 005's 30-day rule, unless that
+Day's rebuild is already queued. A rebuilt Day gains the note, so it isn't queued again. Older
+Days keep what they have. There's no "already done" flag: a flag can't see values lost after it
+was set.
 
 ## Design decisions
 - **`SerenixCore`: Resting HR of a Day (new).** Given a Day, its History Records, the Nights and
@@ -98,10 +106,16 @@ still on the phone (the last 30 days) are rebuilt once after the update, as for 
 - **`SerenixCore`: Today view.** Takes the Days' Resting HRs and gives a Resting HR tile with its
   value, "So far today" or nothing, and no Zone; the tile list gains it after Sleeping HR. The
   Resting HR tile is not a Nightly Metric (it belongs to a Day) and opens its own popup (spec 011).
+- **`SerenixCore`: Day rebuilds** gains the missing-values queue: given the stored Days (each
+  saying whether its values were kept), the Day rebuilds already queued, now and the time zone,
+  the rebuilds to add because the Day's values weren't kept, it's still due, and it isn't queued
+  yet; oldest first. A Day worked out by Load of a Day has its values kept.
 - **Shell.** The stored Night field keeps its stored name (or maps from it) so past Nights keep
-  their values. Each stored Day gains Resting HR. The Day rebuild works out Resting HR, then
-  Load. The Today screen lays out Time Asleep full width, then the grid. After the first launch
-  of this build, every due Day is queued once.
+  their values. Each stored Day gains Resting HR and the optional "values kept" note (a missing
+  note reads as not kept, so a store where it was dropped requeues). The Day rebuild works out
+  Resting HR, then Load. The Today screen lays out Time Asleep full width, then the grid. Each
+  rebuild pass asks the missing-values queue before working out the queued Days; the once-only
+  UserDefaults flags for HR Zones and Resting HR go.
 - **Apple Health (later spec).** The export writes Resting HR as resting heart rate. Sleeping HR
   is never written as resting heart rate.
 - Follows ADR 0002 (logic in `SerenixCore`) and ADR 0006 (no held connection). No new ADR: the
@@ -117,9 +131,13 @@ still on the phone (the last 30 days) are rebuilt once after the update, as for 
 - **Nights (`SerenixCore`)**: only the name changes; spec 003's fixture values stand.
 - **Today view (`SerenixCore`)**, fed Nights and Days. Catches the names, the tile order, the
   Resting HR tile and the advice wording.
+- **Day rebuilds (`SerenixCore`)**, fed hand-built stored Days, queued rebuilds and a fixed `now`
+  and time zone. Catches which Days the missing-values queue adds: values not kept, still due,
+  not already queued.
 
-They miss the stored field's old name, storing Resting HR, the Day rebuild order, the update
-rebuild, the layout and the tap, which are checked by hand on the phone (ADR 0002).
+They miss the stored field's old name, storing Resting HR and the "values kept" note, the Day
+rebuild order, calling the missing-values queue on each pass, the layout and the tap, which are
+checked by hand on the phone (ADR 0002).
 
 ## Success criteria (must be checkable)
 Resting HR of a Day, unless a criterion says otherwise: Europe/London, the Day 10 Nov 2026, no
@@ -162,10 +180,23 @@ second, except a still stretch from 12:00 to 12:20 whose minutes 1–4 are at 55
       it reads "58 bpm" and no status; a Day without one reads "—" with an empty gauge.
 - [x] Today view: Take it easy with Sleeping HR 56 against Baseline 52 says "Sleeping HR is up 4
       bpm"; vs your Baseline and the Readiness popup name "Sleeping HR".
+- [x] Day rebuilds: with now 30 Nov 2026 12:00, stored Days 10 Nov and 12 Nov without their values
+      kept and 11 Nov with them kept, and nothing queued, queue 10 Nov then 12 Nov, each reading
+      its local midnight to the next; 11 Nov isn't queued.
+- [x] Day rebuilds: with 10 Nov's rebuild already queued, only 12 Nov is added; with both
+      queued, nothing is.
+- [x] Day rebuilds: with now 30 Nov 2026 12:00, a stored Day 31 Oct without its values kept
+      isn't queued (no longer due); one stored 1 Dec isn't either (a Strap clock ahead).
+- [x] Day rebuilds: a Day worked out by Load of a Day has its values kept, even with no Resting
+      HR and no HR Zones (no records, or no Max HR).
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
-      builds the app.
+      builds the app; no `heartRateZonesBackfilled` or `restingHRBackfilled` key is left in the
+      source.
 - [ ] On the phone (by hand): installed over the previous build, past Nights still show their
       value, now as Sleeping HR, and Days of the last 30 days gain a Resting HR.
+- [ ] On the phone (by hand): after opening another build of Serenix that doesn't store HR Zones
+      or Resting HR, then this one, Days of the last 30 days show their Resting HR and HR Zones
+      again after a launch, without a new sync; a second launch queues nothing more for them.
 - [ ] On the phone (by hand): after a sync covering a full Day, its Resting HR shows on the
       Resting HR tile, a few bpm above that morning's Sleeping HR; on today it reads "So far
       today"; Time Asleep spans the full width over a 2-column grid.

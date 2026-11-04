@@ -1,7 +1,7 @@
 # 006 — Load popup
 
 **Status:** built
-**Last updated:** 2026-11-02 (spec 007: default is no Days with a Resting HR)
+**Last updated:** 2026-11-04 (Days missing their HR Zones are queued on every launch, not once; built)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -74,9 +74,10 @@ floor.
 **When they're worked out.** HR Zone seconds, hourly HR Zone seconds, Highest HR and its time,
 and the Max HR used (and whether entered or estimated) are worked out with the Day's Load, in
 the same Day rebuild (spec 005), stored with it and kept forever. Anything that redoes a Day's
-Load redoes them (a sync, a Profile change). On the first launch after this ships, every Day
-still due (the last 30) is queued once, as for a Profile change. Older Days keep their Load and
-have no HR Zones. With no Max HR, nothing is stored and the ring says "Add your age".
+Load redoes them (a sync, a Profile change). Every time Serenix opens, a Day still due (the last
+30) whose HR Zones weren't kept is queued again (spec 007, Days missing their values): one stored
+before this spec, or whose HR Zones another build of Serenix dropped. Older Days keep their Load
+and have no HR Zones. With no Max HR, nothing is stored and the ring says "Add your age".
 
 **Today's popup is a snapshot.** Load, zones and bars come only from synced History Records.
 Live HR never changes them and is never stored. Opening the popup never starts a sync; a sync
@@ -116,8 +117,8 @@ by "Share log". It never holds Profile fields.
   arrived and the current time, what the pill shows. It never reads the clock.
 - **`SerenixCore`: Today view** gains the Load popup's content, whether the Load ring opens the
   popup or the profile menu, whether the pill shows, and the last sync's end time.
-- **Shell:** stores the new Day fields in SwiftData beside Load; queues every due Day once on
-  the first launch after this ships; opens and closes the Live HR connection with the popup and
+- **Shell:** stores the new Day fields in SwiftData beside Load; queues due Days whose HR Zones
+  weren't kept on every launch (spec 007's missing-values queue); opens and closes the Live HR connection with the popup and
   the foreground, sharing a running sync's connection; feeds `0x28` Frames to the decoder and
   the pill; writes the Live HR Sync Log; draws the popup.
 - ADR 0007 (new): a connection is held between syncs only while Live HR is on screen. Follows
@@ -137,7 +138,7 @@ by "Share log". It never holds Profile fields.
   your last sync", the typical Load line, and the no-records and not-available texts.
 
 They miss the BLE connection, sending `0x03` mid-sync, foreground and background handling, the
-Sync Log, storage, the first-launch queue and the drawing, which are checked by hand on the
+Sync Log, storage, the launch queue and the drawing, which are checked by hand on the
 phone (ADR 0002).
 
 ## Success criteria (must be checkable)
@@ -194,8 +195,9 @@ Max HR 190: 95, 114, 133, 152 and 171 bpm.
 - [ ] On the phone (by hand): a shared log holds the `0x03` and `0x28` Frames, in the sync's log
       during a sync and in the "Live HR" log otherwise, and the last 5 syncs' logs are all still
       there.
-- [ ] On the phone (by hand): after the update, Days in the last 30 show their HR Zones without
-      a new sync; an older Day says they aren't available.
+- [ ] On the phone (by hand): after the update, or after opening another build of Serenix that
+      doesn't store HR Zones and then this one, Days in the last 30 show their HR Zones after a
+      launch without a new sync; an older Day says they aren't available.
 
 ## Non-goals (explicitly out of scope)
 - A connection held between syncs, background Live HR, a widget or Live Activity (ADR 0007).
