@@ -10,10 +10,11 @@ final class ProfileStore: ObservableObject {
     @Published var name: String? {
         didSet { defaults.set(name, forKey: nameKey) }
     }
-    /// Whether the first-launch prompt has been answered, by Continue or Skip. It never shows
-    /// again after that.
-    @Published private(set) var hasBeenAskedForName: Bool {
-        didSet { defaults.set(hasBeenAskedForName, forKey: askedKey) }
+    /// Whether Onboarding is finished (spec 014). It never shows again after that. Existing
+    /// installs, which answered spec 002's old name prompt or have completed a History Sync,
+    /// count as finished from launch.
+    @Published private(set) var hasFinishedOnboarding: Bool {
+        didSet { defaults.set(hasFinishedOnboarding, forKey: onboardingFinishedKey) }
     }
     /// Nil when not set (spec 005, Profile).
     @Published var birthYear: Int? {
@@ -46,19 +47,29 @@ final class ProfileStore: ObservableObject {
         // Through the wrappers, so `self` isn't used before every property is set.
         let stored = ProfileStore.storedProfile
         _name = Published(initialValue: stored.name)
-        _hasBeenAskedForName = Published(
-            initialValue: UserDefaults.standard.bool(forKey: askedKey)
+        let defaults = UserDefaults.standard
+        _hasFinishedOnboarding = Published(
+            initialValue: Onboarding.isFinished(
+                finishedFlag: defaults.bool(forKey: onboardingFinishedKey),
+                namePromptAnswered: defaults.bool(forKey: namePromptAnsweredKey),
+                historySyncCompleted: StrapConnection.hasCompletedAHistorySync
+            )
         )
         _birthYear = Published(initialValue: stored.birthYear)
         _sex = Published(initialValue: stored.sex)
         _maxHR = Published(initialValue: stored.maxHR)
     }
 
-    /// Records the first-launch prompt's answer: the name after Continue (none if left blank),
-    /// nil after Skip.
-    func answerNamePrompt(with name: String?) {
-        rename(to: name)
-        hasBeenAskedForName = true
+    /// Marks Onboarding finished, after Show me Today or Set up later (spec 014).
+    func finishOnboarding() {
+        hasFinishedOnboarding = true
+    }
+
+    /// Saves an Onboarding answer as soon as it's given (spec 014, Saving as it goes).
+    func apply(_ change: Onboarding.ProfileChange) {
+        switch change {
+        case .name(let name): rename(to: name)
+        }
     }
 
     /// Sets the name, trimmed of spaces; a blank one counts as none.
@@ -86,4 +97,6 @@ private let nameKey = "profileName"
 private let birthYearKey = "profileBirthYear"
 private let sexKey = "profileSex"
 private let maxHRKey = "profileMaxHR"
-private let askedKey = "profileNameAsked"
+/// Set by spec 002's old name prompt, now removed: kept only so existing installs skip Onboarding.
+private let namePromptAnsweredKey = "profileNameAsked"
+private let onboardingFinishedKey = "onboardingFinished"

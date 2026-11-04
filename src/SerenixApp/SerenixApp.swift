@@ -10,11 +10,11 @@ struct SerenixApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                // The name is asked for once, before the tabs (spec 002, Profile).
-                if profile.hasBeenAskedForName {
+                // Onboarding comes once, before the tabs (spec 014).
+                if profile.hasFinishedOnboarding {
                     MainTabs(connection: connection, profile: profile)
                 } else {
-                    NamePrompt(profile: profile)
+                    OnboardingScreen(profile: profile)
                 }
             }
             .onAppear {

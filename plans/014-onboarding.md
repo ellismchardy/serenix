@@ -21,7 +21,7 @@ strictly ordered, because each one extends the same `Onboarding` type and screen
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice (tracer):** Hello, then Name, then the pair step with Set up later. Onboarding replaces the NamePrompt.
+1. [x] **Slice (tracer):** Hello, then Name, then the pair step with Set up later. Onboarding replaces the NamePrompt.
    - Seam: Onboarding conversation (`SerenixCore`) · Files: `src/SerenixCore/Onboarding.swift`,
      `tests/SerenixCoreTests/OnboardingTests.swift`, `src/SerenixApp/OnboardingScreen.swift`
      (new), `src/SerenixApp/SerenixApp.swift`, `src/SerenixApp/ProfileStore.swift`,
