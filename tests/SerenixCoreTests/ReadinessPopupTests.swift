@@ -278,6 +278,66 @@ private func expectGauge(_ position: Double?, isAbout expected: Double) {
     #expect(popup != nil && popup?.sleepScoreText != nil)
 }
 
+// MARK: Band scale
+
+private func expectScale(_ popup: ReadinessPopup?) {
+    let segments = popup?.scaleSegments ?? []
+    #expect(segments.map(\.band) == [.takeItEasy, .steady, .ready])
+    #expect(segments.map(\.from) == [0, 0.34, 0.67])
+    #expect(segments.map(\.to) == [0.34, 0.67, 1])
+}
+
+private func expectMarker(_ marker: Double?, isAbout expected: Double) {
+    guard let marker else {
+        Issue.record("expected a marker at \(expected), got nil")
+        return
+    }
+    #expect(abs(marker - expected) < 0.0001)
+}
+
+@Test func theBandScaleHasTheSameThreeSegmentsWhateverTheNight() {
+    expectScale(readinessView(for: nightOn15Nov()).readinessPopup)
+    expectScale(readinessView(for: nightOn15Nov(), earlierNights: 1).readinessPopup)
+    expectScale(readinessView(for: nightOn15Nov(hrv: nil)).readinessPopup)
+}
+
+@Test func aUsualNightPutsTheMarkerAtTheUsualTick() {
+    let popup = readinessView(for: nightOn15Nov()).readinessPopup
+
+    expectMarker(popup?.scaleMarker, isAbout: 0.70)
+    expectMarker(popup?.usualTick, isAbout: 0.70)
+}
+
+@Test func anHRVBelowBaselinePutsTheMarkerInSteady() {
+    let popup = readinessView(for: nightOn15Nov(hrv: 50)).readinessPopup
+
+    expectMarker(popup?.scaleMarker, isAbout: 0.38)
+    #expect(popup?.band == .steady)
+}
+
+@Test func allFourInputsOffPutTheMarkerInTakeItEasy() {
+    let popup = allFourOffView().readinessPopup
+
+    expectMarker(popup?.scaleMarker, isAbout: 0.07)
+    #expect(popup?.band == .takeItEasy)
+}
+
+@Test func whileCalibratingTheScaleHasNoMarkers() {
+    let popup = readinessView(for: nightOn15Nov(), earlierNights: 1).readinessPopup
+
+    #expect(popup != nil)
+    #expect(popup?.scaleMarker == nil)
+    #expect(popup?.usualTick == nil)
+}
+
+@Test func aNightWithNoHRVHasNoScaleMarkers() {
+    let popup = readinessView(for: nightOn15Nov(hrv: nil)).readinessPopup
+
+    #expect(popup != nil)
+    #expect(popup?.scaleMarker == nil)
+    #expect(popup?.usualTick == nil)
+}
+
 // MARK: Your week
 
 /// A usual Night (HRV 60, Sleeping HR 52, 8 h) dated `day` November 2026.

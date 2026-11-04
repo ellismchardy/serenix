@@ -1,7 +1,7 @@
 # 012 — Readiness popup
 
-**Status:** built
-**Last updated:** 2026-11-04 (built; by-hand checks carried to the PR)
+**Status:** approved
+**Last updated:** 2026-11-04 (approved: header redrawn as a band scale, prototype variant B)
 
 ## Problem
 The Readiness popup (specs 002 and 008) shows the number, the band word and a table of four
@@ -10,9 +10,10 @@ A user who reads 34 can't tell whether a short night or a drop in HRV cost them 
 the popup doesn't show whether today is a one-off or part of a run.
 
 ## Goal
-The Readiness popup shows the number in a ring with its band, says in one sentence what pulled
-it down, lists the four inputs from the biggest effect to the smallest (each with its points, a
-plain reason and a gauge), and shows the last 7 Days of Readiness.
+The Readiness popup shows the number large in its band's colour on a scale of the three bands,
+says in one sentence what pulled it down, lists the four inputs from the biggest effect to the
+smallest (each with its points, a plain reason and a gauge), and shows the last 7 Days of
+Readiness.
 
 ## User stories
 1. As a Strap owner, I want the popup to name the input that cost me the most, so that I don't
@@ -29,6 +30,8 @@ plain reason and a gauge), and shows the last 7 Days of Readiness.
    as left out with the reason, not as a guess.
 7. As a new Strap owner who is still Calibrating, I want the popup to keep saying how many Nights
    it still needs.
+8. As a Strap owner, I want to see where my number sits among Take it easy, Steady and Ready, and
+   against a usual Night (70), so that I know how close I am to the next band.
 
 ## Behavior
 **Opening.** Tapping the Readiness ring opens the popup for the Night shown, as in spec 002. It
@@ -36,9 +39,13 @@ slides up and closes like the other popups.
 
 **Top to bottom.**
 1. **Heading:** "Readiness" and the Day shown's date.
-2. **Ring card:** a ring filled to the Readiness out of 100 in the band's colour, the number in
-   the middle; beside it a pill with the band word in the band's colour (spec 002), and the
-   **verdict** under the pill.
+2. **Band scale card:**
+   - the number, large, in the band's colour, with the band word (spec 002) beside it;
+   - the **verdict** under them;
+   - a **band scale**: a bar from 0 to 100 in three segments, Take it easy (0 to 0.34), Steady
+     (0.34 to 0.67) and Ready (0.67 to 1), each in its band's colour. The Night's band is at
+     full colour and the others are faded. A **marker** sits at Readiness / 100, and a tick at
+     0.70 is labelled "usual 70". The band words sit under their segments.
 3. **Why, biggest effect first:** under that heading, one row per input (HRV, Sleeping HR, Time
    Asleep, Yesterday's Load). Each row has:
    - the input's name, and its weight as a whole-number percentage ("56%"), or "dropped";
@@ -82,32 +89,41 @@ slides up and closes like the other popups.
 - Dropped: "No Sleeping HR for this Night, so it's left out."; "No Load for yesterday, so it's
   left out."; "Typical Load is still calibrating, so it's left out."
 
-**Calibrating.** The ring is empty with "n/4" as on Today, no pill and no Why list; the verdict
-is spec 002's Calibrating explanation. Your week and Sleep Score show as usual.
+**Calibrating.** The number reads "n/4" as on Today, greyed, with no band word; the band scale is
+all faded with no marker and no tick; there's no Why list; the verdict is spec 002's Calibrating
+explanation. Your week and Sleep Score show as usual.
 
-**Missing** (no HRV, spec 008). The ring is empty with "—", no pill, the verdict "No HRV for this
-Night, so there's no Readiness.", and no Why list. Your week and Sleep Score show as usual.
+**Missing** (no HRV, spec 008). The number reads "—", greyed, with no band word; the band scale
+is all faded with no marker and no tick; the verdict is "No HRV for this Night, so there's no
+Readiness."; and there's no Why list. Your week and Sleep Score show as usual.
 
 **Gone.** Spec 008's popup table (value, against and difference columns) is replaced by the Why
-list. The Readiness message on Today (spec 002) doesn't change.
+list, and the popup's ring by the band scale. The Readiness ring and message on Today (spec 002)
+don't change.
 
 ## Design decisions
 - **`SerenixCore`: Readiness popup** (the Today view's popup content, reshaped). For the Night
-  shown it gives: Readiness text, band and ring fill; the verdict text; the Why rows in order
-  (name, weight text, value text, points text or none, reason, gauge position or none); 7 week
+  shown it gives: Readiness text and band; the band scale's segments (band and from–to
+  position) and its marker and usual-Night tick positions, or none; the verdict text; the Why
+  rows in order (name, weight text, value text, points text or none, reason, gauge position or
+  none); 7 week
   bars (weekday, Readiness or none, band, which is the Day shown); and the Sleep Score text. It
   decides; it doesn't draw.
 - **`SerenixCore`: Readiness** exposes each input's clamped score and re-weighted weight, so the
   popup's points and gauges come from the same numbers as the score. The points' factor and the
   largest-remainder rounding live with it.
+- **`SerenixCore`: ReadinessBand** gives each band's stretch of 0 to 1 from its cut-offs
+  (spec 002), so the scale and the band word can't disagree.
 - **iOS shell:** draws the popup and maps bands to colours, as for the ring. Nothing new is
   stored: the week's Readiness is worked out from the stored Nights and Days, like today's.
-- Supersedes spec 008's Readiness popup rows. Layout from prototype variant E.
+- Supersedes spec 008's Readiness popup rows. Layout from prototype variant E; header from
+  variant B of the header prototype.
 
 ## Seams under test
 - **`SerenixCore` Today view** (its Readiness popup content), the seam of specs 002 and 008 —
-  catches every number, weight, point, gauge position, reason, verdict, row order and week bar;
-  misses drawing, colours and layout, checked by hand on the phone (ADR 0002).
+  catches every number, weight, point, gauge position, reason, verdict, row order, week bar and
+  band scale position; misses drawing, colours and layout, checked by hand on the phone (ADR
+  0002).
 
 ## Success criteria (must be checkable)
 Unless a criterion says otherwise, spec 008's set-up: a Night dated 15 Nov 2026 with HRV 60 ms,
@@ -142,10 +158,17 @@ Automated (`swift test`), Today view:
       no Night and a Calibrating Day have no Readiness; 15 Nov is the Day shown.
 - [x] Points always add up to Readiness − 70 when Readiness has a number.
 
+Band scale:
+- [ ] The scale's segments are Take it easy 0 to 0.34, Steady 0.34 to 0.67 and Ready 0.67 to 1,
+      whatever the Night.
+- [ ] The usual Night: marker at 0.70 and the usual tick at 0.70; HRV 50 (Readiness 38): marker
+      at 0.38, band Steady; all four off (Readiness 7): marker at 0.07, band Take it easy.
+- [ ] Calibrating and No HRV: no marker and no usual tick.
+
 By hand on the phone:
-- [ ] Tapping the Readiness ring opens the popup with the ring, pill, verdict, Why list with
-      gauges, Your week and Sleep Score, in Light and Dark, and it closes with a tap outside or a
-      swipe down.
+- [ ] Tapping the Readiness ring opens the popup with the number and band word, the verdict,
+      the band scale with its marker, the Why list with gauges, Your week and Sleep Score, in
+      Light and Dark, and it closes with a tap outside or a swipe down.
 
 ## Non-goals (explicitly out of scope)
 - Changing Readiness itself (spec 008's formula, weights and bands).
@@ -157,6 +180,9 @@ By hand on the phone:
 - None. Assumption: the Missing popup keeps Your week and Sleep Score, as Calibrating does.
 
 ## Notes
+- Header prototype: branch `prototype/readiness-popup-header`,
+  `src/SerenixApp/Prototype/readiness-header-prototype.html?variant=B` (big number on a band
+  scale), chosen over the ring (A), a half-dial (C), a band-tinted card (D) and verdict-first (E).
 - Prototype: branch `prototype/readiness-popup-ui`,
   `src/SerenixApp/Prototype/readiness-popup-prototype.html?variant=E` (B's ring and gauges with
   C's reasons and week). Its points are added in order; this spec splits them by share instead,

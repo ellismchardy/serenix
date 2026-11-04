@@ -16,6 +16,19 @@ public struct ReadinessPopup: Equatable, Sendable {
     public let whyRows: [ReadinessWhyRow]
     /// Your week: the Day shown and the 6 Days before it, oldest first (spec 012).
     public let week: [ReadinessWeekBar]
+    /// The band scale's three segments, lowest band first, whatever the Night (spec 012).
+    public let scaleSegments: [ReadinessScaleSegment]
+    /// Where Readiness sits on the band scale, Readiness / 100; nil while Calibrating or missing.
+    public let scaleMarker: Double?
+    /// The "usual 70" tick on the band scale, 0.70; nil while Calibrating or missing.
+    public let usualTick: Double?
+}
+
+/// One band's stretch of the Readiness popup's band scale, 0 to 1 (spec 012).
+public struct ReadinessScaleSegment: Equatable, Sendable {
+    public let band: ReadinessBand
+    public let from: Double
+    public let to: Double
 }
 
 /// One Day in the Readiness popup's Your week (spec 012).

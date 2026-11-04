@@ -235,6 +235,15 @@ public struct TodayView: Equatable, Sendable {
         // Readiness is missing when the Night has no HRV, an HRV of 0 counting as none (spec 008).
         let hasHRV = (night?.value(of: .hrv)).map { $0 > 0 } ?? false
         let missingHRVVerdict = hasHRV ? nil : "No HRV for this Night, so there's no Readiness."
+        // The band scale's marker and "usual 70" tick: only with a Readiness, none while
+        // Calibrating or missing (spec 012).
+        let readinessScaleMarker = nightReadiness.score.map(ringFill)
+        let readinessUsualTick =
+            nightReadiness.score == nil ? nil : ringFill(Readiness.usualScore)
+        // The band scale's segments, the same on every Night (spec 012).
+        let readinessScale = ReadinessBand.lowestFirst.map { band in
+            ReadinessScaleSegment(band: band, from: band.stretch.from, to: band.stretch.to)
+        }
         // Your week: each Day's Readiness against its own Baselines, as if it were shown (spec
         // 012). The Day shown reuses its own; worked out each time, never stored.
         let readinessWeek = (-(Self.readinessWeekDays - 1)...0).map { offset in
@@ -266,7 +275,10 @@ public struct TodayView: Equatable, Sendable {
                         sleepScoreText: sleepScoreText,
                         verdictText: calibratingExplanation,
                         whyRows: [],
-                        week: readinessWeek
+                        week: readinessWeek,
+                        scaleSegments: readinessScale,
+                        scaleMarker: readinessScaleMarker,
+                        usualTick: readinessUsualTick
                     )
                 } else {
                     ReadinessPopup(
@@ -275,7 +287,10 @@ public struct TodayView: Equatable, Sendable {
                         sleepScoreText: sleepScoreText,
                         verdictText: why?.verdict ?? missingHRVVerdict,
                         whyRows: why?.rows ?? [],
-                        week: readinessWeek
+                        week: readinessWeek,
+                        scaleSegments: readinessScale,
+                        scaleMarker: readinessScaleMarker,
+                        usualTick: readinessUsualTick
                     )
                 }
             } else {
