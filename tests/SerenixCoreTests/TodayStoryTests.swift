@@ -182,3 +182,19 @@ private func story(nights: [Night], showing day: Day) -> TodayStory {
     #expect(step?.timeLabel == "Today so far")
     #expect(step?.title == "Load 5")
 }
+
+// MARK: Taps
+
+@Test func eachStepNamesThePopupATapOpensAndOvernightIsTappedByItsRows() {
+    #expect(storyForNov1().steps.map(\.tap) == [.sleep, nil, .readiness, .load])
+}
+
+@Test func eachOvernightRowNamesItsMetricsPopup() {
+    let overnight = overnightStep(Night(day: nov1, sleepingHR: 52, spo2: 97))
+    #expect(overnight?.rowTaps == [.metric(.sleepingHR), .metric(.spo2)])
+}
+
+@Test func withoutANightTheTodaySoFarStepOpensLoad() {
+    let story = story(nights: [Night(day: oct31)], showing: nov1)
+    #expect(story.steps.map(\.tap) == [.load])
+}

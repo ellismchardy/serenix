@@ -64,6 +64,18 @@ public struct StoryStep: Equatable, Sendable {
     /// The This morning step's advice, as in the Readiness message; nil for every other step and
     /// while Readiness is Calibrating.
     public let advice: String?
+    /// The popup a tap on the step opens, as the Rings layout's would; nil for Overnight, whose
+    /// rows are tapped instead. Whether the popup has content is the shell's check.
+    public var tap: StoryTap? {
+        switch kind {
+        case .sleep: .sleep
+        case .overnight: nil
+        case .thisMorning: .readiness
+        case .todaySoFar: .load
+        }
+    }
+    /// One metric popup per Overnight row, in the same order; empty for every other step.
+    public var rowTaps: [StoryTap] { metrics.map { .metric($0.metric) } }
 
     init(
         kind: Kind,
@@ -78,6 +90,14 @@ public struct StoryStep: Equatable, Sendable {
         self.metrics = metrics
         self.advice = advice
     }
+}
+
+/// A popup a tap in the Story opens (spec 012): the same popups as the Rings layout's.
+public enum StoryTap: Equatable, Sendable {
+    case sleep
+    case metric(NightlyMetric)
+    case readiness
+    case load
 }
 
 /// The Readiness values the This morning step is drawn from, as the Today view worked them out.
