@@ -35,7 +35,7 @@ public func dayRebuilds(after recordTimes: [Date], now: Date, in timeZone: TimeZ
 /// stored before HR Zones or Resting HR existed, or dropped since by another build of Serenix)
 /// and that are still due at `now` (`DayRebuild.isDue(at:)`), oldest first; any already in
 /// `alreadyQueued` are left out. The shell asks on every rebuild pass (spec 007, Days missing
-/// their values), so a Day is never queued twice.
+/// their values), so this never queues a Day that's already queued.
 public func dayRebuilds(
     missingValuesIn days: [DayLoad],
     alreadyQueued: [DayRebuild],

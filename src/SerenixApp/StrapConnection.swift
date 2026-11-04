@@ -403,8 +403,9 @@ final class StrapConnection: NSObject, ObservableObject {
         DayLoadStore.pendingRebuilds = pending
     }
 
-    /// Shows every stored Night and Day Load, then works out, off the main thread and one date at
-    /// a time, every queued Night rebuild still due, then every queued Day rebuild still due (so
+    /// Shows every stored Night and Day Load, queues the Nights missing a Heart Rate Trace and the
+    /// Days missing their values, then works out, off the main thread and one date at a time,
+    /// every queued Night rebuild still due, then every queued Day rebuild still due (so
     /// a Day's Load sees that morning's Night), then shows them again. A rebuild that fails goes
     /// to the back of its queue, to be tried after the next sync or launch; it never stops what's
     /// stored from showing.
