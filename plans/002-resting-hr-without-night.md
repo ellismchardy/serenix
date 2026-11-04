@@ -13,7 +13,7 @@ HR, and show nothing when it has neither. On approval this plan is saved as
 `plans/002-resting-hr-without-night.md` and committed with the spec edits; `/execute` works it.
 
 ## Tasks
-1. [ ] **Slice:** `TodayView` gives `restingHRTile` and `restingHRPopup` when the Day has a Night
+1. [x] **Slice:** `TodayView` gives `restingHRTile` and `restingHRPopup` when the Day has a Night
    (as now, "—" if no value) or, with no Night, when its Day Load has a Resting HR; neither
    with no Night and no Resting HR. `gridTiles` is unchanged (it's built from Nightly Metric
    tiles, so stays empty without a Night).
