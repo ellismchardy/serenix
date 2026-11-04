@@ -56,7 +56,7 @@ files, so they run in order.
      gridlines" and "The asleep shading runs 23:00 to 07:00, labelled … ; the Wake Bout columns
      … ; under the chart it reads 'Woke 2 times · 15 min awake'" pass; the gridline and
      "Sleeping HR 52" tests are rewritten.
-4. [ ] **Verify:** full suite + lint + typecheck green; every automated success criterion in
+4. [x] **Verify:** full suite + lint + typecheck green; every automated success criterion in
    spec 012 checked; no `asleepSegments`, `gridlines` or band row left. Carried to the PR
    checklist: the macOS CI build and the phone check that the lanes and open chart match the
    graphs prototype's variant E in both themes.

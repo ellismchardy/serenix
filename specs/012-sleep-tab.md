@@ -1,8 +1,9 @@
 # 012 — Sleep tab
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-04 (lanes and chart restyled from the graphs prototype's variant E:
-gradient block with Wake Bout notches, one-picture chart in the accent colour, smoothed curve)
+gradient block with Wake Bout notches, one-picture chart in the accent colour, smoothed curve;
+built)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -244,26 +245,26 @@ Onset 23:00, Final Wake 07:00, Time in Bed 22:50–07:10):
 A Night's lane and chart (Sleep view; the Night dated 3 Nov has Time in Bed 22:50–07:10, Sleep
 Onset 23:00, Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, and Wake Bouts at 02:10 for
 8 min and 04:30 for 7 min):
-- [ ] Its block runs 23:00–07:00, unbroken, with notches at 02:10–02:18 and 04:30–04:37, on a
+- [x] Its block runs 23:00–07:00, unbroken, with notches at 02:10–02:18 and 04:30–04:37, on a
       track 22:50–07:10.
 - [x] Its chart runs 22:50 to 07:10, with hour ticks at 00:00, 02:00, 04:00 and 06:00.
-- [ ] The Sleeping HR line is at 52 with the tag "52 bpm"; with no Sleeping HR there is no line
+- [x] The Sleeping HR line is at 52 with the tag "52 bpm"; with no Sleeping HR there is no line
       or tag.
 - [x] The y-axis runs from the lowest step − 3 to the highest + 3 (steps 50 to 70: 47 to 73); a
       missing step breaks the line.
 - [x] A Sleeping HR outside the steps widens the y-axis to take it in: steps 50 to 70 with
       Sleeping HR 44 run 41 to 73.
-- [ ] The chart has no gridlines.
-- [ ] Smoothed values (to 2 dp): steps all 60 but one of 74 draw that step at 63.58, the steps
+- [x] The chart has no gridlines.
+- [x] Smoothed values (to 2 dp): steps all 60 but one of 74 draw that step at 63.58, the steps
       1, 2 and 3 away at 62.95, 61.64 and 60.62, and the rest at 60; a missing step among 60s
       stays missing and its neighbours draw at 60; the y-axis still runs from the steps as kept
       (60 to 74: 57 to 77).
-- [ ] The asleep shading runs 23:00 to 07:00, labelled "asleep 23:00" and "07:00"; the Wake Bout
+- [x] The asleep shading runs 23:00 to 07:00, labelled "asleep 23:00" and "07:00"; the Wake Bout
       columns run 02:10–02:18 and 04:30–04:37; under the chart it reads "Woke 2 times · 15 min
       awake".
 - [x] One Wake Bout reads "Woke 1 time"; none reads "Didn't wake".
 - [x] With no Time in Bed, the chart runs 23:00 to 07:00 and the bar has no track.
-- [ ] With no Heart Rate Trace, its chart is "Heart rate isn't kept for Nights older than 30
+- [x] With no Heart Rate Trace, its chart is "Heart rate isn't kept for Nights older than 30
       days.", its block has no notches, and its Time Asleep still reads "7h 45m".
 
 Tonight (Sleep view; Nights dated 28 Oct to 3 Nov, each Sleep Onset 23:00, Final Wake 07:00):
