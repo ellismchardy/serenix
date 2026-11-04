@@ -36,10 +36,10 @@ Existing Sleep view code: `src/SerenixCore/SleepView.swift` (`SleepView`, `Sleep
      `src/SerenixApp/` only if the new compiler needs it.
    - Done when: the workflow selects Xcode 26 and `swift test` / lint / build are still green.
      The CI log naming `iPhoneOS26` is checked on the next push (carried to the PR checklist).
-2. [ ] **Slice: Summary.** `SleepView.summary`: the label ("Last night" or the date), the
+2. [x] **Slice: Summary.** `SleepView.summary`: the label ("Last night" or the date), the
    sentence against the Night's own Sleep Need (short / about / more, 15-minute named constant;
-   the gap as "45 minutes" under an hour and "1h 51m" from an hour; no Time Asleep; no Sleep
-   Need) and "23:00 – 07:00"; the no-Night message in its place. The
+   the gap as "45 minutes" under an hour and "1h 51m" from an hour; no Time Asleep) and
+   "23:00 – 07:00"; the no-Night message in its place. The
    Sleep screen draws it as the first card under the week strip, with its Sleep Score › button
    opening the Sleep popup, in place of Last night's title and "7h 45m asleep" header.
    - Blocked by: none

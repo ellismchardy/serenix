@@ -40,15 +40,18 @@ struct SleepScreen: View {
             today: today
         ) {
             WeekStripView(strip: sleep.weekStrip) { pickedDay = shownSelection($0) }
+            if let summary = sleep.summary {
+                summaryCard(summary)
+            } else if let message = sleep.noNightMessage {
+                Text(message)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
             if let tonight = sleep.tonight {
                 tonightCard(tonight)
             }
             if let lastNight = sleep.lastNight {
                 lastNightCard(lastNight)
-            } else if let message = sleep.noNightMessage {
-                Text(message)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
             }
             SleepWeekView(week: sleep.week)
         }
@@ -87,17 +90,15 @@ struct SleepScreen: View {
         .themeCard()
     }
 
-    /// Last night (spec 012): its title, Time Asleep and the Sleep Score button, then Time in Bed.
-    private func lastNightCard(_ lastNight: SleepLastNight) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(lastNight.title).font(.headline)
-                    Text(lastNight.timeAsleepText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
+    /// The Summary (spec 012): the Night in one sentence, then the Sleep Score button and Sleep
+    /// Onset to Final Wake.
+    private func summaryCard(_ summary: SleepSummary) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(summary.label).font(.footnote).foregroundStyle(.secondary)
+            Text(summary.sentence)
+                .font(.title3.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
                 Button("Sleep Score \u{203A}") { showsSleepPopup = true }
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 12)
@@ -105,7 +106,21 @@ struct SleepScreen: View {
                     .background(Theme.accentSoft, in: Capsule())
                     .buttonStyle(.plain)
                     .foregroundStyle(Theme.accent)
+                Spacer()
+                if let onsetWake = summary.onsetWakeText {
+                    Text(onsetWake).font(.footnote).foregroundStyle(.secondary)
+                }
             }
+            .padding(.top, 6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .themeCard()
+    }
+
+    /// Last night (spec 012): its chart, Time in Bed and Wake Bouts, until the lanes take them.
+    private func lastNightCard(_ lastNight: SleepLastNight) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             if let chart = lastNight.chart {
                 SleepChartView(chart: chart)
             } else if let notKept = lastNight.notKeptText {

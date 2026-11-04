@@ -61,8 +61,10 @@ otherwise (as the week strip names Days). Against the Night's own Sleep Need (sp
 - The gap is in whole minutes, written "45 minutes" under an hour and "1h 45m" from an hour up
   ("1h 0m" at exactly an hour), never "0h 45m".
 - Otherwise: "You slept 8h 0m, about what you needed."
-- Without a Time Asleep it reads "Time Asleep wasn't worked out for this Night." Without a Sleep
-  Need it reads only "You slept 7h 45m."
+- Without a Time Asleep it reads "Time Asleep wasn't worked out for this Night." (Every Night has
+  a Sleep Need, spec 009.)
+- The gap is taken from Time Asleep and Sleep Need each in whole minutes, as shown, so 7 h 45 m
+  30 s against 8h 0m reads "You slept 7h 46m, about what you needed."
 - Under the sentence: a **Sleep Score ›** button that opens the Sleep popup, and "23:00 – 07:00"
   (Sleep Onset – Final Wake; left out when either is missing).
 

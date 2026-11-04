@@ -45,7 +45,7 @@ private let twoWakeBouts = [
 /// 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, `traceFrom2250` and `twoWakeBouts`.
 private func nightOn3Nov(
     sleepingHR: Double? = 52,
-    timeAsleep: TimeInterval = 7 * oneHour + 45 * oneMinute,
+    timeAsleep: TimeInterval? = 7 * oneHour + 45 * oneMinute,
     timeInBedStart: Date? = at(2, 22, 50),
     timeInBedEnd: Date? = at(3, 7, 10),
     heartRateTrace: HeartRateTrace? = traceFrom2250,
@@ -76,13 +76,73 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
     SleepView(nights: nights, showing: day, now: now, timeZone: london)
 }
 
+// MARK: Summary
+
+// Spec 012's success criteria under "Summary": the 3 Nov Night (Sleep Onset 23:00, Final Wake
+// 07:00) and Nights dated 27 Oct to 2 Nov each with Time Asleep 8 h, so its Sleep Need is 8h 0m
+// (spec 009: no Sleep Debt in its week, no birth year).
+
+/// The Nights dated 27 Oct to 2 Nov, each 23:00 to 07:00 with Time Asleep 8 h, and the 3 Nov
+/// Night with `timeAsleep`.
+private func summaryNights(timeAsleep: TimeInterval?) -> [Night] {
+    (27...31).map { tonightNight(month: 10, $0, timeAsleep: 8 * oneHour) }
+        + (1...2).map { tonightNight(month: 11, $0, timeAsleep: 8 * oneHour) }
+        + [nightOn3Nov(timeAsleep: timeAsleep)]
+}
+
+@Test func theSummaryTodayIsLastNightFifteenMinutesShortWithItsSleepOnsetToFinalWake() throws {
+    let view = sleepView(nights: summaryNights(timeAsleep: 7 * oneHour + 45 * oneMinute))
+    let summary = try #require(view.summary)
+
+    #expect(summary.label == "Last night")
+    #expect(summary.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
+    #expect(summary.onsetWakeText == "23:00 \u{2013} 07:00")
+    #expect(view.noNightMessage == nil)
+}
+
+@Test func theSummaryWithinFifteenMinutesOfSleepNeedReadsAboutWhatYouNeeded() {
+    let view = sleepView(nights: summaryNights(timeAsleep: 7 * oneHour + 50 * oneMinute))
+
+    #expect(view.summary?.sentence == "You slept 7h 50m, about what you needed.")
+}
+
+@Test func theSummaryFifteenMinutesOrMoreOverSleepNeedReadsMoreThanYouNeeded() {
+    let view = sleepView(nights: summaryNights(timeAsleep: 8 * oneHour + 30 * oneMinute))
+
+    #expect(view.summary?.sentence == "You slept 8h 30m, 30 minutes more than you needed.")
+}
+
+/// From an hour up the gap reads in hours and minutes, "1h 0m" at exactly an hour.
+@Test func theSummarysGapFromAnHourUpReadsInHoursAndMinutes() {
+    let short = sleepView(nights: summaryNights(timeAsleep: 6 * oneHour + 9 * oneMinute))
+    let anHourShort = sleepView(nights: summaryNights(timeAsleep: 7 * oneHour))
+
+    #expect(short.summary?.sentence == "You slept 6h 9m, 1h 51m short of what you needed.")
+    #expect(anHourShort.summary?.sentence == "You slept 7h 0m, 1h 0m short of what you needed.")
+}
+
+/// The gap is taken from the times as shown: 7 h 45 m 30 s reads "7h 46m", 14 minutes under a
+/// Sleep Need of 8h 0m, so "about", not "15 minutes short" from the unrounded 14.5.
+@Test func theSummarysGapIsTakenFromTimeAsleepAsShown() {
+    let view = sleepView(nights: summaryNights(timeAsleep: 7 * oneHour + 45 * oneMinute + 30))
+
+    #expect(view.summary?.sentence == "You slept 7h 46m, about what you needed.")
+}
+
+@Test func theSummaryWithNoTimeAsleepReadsThatItWasntWorkedOut() {
+    let view = sleepView(nights: summaryNights(timeAsleep: nil))
+
+    #expect(view.summary?.sentence == "Time Asleep wasn't worked out for this Night.")
+}
+
 // MARK: Last night
 
-@Test func lastNightTodayReadsLastNightItsTimeAsleepAndInBedUp() {
+@Test func lastNightTodayIsSummarisedAndReadsInBedUp() {
     let view = sleepView(nights: [nightOn3Nov()])
 
-    #expect(view.lastNight?.title == "Last night")
-    #expect(view.lastNight?.timeAsleepText == "7h 45m asleep")
+    // Last night's old title and "7h 45m asleep" header are now the Summary's (spec 012).
+    #expect(view.summary?.label == "Last night")
+    #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
     #expect(view.lastNight?.inBedText == "In bed 22:50 \u{00B7} Up 07:10")
     #expect(view.noNightMessage == nil)
 }
@@ -223,13 +283,14 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
 
 @Test func withNoHeartRateTraceTheChartAndWakeBoutsAreReplacedByTheNotKeptNote() {
     let night = nightOn3Nov(heartRateTrace: nil, wakeBouts: nil)
-    let lastNight = sleepView(nights: [night]).lastNight
+    let view = sleepView(nights: [night])
+    let lastNight = view.lastNight
 
     #expect(lastNight?.notKeptText == "Heart rate isn't kept for Nights older than 30 days.")
     #expect(lastNight?.chart == nil)
     #expect(lastNight?.wakeSummary == nil)
     #expect(lastNight?.wakeBoutRows.isEmpty == true)
-    #expect(lastNight?.timeAsleepText == "7h 45m asleep")
+    #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
     #expect(lastNight?.inBedText == "In bed 22:50 \u{00B7} Up 07:10")
 }
 
@@ -237,20 +298,22 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
     let view = sleepView(nights: [nightOn3Nov(timeInBedStart: nil, timeInBedEnd: nil)])
 
     #expect(view.lastNight?.inBedText == nil)
-    #expect(view.lastNight?.timeAsleepText == "7h 45m asleep")
+    #expect(view.summary?.sentence == "You slept 7h 45m, 15 minutes short of what you needed.")
     #expect(view.lastNight?.chart?.start == at(2, 23))
     #expect(view.lastNight?.chart?.end == at(3, 7))
 }
 
-@Test func lastNightOnAnEarlierDayIsTitledWithThatDaysName() {
+/// The label is the Day's name as the week strip writes it (spec 002), "Sun 1 Nov".
+@Test func theSummaryOnAnEarlierDayIsLabelledWithThatDaysName() {
     let view = sleepView(nights: [nightOn1Nov, nightOn3Nov()], showing: nov1)
 
-    #expect(view.lastNight?.title == "Sun 1 Nov")
+    #expect(view.summary?.label == "Sun 1 Nov")
 }
 
 @Test func noNightTodayReadsNoNightYet() {
     let view = sleepView(nights: [nightOn1Nov])
 
+    #expect(view.summary == nil)
     #expect(view.lastNight == nil)
     #expect(view.noNightMessage == "No Night yet")
 }
@@ -258,6 +321,7 @@ private func sleepView(nights: [Night], showing day: Day = nov3) -> SleepView {
 @Test func noNightOnAnEarlierDayReadsNoNightRecorded() {
     let view = sleepView(nights: [nightOn3Nov()], showing: nov1)
 
+    #expect(view.summary == nil)
     #expect(view.lastNight == nil)
     #expect(view.noNightMessage == "No Night recorded")
 }

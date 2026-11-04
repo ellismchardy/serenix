@@ -9,6 +9,8 @@ public struct SleepView: Equatable, Sendable {
     public let tonight: SleepTonight?
     /// The 7 Days to the Day shown: Time Asleep against Sleep Need, and when the user slept.
     public let week: SleepWeek
+    /// The Night dated the Day shown in one sentence; nil when that Day has no Night.
+    public let summary: SleepSummary?
     /// About the Night dated the Day shown; nil when that Day has no Night.
     public let lastNight: SleepLastNight?
     /// "No Night yet" for today, "No Night recorded" for an earlier Day, in place of Last night;
@@ -37,10 +39,69 @@ public struct SleepView: Equatable, Sendable {
             : nil
         week = SleepWeek(to: day, nights: nights, timeZone: timeZone, birthYear: birthYear)
         let night = nights.first { $0.day == day }
+        summary = night.map {
+            SleepSummary(
+                $0,
+                label: isToday ? "Last night" : day.text,
+                sleepNeed: SleepNeed(for: day, among: nights, birthYear: birthYear).sleepNeed,
+                timeZone: timeZone
+            )
+        }
         lastNight = night.map {
             SleepLastNight($0, title: isToday ? "Last night" : day.text, timeZone: timeZone)
         }
         noNightMessage = night != nil ? nil : TodayView.noNightMessage(isToday: isToday)
+    }
+}
+
+/// The Sleep tab's Summary (spec 012, Summary): the Night dated the Day shown in one sentence,
+/// its Time Asleep against its own Sleep Need.
+public struct SleepSummary: Equatable, Sendable {
+    /// "Last night" for today, else the Day's name as the week strip writes it.
+    public let label: String
+    /// e.g. "You slept 7h 45m, 15 minutes short of what you needed."
+    public let sentence: String
+    /// "23:00 – 07:00", Sleep Onset to Final Wake; nil when either is missing.
+    public let onsetWakeText: String?
+
+    /// How far Time Asleep must fall short of, or pass, Sleep Need before the sentence says so,
+    /// minutes (spec 012: 15).
+    static let aboutWithinMinutes = 15
+
+    init(_ night: Night, label: String, sleepNeed: TimeInterval, timeZone: TimeZone) {
+        self.label = label
+        if let timeAsleep = night.plausibleTimeAsleep {
+            let slept = "You slept \(durationText(timeAsleep))"
+            // In whole minutes as each is shown, so the gap agrees with the Time Asleep written.
+            if let asleep = Int(exactly: (timeAsleep / 60).rounded()),
+                let need = Int(exactly: (sleepNeed / 60).rounded())
+            {
+                let gap = need - asleep
+                sentence =
+                    if gap >= Self.aboutWithinMinutes {
+                        "\(slept), \(Self.gapText(gap)) short of what you needed."
+                    } else if -gap >= Self.aboutWithinMinutes {
+                        "\(slept), \(Self.gapText(-gap)) more than you needed."
+                    } else {
+                        "\(slept), about what you needed."
+                    }
+            } else {
+                sentence = "\(slept)."
+            }
+        } else {
+            sentence = "Time Asleep wasn't worked out for this Night."
+        }
+        onsetWakeText =
+            if let onset = night.sleepOnset, let wake = night.finalWake {
+                "\(clockText(onset, in: timeZone)) \u{2013} \(clockText(wake, in: timeZone))"
+            } else {
+                nil
+            }
+    }
+
+    /// "45 minutes" under an hour, "1h 51m" from an hour up (spec 012, Summary).
+    private static func gapText(_ minutes: Int) -> String {
+        minutes < 60 ? "\(minutes) minutes" : durationText(TimeInterval(minutes * 60))
     }
 }
 
