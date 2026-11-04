@@ -221,6 +221,8 @@ public struct TodayView: Equatable, Sendable {
                 advice: readinessAdvice
             ),
             loadText: loadText,
+            load: dayLoad?.load,
+            typicalLoad: typicalLoad(for: day, among: dayLoads),
             isToday: isToday,
             timeZone: timeZone
         )

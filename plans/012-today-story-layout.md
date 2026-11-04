@@ -40,6 +40,13 @@ says which popup a tap opens via a new core enum `StoryTap` (`.sleep`, `.metric(
    - Files: `src/SerenixApp/TodayLayoutStore.swift` (new), `StoryBodyView.swift` (new),
      `TodayScreen.swift`, `ProfileMenu.swift`
    - Done when: macOS CI builds; phone check steps written for the PR.
+6b. [x] **Slice:** the Today so far step's Load bar is the Day's Load against its typical Load
+   (spec Story body step 4; found in task 6's spec review, the bar used the ring's 0–100 fill).
+   `StoryStep.loadVsTypical`: Load ÷ typical Load for the Day shown, capped at 1; nil when the
+   Load is missing, typical Load is calibrating, or it is 0. The Story view fills the bar from it.
+   - Seam: Today view · Files: `TodayStory.swift`, `TodayView.swift`, `TodayStoryTests.swift`,
+     `src/SerenixApp/StoryBodyView.swift`
+   - Done when: tests pin half, capped-at-full and nil cases; the shell bar uses it.
 7. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build` green; phone criteria 8–11 checked by hand on the sideloaded build.
 

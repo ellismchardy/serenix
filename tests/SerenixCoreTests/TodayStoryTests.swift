@@ -183,6 +183,62 @@ private func story(nights: [Night], showing day: Day) -> TodayStory {
     #expect(step?.title == "Load 5")
 }
 
+// MARK: Load against typical Load
+
+private let oct28 = Day(year: 2026, month: 10, day: 28)
+
+/// The Today so far step for 1 Nov's Night, with `dayLoads`.
+private func todaySoFarStep(dayLoads: [DayLoad]) -> StoryStep? {
+    TodayView(
+        nights: [Night(day: nov1)],
+        dayLoads: dayLoads,
+        showing: nov1,
+        now: now,
+        timeZone: london,
+        sync: .idle,
+        profileName: nil
+    ).story.steps.first { $0.kind == .todaySoFar }
+}
+
+/// Four earlier Days at Load 10: a typical Load of 10.
+private let fourDaysAtLoad10 = [oct28, oct29, oct30, oct31].map { DayLoad(day: $0, load: 10) }
+
+@Test func theLoadBarIsTheDaysLoadAgainstTypicalLoad() {
+    let step = todaySoFarStep(dayLoads: fourDaysAtLoad10 + [DayLoad(day: nov1, load: 5)])
+    #expect(step?.loadVsTypical == 0.5)
+}
+
+@Test func theLoadBarIsFullWhenLoadIsAboveTypical() {
+    let step = todaySoFarStep(dayLoads: fourDaysAtLoad10 + [DayLoad(day: nov1, load: 15)])
+    #expect(step?.loadVsTypical == 1)
+}
+
+@Test func thereIsNoLoadBarWhileTypicalLoadIsCalibrating() {
+    let threeDays = [oct29, oct30, oct31].map { DayLoad(day: $0, load: 10) }
+    let step = todaySoFarStep(dayLoads: threeDays + [DayLoad(day: nov1, load: 5)])
+    #expect(step != nil)
+    #expect(step?.loadVsTypical == nil)
+}
+
+@Test func thereIsNoLoadBarWhenTheDayHasNoLoad() {
+    let step = todaySoFarStep(dayLoads: fourDaysAtLoad10)
+    #expect(step != nil)
+    #expect(step?.loadVsTypical == nil)
+}
+
+@Test func thereIsNoLoadBarWhenTypicalLoadIsZero() {
+    // Four earlier Days at Load 0 give a typical Load of 0: nothing to compare against.
+    let restDays = [oct28, oct29, oct30, oct31].map { DayLoad(day: $0, load: 0) }
+    let step = todaySoFarStep(dayLoads: restDays + [DayLoad(day: nov1, load: 5)])
+    #expect(step != nil)
+    #expect(step?.loadVsTypical == nil)
+}
+
+@Test func otherStepsHaveNoLoadBar() {
+    let steps = storyForNov1().steps.filter { $0.kind != .todaySoFar }
+    #expect(steps.allSatisfy { $0.loadVsTypical == nil })
+}
+
 // MARK: Taps
 
 @Test func eachStepNamesThePopupATapOpensAndOvernightIsTappedByItsRows() {

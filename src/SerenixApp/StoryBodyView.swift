@@ -52,7 +52,7 @@ struct StoryBodyView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-        case .todaySoFar: tappable(step) { loadCard }
+        case .todaySoFar: tappable(step) { loadCard(step) }
         }
     }
 
@@ -129,14 +129,16 @@ struct StoryBodyView: View {
             .frame(minWidth: 84, alignment: .trailing)
     }
 
-    /// The Day's Load as a bar, its typical Load, and Resting HR when the Day has one.
-    private var loadCard: some View {
+    /// The Day's Load as a bar against its typical Load, the typical Load in words, and Resting
+    /// HR when the Day has one.
+    private func loadCard(_ step: StoryStep) -> some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Full means the Day's typical Load; no bar fill while there's nothing to compare.
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Theme.accentSoft)
                     Capsule().fill(.orange)
-                        .frame(width: proxy.size.width * min(max(today.loadFill, 0), 1))
+                        .frame(width: proxy.size.width * (step.loadVsTypical ?? 0))
                 }
             }
             .frame(height: 10)

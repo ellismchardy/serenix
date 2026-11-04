@@ -14,6 +14,8 @@ public struct TodayStory: Equatable, Sendable {
         tiles: [MetricTile],
         readiness: StoryReadiness,
         loadText: String,
+        load dayLoad: Int?,
+        typicalLoad: TypicalLoad,
         isToday: Bool,
         timeZone: TimeZone
     ) {
@@ -21,7 +23,8 @@ public struct TodayStory: Equatable, Sendable {
         let load = StoryStep(
             kind: .todaySoFar,
             timeLabel: isToday ? "Today so far" : "That Day",
-            title: "Load \(loadText)"
+            title: "Load \(loadText)",
+            loadVsTypical: loadAgainstTypical(dayLoad, typicalLoad)
         )
         guard let night else {
             steps = [load]
@@ -64,6 +67,10 @@ public struct StoryStep: Equatable, Sendable {
     /// The This morning step's advice, as in the Readiness message; nil for every other step and
     /// while Readiness is Calibrating.
     public let advice: String?
+    /// The Today so far step's bar: the Day's Load against its typical Load, 0 to 1, full at or
+    /// above typical. Nil with no Load, while typical Load is calibrating or is 0, and on every
+    /// other step.
+    public let loadVsTypical: Double?
     /// The popup a tap on the step opens, as the Rings layout's would; nil for Overnight, whose
     /// rows are tapped instead. Whether the popup has content is the shell's check.
     public var tap: StoryTap? {
@@ -82,13 +89,15 @@ public struct StoryStep: Equatable, Sendable {
         timeLabel: String,
         title: String,
         metrics: [MetricTile] = [],
-        advice: String? = nil
+        advice: String? = nil,
+        loadVsTypical: Double? = nil
     ) {
         self.kind = kind
         self.timeLabel = timeLabel
         self.title = title
         self.metrics = metrics
         self.advice = advice
+        self.loadVsTypical = loadVsTypical
     }
 }
 
@@ -114,6 +123,12 @@ struct StoryReadiness {
         guard let band else { return "Readiness \(text)" }
         return "Readiness \(text) \u{2014} \(band.word)"
     }
+}
+
+/// The Day's Load ÷ its typical Load, capped at 1 (spec 012, Story body); nil without both.
+private func loadAgainstTypical(_ load: Int?, _ typical: TypicalLoad) -> Double? {
+    guard let load, case .value(let typical) = typical, typical > 0 else { return nil }
+    return min(Double(load) / Double(typical), 1)
 }
 
 /// Sleep Onset → Final Wake in local time, e.g. "23:18 → 06:51"; empty when either is missing.
