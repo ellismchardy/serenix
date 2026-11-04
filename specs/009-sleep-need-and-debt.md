@@ -131,7 +131,7 @@ Build and phone:
 - [ ] On the phone (by hand): the Sleep popup shows Sleep Need and Sleep Debt under Time Asleep,
       and they match the Time Asleep of the Nights before.
 - [ ] On the phone (by hand): setting a birth year 65 or more years back lowers Sleep Need by
-      30 m straight away, and the Readiness popup's Time Asleep reference follows.
+      30 m straight away, and the Readiness popup's Time Asleep reason follows (spec 012).
 
 ## Non-goals (explicitly out of scope)
 - Learning Usual Need from the user's own Nights: later, with tuning.
