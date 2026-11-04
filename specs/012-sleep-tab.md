@@ -2,7 +2,8 @@
 
 **Status:** approved
 **Last updated:** 2026-11-04 (Sleep tab redesigned from prototype variant E: summary sentence,
-week lanes, Tonight card, What stood out; iOS 26 floating tab bar)
+week lanes, Tonight card, What stood out; iOS 26 floating tab bar; the Summary's gap in minutes
+under an hour)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -33,7 +34,8 @@ Night.
 
 ## Behavior
 For the Day shown, D (spec 002: today, or the Day picked). Clock times are local, in the Today
-view's time zone. Durations are written as the Time Asleep tile writes them ("7h 45m", "0h 45m").
+view's time zone. Durations are written as the Time Asleep tile writes them ("7h 45m"), except the
+Summary's gap (below).
 
 **Tab bar.** Two tabs, **Today** (the `sun.max` symbol) and **Sleep** (`moon.zzz`). Today is the
 default, and the selected tab is drawn in the accent colour. On iOS 26 and later it is the
@@ -53,9 +55,11 @@ otherwise) and What stood out is left out; Your week and Tonight still show.
 
 **Summary.** About the Night dated D. Its label is "Last night" when D is today and the date
 otherwise (as the week strip names Days). Against the Night's own Sleep Need (spec 009):
-- Time Asleep **15 min or more short** of it: "You slept 7h 45m, 0h 45m short of what you
+- Time Asleep **15 min or more short** of it: "You slept 7h 45m, 45 minutes short of what you
   needed."
-- **15 min or more over** it: "You slept 8h 30m, 0h 30m more than you needed."
+- **15 min or more over** it: "You slept 8h 30m, 30 minutes more than you needed."
+- The gap is in whole minutes, written "45 minutes" under an hour and "1h 45m" from an hour up
+  ("1h 0m" at exactly an hour), never "0h 45m".
 - Otherwise: "You slept 8h 0m, about what you needed."
 - Without a Time Asleep it reads "Time Asleep wasn't worked out for this Night." Without a Sleep
   Need it reads only "You slept 7h 45m."
@@ -203,10 +207,12 @@ Night rebuilds (one-off queue):
 
 Summary (Sleep view; a Night dated 3 Nov with Sleep Onset 23:00, Final Wake 07:00, and Nights
 dated 27 Oct to 2 Nov each with Time Asleep 8 h, so its Sleep Need is 8h 0m):
-- [ ] With Time Asleep 7 h 45 m, its label is "Last night" and it reads "You slept 7h 45m, 0h 15m
-      short of what you needed." and "23:00 – 07:00".
+- [ ] With Time Asleep 7 h 45 m, its label is "Last night" and it reads "You slept 7h 45m, 15
+      minutes short of what you needed." and "23:00 – 07:00".
 - [ ] With Time Asleep 7 h 50 m it reads "You slept 7h 50m, about what you needed."; with
-      8 h 30 m, "You slept 8h 30m, 0h 30m more than you needed."
+      8 h 30 m, "You slept 8h 30m, 30 minutes more than you needed."
+- [ ] With Time Asleep 6 h 9 m it reads "You slept 6h 9m, 1h 51m short of what you needed."; with
+      7 h 0 m, "You slept 7h 0m, 1h 0m short of what you needed."
 - [ ] With no Time Asleep it reads "Time Asleep wasn't worked out for this Night."
 - [ ] With 1 Nov shown, its label is that Day's name as the week strip writes it; with no Night on
       3 Nov, the Summary reads "No Night yet" and there is no What stood out, and with none on
@@ -302,8 +308,6 @@ Build and phone:
 ## Open questions
 - **Every number is an assumption** (5-minute steps, 150 records, 3 Nights, the 20:00–10:00
   axis, 15 min short or over, 30 min from the usual bedtime). Tune with real Nights.
-- **"0h 15m".** Durations follow the Time Asleep tile, so a short gap reads "0h 15m". Assumed fine
-  for now; "15 min" may read better in a sentence.
 - **Lane order.** Newest first, under the Tonight lane, as in the prototype. Assumed over oldest
   first so Last night sits next to Tonight.
 - **Week strip.** The prototype left it out; this spec keeps it so picking a Day works as on
