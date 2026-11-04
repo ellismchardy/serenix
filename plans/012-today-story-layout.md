@@ -30,7 +30,7 @@ says which popup a tap opens via a new core enum `StoryTap` (`.sleep`, `.metric(
 3. [x] **Slice:** This morning title ("Readiness 72 — Ready"), advice; Calibrating
    ("Readiness calibrating — 2/4", no advice).
    - Seam: Today view · Done when: criterion 4.
-4. [ ] **Slice:** No Night → 002's message + Load step; Load label "Today so far" / "That Day".
+4. [x] **Slice:** No Night → 002's message + Load step; Load label "Today so far" / "That Day".
    - Seam: Today view · Done when: criterion 5.
 5. [ ] **Slice:** every step and Overnight row carries its `StoryTap`.
    - Seam: Today view · Done when: criterion 6.

@@ -4,10 +4,27 @@ import Foundation
 /// so far, drawn from the same values as the Rings layout.
 public struct TodayStory: Equatable, Sendable {
     public let steps: [StoryStep]
+    /// 002's "No Night yet" / "No Night recorded" when the Day has no Night, in place of the
+    /// Night's steps; nil otherwise.
+    public let noNightMessage: String?
 
-    init(night: Night?, tiles: [MetricTile], readiness: StoryReadiness, timeZone: TimeZone) {
+    init(
+        night: Night?,
+        noNightMessage: String?,
+        tiles: [MetricTile],
+        readiness: StoryReadiness,
+        loadText: String,
+        isToday: Bool,
+        timeZone: TimeZone
+    ) {
+        self.noNightMessage = noNightMessage
+        let load = StoryStep(
+            kind: .todaySoFar,
+            timeLabel: isToday ? "Today so far" : "That Day",
+            title: "Load \(loadText)"
+        )
         guard let night else {
-            steps = []
+            steps = [load]
             return
         }
         steps = [
@@ -30,7 +47,7 @@ public struct TodayStory: Equatable, Sendable {
                 // The Today view gives no advice while Calibrating (no band).
                 advice: readiness.advice
             ),
-            StoryStep(kind: .todaySoFar, timeLabel: "", title: ""),
+            load,
         ]
     }
 }

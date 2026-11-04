@@ -141,3 +141,44 @@ private let threeCalibratedNightsBeforeNov1 = [oct29, oct30, oct31].map {
     let steps = storyForNov1().steps.filter { $0.kind != .thisMorning }
     #expect(steps.allSatisfy { $0.advice == nil })
 }
+
+// MARK: Today so far step
+
+/// Loads of 12 on 31 Oct and 5 on 1 Nov, shown as "12" and "5" (pinned in TodayViewTests).
+private let loadsOct31AndNov1 = [DayLoad(day: oct31, load: 12), DayLoad(day: nov1, load: 5)]
+
+private func story(nights: [Night], showing day: Day) -> TodayStory {
+    TodayView(
+        nights: nights,
+        dayLoads: loadsOct31AndNov1,
+        showing: day,
+        now: now,
+        timeZone: london,
+        sync: .idle,
+        profileName: nil
+    ).story
+}
+
+@Test func todayWithoutANightSaysNoNightYetAndTellsOnlyTodaySoFar() {
+    let story = story(nights: [Night(day: oct31)], showing: nov1)
+    #expect(story.noNightMessage == "No Night yet")
+    #expect(story.steps.map(\.kind) == [.todaySoFar])
+    #expect(story.steps.first?.timeLabel == "Today so far")
+    #expect(story.steps.first?.title == "Load 5")
+}
+
+@Test func anEarlierDayWithoutANightSaysNoNightRecordedAndLabelsItsLoadThatDay() {
+    let story = story(nights: [Night(day: oct30), Night(day: nov1)], showing: oct31)
+    #expect(story.noNightMessage == "No Night recorded")
+    #expect(story.steps.map(\.kind) == [.todaySoFar])
+    #expect(story.steps.first?.timeLabel == "That Day")
+    #expect(story.steps.first?.title == "Load 12")
+}
+
+@Test func aDayWithANightHasNoNoNightMessageAndLabelsTodaySoFar() {
+    let story = story(nights: [Night(day: nov1)], showing: nov1)
+    #expect(story.noNightMessage == nil)
+    let step = story.steps.first { $0.kind == .todaySoFar }
+    #expect(step?.timeLabel == "Today so far")
+    #expect(step?.title == "Load 5")
+}

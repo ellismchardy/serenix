@@ -212,6 +212,7 @@ public struct TodayView: Equatable, Sendable {
         }
         story = TodayStory(
             night: night,
+            noNightMessage: noNightMessage,
             tiles: tiles,
             readiness: StoryReadiness(
                 text: readinessText,
@@ -219,6 +220,8 @@ public struct TodayView: Equatable, Sendable {
                 isCalibrating: calibratingNightsSoFar != nil,
                 advice: readinessAdvice
             ),
+            loadText: loadText,
+            isToday: isToday,
             timeZone: timeZone
         )
 
