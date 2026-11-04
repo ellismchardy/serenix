@@ -1,7 +1,7 @@
 # 012 — Readiness popup
 
-**Status:** approved
-**Last updated:** 2026-11-04 (approved: header redrawn as a band scale, prototype variant B)
+**Status:** built
+**Last updated:** 2026-11-04 (band scale header built; by-hand checks carried to the PR)
 
 ## Problem
 The Readiness popup (specs 002 and 008) shows the number, the band word and a table of four
@@ -159,11 +159,11 @@ Automated (`swift test`), Today view:
 - [x] Points always add up to Readiness − 70 when Readiness has a number.
 
 Band scale:
-- [ ] The scale's segments are Take it easy 0 to 0.34, Steady 0.34 to 0.67 and Ready 0.67 to 1,
+- [x] The scale's segments are Take it easy 0 to 0.34, Steady 0.34 to 0.67 and Ready 0.67 to 1,
       whatever the Night.
-- [ ] The usual Night: marker at 0.70 and the usual tick at 0.70; HRV 50 (Readiness 38): marker
+- [x] The usual Night: marker at 0.70 and the usual tick at 0.70; HRV 50 (Readiness 38): marker
       at 0.38, band Steady; all four off (Readiness 7): marker at 0.07, band Take it easy.
-- [ ] Calibrating and No HRV: no marker and no usual tick.
+- [x] Calibrating and No HRV: no marker and no usual tick.
 
 By hand on the phone:
 - [ ] Tapping the Readiness ring opens the popup with the number and band word, the verdict,

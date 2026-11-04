@@ -38,7 +38,7 @@ its band. No existing test pins the ring, so none need rewriting; the shell's ri
    - Files: `src/SerenixApp/TodayPopups.swift`
    - Done when: the shell uses only the popup content's scale fields (no maths on display
      text); suite still green; the shell compiles on CI.
-3. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+3. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; spec 012's Band scale criteria ticked, status back to `built`.
    Carried to the PR checklist (#44): the macOS CI build, and the by-hand phone check with the
    band scale (number and band word, verdict, scale and marker, Why list, Your week, Sleep
