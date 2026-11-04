@@ -177,8 +177,9 @@ private func nightWithTrace(day: Int) -> Night {
     )
 }
 
-/// Spec 012, Night rebuilds (missing-trace queue): now 30 Nov 2026 12:00 (Europe/London is UTC after
-/// 25 Oct 2026). Stored Nights dated 31 Oct and 1 Nov have no Heart Rate Trace; 29 Nov has one.
+/// Spec 012, Night rebuilds (missing-trace queue): now 30 Nov 2026 12:00 (Europe/London is UTC
+/// after 25 Oct 2026). Stored Nights dated 31 Oct and 1 Nov have no Heart Rate Trace; 29 Nov has
+/// one.
 /// Only 1 Nov is queued: its History Records start 31 Oct 12:00, exactly 30 days before now.
 /// 31 Oct's start 30 Oct 12:00, before that; 29 Nov already has its trace.
 @Test func missingTraceQueueRebuildsOnlyDueNightsWithoutAHeartRateTrace() {
@@ -219,8 +220,8 @@ private func nightWithTrace(day: Int) -> Night {
     #expect(traceRebuilds(for: [], alreadyQueued: [], now: afterNovember2026, in: london) == [])
 }
 
-/// The missing-trace queue reads the same History Records for a date as a rebuild after a sync does:
-/// Night dated 15 Nov, and a record at 15 Nov 01:00 inside the window noon 14 Nov to noon 15 Nov.
+/// The missing-trace queue reads the same History Records for a date as a rebuild after a sync
+/// does: Night dated 15 Nov, and a record at 15 Nov 01:00 inside the window noon 14 Nov to noon 15 Nov.
 /// Stored out of order, the queue still comes oldest first.
 @Test func missingTraceQueueReadsTheSameRecordsAsARebuildAfterASyncOldestFirst() {
     let nights = [

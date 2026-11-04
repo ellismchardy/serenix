@@ -141,7 +141,8 @@ Time in Bed covers Sleep Onset to Final Wake instead.
 between Sleep Onset and Final Wake, from the same sleep/wake labelling that finds the Sleep
 Period (spec 003), as its start and its length in whole minutes.
 
-**Nights missing a Heart Rate Trace.** Every time Serenix opens, it queues one rebuild (spec 003,
+**Nights missing a Heart Rate Trace.** Every time Serenix opens, and whenever it works Nights out
+again (after a sync or a Profile change), it queues one rebuild (spec 003,
 Night rebuilds) for each stored Night that has no Heart Rate Trace and is still due by spec 003's
 30-day rule, unless that Night's rebuild is already queued. Rebuilt Nights gain a Heart Rate
 Trace and Wake Bouts, so they aren't queued again. Older Nights keep none and show the "not
@@ -175,7 +176,7 @@ them opens the same data.
 - **Shell.** A tab container holds the Day shown (moved out of the Today screen) and the
   back-from-background reset, and shows the Today screen and a new Sleep screen. The stored
   Night gains the two optional fields (a lightweight SwiftData migration). The missing-trace queue runs
-  on every launch; there's no "already done" flag, since a flag can't see a Heart Rate Trace lost
+  on every launch and every Night rebuild pass after it; there's no "already done" flag, since a flag can't see a Heart Rate Trace lost
   after it was set. The Sleep screen draws the Sleep view, holds which lane is open (reset to
   the Sleep view's first open lane when the Day shown changes), draws the smoothed values as a
   monotone curve (it never overshoots between two values), and opens the existing Sleep popup
@@ -194,8 +195,10 @@ them opens the same data.
 - **Nights from History Records (`SerenixCore`)**, spec 003's seam, fed hand-built History
   Records and the fixture night. Catches the Heart Rate Trace (steps, the non-zero mean, the
   150-record rule, its span) and the Wake Bouts. Misses storing them.
-- **Night rebuilds (`SerenixCore`)**, spec 003's seam, fed stored Nights, now and a time zone.
-  Catches which Nights the missing-trace queue picks. Misses running it on every launch.
+- **Night rebuilds (`SerenixCore`)**, spec 003's seam, fed stored Nights, the rebuilds already
+  queued, now and a time zone.
+  Catches which Nights the missing-trace queue picks. Misses running it on every launch and
+  rebuild pass.
 - **Sleep view (`SerenixCore`)**, fed hand-built Nights with Heart Rate Traces and Wake Bouts,
   the Day shown, now, the time zone and a birth year. Catches the Summary, Your week, Tonight and
   What stood out as above. Misses drawing (the monotone curve, colours), opening and closing lanes, the
@@ -370,4 +373,6 @@ Build and phone:
   and spec 010 (Sleep Consistency's median). Terms: Heart Rate Trace, Wake Bout (GLOSSARY.md).
 - `docs/architecture.md` says History Records are kept 30 days, but nothing deletes them yet.
   This spec still treats Nights older than 30 days as having no Heart Rate Trace, as spec 003's
-  rebuild rule does.
+  rebuild rule does. Once History Records are pruned, a Night under 30 days old that lost its
+  Heart Rate Trace and whose records are gone would be rebuilt by the missing-trace queue and, by
+  spec 003's rule, deleted rather than kept: the pruning spec should decide that case.
