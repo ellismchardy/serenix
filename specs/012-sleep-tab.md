@@ -191,7 +191,7 @@ and show the "not kept" note.
   Catches which Nights the one-off queue picks. Misses running it once.
 - **Sleep view (`SerenixCore`)**, fed hand-built Nights with Heart Rate Traces and Wake Bouts,
   the Day shown, now, the time zone and a birth year. Catches the Summary, Your week, Tonight and
-  What stood out as above. Misses drawing (smoothing, colours), opening and closing lanes, the
+  What stood out as above. Misses drawing (the monotone curve, colours), opening and closing lanes, the
   tab bar and the shared Day shown, checked by hand on the phone (ADR 0002).
 
 ## Success criteria (must be checkable)

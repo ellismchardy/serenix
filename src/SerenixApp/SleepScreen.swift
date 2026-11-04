@@ -468,12 +468,12 @@ private struct SleepChartView: View {
         }
     }
 
-    /// The steps as points, split where a step is missing.
+    /// The steps' smoothed values as points, split where a step is missing.
     private func runs(x: (Date) -> CGFloat, y: (Double) -> CGFloat) -> [[CGPoint]] {
         var runs: [[CGPoint]] = []
         var run: [CGPoint] = []
         for step in chart.steps {
-            if let bpm = step.bpm {
+            if let bpm = step.smoothedBPM {
                 run.append(CGPoint(x: x(step.middle), y: y(bpm)))
             } else if !run.isEmpty {
                 runs.append(run)
@@ -484,22 +484,47 @@ private struct SleepChartView: View {
         return runs
     }
 
-    /// A smooth line through `points` (Catmull-Rom as cubic Béziers), so 5-minute steps don't
-    /// read as a jagged line.
+    /// A smooth curve through `points` that never rises above or dips below the two points it
+    /// joins (a monotone cubic, Fritsch–Carlson), so it doesn't invent highs or lows (spec 012).
     private func smoothPath(through points: [CGPoint]) -> Path {
         var path = Path()
         guard let first = points.first else { return path }
         path.move(to: first)
-        guard points.count > 1 else { return path }
-        for index in 0..<(points.count - 1) {
-            let p0 = points[max(index - 1, 0)]
-            let p1 = points[index]
-            let p2 = points[index + 1]
-            let p3 = points[min(index + 2, points.count - 1)]
+        let count = points.count
+        guard count > 1 else { return path }
+        // Each segment's slope, then a tangent at each point: flat at a peak or trough, else the
+        // mean of its two segments, cut back where it would overshoot.
+        var slopes: [CGFloat] = []
+        for index in 0..<(count - 1) {
+            let dx = points[index + 1].x - points[index].x
+            slopes.append(dx == 0 ? 0 : (points[index + 1].y - points[index].y) / dx)
+        }
+        var tangents = [CGFloat](repeating: 0, count: count)
+        tangents[0] = slopes[0]
+        tangents[count - 1] = slopes[count - 2]
+        for index in 1..<(count - 1) {
+            tangents[index] =
+                slopes[index - 1] * slopes[index] <= 0
+                ? 0 : (slopes[index - 1] + slopes[index]) / 2
+        }
+        for index in 0..<(count - 1) where slopes[index] != 0 {
+            let a = tangents[index] / slopes[index]
+            let b = tangents[index + 1] / slopes[index]
+            let length = a * a + b * b
+            if length > 9 {
+                let scale = 3 / length.squareRoot()
+                tangents[index] = scale * a * slopes[index]
+                tangents[index + 1] = scale * b * slopes[index]
+            }
+        }
+        for index in 0..<(count - 1) {
+            let p0 = points[index]
+            let p1 = points[index + 1]
+            let third = (p1.x - p0.x) / 3
             path.addCurve(
-                to: p2,
-                control1: CGPoint(x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6),
-                control2: CGPoint(x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6)
+                to: p1,
+                control1: CGPoint(x: p0.x + third, y: p0.y + tangents[index] * third),
+                control2: CGPoint(x: p1.x - third, y: p1.y - tangents[index + 1] * third)
             )
         }
         return path

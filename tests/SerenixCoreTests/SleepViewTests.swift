@@ -259,6 +259,86 @@ private func laneChart(_ night: Night) -> SleepChart? {
     #expect(chart?.highestBPM == 73)
 }
 
+/// `value` rounded to 2 decimal places, as spec 012's smoothed values are given.
+private func twoDP(_ value: Double?) -> Double? {
+    value.map { ($0 * 100).rounded() / 100 }
+}
+
+/// 100 steps from 22:50, all 60 but the 51st (index 50, 03:00), which is 74: far enough from both
+/// ends that every step within 3 of it is 60.
+private let traceWithOne74 = HeartRateTrace(
+    start: at(2, 22, 50),
+    steps: Array(repeating: 60, count: 50) + [74] + Array(repeating: 60, count: 49)
+)
+
+/// Spec 012's criterion: steps all 60 but one of 74 draw that step at 63.58, the steps 1, 2 and 3
+/// away at 62.95, 61.64 and 60.62, and the rest at 60.
+@Test func eachChartStepIsDrawnAtItsSmoothedValue() throws {
+    let steps = laneChart(nightOn3Nov(sleepingHR: 60, heartRateTrace: traceWithOne74))?.steps ?? []
+
+    try #require(steps.count == 100)
+    let smoothed = steps.map { twoDP($0.smoothedBPM) }
+    #expect(smoothed[50] == 63.58)
+    #expect(smoothed[49] == 62.95)
+    #expect(smoothed[51] == 62.95)
+    #expect(smoothed[48] == 61.64)
+    #expect(smoothed[52] == 61.64)
+    #expect(smoothed[47] == 60.62)
+    #expect(smoothed[53] == 60.62)
+    let rest = Array(smoothed[..<47]) + Array(smoothed[54...])
+    #expect(rest.count == 93)
+    #expect(rest.allSatisfy { $0 == 60 })
+}
+
+/// Smoothing is for drawing only: the y-axis still runs from the steps as kept (60 to 74: 57 to
+/// 77), not the smoothed values (60 to 63.58). Sleeping HR 60 lies inside the steps.
+@Test func theChartsYAxisRunsFromTheStepsAsKeptNotTheSmoothedValues() {
+    let chart = laneChart(nightOn3Nov(sleepingHR: 60, heartRateTrace: traceWithOne74))
+
+    #expect(chart?.lowestBPM == 57)
+    #expect(chart?.highestBPM == 77)
+    #expect(chart?.steps.dropFirst(50).first?.bpm == 74)
+}
+
+/// Spec 012's criterion: a missing step among 60s stays missing and its neighbours draw at 60
+/// (the missing step is left out of their means, not counted as 0).
+@Test func aMissingStepStaysMissingWhenSmoothedAndItsNeighboursDrawAt60() throws {
+    let trace = HeartRateTrace(
+        start: at(2, 22, 50),
+        steps: Array(repeating: 60, count: 50) + [nil] + Array(repeating: 60, count: 49)
+    )
+    let steps = laneChart(nightOn3Nov(sleepingHR: 60, heartRateTrace: trace))?.steps ?? []
+
+    try #require(steps.count == 100)
+    let missing = steps.dropFirst(50).first
+    #expect(missing != nil && missing?.smoothedBPM == nil)
+    let smoothed = steps.map { twoDP($0.smoothedBPM) }
+    #expect(smoothed[49] == 60)
+    #expect(smoothed[51] == 60)
+    let rest = Array(smoothed[..<50]) + Array(smoothed[51...])
+    #expect(rest.allSatisfy { $0 == 60 })
+}
+
+/// Near the trace's start a step has fewer than 3 steps on one side, so its mean is over the
+/// steps that exist. Weights w_d = e^(−d²/(2·1.6²)) = e^(−d²/5.12): w0 = 1, w1 = 0.82258,
+/// w2 = 0.45783, w3 = 0.17242. Steps 74, 60, 60, 60, …:
+/// - first step (no steps before it): (74·1 + 60·(w1 + w2 + w3)) / (1 + w1 + w2 + w3)
+///   = 60 + 14 / 2.45283 = 65.708 → 65.71;
+/// - second step (one before it, the 74 at d = 1; three after it):
+///   (74·w1 + 60·(1 + w1 + w2 + w3)) / (w1 + 1 + w1 + w2 + w3)
+///   = 60 + 14·0.82258 / 3.27541 = 63.516 → 63.52.
+@Test func aStepNearTheTracesStartIsSmoothedOverTheStepsThatExist() throws {
+    let trace = HeartRateTrace(
+        start: at(2, 22, 50),
+        steps: [74] + Array(repeating: 60, count: 99)
+    )
+    let steps = laneChart(nightOn3Nov(sleepingHR: 60, heartRateTrace: trace))?.steps ?? []
+
+    try #require(steps.count == 100)
+    #expect(twoDP(steps.first?.smoothedBPM) == 65.71)
+    #expect(twoDP(steps.dropFirst().first?.smoothedBPM) == 63.52)
+}
+
 /// The 47 to 73 axis (steps 50 to 70) spans 26 bpm, so its gridlines are every 5 bpm.
 @Test func aYAxisSpanningThirtyBPMOrLessHasGridlinesEveryFive() {
     let chart = laneChart(nightOn3Nov())

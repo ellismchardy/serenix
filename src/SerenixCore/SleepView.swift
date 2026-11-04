@@ -499,6 +499,31 @@ public struct SleepChart: Equatable, Sendable {
     static let wideAxisSpan = 30.0
     /// Hours between ticks under the band, on even clock hours (spec 012: 2).
     static let tickEveryHours = 2
+    /// How many steps either side a step's smoothed value takes in (spec 012: 3, 15 minutes).
+    static let smoothingReach = 3
+    /// The width of the smoothing's Gaussian weights, steps (spec 012: 1.6).
+    static let smoothingWidth = 1.6
+
+    /// Each step's smoothed value (spec 012, The chart): the mean of the steps within
+    /// `smoothingReach` either side, each weighted e^(−d²/(2·width²)) for its distance d in steps,
+    /// missing steps left out; nil where the step itself is missing.
+    private static func smoothed(_ steps: [Double?]) -> [Double?] {
+        steps.indices.map { index in
+            guard steps[index] != nil else { return nil }
+            var sum = 0.0
+            var weights = 0.0
+            let reach =
+                max(0, index - smoothingReach)...min(steps.count - 1, index + smoothingReach)
+            for other in reach {
+                guard let bpm = steps[other] else { continue }
+                let distance = Double(other - index)
+                let weight = exp(-distance * distance / (2 * smoothingWidth * smoothingWidth))
+                sum += bpm * weight
+                weights += weight
+            }
+            return sum / weights
+        }
+    }
 
     /// Nil without a Heart Rate Trace, or without Sleep Onset and Final Wake for the band.
     init?(_ night: Night, timeZone: TimeZone) {
@@ -508,11 +533,17 @@ public struct SleepChart: Equatable, Sendable {
         start = night.timeInBedStart ?? onset
         end = night.timeInBedEnd ?? wake
         let chartEnd = night.timeInBedEnd ?? wake
+        let smoothed = Self.smoothed(trace.steps)
         steps = trace.steps.enumerated().map { index, bpm in
             let stepStart = trace.start + Double(index) * HeartRateTrace.step
             // Drawn at its middle; the last step may be shorter, so never past the chart's end.
             let middle = min(stepStart + HeartRateTrace.step / 2, max(chartEnd, stepStart))
-            return SleepChartStep(start: stepStart, middle: middle, bpm: bpm)
+            return SleepChartStep(
+                start: stepStart,
+                middle: middle,
+                bpm: bpm,
+                smoothedBPM: smoothed[index]
+            )
         }
         // The steps and the Night's Sleeping HR, so its line is always on the chart (spec 012).
         let values = trace.steps.compactMap { $0 } + [night.sleepingHR].compactMap { $0 }
@@ -572,4 +603,6 @@ public struct SleepChartStep: Equatable, Sendable {
     public let middle: Date
     /// Nil where the step is missing, which breaks the line.
     public let bpm: Double?
+    /// Where the curve is drawn: the step's smoothed value (spec 012); nil where `bpm` is.
+    public let smoothedBPM: Double?
 }

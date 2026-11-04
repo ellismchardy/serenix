@@ -34,7 +34,7 @@ files, so they run in order.
    - Done when: "Its block runs 23:00–07:00, unbroken, with notches at 02:10–02:18 and
      04:30–04:37, on a track 22:50–07:10" and the not-kept criterion ("its block has no
      notches") pass; the old `asleepSegments` tests are rewritten.
-2. [ ] **Slice: the chart's smoothed values.** Each `SleepChartStep` gains `smoothedBPM:
+2. [x] **Slice: the chart's smoothed values.** Each `SleepChartStep` gains `smoothedBPM:
    Double?`: the Gaussian-weighted mean of the steps within 3 either side (weight
    e^(−d²/(2·1.6²))), missing steps left out, a missing step staying missing; reach and width
    are named constants. The y-axis keeps using the steps as kept. The Sleep screen draws the
