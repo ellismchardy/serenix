@@ -134,6 +134,35 @@ public struct Onboarding: Equatable, Sendable {
         }
     }
 
+    /// A conversation resumed after a relaunch: Hello, then each saved answer replayed in order as
+    /// it was first given, opening at the first unanswered question (spec 014, Saving as it goes).
+    public init(currentYear: Int, answered: [ProfileChange]) {
+        self.init(currentYear: currentYear)
+        for answer in answered { replay(answer) }
+    }
+
+    /// Gives a saved answer again. Saved numbers were checked when given, so they aren't checked
+    /// again: a birth year can drop out of range when the year rolls over.
+    private mutating func replay(_ answer: ProfileChange) {
+        switch (step, answer) {
+        case (.birthYear, .birthYear(let year?)): _ = self.answer(String(year), then: .sex, answer)
+        case (.maxHR, .maxHR(let bpm?)): _ = self.answer(String(bpm), then: .pair, answer)
+        default: _ = handle(Self.event(replaying: answer))
+        }
+    }
+
+    /// The event that gives `answer` again.
+    private static func event(replaying answer: ProfileChange) -> Event {
+        switch answer {
+        case .name(let name): name.map { .submitted($0) } ?? .chipTapped(.skip)
+        case .birthYear(let year): year.map { .submitted(String($0)) } ?? .chipTapped(.ratherNot)
+        case .sex(.female): .chipTapped(.female)
+        case .sex(.male): .chipTapped(.male)
+        case .sex(.preferNotToSay): .chipTapped(.preferNotToSay)
+        case .maxHR(let bpm): bpm.map { .submitted(String($0)) } ?? .chipTapped(.dontKnow)
+        }
+    }
+
     /// A fresh conversation: Hello, then the name question.
     public init(currentYear: Int) {
         self.currentYear = currentYear

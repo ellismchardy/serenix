@@ -7,14 +7,24 @@ import SwiftUI
 struct OnboardingScreen: View {
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
-    @State private var conversation = Onboarding(
-        currentYear: Calendar.current.component(.year, from: Date())
-    )
+    @State private var conversation: Onboarding
     @State private var text = ""
     @FocusState private var fieldIsFocused: Bool
     private static let syncID = "sync"
     /// Made once, so redrawing the view doesn't restart it.
     private let syncTick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    /// Resumes from the answers already saved, if Serenix was closed partway (spec 014).
+    init(connection: StrapConnection, profile: ProfileStore) {
+        self.connection = connection
+        self.profile = profile
+        _conversation = State(
+            initialValue: Onboarding(
+                currentYear: Calendar.current.component(.year, from: Date()),
+                answered: profile.onboardingAnswers
+            )
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {

@@ -1,12 +1,9 @@
 import Foundation
+import SerenixCore
 
 /// The Profile (GLOSSARY): the user's name, and optionally their birth year, sex and Max HR, kept
 /// in UserDefaults on this phone. It is never sent anywhere, and never written to the Sync Log or
 /// any shared log or report (specs 002 and 005).
-import SerenixCore
-
-/// Set by spec 002's old name prompt, now removed: kept only so existing installs skip Onboarding.
-
 @MainActor
 final class ProfileStore: ObservableObject {
     /// Stored trimmed, nil when blank, by `rename(to:)`; the Today view trims again on read.
@@ -76,6 +73,28 @@ final class ProfileStore: ObservableObject {
         case .sex(let sex): self.sex = sex
         case .maxHR(let bpm): maxHR = bpm
         }
+        var answered = defaults.stringArray(forKey: onboardingAnsweredKey) ?? []
+        let question = OnboardingQuestion(of: change).rawValue
+        if !answered.contains(question) {
+            answered.append(question)
+            defaults.set(answered, forKey: onboardingAnsweredKey)
+        }
+    }
+
+    /// The Onboarding answers given so far, in order, so a relaunch resumes where the user left
+    /// off (spec 014, Saving as it goes). Only which questions were answered is kept; each answer
+    /// is rebuilt from the Profile's current value, which is what was saved. A skipped question
+    /// counts as answered.
+    var onboardingAnswers: [Onboarding.ProfileChange] {
+        (defaults.stringArray(forKey: onboardingAnsweredKey) ?? []).compactMap {
+            switch OnboardingQuestion(rawValue: $0) {
+            case .name: .name(name)
+            case .birthYear: .birthYear(birthYear)
+            case .sex: .sex(sex)
+            case .maxHR: .maxHR(maxHR)
+            case nil: nil
+            }
+        }
     }
 
     /// Sets the name, trimmed of spaces; a blank one counts as none.
@@ -101,5 +120,22 @@ private let nameKey = "profileName"
 private let birthYearKey = "profileBirthYear"
 private let sexKey = "profileSex"
 private let maxHRKey = "profileMaxHR"
+/// Set by spec 002's old name prompt, now removed: kept only so existing installs skip Onboarding.
 private let namePromptAnsweredKey = "profileNameAsked"
 private let onboardingFinishedKey = "onboardingFinished"
+/// Which Onboarding questions have been answered, in order, as `OnboardingQuestion` raw values.
+private let onboardingAnsweredKey = "onboardingAnswered"
+
+/// An Onboarding question that saves to the Profile, as kept in the answered list.
+private enum OnboardingQuestion: String {
+    case name, birthYear, sex, maxHR
+
+    init(of change: Onboarding.ProfileChange) {
+        switch change {
+        case .name: self = .name
+        case .birthYear: self = .birthYear
+        case .sex: self = .sex
+        case .maxHR: self = .maxHR
+        }
+    }
+}

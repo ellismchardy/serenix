@@ -497,3 +497,90 @@ func anUnusableMaxHRIsAskedAgain(typed: String) {
     _ = onboarding.handle(.syncProgress(1))
     #expect(onboarding.syncLine == "Syncing… 99%")
 }
+
+@Test func aResumedConversationReplaysTheSavedAnswersAndOpensAtTheNextQuestion() {
+    let onboarding = Onboarding(currentYear: 2026, answered: [.name("Ellis"), .birthYear(1992)])
+    #expect(
+        onboarding.bubbles
+            == greeting + [
+                .init(.user, "Ellis"),
+                .init(.serenix, "Nice to meet you, Ellis."),
+                birthYearQuestion,
+                .init(.user, "1992"),
+                sexQuestion,
+            ]
+    )
+    #expect(onboarding.controls == sexControls)
+    #expect(!onboarding.isFinished)
+}
+
+@Test func aResumedSkippedNameShowsSkipAndOpensAtTheBirthYear() {
+    let onboarding = Onboarding(currentYear: 2026, answered: [.name(nil)])
+    #expect(
+        onboarding.bubbles
+            == greeting + [
+                .init(.user, "Skip"),
+                .init(.serenix, "Nice to meet you."),
+                birthYearQuestion,
+            ]
+    )
+    #expect(onboarding.controls == birthYearControls)
+}
+
+@Test func aResumedConversationWithEveryQuestionAnsweredOpensAtFindingTheStrap() {
+    let skipped = Onboarding(
+        currentYear: 2026,
+        answered: [.name("Ellis"), .birthYear(nil), .sex(.female), .maxHR(nil)]
+    )
+    #expect(
+        Array(skipped.bubbles.suffix(6)) == [
+            .init(.user, "Rather not"),
+            sexQuestion,
+            .init(.user, "Female"),
+            maxHRQuestion,
+            .init(.user, "Don't know"),
+            pairPrompt,
+        ]
+    )
+    #expect(
+        skipped.controls
+            == Onboarding.Controls(
+                field: nil,
+                placeholder: nil,
+                chips: [.findMyStrap, .setUpLater]
+            )
+    )
+
+    let given = Onboarding(
+        currentYear: 2026,
+        answered: [.name("Ellis"), .birthYear(1992), .sex(.male), .maxHR(185)]
+    )
+    #expect(Array(given.bubbles.suffix(2)) == [.init(.user, "185"), pairPrompt])
+}
+
+@Test func aResumedConversationEqualsOneDrivenThroughTheSameAnswers() {
+    var fresh = Onboarding(currentYear: 2026)
+    _ = fresh.handle(.submitted("Ellis"))
+    _ = fresh.handle(.submitted("1992"))
+    #expect(
+        Onboarding(currentYear: 2026, answered: [.name("Ellis"), .birthYear(1992)]) == fresh
+    )
+}
+
+@Test func aConversationWithNoSavedAnswersIsAFreshOne() {
+    #expect(Onboarding(currentYear: 2026, answered: []) == Onboarding(currentYear: 2026))
+}
+
+@Test func aSavedBirthYearThatIsNowOutOfRangeIsNotAskedAgain() {
+    // 1926 was allowed in 2026 (100 years before); in 2027 it no longer is.
+    let onboarding = Onboarding(
+        currentYear: 2027,
+        answered: [.name("Ellis"), .birthYear(1926), .sex(.male)]
+    )
+    #expect(
+        onboarding.bubbles.suffix(4) == [
+            .init(.user, "1926"), sexQuestion, .init(.user, "Male"), maxHRQuestion,
+        ]
+    )
+    #expect(onboarding.controls == maxHRControls)
+}

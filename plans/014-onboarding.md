@@ -54,7 +54,7 @@ strictly ordered, because each one extends the same `Onboarding` type and screen
      Synced", the failed message, and Show me Today offered at once and finishing Onboarding.
    - Done when: the Connected/sync criterion and the Show me Today half of the finish criterion
      pass.
-5. [ ] **Slice:** resume from saved answers after a relaunch.
+5. [x] **Slice:** resume from saved answers after a relaunch.
    - Seam: Onboarding conversation · Files: `src/SerenixCore/Onboarding.swift`,
      `tests/SerenixCoreTests/OnboardingTests.swift`, `src/SerenixApp/OnboardingScreen.swift`
    - Covers: building the conversation from the saved Profile plus a stored set of the steps
