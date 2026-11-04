@@ -1,4 +1,5 @@
 # Which smoothing should trend weight use, and how should multi-day gaps without a weigh-in be handled?
+
 **Date:** 2026-11-04 · **Unblocks:** the weight trend & goals spec (issue #50)
 
 ## Answer

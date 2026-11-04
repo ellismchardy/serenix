@@ -1,9 +1,10 @@
 # How do HRV and Sleeping HR change during a calorie deficit, low energy availability or overreaching, how many Nights show a real shift, and what supports diet breaks?
-**Date:** 2026-11-04 · **Unblocks:** recovery guard trigger rules (when to suggest a diet break or slower pace) — issue #55
+
+**Date:** 2026-11-04 · **Unblocks:** Deficit Check trigger rules (when to suggest a diet break or slower pace) — issue #55
 
 ## Answer
 - Judge the trend, not one Night. Compare a **7-Night rolling mean of ln(RMSSD)** with the 14-Night Baseline. Count it as a meaningful shift only when it falls outside **Baseline ± 0.5 × Spread** (the smallest worthwhile change, SWC). Use at least 5 of the 7 Nights.
-- Candidate trigger for the recovery guard: while the user reports a deficit, the 7-Night HRV mean sits **below** the SWC band **and** the 7-Night Sleeping HR mean sits **above** Baseline by more than 0.5 × Spread, for **≥ 3 Nights in a row**. Then suggest a slower pace or a 1–2 week diet break at maintenance.
+- Candidate trigger for the Deficit Check: while the user reports a deficit, the 7-Night HRV mean sits **below** the SWC band **and** the 7-Night Sleeping HR mean sits **above** Baseline by more than 0.5 × Spread, for **≥ 3 Nights in a row**. Then suggest a slower pace or a 1–2 week diet break at maintenance.
 - Second trigger (watch for it, but word it softly): HRV rises **above** the band while Sleeping HR **drops** well below Baseline (for example by ≥ 5 bpm over 7 Nights) during a long deficit. Long energy restriction and functional overreaching can both cause bradycardia and parasympathetic "saturation". So falling HR or rising HRV is not proof of good recovery. Pair this pattern with symptoms (fatigue, poor sleep, missed periods) before suggesting a break.
 - Do not trigger on a single Night, or until 14 Nights of Baseline exist (Readiness stops Calibrating after 4 Nights, but the HRV Baseline uses 14), or after alcohol, illness or travel. Keep the wording "consider", never a diagnosis. RED-S needs a clinician, and HR/HRV alone can't diagnose it (IOC 2023).
 - Diet breaks are a reasonable thing to offer, not something proven to help. MATADOR (2 weeks on, 2 weeks at maintenance) gave more fat loss per week of dieting. Trials in lean, trained people show little or no extra benefit for body composition. So frame it as a choice for wellbeing and sticking with the diet.

@@ -1,4 +1,5 @@
 # What minimum sample, lag handling, autocorrelation correction and multiple-comparison control keep single-user habit-to-score insights honest, and how should effect size and uncertainty be shown without implying causation?
+
 **Date:** 2026-11-04 · **Unblocks:** habit insight rules (issue #58)
 
 ## Answer

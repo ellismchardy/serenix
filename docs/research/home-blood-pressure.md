@@ -1,4 +1,5 @@
 # What home blood pressure protocol should Serenix guide, which category bands should it use, and what is the crisis threshold and "seek care" wording?
+
 **Date:** 2026-11-04 · **Unblocks:** blood pressure check-in design (issue #56)
 
 ## Answer

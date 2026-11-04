@@ -1,7 +1,11 @@
 # Which heart-rate energy-expenditure formula fits Serenix, how accurate is it, and does stored data suffice for daily calories burned?
+
 **Date:** 2026-11-04 · **Unblocks:** whether issue #53 ("Calories burned from heart rate and Load") can be specced, and what the Profile must gain first
 
 ## Answer
+> **Since amended:** ADR 0008 (2026-11-04) keeps body weight out of the Profile: formulas use
+> Trend Weight (or the latest Weigh-in). Only height is added to the Profile.
+
 - **Recommend a two-part model:** resting/sedentary energy from Mifflin-St Jeor BMR, plus active energy from Keytel et al. (2005) applied per minute only when HR is clearly above rest (an HR-flex threshold, e.g. Resting HR + a margin or HR Zone 1 and up). This is the published "flex-HR" structure; Keytel alone badly overestimates at low HR.
 - **Expect roughly ±10–20% error on a day total for an individual, and worse per workout** (Keytel's group-level r=0.857 without VO2max, 0.913 with it, hides large individual errors). Present it as an estimate, never as a precise number.
 - **Stored data does not suffice.** Serenix has no body weight (and no height); every formula needs weight, and Mifflin-St Jeor needs height too. Sex and age (birth year) exist, but sex can be "prefer not to say".

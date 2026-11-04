@@ -10,8 +10,8 @@ daily scores, computed on the user's phone without the wearable vendor's subscri
 ## The user
 
 **Profile**:
-The user's name, and optionally their birth year, sex and Max HR, kept only on the phone, used to
-address them and to work out Load and their Usual Need.
+The user's name, and optionally their birth year, sex, height, Max HR and preferred units, kept
+only on the phone, used to address them and to work out Load and their Usual Need.
 _Avoid_: account, user account, login
 
 ## Devices and data
@@ -207,7 +207,7 @@ Serenix's measure of physiological stress through a Day.
 ## Body
 
 **Weigh-in**:
-One reading of the user's body weight on a Day. When a Day has several, the lowest counts.
+One reading of the user's body weight, at a time on a Day.
 _Avoid_: weight entry, measurement
 
 **Trend Weight**:
@@ -216,9 +216,8 @@ Weigh-ins.
 _Avoid_: moving average, smoothed weight, true weight
 
 **Weight Goal**:
-The weight the user is working toward: a Start Weight on a start date and a Goal Weight. A
-Weight Goal loses, gains or holds weight; one that loses or gains has a Pace, and one that holds
-has a band around its Goal Weight instead.
+The weight the user is working toward from a Start Weight on a start date, to lose, gain or
+hold: a Goal Weight with a Pace, or for holding, a band around the Goal Weight.
 _Avoid_: target, plan
 
 **Start Weight**:
@@ -249,12 +248,12 @@ A Day the user marks as having all of its Intake logged.
 _Avoid_: closed day, finished log
 
 **Calories Burned**:
-Serenix's estimate of the energy the user spent on a Day, from their heart rate and Load.
+Serenix's estimate of the energy the user spent on a Day, from their heart rate and Profile.
 _Avoid_: active energy, TDEE
 
 **Expenditure**:
-Serenix's estimate of the energy the user spends per day, worked out from their Intake on
-Complete Days and the change in their Trend Weight.
+Serenix's estimate of the energy the user spends in a Day, worked out from their Intake on
+Complete Days and the change in their Trend Weight rather than from heart rate.
 _Avoid_: TDEE, maintenance, metabolism
 
 **Calorie Target**:
@@ -264,7 +263,7 @@ _Avoid_: budget, calorie goal
 **Deficit Check**:
 Serenix's watch for HRV and Sleeping HR worsening against Baseline while the user eats below
 their Expenditure.
-_Avoid_: recovery guard (WHOOP's term), overreaching alert
+_Avoid_: recovery guard (uses WHOOP's "recovery"), overreaching alert
 
 **Diet Break**:
 A planned stretch of eating at Expenditure in the middle of a Weight Goal that loses weight.
@@ -276,8 +275,7 @@ Motivation.
 _Avoid_: journal (WHOOP's term), tags, diary
 
 **Alcohol**:
-The alcohol the user drank on a Day, kept as grams of ethanol and shown in the units of their
-country.
+The alcohol the user drank on a Day.
 _Avoid_: drinks (as a measure)
 
 **Habit Link**:
@@ -290,7 +288,7 @@ One measurement of the user's systolic and diastolic blood pressure, with their 
 _Avoid_: BP entry, measurement
 
 **BP Session**:
-Two or more BP Readings taken a minute apart at one sitting, averaged.
+BP Readings taken together at one sitting, and their average.
 
 **BP Category**:
 Where a BP Session's average, or a single very high BP Reading, sits: Normal, Elevated, High

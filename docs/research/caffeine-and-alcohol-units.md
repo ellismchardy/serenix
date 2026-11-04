@@ -1,5 +1,6 @@
-# What units and presets should caffeine and alcohol logging use? (issue #57)
-**Date:** 2026-11-04 · **Unblocks:** check-in presets for caffeine and alcohol
+# What units and presets should caffeine and alcohol logging use?
+
+**Date:** 2026-11-04 · **Unblocks:** check-in presets for caffeine and alcohol — issue #57
 
 ## Answer
 - **Store grams of ethanol, display in the user's local unit.** Grams convert cleanly to any national unit: UK unit = 8 g (10 ml), AU/NZ standard drink = 10 g, US standard drink = 14 g. Default the display to the UK unit (the owner is UK-based); the unit choice can follow locale later. Grams = volume ml × ABV × 0.789.

@@ -1,4 +1,5 @@
 # What protein, fat and carb targets suit cutting, maintaining and gaining?
+
 **Date:** 2026-11-04 (verified 2026-11-04) · **Unblocks:** macro suggestion rules (issue #54)
 
 ## Answer

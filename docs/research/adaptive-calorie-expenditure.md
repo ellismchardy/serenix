@@ -1,4 +1,5 @@
 # How do intake-plus-trend-weight methods (MacroFactor-style) estimate daily energy expenditure, and how accurate is ~7,700 kcal/kg?
+
 **Date:** 2026-11-04 · **Unblocks:** the adaptive calorie target spec (issue #52)
 
 ## Answer

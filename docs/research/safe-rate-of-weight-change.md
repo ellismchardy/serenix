@@ -1,4 +1,5 @@
 # Where do the 0.5% and 1% of body weight per week thresholds come from, and should caps differ for lean users or weight-gain goals?
+
 **Date:** 2026-11-04 · **Unblocks:** pace warnings in the weight goals spec (warn >0.5%/wk, "too fast" >1%/wk, never block)
 
 ## Answer
