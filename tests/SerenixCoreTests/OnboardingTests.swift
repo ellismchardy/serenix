@@ -224,8 +224,90 @@ func setUpLaterAfterAFailureFinishesOnboarding(failure: Onboarding.Event) {
     walkToLookingForTheStrap(&onboarding)
     let before = onboarding.bubbles
     _ = onboarding.handle(.strapConnected(model: "Whoop 5.0"))
-    #expect(onboarding.bubbles == before + [.init(.serenix, "Found it — Whoop 5.0.")])
+    let foundIt = Onboarding.Bubble(.serenix, "Found it — Whoop 5.0.")
+    #expect(onboarding.bubbles == before + [foundIt, calibratingBubble])
     #expect(onboarding.isLookingForStrap == false)
+    #expect(onboarding.isFinished == false)
+}
+
+private let calibratingBubble = Onboarding.Bubble(
+    .serenix,
+    "Pulling in your history now. Readiness needs 4 Nights to calibrate, so it'll say Calibrating for the first few days."
+)
+
+private let syncingControls = Onboarding.Controls(
+    field: nil,
+    placeholder: nil,
+    chips: [.showMeToday]
+)
+
+private func walkToSyncing(_ onboarding: inout Onboarding) {
+    walkToLookingForTheStrap(&onboarding)
+    _ = onboarding.handle(.strapConnected(model: "Whoop 5.0"))
+}
+
+@Test func aConnectedStrapStartsSyncingAndOffersShowMeTodayAtOnce() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToSyncing(&onboarding)
+    #expect(Onboarding.Chip.showMeToday.label == "Show me Today")
+    #expect(onboarding.syncLine == "Syncing…")
+    #expect(onboarding.controls == syncingControls)
+    #expect(onboarding.isFinished == false)
+}
+
+@Test(arguments: [(0.4, "Syncing… 40%"), (0.999, "Syncing… 99%"), (0.0, "Syncing… 0%")])
+func syncProgressShowsAWholePercentRoundedDown(progress: Double, line: String) {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToSyncing(&onboarding)
+    _ = onboarding.handle(.syncProgress(progress))
+    #expect(onboarding.syncLine == line)
+    #expect(onboarding.controls == syncingControls)
+}
+
+@Test func aCompletedSyncShowsSynced() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToSyncing(&onboarding)
+    _ = onboarding.handle(.syncProgress(0.5))
+    _ = onboarding.handle(.syncCompleted)
+    #expect(onboarding.syncLine == "✓ Synced")
+    #expect(onboarding.controls == syncingControls)
+    _ = onboarding.handle(.syncProgress(0.7))
+    #expect(onboarding.syncLine == "✓ Synced")
+}
+
+@Test func aFailedSyncSaysTodayWillShowWhatHappened() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToSyncing(&onboarding)
+    _ = onboarding.handle(.syncFailed)
+    #expect(onboarding.syncLine == "The sync didn't finish. Today will show what happened.")
+    #expect(onboarding.controls == syncingControls)
+    _ = onboarding.handle(.syncProgress(0.7))
+    #expect(onboarding.syncLine == "The sync didn't finish. Today will show what happened.")
+}
+
+@Test(arguments: [nil, Onboarding.Event.syncCompleted, .syncFailed])
+func tappingShowMeTodayFinishesOnboarding(syncOutcome: Onboarding.Event?) {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToSyncing(&onboarding)
+    if let syncOutcome { _ = onboarding.handle(syncOutcome) }
+    let before = onboarding.bubbles
+    let change = onboarding.handle(.chipTapped(.showMeToday))
+    #expect(change == nil)
+    #expect(onboarding.bubbles == before + [.init(.user, "Show me Today")])
+    #expect(onboarding.isFinished == true)
+}
+
+@Test func thereIsNoSyncLineBeforeTheStrapConnects() {
+    var onboarding = Onboarding(currentYear: 2026)
+    #expect(onboarding.syncLine == nil)
+    walkToThePairStep(&onboarding)
+    #expect(onboarding.syncLine == nil)
+    let before = onboarding.bubbles
+    _ = onboarding.handle(.syncProgress(0.4))
+    _ = onboarding.handle(.syncCompleted)
+    _ = onboarding.handle(.syncFailed)
+    #expect(onboarding.syncLine == nil)
+    #expect(onboarding.bubbles == before)
     #expect(onboarding.isFinished == false)
 }
 
@@ -407,4 +489,11 @@ func anUnusableMaxHRIsAskedAgain(typed: String) {
     #expect(atMaxHR.handle(.submitted("")) == nil)
     #expect(atMaxHR.bubbles == beforeMaxHR)
     #expect(atMaxHR.controls == maxHRControls)
+}
+
+@Test func fullProgressReads99PercentUntilTheSyncCompletes() {
+    var onboarding = Onboarding(currentYear: 2026)
+    walkToSyncing(&onboarding)
+    _ = onboarding.handle(.syncProgress(1))
+    #expect(onboarding.syncLine == "Syncing… 99%")
 }

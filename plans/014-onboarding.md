@@ -47,7 +47,7 @@ strictly ordered, because each one extends the same `Onboarding` type and screen
      and chips. The shell calls `StrapConnection.connect()` and maps its phase and failure kind
      to these events.
    - Done when: the pair-step criterion passes, and Connected shows "Found it — <model>."
-4. [ ] **Slice:** syncing, then Show me Today.
+4. [x] **Slice:** syncing, then Show me Today.
    - Seam: Onboarding conversation · Files: `src/SerenixCore/Onboarding.swift`,
      `tests/SerenixCoreTests/OnboardingTests.swift`, `src/SerenixApp/OnboardingScreen.swift`
    - Covers: the Syncing bubble with the Calibrating note, progress shown as a percentage, "✓

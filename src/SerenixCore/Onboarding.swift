@@ -43,6 +43,7 @@ public struct Onboarding: Equatable, Sendable {
         case dontKnow
         case findMyStrap
         case tryAgain
+        case showMeToday
         case setUpLater
 
         /// The chip's text, which is also the user's bubble when tapped.
@@ -56,6 +57,7 @@ public struct Onboarding: Equatable, Sendable {
             case .dontKnow: "Don't know"
             case .findMyStrap: "Find my Strap"
             case .tryAgain: "Try again"
+            case .showMeToday: "Show me Today"
             case .setUpLater: "Set up later"
             }
         }
@@ -79,6 +81,17 @@ public struct Onboarding: Equatable, Sendable {
         case strapNotFound
         case pairingRefused
         case strapConnected(model: String)
+        /// The first History Sync, once the Strap is connected. Progress runs 0 to 1 (spec 001).
+        case syncProgress(Double)
+        case syncCompleted
+        case syncFailed
+    }
+
+    /// Where the first History Sync has got to.
+    private enum SyncState: Equatable, Sendable {
+        case running(progress: Double?)
+        case completed
+        case failed
     }
 
     /// An answer for the shell to save to the Profile as soon as it's given. A skipped question
@@ -107,6 +120,20 @@ public struct Onboarding: Equatable, Sendable {
     /// While true, the shell connects to the Strap and reports how it went.
     public var isLookingForStrap: Bool { step == .looking }
 
+    private var sync: SyncState?
+
+    /// The live sync bubble, shown after the other bubbles; nil until the Strap connects.
+    public var syncLine: String? {
+        switch sync {
+        case nil: nil
+        case .running(nil): "Syncing…"
+        // Rounded down and at most 99, so it never reads 100% before the sync has completed.
+        case .running(let progress?): "Syncing… \(min(Int((progress * 100).rounded(.down)), 99))%"
+        case .completed: "✓ Synced"
+        case .failed: "The sync didn't finish. Today will show what happened."
+        }
+    }
+
     /// A fresh conversation: Hello, then the name question.
     public init(currentYear: Int) {
         self.currentYear = currentYear
@@ -129,7 +156,8 @@ public struct Onboarding: Equatable, Sendable {
         case .maxHR: Controls(field: .number, placeholder: "e.g. 185", chips: [.dontKnow])
         case .pair: Controls(field: nil, placeholder: nil, chips: [.findMyStrap, .setUpLater])
         case .pairFailed: Controls(field: nil, placeholder: nil, chips: [.tryAgain, .setUpLater])
-        case .looking, .connected, .finished: Controls(field: nil, placeholder: nil, chips: [])
+        case .connected: Controls(field: nil, placeholder: nil, chips: [.showMeToday])
+        case .looking, .finished: Controls(field: nil, placeholder: nil, chips: [])
         }
     }
 
@@ -176,7 +204,28 @@ public struct Onboarding: Equatable, Sendable {
             return nil
         case (.looking, .strapConnected(let model)):
             bubbles.append(Bubble(.serenix, "Found it — \(model)."))
+            bubbles.append(
+                Bubble(
+                    .serenix,
+                    "Pulling in your history now. Readiness needs 4 Nights to calibrate, so it'll "
+                        + "say Calibrating for the first few days."
+                )
+            )
             step = .connected
+            sync = .running(progress: nil)
+            return nil
+        case (.connected, .syncProgress(let progress)):
+            if case .running = sync { sync = .running(progress: min(max(progress, 0), 1)) }
+            return nil
+        case (.connected, .syncCompleted):
+            if case .running = sync { sync = .completed }
+            return nil
+        case (.connected, .syncFailed):
+            if case .running = sync { sync = .failed }
+            return nil
+        case (.connected, .chipTapped(.showMeToday)):
+            bubbles.append(Bubble(.user, Chip.showMeToday.label))
+            step = .finished
             return nil
 
         case (.pair, .chipTapped(.setUpLater)), (.pairFailed, .chipTapped(.setUpLater)):

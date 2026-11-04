@@ -12,6 +12,9 @@ struct OnboardingScreen: View {
     )
     @State private var text = ""
     @FocusState private var fieldIsFocused: Bool
+    private static let syncID = "sync"
+    /// Made once, so redrawing the view doesn't restart it.
+    private let syncTick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,11 +26,21 @@ struct OnboardingScreen: View {
                             bubble in
                             BubbleView(bubble: bubble).id(index)
                         }
+                        if let syncLine = conversation.syncLine {
+                            BubbleView(bubble: Onboarding.Bubble(.serenix, syncLine)).id(
+                                Self.syncID
+                            )
+                        }
                     }
                     .padding(16)
                 }
                 .onChange(of: conversation.bubbles.count) { _, count in
                     withAnimation { proxy.scrollTo(count - 1, anchor: .bottom) }
+                }
+                .onChange(of: conversation.syncLine) { _, line in
+                    if line != nil {
+                        withAnimation { proxy.scrollTo(Self.syncID, anchor: .bottom) }
+                    }
                 }
             }
             controls
@@ -44,10 +57,28 @@ struct OnboardingScreen: View {
             if let event = pairingEvent(for: connection.phase) { handle(event) }
         }
         .onChange(of: connection.phase) { _, phase in
-            guard conversation.isLookingForStrap, let event = pairingEvent(for: phase) else {
+            if conversation.isLookingForStrap, let event = pairingEvent(for: phase) {
+                handle(event)
+            }
+            // Once connected, the same phase may also end the first History Sync.
+            if conversation.syncLine != nil, let event = syncEvent(for: phase) { handle(event) }
+        }
+        // The sync's progress isn't published, so read it while the sync runs.
+        .onReceive(syncTick) { _ in
+            guard conversation.syncLine != nil, let progress = connection.syncProgress else {
                 return
             }
-            handle(event)
+            handle(.syncProgress(progress))
+        }
+    }
+
+    /// How the connection's phase ends the first History Sync, if it does.
+    private func syncEvent(for phase: StrapPhase) -> Onboarding.Event? {
+        switch phase {
+        case .synced: .syncCompleted
+        // Back to idle after connecting means the link dropped before the sync began.
+        case .failed, .bluetoothUnavailable, .idle: .syncFailed
+        case .searching, .connecting, .connected, .syncing: nil
         }
     }
 
