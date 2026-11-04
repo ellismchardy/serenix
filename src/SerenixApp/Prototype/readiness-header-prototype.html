@@ -1,0 +1,315 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway, never merged (branch prototype/readiness-popup-header).
+  Question: what should the top of the Readiness popup look like: the number, its band and the
+  verdict? Five headers (A is spec 012 as built), each over spec 012's body (variant E of
+  prototype/readiness-popup-ui), switchable via ?variant=A..E. ?state= picks a sample Night,
+  ?dark=1 the dark Look. Readiness is worked out per spec 008 from the sample inputs.
+  Run: double-click this file. Arrow keys ← → cycle variants.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Readiness header prototype</title>
+<style>
+  :root { --bg: #e9e9ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font: 14px/1.4 -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif; color: #111; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+  .wrap { display: flex; gap: 28px; justify-content: center; align-items: flex-start; padding: 24px 16px 110px; flex-wrap: wrap; }
+
+  .phone { --s-bg: #f3f2f8; --s-card: #fff; --s-card2: #efeafe; --s-ink: #16151c; --s-sub: #8b8a97;
+    --track: #e7e4f2; --sep: #efedf5; --accent: #7c5cff; --shadow: 0 4px 16px rgba(40,30,90,.07);
+    --good: #22c55e; --mid: #f59e0b; --bad: #ef4444;
+    width: 390px; max-width: 100%; height: 844px; border-radius: 52px; border: 12px solid #1a1a1a; background: var(--s-bg);
+    position: relative; overflow: hidden; color: var(--s-ink); box-shadow: 0 20px 50px rgba(0,0,0,.25); flex: none; }
+  .phone.dark { --s-bg: #0f0e14; --s-card: #1c1b24; --s-card2: #2a2440; --s-ink: #f4f3f8; --s-sub: #8f8d9e;
+    --track: #2f2d3b; --sep: #2a2934; --accent: #9b85ff; --shadow: none; }
+  .muted { color: var(--s-sub); } .num { font-variant-numeric: tabular-nums; }
+
+  .today { padding: 58px 20px 0; }
+  .t-top { display: flex; align-items: center; gap: 12px; }
+  .t-av { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+  .t-rings { display: flex; justify-content: space-around; margin-top: 28px; background: var(--s-card); border-radius: 22px; height: 130px; box-shadow: var(--shadow); }
+  .dim { position: absolute; inset: 0; background: rgba(10,8,20,.35); z-index: 10; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 84%; overflow-y: auto; background: var(--s-bg); border-radius: 22px 22px 0 0; padding: 8px 18px 40px; z-index: 11; }
+  .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--track); margin: 0 auto 12px; }
+  .card { background: var(--s-card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 12px; }
+  .sec { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--s-sub); margin: 18px 4px 8px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--sep); gap: 12px; }
+  .kv:last-child { border-bottom: 0; }
+  .big { font-size: 44px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; }
+  .pill { display: inline-flex; align-items: center; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; color: #fff; background: var(--c); }
+  .lede { font-size: 19px; font-weight: 700; line-height: 1.3; margin: 8px 0 4px; }
+  .heading { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 17px; }
+
+  /* A waterfall */
+  .wf { display: grid; grid-template-columns: 96px 1fr 40px; align-items: center; gap: 6px 8px; font-size: 13px; }
+  .wf .track { position: relative; height: 22px; }
+  .wf .track i { position: absolute; top: 3px; height: 16px; border-radius: 4px; background: var(--c); }
+  .wf .track .axis { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--sep); }
+  .wf .d { text-align: right; font-weight: 700; color: var(--c); }
+  .wf .tot i { background: var(--accent); }
+
+  /* B gauge rows */
+  .g { padding: 10px 0; border-bottom: 1px solid var(--sep); } .g:last-child { border: 0; }
+  .g .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .g .bar { position: relative; height: 8px; border-radius: 4px; margin: 8px 0 3px;
+    background: linear-gradient(90deg, var(--bad), var(--mid) 30%, var(--track) 45%, var(--track) 55%, var(--good) 70%, var(--good)); }
+  .g .bar b { position: absolute; top: -4px; width: 4px; height: 16px; border-radius: 2px; background: var(--s-ink); transform: translateX(-50%); box-shadow: 0 0 0 2px var(--s-card); }
+  .g .bar s { position: absolute; top: -2px; left: 50%; width: 1px; height: 12px; background: var(--s-sub); }
+  .g .ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--s-sub); }
+  .wt { font-size: 11px; color: var(--s-sub); }
+
+  /* C story */
+  .reason { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--sep); } .reason:last-child { border: 0; }
+  .reason .dot { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+  .trend { display: flex; align-items: end; gap: 6px; height: 90px; }
+  .trend div { flex: 1; text-align: center; font-size: 10px; color: var(--s-sub); }
+  .trend b { display: block; border-radius: 5px 5px 2px 2px; background: var(--c); margin-bottom: 3px; }
+  .trend .sel b { outline: 2px solid var(--s-ink); outline-offset: 1px; }
+
+  /* D weight strip */
+  .strip { display: flex; height: 44px; border-radius: 12px; overflow: hidden; gap: 2px; }
+  .strip div { background: var(--c); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; text-align: center; line-height: 1.1; }
+  .strip div.off { background: repeating-linear-gradient(45deg, var(--track) 0 4px, transparent 4px 8px); color: var(--s-sub); }
+  .dt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .dt th { font-size: 11px; color: var(--s-sub); font-weight: 500; text-align: right; padding-bottom: 6px; }
+  .dt th:first-child, .dt td:first-child { text-align: left; }
+  .dt td { padding: 8px 0; border-top: 1px solid var(--sep); text-align: right; }
+  .sw { width: 9px; height: 9px; border-radius: 50%; background: var(--c); display: inline-block; margin-right: 6px; }
+
+  /* header variants */
+  .hscale { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; }
+  .hscale i { display: block; height: 100%; }
+  .hmark { position: absolute; top: -5px; width: 4px; height: 22px; border-radius: 2px; background: var(--s-ink); transform: translateX(-50%); box-shadow: 0 0 0 2px var(--s-card); }
+  .htick { position: absolute; top: 16px; transform: translateX(-50%); font-size: 10px; color: var(--s-sub); white-space: nowrap; }
+  .htick::before { content: ""; display: block; width: 1px; height: 6px; background: var(--s-sub); margin: 0 auto 1px; }
+  .hlabels { display: flex; font-size: 11px; color: var(--s-sub); margin-top: 18px; }
+  .hlabels span { text-align: center; }
+  .hero { position: relative; background: color-mix(in srgb, var(--c) 16%, var(--s-card)); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); padding: 18px 18px 16px; }
+  .hero-word { font-size: 30px; font-weight: 800; color: var(--c); letter-spacing: -.01em; }
+  .hero-sub { margin-top: 4px; max-width: 70%; font-weight: 600; }
+  .hero-num { position: absolute; right: 18px; top: 16px; font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .hero-num small { font-size: 14px; color: var(--s-sub); font-weight: 600; }
+  .hero-chip { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: var(--s-card); }
+  .seg { display: flex; gap: 3px; margin-top: 6px; }
+  .seg i { flex: 1; height: 6px; border-radius: 3px; }
+
+  .side { width: 300px; max-width: 100%; font-size: 13px; }
+  .side h3 { margin: 0 0 8px; font-size: 14px; }
+  .side select, .side label { display: block; margin-bottom: 10px; }
+  .side select { width: 100%; padding: 6px; font: inherit; }
+  .side pre { background: #fff; border-radius: 10px; padding: 10px; font-size: 11.5px; white-space: pre-wrap; margin: 0; }
+  .side p { color: #555; }
+  .switcher { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+    background: #111; color: #fff; padding: 8px 10px; border-radius: 99px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 100; font-weight: 600; font-size: 13px; }
+  .switcher button { width: 30px; height: 30px; border-radius: 50%; background: #333; color: #fff; font-size: 15px; }
+  .switcher span { min-width: 240px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone" id="phone"></div>
+  <div class="side">
+    <h3>Sample Night</h3>
+    <select id="state"></select>
+    <label><input type="checkbox" id="dark"> Dark appearance</label>
+    <h3>State (worked out per spec 008)</h3>
+    <pre id="dump"></pre>
+    <p id="about"></p>
+  </div>
+</div>
+<div class="switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span id="vlabel"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+// ---------- spec 008 ----------
+const W = { hrv: .50, shr: .25, sleep: .15, load: .10 };
+const clamp = z => Math.max(-3, Math.min(3, z));
+const curve = z => Math.floor(100 / (1 + Math.exp(-2 * (z + 0.42))) + 0.5);
+const band = r => r >= 67 ? ["Ready", "var(--good)"] : r >= 34 ? ["Steady", "var(--mid)"] : ["Take it easy", "var(--bad)"];
+const hm = m => { const s = m < 0 ? "−" : "+"; m = Math.abs(Math.round(m)); return m === 0 ? "±0" : s + (m >= 60 ? Math.floor(m/60) + "h " : "") + (m % 60) + "m"; };
+const hmPlain = m => Math.floor(m/60) + "h " + Math.round(m % 60) + "m";
+const sgn = n => n === 0 ? "±0" : (n > 0 ? "+" : "−") + Math.abs(n);
+
+// Baselines fixed: HRV 60 ms (Spread 0.15 on ln), SHR 52 bpm (Spread 2.5), Sleep Need 8 h, typical Load 45
+const STATES = {
+  usual:   { label: "A usual Night (70)", hrv: 60, shr: 52, sleep: 480, load: 40 },
+  great:   { label: "A very good Night", hrv: 72, shr: 49, sleep: 510, load: 30 },
+  lowhrv:  { label: "HRV down", hrv: 50, shr: 52, sleep: 480, load: 40 },
+  short:   { label: "Short night, hard Day", hrv: 58, shr: 53, sleep: 345, load: 85 },
+  alloff:  { label: "Everything off (7)", hrv: 50, shr: 57, sleep: 330, load: 85 },
+  noload:  { label: "No Load yesterday (dropped)", hrv: 55, shr: 54, sleep: 450, load: null },
+  calib:   { label: "Calibrating (2/4 Nights)", calibrating: 2 },
+};
+function work(s) {
+  if (s.calibrating) return { calibrating: s.calibrating };
+  const inputs = [
+    { key: "hrv", name: "HRV", value: s.hrv + " ms", ref: "60 ms", diff: sgn(s.hrv - 60) + " ms", z: clamp((Math.log(s.hrv) - Math.log(60)) / .15) },
+    { key: "shr", name: "Sleeping HR", value: s.shr + " bpm", ref: "52 bpm", diff: sgn(s.shr - 52) + " bpm", z: clamp(-(s.shr - 52) / 2.5) },
+    { key: "sleep", name: "Time Asleep", value: hmPlain(s.sleep), ref: "Need 8h 0m", diff: hm(s.sleep - 480), z: clamp(-Math.max(0, 480 - s.sleep) / 60) },
+    { key: "load", name: "Yesterday's Load", value: s.load == null ? "—" : String(s.load), ref: "Typical 45", diff: s.load == null ? "—" : sgn(s.load - 45),
+      z: s.load == null ? null : clamp(s.load > 45 ? -(s.load - 45) / 20 : 0) },
+  ];
+  const live = inputs.filter(i => i.z !== null);
+  const tw = live.reduce((a, i) => a + W[i.key], 0);
+  inputs.forEach(i => { i.weight = i.z === null ? 0 : W[i.key] / tw; i.wz = i.z === null ? 0 : i.weight * i.z; });
+  const Z = inputs.reduce((a, i) => a + i.wz, 0);
+  const r = curve(Z);
+  // sequential points: start at 70 (Z=0), add each input in weight order
+  let acc = 0, prev = curve(0);
+  inputs.forEach(i => { acc += i.wz; const now = curve(acc); i.pts = now - prev; prev = now; });
+  inputs.forEach(i => i.c = i.z === null ? "var(--s-sub)" : i.z <= -1 ? "var(--bad)" : i.z < -0.25 ? "var(--mid)" : "var(--good)");
+  return { inputs, Z, r, band: band(r), sleepScore: Math.max(20, Math.min(98, Math.round(80 - Math.max(0, 480 - s.sleep) / 4))) };
+}
+const WEEK = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"], PAST = [72, 64, 58, 75, 81, 69];
+
+// ---------- variants ----------
+function heading(w) {
+  return `<div class="heading"><span>Readiness</span><span class="muted" style="font-weight:500;font-size:13px">Wed 4 Nov</span></div>`;
+}
+function calibratingCard(w) {
+  return `<div class="card"><div class="big muted">—</div><div class="lede">Calibrating, ${w.calibrating} of 4 Nights</div>
+    <div class="muted">Readiness needs 4 Nights to learn your usual HRV and Sleeping HR. Wear the Strap to bed and it'll start in ${4 - w.calibrating} more.</div></div>`;
+}
+function verdict(w) {
+  const worst = [...w.inputs].filter(i => i.z !== null).sort((a, b) => a.pts - b.pts)[0];
+  if (w.r >= 67) return worst.pts <= -3 ? `Ready, though ${worst.name} held you back a little.` : "Your body looks recovered. A good day to push.";
+  return `${worst.name} pulled you down most. ${w.r < 34 ? "Keep today light." : "Go steady today."}`;
+}
+
+// Spec 012's verdict (replaces the earlier prototype's wording above; the later declaration wins).
+function verdict(w) {
+  const worst = [...w.inputs].filter(i => i.z !== null).sort((a, b) => a.pts - b.pts)[0];
+  return worst && worst.pts <= -3 ? `${worst.name} pulled it down most.` : "Your body looks recovered.";
+}
+
+// The body under every header: variant E as built (spec 012), unchanged.
+function bodyE(w) {
+  if (w.calibrating) return `<div class="sec">Your week</div>` + weekCard(w) + sleepRow(w);
+  const sorted = [...w.inputs].sort((a, b) => (a.z === null) - (b.z === null) || a.pts - b.pts);
+  const why = i => i.z === null ? "No Load for yesterday, so it's left out." :
+    i.key === "hrv" ? `${i.diff} against your usual ${i.ref}.` :
+    i.key === "shr" ? `${i.diff} against your usual ${i.ref}.` :
+    i.key === "sleep" ? (i.diff.startsWith("−") ? `${i.diff.slice(1)} short of your Sleep Need.` : "Enough for your Sleep Need.") :
+    (i.z < 0 ? "Above your typical 45." : "No more than your typical 45.");
+  return `<div class="sec">Why, biggest effect first</div>
+    <div class="card">${sorted.map(i => `<div class="g">
+      <div class="top"><span><b>${i.name}</b> <span class="wt">${i.z === null ? "· dropped" : "· " + Math.round(i.weight * 100) + "%"}</span></span>
+        <span class="num"><b>${i.value}</b> <span class="wt">${i.z === null ? "" : sgn(i.pts) + " pts"}</span></span></div>
+      <div class="muted" style="font-size:12px;margin-top:2px">${why(i)}</div>
+      ${i.z === null ? "" : `<div class="bar"><s></s><b style="left:${50 + i.z / 3 * 50}%"></b></div><div class="ends"><span>worse</span><span>usual</span><span>better</span></div>`}
+    </div>`).join("")}</div>
+    <div class="sec">Your week</div>${weekCard(w)}${sleepRow(w)}`;
+}
+const weekCard = w => {
+  const week = [...PAST, w.calibrating ? null : w.r];
+  return `<div class="card"><div class="trend">${week.map((r, k) => `<div class="${k === 6 ? "sel" : ""}">
+    <b style="height:${r == null ? 18 : r * .7}px;--c:${r == null ? "var(--track)" : band(r)[1]}"></b>${WEEK[k]}<br><span class="num">${r ?? "—"}</span></div>`).join("")}</div></div>`;
+};
+const sleepRow = w => `<div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.calibrating ? 72 : w.sleepScore}</b></div>`;
+const calibText = w => `Readiness needs 4 Nights to form your Baseline. You have ${w.calibrating} so far.`;
+const ringSvg = (r, c, size, stroke, label) => `<svg width="${size}" height="${size}" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--track)" stroke-width="${stroke}"/>
+  <circle cx="60" cy="60" r="50" fill="none" stroke="${c}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${r * 3.1416} 400" transform="rotate(-90 60 60)"/>
+  <text x="60" y="${label ? 66 : 70}" text-anchor="middle" font-size="${label ? 30 : 32}" font-weight="800" fill="var(--s-ink)">${label ?? r}</text></svg>`;
+// The three bands on 0–100, for headers that show where the number sits.
+const BANDS = [["Take it easy", 0, 34, "var(--bad)"], ["Steady", 34, 67, "var(--mid)"], ["Ready", 67, 101, "var(--good)"]];
+
+const VARIANTS = {
+  A: { name: "As built: ring, pill, verdict", render(w) {
+    const r = w.calibrating ? 0 : w.r;
+    return heading() + `<div class="card" style="display:flex;align-items:center;gap:14px">${ringSvg(r, w.calibrating ? "var(--accent)" : w.band[1], 110, 12, w.calibrating ? `${w.calibrating}/4` : null)}
+      <div>${w.calibrating ? "" : `<span class="pill" style="--c:${w.band[1]}">${w.band[0]}</span>`}
+      <div class="lede" style="font-size:17px">${w.calibrating ? calibText(w) : verdict(w)}</div></div></div>` + bodyE(w);
+  }},
+  B: { name: "Big number on a band scale", render(w) {
+    if (w.calibrating) return heading() + `<div class="card"><div class="big muted">${w.calibrating}/4</div>
+      <div class="hscale" style="opacity:.35">${BANDS.map(b => `<i style="flex:${b[2] - b[1]};background:${b[3]}"></i>`).join("")}</div>
+      <div class="muted" style="margin-top:8px">${calibText(w)}</div></div>` + bodyE(w);
+    return heading() + `<div class="card">
+      <div style="display:flex;align-items:baseline;gap:10px"><span class="big num" style="font-size:64px;color:${w.band[1]}">${w.r}</span>
+        <span style="font-size:22px;font-weight:800">${w.band[0]}</span></div>
+      <div class="lede" style="font-size:16px;font-weight:600;margin:2px 0 14px">${verdict(w)}</div>
+      <div style="position:relative">
+        <div class="hscale">${BANDS.map(b => `<i style="flex:${b[2] - b[1]};background:${b[3]};opacity:${b[0] === w.band[0] ? 1 : .25}"></i>`).join("")}</div>
+        <span class="hmark" style="left:${w.r}%"></span>
+        <span class="htick" style="left:70%">usual 70</span>
+      </div>
+      <div class="hlabels">${BANDS.map(b => `<span style="flex:${b[2] - b[1]}">${b[0]}</span>`).join("")}</div>
+    </div>` + bodyE(w);
+  }},
+  C: { name: "Half-dial gauge", render(w) {
+    const r = w.calibrating ? 0 : w.r;
+    const arc = (from, to) => { const p = v => { const a = Math.PI * (1 - v / 100); return [100 + 80 * Math.cos(a), 100 - 80 * Math.sin(a)]; };
+      const [x1, y1] = p(from), [x2, y2] = p(Math.min(to, 100)); return `M${x1.toFixed(1)},${y1.toFixed(1)} A80,80 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)}`; };
+    const a = Math.PI * (1 - r / 100), mx1 = 100 + 66 * Math.cos(a), my1 = 100 - 66 * Math.sin(a), nx = 100 + 94 * Math.cos(a), ny = 100 - 94 * Math.sin(a);
+    return heading() + `<div class="card" style="text-align:center">
+      <svg width="240" height="138" viewBox="0 0 200 115">${BANDS.map(b => `<path d="${arc(b[1] + 0.8, b[2] - 0.8)}" fill="none" stroke="${b[3]}" stroke-width="16" stroke-linecap="butt" opacity="${w.calibrating || b[0] === w.band[0] ? (w.calibrating ? .25 : 1) : .25}"/>`).join("")}
+        ${w.calibrating ? "" : `<line x1="${mx1.toFixed(1)}" y1="${my1.toFixed(1)}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="var(--s-ink)" stroke-width="5" stroke-linecap="round"/>`}
+        <text x="100" y="96" text-anchor="middle" font-size="${w.calibrating ? 26 : 34}" font-weight="800" fill="var(--s-ink)">${w.calibrating ? w.calibrating + "/4" : w.r}</text></svg>
+      ${w.calibrating ? "" : `<div style="font-size:20px;font-weight:800;color:${w.band[1]}">${w.band[0]}</div>`}
+      <div class="muted" style="margin-top:4px">${w.calibrating ? calibText(w) : verdict(w)}</div></div>` + bodyE(w);
+  }},
+  D: { name: "Band-tinted hero card", render(w) {
+    if (w.calibrating) return heading() + `<div class="card hero" style="--c:var(--accent)"><div class="hero-word">Calibrating</div>
+      <div class="hero-sub">${calibText(w)}</div><div class="hero-num">${w.calibrating}<small>/4</small></div></div>` + bodyE(w);
+    const delta = w.r - 70;
+    return heading() + `<div class="card hero" style="--c:${w.band[1]}">
+      <div class="hero-word">${w.band[0]}</div>
+      <div class="hero-sub">${verdict(w)}</div>
+      <div class="hero-num">${w.r}<small>/100</small></div>
+      <span class="hero-chip">${delta === 0 ? "a usual Night" : sgn(delta) + " vs a usual Night"}</span>
+    </div>` + bodyE(w);
+  }},
+  E: { name: "Verdict first, compact score row", render(w) {
+    const r = w.calibrating ? 0 : w.r;
+    return heading() + `<div class="lede" style="font-size:24px;line-height:1.2;margin:10px 2px 12px">${w.calibrating ? "Still learning what's usual for you." : verdict(w)}</div>
+      <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 14px">
+        ${ringSvg(r, w.calibrating ? "var(--accent)" : w.band[1], 52, 14, w.calibrating ? "" : "")}
+        <div style="flex:1"><div><b class="num" style="font-size:20px">${w.calibrating ? w.calibrating + "/4" : w.r}</b>
+          <span class="muted"> ${w.calibrating ? "Nights so far" : "of 100 · " + w.band[0]}</span></div>
+          <div class="seg">${BANDS.map(b => `<i style="background:${b[3]};opacity:${!w.calibrating && b[0] === w.band[0] ? 1 : .22}"></i>`).join("")}</div></div>
+      </div>
+      ${w.calibrating ? `<div class="muted" style="font-size:12px;margin:-4px 4px 8px">${calibText(w)}</div>` : ""}` + bodyE(w);
+  }},
+};
+
+// ---------- wiring ----------
+const P = new URLSearchParams(location.search);
+let variant = P.get("variant") in VARIANTS ? P.get("variant") : "A";
+let state = P.get("state") in STATES ? P.get("state") : "usual";
+let dark = P.get("dark") === "1";
+const $ = id => document.getElementById(id);
+$("state").innerHTML = Object.entries(STATES).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join("");
+function render() {
+  const w = work(STATES[state]);
+  $("phone").className = "phone" + (dark ? " dark" : "");
+  $("phone").innerHTML = `<div class="today"><div class="t-top"><div class="t-av">E</div><b>Today</b></div><div class="t-rings"></div></div>
+    <div class="dim"></div><div class="sheet"><div class="grab"></div>${VARIANTS[variant].render(w)}</div>`;
+  $("state").value = state; $("dark").checked = dark;
+  $("vlabel").textContent = `${variant} (${VARIANTS[variant].name})`;
+  $("dump").textContent = w.calibrating ? JSON.stringify(w, null, 1) :
+    `Readiness ${w.r} · ${w.band[0]} · Z ${w.Z.toFixed(3)}\n` + w.inputs.map(i =>
+      `${i.name}: ${i.value} vs ${i.ref} (${i.diff})\n  score ${i.z === null ? "dropped" : i.z.toFixed(2)}, weight ${(i.weight * 100).toFixed(0)}%, points ${i.z === null ? "—" : sgn(i.pts)}`).join("\n");
+  $("about").textContent = "Points = change in Readiness as each input is added in turn, starting from a usual Night (70). Sleep Score is a stand-in.";
+  const q = new URLSearchParams({ variant, state }); if (dark) q.set("dark", "1");
+  try { history.replaceState(null, "", "?" + q); } catch {}
+}
+const keys = Object.keys(VARIANTS);
+const step = d => { variant = keys[(keys.indexOf(variant) + d + keys.length) % keys.length]; render(); };
+$("prev").onclick = () => step(-1); $("next").onclick = () => step(1);
+$("state").onchange = e => { state = e.target.value; render(); };
+$("dark").onchange = e => { dark = e.target.checked; render(); };
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input,select,textarea,[contenteditable]")) return;
+  if (e.key === "ArrowLeft") step(-1); if (e.key === "ArrowRight") step(1);
+});
+render();
+</script>
+</body>
+</html>
