@@ -57,7 +57,8 @@ struct SleepScreen: View {
                 tonightLane: sleep.tonight?.lane,
                 openLane: openLane,
                 toggle: { day in chosenLane = .some(openLane == day ? nil : day) },
-                showSleepScore: { sleepPopupDay = $0 }
+                showSleepScore: { sleepPopupDay = $0 },
+                debugInfo: { connection.debugTraceInfo(for: $0) }  // [DEBUG-hrt]
             )
             if let tonight = sleep.tonight {
                 tonightCard(tonight)
@@ -187,6 +188,7 @@ private struct SleepWeekView: View {
     let openLane: Day?
     let toggle: (Day) -> Void
     let showSleepScore: (Day) -> Void
+    let debugInfo: (Day) -> String  // [DEBUG-hrt]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -366,6 +368,9 @@ private struct SleepWeekView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 80)
                     .multilineTextAlignment(.center)
+                Text(debugInfo(lane.day))  // [DEBUG-hrt]
+                    .font(.caption2.monospaced())  // [DEBUG-hrt]
+                    .textSelection(.enabled)  // [DEBUG-hrt]
             }
             HStack {
                 if let woke = lane.wakeText {
