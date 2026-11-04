@@ -45,30 +45,6 @@ final class StrapConnection: NSObject, ObservableObject {
     var syncProgress: Double? { session?.progress }
     /// What the Live HR pill on today's Load popup shows at `now` (spec 006).
     func liveHRPill(at now: Date) -> LiveHRPill { liveHRLink.pill(at: now) }
-
-    // [DEBUG-hrt] What's stored for `day`'s Night: trace and Wake Bout JSON sizes, any read error,
-    // how many stored Nights have a trace, and the rebuild queue. Temporary (diagnosing "not kept").
-    func debugTraceInfo(for day: Day) -> String {
-        guard case .success(let store) = store else { return "[DEBUG-hrt] no store" }
-        let context = ModelContext(store.container)
-        let key = StoredNight.dateKey(day)
-        let all = (try? context.fetch(FetchDescriptor<StoredNight>())) ?? []
-        let withTrace = all.filter { $0.heartRateTraceJSON != nil }.count
-        guard let stored = all.first(where: { $0.dateKey == key }) else {
-            return "[DEBUG-hrt] \(key): no StoredNight; \(withTrace)/\(all.count) with trace"
-        }
-        var readError = "ok"
-        if let json = stored.heartRateTraceJSON {
-            do { _ = try JSONDecoder().decode(HeartRateTrace.self, from: json) } catch {
-                readError = "\(error)"
-            }
-        }
-        return "[DEBUG-hrt] \(key): trace \(stored.heartRateTraceJSON?.count ?? -1) B, bouts "
-            + "\(stored.wakeBoutsJSON?.count ?? -1) B, read \(readError); "
-            + "\(withTrace)/\(all.count) with trace; pending \(NightStore.pendingRebuilds.count), "
-            + "queuedOnce \(NightStore.hasQueuedTraceRebuilds), "
-            + "lastSync \(lastSyncCompleted.map { "\($0)" } ?? "never")"
-    }
     var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
     /// The phase as the Today view's sync pill reads it (spec 002). A connection only for Live
     /// HR isn't a sync: the pill keeps showing what it showed before (spec 006).
