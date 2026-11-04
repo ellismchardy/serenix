@@ -59,16 +59,21 @@ public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: Tim
     return rebuilds
 }
 
-/// The dates whose stored Night has no Heart Rate Trace (built before spec 012) and whose History
-/// Records are still due at `now` (`NightRebuild.isDue(at:)`), oldest first, each reading the
-/// same two night windows a sync's rebuild would. The shell queues them once (spec 012).
-public func traceRebuilds(for nights: [Night], now: Date, in timeZone: TimeZone)
-    -> [NightRebuild]
-{
+/// The rebuilds to queue for the dates whose stored Night has no Heart Rate Trace (built before
+/// spec 012, or lost since) and whose History Records are still due at `now`
+/// (`NightRebuild.isDue(at:)`), oldest first, each reading the same two night windows a sync's
+/// rebuild would; any already in `alreadyQueued` are left out. The shell asks on every launch and
+/// rebuild pass (spec 012, Nights missing a Heart Rate Trace), so a Night is never queued twice.
+public func traceRebuilds(
+    for nights: [Night],
+    alreadyQueued: [NightRebuild],
+    now: Date,
+    in timeZone: TimeZone
+) -> [NightRebuild] {
     nights
         .filter { $0.heartRateTrace == nil }
         .map(\.day)
         .sorted()
         .map { NightRebuild(day: $0, in: timeZone) }
-        .filter { $0.isDue(at: now) }
+        .filter { $0.isDue(at: now) && !alreadyQueued.contains($0) }
 }

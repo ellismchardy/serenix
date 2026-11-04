@@ -382,21 +382,24 @@ final class StrapConnection: NSObject, ObservableObject {
         DayLoadStore.pendingRebuilds = pending
     }
 
-    /// Queues, once ever, the stored Nights with no Heart Rate Trace that can still be rebuilt
-    /// (spec 012, Nights built before this ships); later launches queue nothing more.
-    private static func queueTraceRebuildsOnce(
+    /// Queues the stored Nights with no Heart Rate Trace that can still be rebuilt and aren't
+    /// queued yet (spec 012, Nights missing a Heart Rate Trace). Asked every time, with no "done"
+    /// flag: a Heart Rate Trace can be lost after any flag was set, e.g. by another build of
+    /// Serenix that doesn't store it opening the same data.
+    private static func queueTraceRebuilds(
         for nights: [Night],
         now: Date,
         timeZone: TimeZone
     ) {
-        guard !NightStore.hasQueuedTraceRebuilds else { return }
-        var pending = NightStore.pendingRebuilds
-        for rebuild in traceRebuilds(for: nights, now: now, in: timeZone)
-        where !pending.contains(rebuild) {
-            pending.append(rebuild)
-        }
-        NightStore.pendingRebuilds = pending
-        NightStore.hasQueuedTraceRebuilds = true
+        let pending = NightStore.pendingRebuilds
+        let added = traceRebuilds(
+            for: nights,
+            alreadyQueued: pending,
+            now: now,
+            in: timeZone
+        )
+        guard !added.isEmpty else { return }
+        NightStore.pendingRebuilds = pending + added
     }
 
     /// Takes away one queued copy of `rebuild`, leaving any copy queued while it was worked out.
@@ -430,11 +433,11 @@ final class StrapConnection: NSObject, ObservableObject {
             let stored = await showStoredNights(in: container)
             await showStoredDayLoads(in: container)
             let now = Date()
-            // Once after the update, Nights built before spec 012 are queued to gain a Heart Rate
-            // Trace and Wake Bouts, while their History Records are still due.
+            // Nights missing a Heart Rate Trace are queued to gain one and their Wake Bouts, while
+            // their History Records are still due.
             if let stored {
                 await MainActor.run {
-                    Self.queueTraceRebuildsOnce(for: stored, now: now, timeZone: timeZone)
+                    Self.queueTraceRebuilds(for: stored, now: now, timeZone: timeZone)
                 }
             }
             let queued = await MainActor.run { NightStore.pendingRebuilds }

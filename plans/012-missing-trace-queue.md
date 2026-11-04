@@ -21,7 +21,7 @@ rebuilds seam, then verify.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice: the missing-trace queue on every launch.** `traceRebuilds(for:now:in:)` gains
+1. [x] **Slice: the missing-trace queue on every launch.** `traceRebuilds(for:now:in:)` gains
    the already-queued rebuilds (`alreadyQueued: [NightRebuild]`) and leaves out any already
    there. `StrapConnection` calls it on every launch with `NightStore.pendingRebuilds` and
    appends what it returns; `NightStore.hasQueuedTraceRebuilds` and its UserDefaults key go
