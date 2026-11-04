@@ -89,7 +89,7 @@ Existing Sleep view code: `src/SerenixCore/SleepView.swift` (`SleepView`, `Sleep
    - Seam: Sleep view · Files: `src/SerenixCore/SleepView.swift`,
      `tests/SerenixCoreTests/SleepViewTests.swift`, `src/SerenixApp/SleepScreen.swift`
    - Done when: the three What stood out criteria pass.
-7. [ ] **Verify:** full suite + lint + typecheck green; every automated success criterion in
+7. [x] **Verify:** full suite + lint + typecheck green; every automated success criterion in
    spec 012 checked; nothing left of `SleepLastNight` or the old week charts. Carried to the PR
    checklist (need a push and the phone): the CI log naming `iPhoneOS26`, and the six by-hand
    phone checks (tab bar and shared Day, the floating tab bar, popups and menus under the new
