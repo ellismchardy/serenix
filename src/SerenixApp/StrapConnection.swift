@@ -67,7 +67,11 @@ final class StrapConnection: NSObject, ObservableObject {
             + "\(stored.wakeBoutsJSON?.count ?? -1) B, read \(readError); "
             + "\(withTrace)/\(all.count) with trace; pending \(NightStore.pendingRebuilds.count), "
             + "queuedOnce \(NightStore.hasQueuedTraceRebuilds), "
-            + "lastSync \(lastSyncCompleted.map { "\($0)" } ?? "never")"
+            + "lastSync \(lastSyncCompleted.map { "\($0)" } ?? "never"); "
+            + "records \(storeStats.count) from "
+            + "\(storeStats.oldest.map { "\($0.timestamp)" } ?? "-")\n"
+            + (UserDefaults.standard.string(forKey: "debugHRTLastApply")
+                ?? "[DEBUG-hrt] no apply yet")
     }
     var syncTimeLeft: TimeInterval? { session?.timeLeft(at: Date()) }
     /// The phase as the Today view's sync pill reads it (spec 002). A connection only for Live
