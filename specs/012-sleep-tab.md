@@ -1,6 +1,6 @@
 # 012 — Sleep tab
 
-**Status:** draft
+**Status:** approved
 **Last updated:** 2026-11-04 (Sleep tab redesigned from prototype variant E: summary sentence,
 week lanes, Tonight card, What stood out; iOS 26 floating tab bar)
 
