@@ -1,6 +1,6 @@
 # 012 — Today Story layout
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-04
 
 ## Problem
@@ -75,20 +75,20 @@ Night recorded" on an earlier Day); step 4 still shows the Day's Load.
   the steps listed in the PR (ADR 0002).
 
 ## Success criteria (must be checkable)
-- [ ] Today view tests: with a Night, the Story has the steps Sleep, Overnight, This morning,
+- [x] Today view tests: with a Night, the Story has the steps Sleep, Overnight, This morning,
       Today so far, in that order.
-- [ ] Today view tests: the Sleep step's time label is Sleep Onset → Final Wake in local time
+- [x] Today view tests: the Sleep step's time label is Sleep Onset → Final Wake in local time
       ("23:18 → 06:51") and its title is "You slept 7h 12m" for that Time Asleep.
-- [ ] Today view tests: the Overnight step lists only the Nightly Metrics the Night has, each
+- [x] Today view tests: the Overnight step lists only the Nightly Metrics the Night has, each
       with its Zone.
-- [ ] Today view tests: the This morning title is "Readiness 72 — Ready" for Readiness 72, and
+- [x] Today view tests: the This morning title is "Readiness 72 — Ready" for Readiness 72, and
       "Readiness calibrating — 2/4" with no advice when Calibrating with 2 Nights.
-- [ ] Today view tests: with no Night for the Day, the Story is 002's no-Night message plus the
+- [x] Today view tests: with no Night for the Day, the Story is 002's no-Night message plus the
       Load step; the Load step's time label is "Today so far" on today and "That Day" on an
       earlier Day.
-- [ ] Today view tests: each step (and each Overnight row) names the popup a tap opens: Sleep,
+- [x] Today view tests: each step (and each Overnight row) names the popup a tap opens: Sleep,
       the metric's, Readiness, Load.
-- [ ] `swift test` passes and `swift format lint` is clean.
+- [x] `swift test` passes and `swift format lint` is clean.
 - [ ] On the phone: the profile menu shows Today layout with Rings and Story; Rings is selected
       on a fresh install.
 - [ ] On the phone: choosing Story changes the Today screen at once; after closing and
