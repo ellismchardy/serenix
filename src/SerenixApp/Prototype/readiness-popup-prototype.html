@@ -3,7 +3,7 @@
   PROTOTYPE — throwaway, never merged (branch prototype/readiness-popup-ui).
   Question: what should the Readiness popup look like, so the user sees why the number is what it is?
   Four structurally different popups over the Today screen, in the Look of variant F
-  (prototype/homescreen), switchable via ?variant=A..E (E: B's ring and gauges with C's story and week). ?state= picks a sample Night, ?dark=1 the dark Look.
+  (prototype/homescreen), switchable via ?variant=A..I (E: B's ring and gauges with C's story and week; F-I: further concepts). ?state= picks a sample Night, ?dark=1 the dark Look.
   Readiness is worked out per spec 008 (weights, ±3 clamp, curve) from the sample inputs.
   Run: double-click this file. Arrow keys ← → cycle variants.
 -->
@@ -262,7 +262,86 @@ const VARIANTS = {
       <div class="card"><div class="trend">${week.map((r, k) => `<div class="${k === 6 ? "sel" : ""}"><b style="height:${r * .7}px;--c:${band(r)[1]}"></b>${WEEK[k]}<br><span class="num">${r}</span></div>`).join("")}</div></div>
       <div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.sleepScore}</b></div>`;
   }},
+  F: { name: "Helping vs holding back", render(w) {
+    if (w.calibrating) return heading() + calibratingCard(w);
+    const live = w.inputs.filter(i => i.z !== null);
+    const up = live.filter(i => i.pts >= 0 && i.z >= -0.25), down = live.filter(i => !up.includes(i));
+    const col = (title, list, c) => `<div style="flex:1;min-width:0"><div class="sec" style="margin-top:0;color:${c}">${title}</div>
+      ${list.length ? list.map(i => `<div class="card" style="padding:10px 12px;border-left:4px solid ${c}"><b>${i.name}</b><div class="num">${i.value}</div>
+        <div class="wt">${i.diff} · ${sgn(i.pts)} pts</div></div>`).join("") : `<div class="muted" style="font-size:12px;padding:4px">Nothing</div>`}</div>`;
+    const sumUp = up.reduce((a, i) => a + i.pts, 0), sumDown = down.reduce((a, i) => a + i.pts, 0);
+    return heading() + `<div style="text-align:center;margin:14px 0 6px"><div class="big num" style="font-size:60px">${w.r}</div>
+      <span class="pill" style="--c:${w.band[1]}">${w.band[0]}</span></div>
+      <div class="num muted" style="text-align:center;font-size:13px;margin-bottom:14px">usual 70 &nbsp;<b style="color:var(--good)">${sgn(sumUp)}</b> &nbsp;<b style="color:var(--bad)">${sgn(sumDown)}</b> &nbsp;= ${w.r}</div>
+      <div style="display:flex;gap:10px">${col("Helping", up, "var(--good)")}${col("Holding back", down, "var(--bad)")}</div>
+      ${w.inputs.some(i => i.z === null) ? `<div class="muted" style="font-size:12px;padding:0 4px 10px">Yesterday's Load: none recorded, left out.</div>` : ""}
+      <div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.sleepScore}</b></div>`;
+  }},
+  G: { name: "Trend tiles", render(w) {
+    if (w.calibrating) return heading() + calibratingCard(w);
+    const base = { hrv: 60, shr: 52, sleep: 480, load: 45 };
+    const now = s => ({ hrv: s.hrv, shr: s.shr, sleep: s.sleep, load: s.load });
+    const v = now(STATES[state]);
+    const jig = [.97, 1.03, 1.0, .98, 1.04, .99];
+    const spark = i => {
+      const pts = [...jig.map(j => base[i.key] * j), v[i.key]];
+      if (v[i.key] == null) return `<div class="muted" style="height:44px;display:grid;place-items:center;font-size:12px">No Load yesterday</div>`;
+      const lo = Math.min(...pts, base[i.key]) * .97, hi = Math.max(...pts, base[i.key]) * 1.03;
+      const y = p => 40 - (p - lo) / (hi - lo) * 36;
+      const path = pts.map((p, k) => `${k ? "L" : "M"}${k * 20 + 4},${y(p).toFixed(1)}`).join(" ");
+      return `<svg width="100%" height="44" viewBox="0 0 132 44"><line x1="0" x2="132" y1="${y(base[i.key])}" y2="${y(base[i.key])}" stroke="var(--s-sub)" stroke-dasharray="3 3"/>
+        <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="124" cy="${y(pts[6])}" r="4.5" fill="${i.c}" stroke="var(--s-card)" stroke-width="2"/></svg>`;
+    };
+    return heading() + `<div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div><div class="muted" style="font-size:12px">This morning</div><div class="lede" style="margin:2px 0">${w.band[0]}</div><div class="muted" style="font-size:12px">${verdict(w)}</div></div>
+        <div class="big num" style="color:${w.band[1]}">${w.r}</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${w.inputs.map(i => `<div class="card" style="margin:0;padding:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px"><b>${i.name.replace("Yesterday's ", "")}</b><span class="wt">${i.z === null ? "off" : Math.round(i.weight * 100) + "%"}</span></div>
+        <div class="num" style="font-size:20px;font-weight:800;margin:2px 0">${i.value}</div>${spark(i)}
+        <div class="wt">${i.diff} vs ${i.ref.replace("Need ", "need ").replace("Typical ", "typical ")}</div></div>`).join("")}</div>
+      <div class="muted" style="font-size:11px;margin:8px 4px 12px">Dashed line: your usual. Last 7 Nights.</div>
+      <div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.sleepScore}</b></div>`;
+  }},
+  H: { name: "Segmented dial", render(w) {
+    if (w.calibrating) return heading() + calibratingCard(w);
+    const C = 2 * Math.PI * 70, gap = 6; let off = 0;
+    const arcs = w.inputs.map(i => {
+      const len = W[i.key] * C - gap, a = `<circle cx="90" cy="90" r="70" fill="none" stroke="${i.c}" stroke-width="${dialSel === i.key ? 22 : 16}"
+        stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 90 90)" style="cursor:pointer${i.z === null ? ";opacity:.3" : ""}" onclick="dialSel='${i.key}';render()"/>`;
+      off += W[i.key] * C; return a;
+    }).join("");
+    const s = w.inputs.find(i => i.key === dialSel);
+    const advice = w.r >= 67 ? "Go for a hard session if it's planned." : w.r >= 34 ? "Keep training moderate; save the hard session." : "Rest, walk, sleep early tonight.";
+    return heading() + `<div style="display:flex;justify-content:center;margin:6px 0"><svg width="200" height="200" viewBox="0 0 180 180">${arcs}
+        <text x="90" y="92" text-anchor="middle" font-size="44" font-weight="800" fill="var(--s-ink)">${w.r}</text>
+        <text x="90" y="116" text-anchor="middle" font-size="13" font-weight="700" fill="${w.band[1]}">${w.band[0]}</text></svg></div>
+      <div class="muted" style="text-align:center;font-size:12px;margin-bottom:10px">Each arc is one input, sized by weight. Tap one.</div>
+      <div class="card"><div class="heading"><span>${s.name}</span><span class="pill" style="--c:${s.c}">${s.z === null ? "Left out" : sgn(s.pts) + " pts"}</span></div>
+        <div class="kv"><span class="muted">Last night</span><b class="num">${s.value}</b></div>
+        <div class="kv"><span class="muted">Your usual</span><span class="num">${s.ref}</span></div>
+        <div class="kv"><span class="muted">Difference</span><span class="num">${s.diff}</span></div>
+        <div class="kv"><span class="muted">Counts for</span><span class="num">${s.z === null ? "—" : Math.round(s.weight * 100) + "%"}</span></div></div>
+      <div class="card" style="background:var(--s-card2)"><b>Today</b><div>${advice}</div></div>
+      <div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.sleepScore}</b></div>`;
+  }},
+  I: { name: "Night timeline", render(w) {
+    if (w.calibrating) return heading() + calibratingCard(w);
+    const by = k => w.inputs.find(i => i.key === k);
+    const step = (time, title, items) => `<div style="display:flex;gap:12px">
+      <div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:4px"></span><span style="flex:1;width:2px;background:var(--track)"></span></div>
+      <div style="flex:1;padding-bottom:14px"><div class="wt">${time}</div><b>${title}</b>${items.map(i => `<div class="card" style="margin:6px 0 0;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+        <span><span class="sw" style="--c:${i.c}"></span>${i.name}<div class="wt">${i.diff} vs ${i.ref}</div></span>
+        <span style="text-align:right"><b class="num">${i.value}</b><div class="wt" style="color:${i.c}">${i.z === null ? "left out" : sgn(i.pts) + " pts"}</div></span></div>`).join("")}</div></div>`;
+    return heading() + `<div class="muted" style="margin:6px 0 14px">How yesterday and last night added up to this morning.</div>
+      ${step("Tue 3 Nov", "Your Day", [by("load")])}
+      ${step("23:10 – 07:05", "Your sleep", [by("sleep")])}
+      ${step("Overnight", "Your body recovering", [by("hrv"), by("shr")])}
+      <div style="display:flex;gap:12px"><span style="width:12px"></span><div class="card" style="flex:1;display:flex;align-items:center;gap:12px">
+        <div class="big num" style="color:${w.band[1]}">${w.r}</div><div><b>${w.band[0]}</b> this morning<div class="muted" style="font-size:12px">${verdict(w)}</div></div></div></div>
+      <div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.sleepScore}</b></div>`;
+  }},
 };
+let dialSel = "hrv";
 
 // ---------- wiring ----------
 const P = new URLSearchParams(location.search);
