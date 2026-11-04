@@ -3,7 +3,7 @@
   PROTOTYPE — throwaway, never merged (branch prototype/readiness-popup-ui).
   Question: what should the Readiness popup look like, so the user sees why the number is what it is?
   Four structurally different popups over the Today screen, in the Look of variant F
-  (prototype/homescreen), switchable via ?variant=A..D. ?state= picks a sample Night, ?dark=1 the dark Look.
+  (prototype/homescreen), switchable via ?variant=A..E (E: B's ring and gauges with C's story and week). ?state= picks a sample Night, ?dark=1 the dark Look.
   Readiness is worked out per spec 008 (weights, ±3 clamp, curve) from the sample inputs.
   Run: double-click this file. Arrow keys ← → cycle variants.
 -->
@@ -237,6 +237,31 @@ const VARIANTS = {
       <div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.sleepScore}</b></div>
       <div class="muted" style="font-size:12px;padding:0 4px">Against your Baseline over your last 14 Nights.</div>`;
   }},
+  E: { name: "B's ring + gauges, C's story + week", render(w) {
+    if (w.calibrating) return heading() + calibratingCard(w);
+    const ring = `<svg width="110" height="110" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--track)" stroke-width="12"/>
+      <circle cx="60" cy="60" r="50" fill="none" stroke="${w.band[1]}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${w.r * 3.1416} 400" transform="rotate(-90 60 60)"/>
+      <text x="60" y="70" text-anchor="middle" font-size="32" font-weight="800" fill="var(--s-ink)">${w.r}</text></svg>`;
+    const sorted = [...w.inputs].sort((a, b) => (a.z === null) - (b.z === null) || a.pts - b.pts);
+    const why = i => i.z === null ? "No Load recorded yesterday, so Readiness leaves it out." :
+      i.key === "hrv" ? `${i.diff} from your usual ${i.ref}.` :
+      i.key === "shr" ? `${i.diff} against your usual ${i.ref}.` :
+      i.key === "sleep" ? (i.diff.startsWith("−") ? `${i.diff.slice(1)} short of your Sleep Need.` : "Enough for your Sleep Need.") :
+      (i.z < 0 ? "Above your typical 45." : "No more than your typical 45.");
+    const week = [...PAST, w.r];
+    return heading() + `<div class="card" style="display:flex;align-items:center;gap:14px">${ring}
+      <div><span class="pill" style="--c:${w.band[1]}">${w.band[0]}</span><div class="lede" style="font-size:17px">${verdict(w)}</div></div></div>
+      <div class="sec">Why, biggest effect first</div>
+      <div class="card">${sorted.map(i => `<div class="g">
+        <div class="top"><span><b>${i.name}</b> <span class="wt">${i.z === null ? "· dropped" : "· " + Math.round(i.weight * 100) + "%"}</span></span>
+          <span class="num"><b>${i.value}</b> <span class="wt">${i.z === null ? "" : sgn(i.pts) + " pts"}</span></span></div>
+        <div class="muted" style="font-size:12px;margin-top:2px">${why(i)}</div>
+        ${i.z === null ? "" : `<div class="bar"><s></s><b style="left:${50 + i.z / 3 * 50}%"></b></div><div class="ends"><span>worse</span><span>usual</span><span>better</span></div>`}
+      </div>`).join("")}</div>
+      <div class="sec">Your week</div>
+      <div class="card"><div class="trend">${week.map((r, k) => `<div class="${k === 6 ? "sel" : ""}"><b style="height:${r * .7}px;--c:${band(r)[1]}"></b>${WEEK[k]}<br><span class="num">${r}</span></div>`).join("")}</div></div>
+      <div class="card kv" style="padding:14px 16px"><span>Sleep Score</span><b class="num">${w.sleepScore}</b></div>`;
+  }},
 };
 
 // ---------- wiring ----------
@@ -258,7 +283,7 @@ function render() {
       `${i.name}: ${i.value} vs ${i.ref} (${i.diff})\n  score ${i.z === null ? "dropped" : i.z.toFixed(2)}, weight ${(i.weight * 100).toFixed(0)}%, points ${i.z === null ? "—" : sgn(i.pts)}`).join("\n");
   $("about").textContent = "Points = change in Readiness as each input is added in turn, starting from a usual Night (70). Sleep Score is a stand-in.";
   const q = new URLSearchParams({ variant, state }); if (dark) q.set("dark", "1");
-  history.replaceState(null, "", "?" + q);
+  try { history.replaceState(null, "", "?" + q); } catch {}
 }
 const keys = Object.keys(VARIANTS);
 const step = d => { variant = keys[(keys.indexOf(variant) + d + keys.length) % keys.length]; render(); };
