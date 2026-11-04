@@ -27,7 +27,7 @@ HR, and show nothing when it has neither. On approval this plan is saved as
    `StoryBodyView`'s Load card already reads `today.restingHRTile`.
    - Files: `src/SerenixApp/TodayScreen.swift`
    - Done when: lint clean; phone steps listed for the PR.
-3. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+3. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
    `swift build`; mark both specs built and tick the test criterion; move plan to done.
 
 ## Verification

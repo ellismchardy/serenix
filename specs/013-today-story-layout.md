@@ -1,6 +1,6 @@
 # 013 — Today Story layout
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-04
 
 ## Problem

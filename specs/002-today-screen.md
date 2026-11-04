@@ -1,6 +1,6 @@
 # 002 — Today screen
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-04 (Resting HR shown on a Day with no Night)
 
 ## Problem
@@ -282,7 +282,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       strip titled "November 2026".
 - [x] With no Night dated today, the view shows "No Night yet" and today's Load, and no other
       Day's values.
-- [ ] Today view tests: on a Day with no Night whose Day Load has a Resting HR of 58, the view
+- [x] Today view tests: on a Day with no Night whose Day Load has a Resting HR of 58, the view
       gives a Resting HR tile showing "58 bpm" (with "So far today" on today, nothing on an
       earlier Day) and a Resting HR popup; with no Resting HR for that Day, it gives neither.
 - [ ] On the phone: on a Day with no Night but a Resting HR, the Rings layout shows the Resting HR
