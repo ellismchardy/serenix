@@ -67,6 +67,8 @@ public struct TodayView: Equatable, Sendable {
     /// The 2-column grid under Time Asleep: Sleeping HR, Resting HR, then the other Nightly
     /// Metrics (spec 007, Today screen); none on a Day without a Night.
     public let gridTiles: [TodayTile]
+    /// The Story layout's timeline for the Day shown (spec 013).
+    public let story: TodayStory
 
     public init(
         nights: [Night],
@@ -207,6 +209,22 @@ public struct TodayView: Equatable, Sendable {
                 sleepingHR: tiles.first { $0.metric == .sleepingHR }
             )
         }
+        story = TodayStory(
+            night: night,
+            noNightMessage: noNightMessage,
+            tiles: tiles,
+            readiness: StoryReadiness(
+                text: readinessText,
+                band: readinessBand,
+                isCalibrating: calibratingNightsSoFar != nil,
+                advice: readinessAdvice
+            ),
+            loadText: loadText,
+            load: dayLoad?.load,
+            typicalLoad: typicalLoad(for: day, among: dayLoads),
+            isToday: isToday,
+            timeZone: timeZone
+        )
 
         vsBaseline =
             if night == nil {

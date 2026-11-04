@@ -16,6 +16,8 @@ struct TodayScreen: View {
     /// message).
     @State private var closedMessages = ClosedReadinessMessages()
     @Environment(\.scenePhase) private var scenePhase
+    /// Rings or Story, from the profile menu (spec 013).
+    @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
 
     var body: some View {
         // The stored Nights (spec 003) and Day Loads (spec 005).
@@ -36,15 +38,20 @@ struct TodayScreen: View {
             today: today
         ) {
             WeekStripView(strip: today.weekStrip) { pickedDay = shownSelection($0) }
-            if let message = today.noNightMessage {
-                Text(message)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+            switch todayLayout {
+            case .rings:
+                if let message = today.noNightMessage {
+                    Text(message)
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                rings(today)
+                readinessMessage(today, for: shownDay)
+                vsBaseline(today)
+                tiles(today)
+            case .story:
+                StoryBodyView(today: today) { openStoryTap($0, in: today) }
             }
-            rings(today)
-            readinessMessage(today, for: shownDay)
-            vsBaseline(today)
-            tiles(today)
         }
         .sheet(item: $openPopup) { popup in
             TodayPopupView(popup: popup, today: today, connection: connection)
@@ -90,11 +97,7 @@ struct TodayScreen: View {
             // The Load ring opens the profile menu while it asks for the age (spec 005, Add your
             // age), and the Load popup otherwise (spec 006).
             Button {
-                if today.loadOpensProfileMenu {
-                    showsProfileMenu = true
-                } else {
-                    open(.load, in: today)
-                }
+                openLoad(today)
             } label: {
                 loadRing(today).contentShape(Rectangle())
             }
@@ -220,6 +223,29 @@ struct TodayScreen: View {
                     }
                 }
             }
+        }
+    }
+
+    /// A tap in the Story opens the popup the Rings layout's would; Load opens the profile menu
+    /// while it asks for the age, as the Load ring does.
+    /// Named apart from `open(_:in:)`: StoryTap and TodayPopup share case names, so one
+    /// overloaded name makes `.sleep` ambiguous.
+    private func openStoryTap(_ tap: StoryTap, in today: TodayView) {
+        switch tap {
+        case .sleep: open(.sleep, in: today)
+        case .metric(let metric): open(.metric(metric), in: today)
+        case .readiness: open(.readiness, in: today)
+        case .load: openLoad(today)
+        }
+    }
+
+    /// The profile menu while Load asks for the age (spec 005, Add your age), else the Load
+    /// popup (spec 006); for the Load ring and the Story's Load step alike.
+    private func openLoad(_ today: TodayView) {
+        if today.loadOpensProfileMenu {
+            showsProfileMenu = true
+        } else {
+            open(.load, in: today)
         }
     }
 
