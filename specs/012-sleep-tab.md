@@ -1,9 +1,8 @@
 # 012 — Sleep tab
 
-**Status:** built
-**Last updated:** 2026-11-04 (Sleep tab redesigned from prototype variant E: summary sentence,
-week lanes, Tonight card, What stood out; iOS 26 floating tab bar; the Summary's gap in minutes
-under an hour; built)
+**Status:** draft
+**Last updated:** 2026-11-04 (lanes and chart restyled from the graphs prototype's variant E:
+gradient block with Wake Bout notches, one-picture chart in the accent colour, smoothed curve)
 
 ## Problem
 Everything Serenix knows about a night's sleep fits in one Sleep popup about one Night. The
@@ -77,30 +76,35 @@ lines and labels every 2 hours ("22", "00", "02" …) under the last lane:
   asleep by to the usual wake time (see Tonight), with the Be asleep by time at its right.
 - **One lane per Day**, D first, then D − 1 back to D − 6. Each is named by its weekday's short
   name ("Tue"), except D, named "Last" when D is today. A Day with no Night reads "no Night".
-- A Night's lane shows Time in Bed as a thin track, Sleep Onset to Final Wake as a bar in the
-  accent colour, broken by a gap at each Wake Bout with a thin amber mark in it, and its Time
-  Asleep at the right, in amber when 15 min or more short of its own Sleep Need.
+- A Night's lane shows Time in Bed as a soft track, Sleep Onset to Final Wake as one unbroken
+  block on it, shaded from the lighter accent colour at Sleep Onset to the accent colour at Final
+  Wake, each Wake Bout as an amber notch standing a little above and below the block, and its
+  Time Asleep at the right, in amber when 15 min or more short of its own Sleep Need.
 - **Opening a lane.** Tapping a Night's lane opens its chart under it and closes any other;
   tapping the open lane closes it. D's lane is open when the tab is shown (when D has a Night).
 - **The chart**, from the start to the end of Time in Bed (or Sleep Onset to Final Wake when
-  Time in Bed is missing):
-  - the Heart Rate Trace as a smooth line with a soft fill under it, broken where a step is
-    missing;
-  - a dotted line at the Night's Sleeping HR, labelled "Sleeping HR 52" under its right end; no
-    line or label without a Sleeping HR;
-  - the y-axis from the lowest step − 3 bpm to the highest + 3, widened to take in the Night's
-    Sleeping HR so its line is always on the chart, with faint gridlines labelled in bpm at the
-    right every 5 bpm (every 10 when the axis spans more than 30);
-  - each Wake Bout shaded behind the line;
-  - under it, the **sleep/wake band**: Sleep Onset to Final Wake in the accent colour with a gap
-    and an amber mark at each Wake Bout, on a track for Time in Bed, then hour ticks every 2 hours
-    at their clock positions (none at the chart's ends);
+  Time in Bed is missing), one picture with no separate band:
+  - Sleep Onset to Final Wake shaded behind everything in the lighter accent colour, labelled
+    "asleep 23:00" at its top left and "07:00" at its top right;
+  - each Wake Bout as an amber column across the chart's height;
+  - the Heart Rate Trace as a smooth curve in the accent colour with a fill fading from it down
+    to the chart's foot, broken where a step is missing. Each step is drawn at its **smoothed
+    value**: the mean of the steps within 3 either side (15 minutes), each weighted by
+    e^(−d²/(2·1.6²)) for its distance d in steps, missing steps left out; a missing step stays
+    missing. The curve passes through every smoothed value and never rises above or dips below
+    the two it joins;
+  - a dotted line at the Night's Sleeping HR with a "52 bpm" tag at its right end; no line or
+    tag without a Sleeping HR;
+  - the y-axis from the lowest step − 3 bpm to the highest + 3 (the steps as kept, not
+    smoothed), widened to take in the Night's Sleeping HR so its line is always on the chart,
+    with no gridlines or bpm labels;
+  - under it, hour ticks every 2 hours at their clock positions (none at the chart's ends);
   - under the chart: "Woke 2 times · 15 min awake" ("Woke 1 time", "Didn't wake" with none; the
     total is the Sleep popup's minutes awake, Final Wake − Sleep Onset − Time Asleep, spec 002)
     and **Sleep Score ›**, which opens the Sleep popup for that Night.
 - **Not kept:** a Night with no Heart Rate Trace opens to "Heart rate isn't kept for Nights older
-  than 30 days." in place of the chart, and its lane has no Wake Bout gaps. Its Time Asleep and
-  bar still show.
+  than 30 days." in place of the chart, and its lane has no Wake Bout notches. Its Time Asleep
+  and block still show.
 
 **Tonight.** Only when D is today, as a card in the accent colour under Your week.
 - **Usual wake time:** the median of the Final Wake clock times of the Nights dated D − 6 to D,
@@ -149,22 +153,26 @@ and show the "not kept" note.
 - **`SerenixCore`: Sleep view.** A pure value, like the Today view, built from the stored Nights,
   the Day shown, now, the time zone and the birth year. It holds the week strip; the Summary (its
   label, sentence and onset–wake text, or the no-Night message); Your week (its title texts, the
-  clock axis and its labels, the Tonight lane, and 7 lanes, each with its name, bar segments,
-  Time Asleep text and short flag, and the Night's chart: range, trace steps, Sleeping HR line,
-  y-axis and gridlines, band segments, hour ticks and the "Woke" text, or the not-kept note);
+  clock axis and its labels, the Tonight lane, and 7 lanes, each with its name, asleep block,
+  Wake Bout notches, Time Asleep text and short flag, and the Night's chart: range, trace steps
+  with their smoothed values, Sleeping HR line and tag, y-axis, asleep shading and its labels,
+  Wake Bout columns, hour ticks and the "Woke" text, or the not-kept note);
   Tonight (its sentence, or the "after 3 Nights" text, or nothing when D isn't today); and What
   stood out (its rows). Which lane is open is the shell's state; the Sleep view says which lane
   opens first. It reuses Sleep Need and Sleep Debt (spec 009) and Sleep Consistency's
-  shortest-way-round median (spec 010). The 15-minute and 30-minute thresholds are named
-  constants (unit and source: this spec).
+  shortest-way-round median (spec 010). The 15-minute and 30-minute thresholds and the
+  smoothing's reach (3 steps) and width (1.6 steps) are named constants (unit and source: this
+  spec). Smoothing is for drawing only: the stored Heart Rate Trace, Sleeping HR and the y-axis
+  use the steps as kept.
 - **`SerenixCore`: Night rebuilds** gains the one-off queue: given the stored Nights, now and the
   time zone, the Nights to rebuild because they have no Heart Rate Trace and are still due.
 - **Shell.** A tab container holds the Day shown (moved out of the Today screen) and the
   back-from-background reset, and shows the Today screen and a new Sleep screen. The stored
   Night gains the two optional fields (a lightweight SwiftData migration). The one-off queue runs
   once after the update. The Sleep screen draws the Sleep view, holds which lane is open (reset to
-  the Sleep view's first open lane when the Day shown changes), smooths the trace line when
-  drawing it, and opens the existing Sleep popup from the Sleep Score buttons.
+  the Sleep view's first open lane when the Day shown changes), draws the smoothed values as a
+  monotone curve (it never overshoots between two values), and opens the existing Sleep popup
+  from the Sleep Score buttons.
 - **iOS 26 SDK.** The tab bar stays SwiftUI's own tab view; the iOS 26 look comes from building
   against the iOS 26 SDK, not from code. The macOS CI job builds with Xcode 26 (it built with
   Xcode 16.4 and the iOS 18.5 SDK, which keeps the old tab bar even on iOS 26). The deployment
@@ -236,22 +244,27 @@ Onset 23:00, Final Wake 07:00, Time in Bed 22:50–07:10):
 A Night's lane and chart (Sleep view; the Night dated 3 Nov has Time in Bed 22:50–07:10, Sleep
 Onset 23:00, Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, and Wake Bouts at 02:10 for
 8 min and 04:30 for 7 min):
-- [x] Its bar runs 23:00–02:10, 02:18–04:30 and 04:37–07:00, on a track 22:50–07:10.
+- [ ] Its block runs 23:00–07:00, unbroken, with notches at 02:10–02:18 and 04:30–04:37, on a
+      track 22:50–07:10.
 - [x] Its chart runs 22:50 to 07:10, with hour ticks at 00:00, 02:00, 04:00 and 06:00.
-- [x] The Sleeping HR line is at 52 and labelled "Sleeping HR 52"; with no Sleeping HR there is
-      no line or label.
+- [ ] The Sleeping HR line is at 52 with the tag "52 bpm"; with no Sleeping HR there is no line
+      or tag.
 - [x] The y-axis runs from the lowest step − 3 to the highest + 3 (steps 50 to 70: 47 to 73); a
       missing step breaks the line.
 - [x] A Sleeping HR outside the steps widens the y-axis to take it in: steps 50 to 70 with
       Sleeping HR 44 run 41 to 73.
-- [x] The 47 to 73 axis has gridlines at 50, 55, 60, 65 and 70; a 41 to 83 axis has them at 50,
-      60, 70 and 80.
-- [x] The sleep/wake band runs 23:00 to 07:00 with Wake Bouts 02:10–02:18 and 04:30–04:37, and
-      under the chart reads "Woke 2 times · 15 min awake".
+- [ ] The chart has no gridlines.
+- [ ] Smoothed values (to 2 dp): steps all 60 but one of 74 draw that step at 63.58, the steps
+      1, 2 and 3 away at 62.95, 61.64 and 60.62, and the rest at 60; a missing step among 60s
+      stays missing and its neighbours draw at 60; the y-axis still runs from the steps as kept
+      (60 to 74: 57 to 77).
+- [ ] The asleep shading runs 23:00 to 07:00, labelled "asleep 23:00" and "07:00"; the Wake Bout
+      columns run 02:10–02:18 and 04:30–04:37; under the chart it reads "Woke 2 times · 15 min
+      awake".
 - [x] One Wake Bout reads "Woke 1 time"; none reads "Didn't wake".
 - [x] With no Time in Bed, the chart runs 23:00 to 07:00 and the bar has no track.
-- [x] With no Heart Rate Trace, its chart is "Heart rate isn't kept for Nights older than 30
-      days.", its bar has no gaps, and its Time Asleep still reads "7h 45m".
+- [ ] With no Heart Rate Trace, its chart is "Heart rate isn't kept for Nights older than 30
+      days.", its block has no notches, and its Time Asleep still reads "7h 45m".
 
 Tonight (Sleep view; Nights dated 28 Oct to 3 Nov, each Sleep Onset 23:00, Final Wake 07:00):
 - [x] With Time Asleep 8 h each, it reads "To get 8h 0m before your usual 07:00 wake, be asleep
@@ -330,6 +343,11 @@ Build and phone:
   picking the Night shown below) were the alternatives. The first build's stacked layout
   (branch `prototype/sleep-screen`, variant A) was rejected after it was built: its charts read
   poorly and the three sections didn't connect.
+- Graphs prototype: branch `prototype/sleep-graphs`, file
+  `src/SerenixApp/Prototype/sleep-graphs-prototype.html`, variant E ("B, smoother"): B's lane
+  block with Wake Bout notches and its accent-coloured chart, with the smoothed monotone curve.
+  A (as first built: gapped pills, red line over a separate band), C (heart rate as a colour
+  strip and bars) and D (sparkline lanes, thin line with pins) were the alternatives.
 - Spec 002 deferred the tab bar and the Sleep screen to this spec. The earlier home-screen
   prototype's Sleep tab (variant C) put score chips and metric tiles there; this spec doesn't.
 - Extends spec 003: Nights from History Records also produce the Heart Rate Trace and Wake
