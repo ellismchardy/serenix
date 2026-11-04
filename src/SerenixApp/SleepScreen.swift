@@ -67,6 +67,9 @@ struct SleepScreen: View {
             if let tonight = sleep.tonight {
                 tonightCard(tonight)
             }
+            if !sleep.standouts.isEmpty {
+                standoutsCard(sleep.standouts)
+            }
         }
         .sheet(
             isPresented: Binding(
@@ -115,6 +118,27 @@ struct SleepScreen: View {
             ),
             in: RoundedRectangle(cornerRadius: Theme.cardRadius)
         )
+    }
+
+    /// What stood out (spec 012): up to three rows about the Night, each a line and a smaller
+    /// detail.
+    private func standoutsCard(_ standouts: [SleepStandout]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("What stood out").font(.headline).padding(.bottom, 4)
+            ForEach(Array(standouts.enumerated()), id: \.offset) { index, standout in
+                if index > 0 { Divider() }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(standout.text).font(.subheadline.weight(.semibold))
+                    if !standout.detail.isEmpty {
+                        Text(standout.detail).font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
+            }
+        }
+        .padding(16)
+        .themeCard()
     }
 
     /// The Summary (spec 012): the Night in one sentence, then the Sleep Score button and Sleep

@@ -14,6 +14,9 @@ public struct SleepView: Equatable, Sendable {
     /// "No Night yet" for today, "No Night recorded" for an earlier Day, in place of the Summary;
     /// nil when there's a Night (spec 002, as on the Today tab).
     public let noNightMessage: String?
+    /// What stood out about the Night dated the Day shown, up to three rows in order: Wake Bouts,
+    /// bedtime, heart rate; empty when that Day has no Night.
+    public let standouts: [SleepStandout]
 
     /// `birthYear` is the Profile's, for Sleep Need (spec 009).
     public init(
@@ -52,6 +55,10 @@ public struct SleepView: Equatable, Sendable {
             )
         }
         noNightMessage = night != nil ? nil : TodayView.noNightMessage(isToday: isToday)
+        standouts =
+            night.map {
+                SleepStandout.rows(for: $0, among: nights, isToday: isToday, timeZone: timeZone)
+            } ?? []
     }
 }
 
@@ -108,6 +115,80 @@ public struct SleepSummary: Equatable, Sendable {
     /// "45 minutes" under an hour, "1h 51m" from an hour up (spec 012, Summary).
     private static func gapText(_ minutes: Int) -> String {
         minutes < 60 ? "\(minutes) minutes" : durationText(TimeInterval(minutes * 60))
+    }
+}
+
+/// One row of the Sleep tab's What stood out (spec 012): a line and a smaller detail.
+public struct SleepStandout: Equatable, Sendable {
+    /// e.g. "Fell asleep 40 min later than usual".
+    public let text: String
+    /// e.g. "Usual 23:00, last night 23:40"; empty when there's nothing to add.
+    public let detail: String
+
+    /// How far from the usual Sleep Onset a bedtime must be to read "earlier" or "later" than
+    /// usual, minutes (spec 012: more than 30).
+    static let bedtimeOffMinutes = 30.0
+    /// The fewest earlier Nights with a Sleep Onset the usual bedtime needs (spec 012, What stood
+    /// out: 3).
+    static let fewestBedtimeNights = 3
+
+    /// The rows for `night`, each left out when its data is missing: Wake Bouts, bedtime against
+    /// the usual Sleep Onset of the Nights dated D − 7 to D − 1, then heart rate.
+    static func rows(for night: Night, among nights: [Night], isToday: Bool, timeZone: TimeZone)
+        -> [SleepStandout]
+    {
+        var rows: [SleepStandout] = []
+        if let woke = SleepLane.wakeText(of: night) {
+            let bouts = (night.wakeBouts ?? []).sorted { $0.start < $1.start }
+            let detail = bouts.map {
+                "\(clockText($0.start, in: timeZone)) \u{00B7} \($0.minutes) min"
+            }
+            rows.append(SleepStandout(text: woke, detail: detail.joined(separator: " \u{00B7} ")))
+        }
+        if let bedtime = bedtimeRow(for: night, among: nights, isToday: isToday, timeZone: timeZone)
+        {
+            rows.append(bedtime)
+        }
+        if let sleepingHR = night.sleepingHR {
+            rows.append(
+                SleepStandout(
+                    text: "Heart rate settled to \(Int(sleepingHR.rounded())) bpm",
+                    detail: "Its lowest stretch: your Sleeping HR"
+                )
+            )
+        }
+        return rows
+    }
+
+    /// The bedtime row; nil without a Sleep Onset or with too few earlier Nights to have a usual.
+    private static func bedtimeRow(
+        for night: Night,
+        among nights: [Night],
+        isToday: Bool,
+        timeZone: TimeZone
+    ) -> SleepStandout? {
+        let window = SleepNeed.window(before: night.day)
+        let earlier = nights.filter { window.contains($0.day) }.compactMap(\.sleepOnset)
+        guard let onset = night.sleepOnset, earlier.count >= fewestBedtimeNights else { return nil }
+        // In whole minutes as each is shown, so the difference agrees with the two times written.
+        let usual = ClockTime.median(of: earlier, in: timeZone).rounded(.down)
+        let tonight = ClockTime.minutes(of: onset, in: timeZone).rounded(.down)
+        // The shortest way round the clock, so 00:10 is 20 minutes after 23:50.
+        let off = (tonight - usual).remainder(dividingBy: ClockTime.minutesPerDay)
+        let text =
+            if off > bedtimeOffMinutes {
+                "Fell asleep \(Int(off)) min later than usual"
+            } else if -off > bedtimeOffMinutes {
+                "Fell asleep \(Int(-off)) min earlier than usual"
+            } else {
+                "Fell asleep around your usual time"
+            }
+        let which = isToday ? "last night" : "that night"
+        return SleepStandout(
+            text: text,
+            detail:
+                "Usual \(ClockTime.text(minutes: usual)), \(which) \(clockText(onset, in: timeZone))"
+        )
     }
 }
 
@@ -349,7 +430,7 @@ public struct SleepLane: Equatable, Sendable {
 
     /// "Woke 2 times · 15 min awake", "Didn't wake"; nil when the Wake Bouts aren't kept, or the
     /// Night has no Heart Rate Trace (spec 012, Not kept: the note stands in for all of it).
-    private static func wakeText(of night: Night) -> String? {
+    static func wakeText(of night: Night) -> String? {
         guard night.heartRateTrace != nil, let bouts = night.wakeBouts else { return nil }
         if bouts.isEmpty { return "Didn't wake" }
         let woke = "Woke \(bouts.count) time\(bouts.count == 1 ? "" : "s")"

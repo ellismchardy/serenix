@@ -81,7 +81,7 @@ Existing Sleep view code: `src/SerenixCore/SleepView.swift` (`SleepView`, `Sleep
    - Done when: the four unticked Tonight criteria pass, and "With 2 Nov shown, there is no
      Tonight" still does; the old Be asleep by / Sleep Need / usual wake / Sleep Debt text tests
      are rewritten.
-6. [ ] **Slice: What stood out.** `SleepView.standouts`: up to three rows for the Night dated D
+6. [x] **Slice: What stood out.** `SleepView.standouts`: up to three rows for the Night dated D
    (Wake Bouts with their times, bedtime against the usual Sleep Onset of D − 7 to D − 1 with
    the 30-minute named constant and 3-Night minimum, heart rate settled to the Sleeping HR),
    each left out when its data is missing; none without a Night. The Sleep screen draws the card

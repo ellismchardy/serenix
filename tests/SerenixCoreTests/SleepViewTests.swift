@@ -41,10 +41,12 @@ private let twoWakeBouts = [
     WakeBout(start: at(3, 4, 30), minutes: 7),
 ]
 
-/// The Night dated 3 Nov: Time in Bed 22:50 (2 Nov) to 07:10, Sleep Onset 23:00, Final Wake
-/// 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, `traceFrom2250` and `twoWakeBouts`.
+/// The Night dated 3 Nov: Time in Bed 22:50 (2 Nov) to 07:10, Sleep Onset `sleepOnset` (23:00 by
+/// default), Final Wake 07:00, Time Asleep 7 h 45 m, Sleeping HR 52, `traceFrom2250` and
+/// `twoWakeBouts`.
 private func nightOn3Nov(
     sleepingHR: Double? = 52,
+    sleepOnset: Date? = at(2, 23),
     timeAsleep: TimeInterval? = 7 * oneHour + 45 * oneMinute,
     timeInBedStart: Date? = at(2, 22, 50),
     timeInBedEnd: Date? = at(3, 7, 10),
@@ -54,7 +56,7 @@ private func nightOn3Nov(
     Night(
         day: nov3,
         sleepingHR: sleepingHR,
-        sleepOnset: at(2, 23),
+        sleepOnset: sleepOnset,
         finalWake: at(3, 7),
         timeAsleep: timeAsleep,
         timeInBedStart: timeInBedStart,
@@ -784,4 +786,184 @@ private let yourWeekNights = [
         ]
     )
     #expect(lane?.timeInBed == DateInterval(start: at(2, 22, 50), end: at(3, 7, 10)))
+}
+
+// MARK: What stood out
+
+// Spec 012's success criteria under "What stood out": the 3 Nov Night (`nightOn3Nov`) and Nights
+// dated 28 Oct to 2 Nov each with Sleep Onset 23:00 the evening before (`tonightNight`).
+
+/// The Nights dated 28 Oct to 2 Nov, each Sleep Onset 23:00 the evening before.
+private let sixEarlierNights =
+    (28...31).map { tonightNight(month: 10, $0, timeAsleep: 8 * oneHour) }
+    + (1...2).map { tonightNight(month: 11, $0, timeAsleep: 8 * oneHour) }
+
+@Test func whatStoodOutReadsWakeBoutsThenBedtimeThenHeartRate() {
+    let standouts = sleepView(nights: sixEarlierNights + [nightOn3Nov()]).standouts
+
+    #expect(
+        standouts.map(\.text) == [
+            "Woke 2 times \u{00B7} 15 min awake",
+            "Fell asleep around your usual time",
+            "Heart rate settled to 52 bpm",
+        ]
+    )
+    #expect(
+        standouts.map(\.detail) == [
+            "02:10 \u{00B7} 8 min \u{00B7} 04:30 \u{00B7} 7 min",
+            "Usual 23:00, last night 23:00",
+            "Its lowest stretch: your Sleeping HR",
+        ]
+    )
+}
+
+/// The bedtime row with 3 Nov's Sleep Onset at `sleepOnset`, against a usual 23:00.
+private func bedtimeStandout(sleepOnset: Date) -> SleepStandout? {
+    let night = nightOn3Nov(sleepOnset: sleepOnset)
+    return sleepView(nights: sixEarlierNights + [night]).standouts
+        .first { $0.text.hasPrefix("Fell asleep") }
+}
+
+@Test func fallingAsleepFortyMinutesAfterTheUsualSleepOnsetReadsLaterThanUsual() {
+    let row = bedtimeStandout(sleepOnset: at(2, 23, 40))
+
+    #expect(row?.text == "Fell asleep 40 min later than usual")
+    #expect(row?.detail == "Usual 23:00, last night 23:40")
+}
+
+@Test func fallingAsleepFortyMinutesBeforeTheUsualSleepOnsetReadsEarlierThanUsual() {
+    #expect(
+        bedtimeStandout(sleepOnset: at(2, 22, 20))?.text == "Fell asleep 40 min earlier than usual"
+    )
+}
+
+/// 30 minutes apart is not "more than 30 min apart".
+@Test func fallingAsleepThirtyMinutesFromTheUsualSleepOnsetIsAroundYourUsualTime() {
+    #expect(
+        bedtimeStandout(sleepOnset: at(2, 23, 30))?.text == "Fell asleep around your usual time"
+    )
+}
+
+/// With an earlier Day shown, the detail names "that night": 2 Nov shown, against the Nights dated
+/// 26 Oct to 1 Nov.
+@Test func theBedtimeRowOnAnEarlierDaySaysThatNight() {
+    let nights =
+        (26...31).map { tonightNight(month: 10, $0, timeAsleep: 8 * oneHour) }
+        + (1...2).map { tonightNight(month: 11, $0, timeAsleep: 8 * oneHour) }
+    let view = sleepView(nights: nights, showing: Day(year: 2026, month: 11, day: 2))
+
+    #expect(view.standouts.map(\.text) == ["Fell asleep around your usual time"])
+    #expect(view.standouts.map(\.detail) == ["Usual 23:00, that night 23:00"])
+}
+
+@Test func withOnlyTwoEarlierNightsThereIsNoBedtimeRow() {
+    let nights = [
+        tonightNight(month: 11, 1, timeAsleep: 8 * oneHour),
+        tonightNight(month: 11, 2, timeAsleep: 8 * oneHour),
+        nightOn3Nov(),
+    ]
+
+    #expect(
+        sleepView(nights: nights).standouts.map(\.text) == [
+            "Woke 2 times \u{00B7} 15 min awake",
+            "Heart rate settled to 52 bpm",
+        ]
+    )
+}
+
+/// Without a Sleep Onset there's no minutes awake either (spec 002), so the Wake Bouts row reads
+/// without a total, as under the chart.
+@Test func withNoSleepOnsetThereIsNoBedtimeRow() {
+    let view = sleepView(nights: sixEarlierNights + [nightOn3Nov(sleepOnset: nil)])
+
+    #expect(
+        view.standouts.map(\.text) == [
+            "Woke 2 times",
+            "Heart rate settled to 52 bpm",
+        ]
+    )
+}
+
+@Test func withNoWakeBoutsKeptThereIsNoWakeBoutsRow() {
+    let view = sleepView(nights: sixEarlierNights + [nightOn3Nov(wakeBouts: nil)])
+
+    #expect(
+        view.standouts.map(\.text) == [
+            "Fell asleep around your usual time",
+            "Heart rate settled to 52 bpm",
+        ]
+    )
+}
+
+/// The not-kept rule follows the Heart Rate Trace, as under the chart: Wake Bouts still on the
+/// Night give no Wake Bouts row without a Heart Rate Trace.
+@Test func withNoHeartRateTraceThereIsNoWakeBoutsRow() {
+    let view = sleepView(nights: sixEarlierNights + [nightOn3Nov(heartRateTrace: nil)])
+
+    #expect(
+        view.standouts.map(\.text) == [
+            "Fell asleep around your usual time",
+            "Heart rate settled to 52 bpm",
+        ]
+    )
+}
+
+@Test func withNoSleepingHRThereIsNoHeartRateRow() {
+    let view = sleepView(nights: sixEarlierNights + [nightOn3Nov(sleepingHR: nil)])
+
+    #expect(
+        view.standouts.map(\.text) == [
+            "Woke 2 times \u{00B7} 15 min awake",
+            "Fell asleep around your usual time",
+        ]
+    )
+}
+
+@Test func withNoNightOnTheDayShownThereIsNoWhatStoodOut() {
+    #expect(sleepView(nights: sixEarlierNights).standouts.isEmpty)
+}
+
+/// The bedtime is compared the shortest way round the clock: against a usual 23:50, 00:10 is 20
+/// minutes later ("around"), 00:40 is 50 minutes later.
+@Test func theBedtimeRowComparesRoundMidnightTheShortWay() {
+    let earlier =
+        (28...31).map { day in
+            Night(
+                day: Day(year: 2026, month: 10, day: day),
+                sleepOnset: at(month: 10, day, 0) - 10 * oneMinute
+            )
+        }
+        + (1...2).map { day in
+            Night(
+                day: Day(year: 2026, month: 11, day: day),
+                sleepOnset: at(day, 0) - 10 * oneMinute
+            )
+        }
+    let row = { (onset: Date) in
+        sleepView(nights: earlier + [nightOn3Nov(sleepOnset: onset)]).standouts
+            .first { $0.text.hasPrefix("Fell asleep") }
+    }
+
+    #expect(row(at(3, 0, 10))?.text == "Fell asleep around your usual time")
+    #expect(row(at(3, 0, 10))?.detail == "Usual 23:50, last night 00:10")
+    #expect(row(at(3, 0, 40))?.text == "Fell asleep 50 min later than usual")
+}
+
+/// The Wake Bouts row lists them oldest first, whatever order the Night holds them in.
+@Test func theWakeBoutsRowListsThemOldestFirst() {
+    let night = nightOn3Nov(wakeBouts: twoWakeBouts.reversed())
+
+    #expect(
+        sleepView(nights: sixEarlierNights + [night]).standouts.first?.detail
+            == "02:10 \u{00B7} 8 min \u{00B7} 04:30 \u{00B7} 7 min"
+    )
+}
+
+/// A Night with its Wake Bouts kept but none reads "Didn't wake", with nothing more to add.
+@Test func aNightWithNoWakeBoutsReadsDidntWakeWithNoDetail() {
+    let night = nightOn3Nov(wakeBouts: [])
+    let first = sleepView(nights: sixEarlierNights + [night]).standouts.first
+
+    #expect(first?.text == "Didn't wake")
+    #expect(first?.detail == "")
 }
