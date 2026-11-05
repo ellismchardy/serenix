@@ -124,8 +124,12 @@ final class BodyStore: ObservableObject {
     }
 
     /// Ends the current Weight Goal, keeping it.
-    func removeGoal() {
-        change { context in try Self.endCurrentGoal(in: context, reason: .removed) }
+    func removeGoal() { endGoal(.removed) }
+
+    /// Ends the current Weight Goal for `reason`, keeping it (ADR 0008). Returns whether it saved.
+    @discardableResult
+    func endGoal(_ reason: GoalEnd) -> Bool {
+        change { context in try Self.endCurrentGoal(in: context, reason: reason) }
     }
 
     private static func currentGoal(in context: ModelContext) throws -> StoredWeightGoal? {
@@ -142,19 +146,23 @@ final class BodyStore: ObservableObject {
     }
 
     /// Makes a change and saves it; on any failure nothing changes and the user is told.
-    private func change(_ edit: (ModelContext) throws -> Void) {
+    /// Returns whether it saved.
+    @discardableResult
+    private func change(_ edit: (ModelContext) throws -> Void) -> Bool {
         guard let context else {
             failure = "Your Body data couldn't be opened, so the change wasn't saved."
-            return
+            return false
         }
+        defer { reload() }
         do {
             try edit(context)
             try context.save()
+            return true
         } catch {
             context.rollback()
             failure = "The change wasn't saved: \(error.localizedDescription)"
+            return false
         }
-        reload()
     }
 
     private static func check(_ weighIn: WeighIn) throws {

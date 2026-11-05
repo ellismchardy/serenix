@@ -9,19 +9,30 @@ struct WeightGoalSheet: View {
     let view: BodyView
     let units: WeightUnits
     let save: (WeightGoal) -> Void
+    /// Ends the current goal, kept as removed; nil for a new goal.
+    let remove: (() -> Void)?
     @State private var startText: String
     @State private var startDate: Date
     @State private var goalText = ""
     @State private var rate: Double?
     @State private var byDate = false
     @State private var milestoneStep: MilestoneStep = .medium
+    /// Hold weight instead of losing or gaining.
+    @State private var holds = false
+    @State private var holdBand = 1.0
     @State private var targetDate = Date()
     @Environment(\.dismiss) private var dismiss
 
-    init(view: BodyView, units: WeightUnits, save: @escaping (WeightGoal) -> Void) {
+    init(
+        view: BodyView,
+        units: WeightUnits,
+        save: @escaping (WeightGoal) -> Void,
+        remove: (() -> Void)? = nil
+    ) {
         self.view = view
         self.units = units
         self.save = save
+        self.remove = remove
         // An existing goal keeps its own start; a new one starts at today's Trend Weight.
         let existing = view.goalCard?.goal
         let startWeight = existing?.startWeight ?? view.newGoalStart?.weight
@@ -32,6 +43,10 @@ struct WeightGoalSheet: View {
         if let goal = existing {
             _goalText = State(initialValue: Self.text(goal.goalWeight, in: units))
             _milestoneStep = State(initialValue: goal.milestoneStep ?? .medium)
+            if let band = goal.holdBand {
+                _holds = State(initialValue: true)
+                _holdBand = State(initialValue: band)
+            }
             switch goal.pace {
             case .rate(let kilogramsPerWeek):
                 _rate = State(initialValue: kilogramsPerWeek)
@@ -54,6 +69,18 @@ struct WeightGoalSheet: View {
 
     /// The goal as typed, once every field reads.
     private var draft: WeightGoal? {
+        if holds {
+            guard let goalWeight else { return nil }
+            // A hold edits an existing hold from its own start; any other hold starts today.
+            let start =
+                view.goalCard?.goal.holdBand != nil
+                ? view.goalCard?.goal.startDay : nil
+            return WeightGoal.hold(
+                at: goalWeight,
+                band: holdBand,
+                on: start ?? Day(containing: Date(), in: .current)
+            )
+        }
         guard let startWeight, let goalWeight else { return nil }
         let pace: GoalPace
         if byDate {
@@ -80,24 +107,45 @@ struct WeightGoalSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Start") {
-                    TextField("Start Weight (\(Self.symbol(units)))", text: $startText)
-                        .keyboardType(.decimalPad)
-                    DatePicker(
-                        "Start date",
-                        selection: $startDate,
-                        in: ...Date(),
-                        displayedComponents: .date
-                    )
+                Picker("Goal", selection: $holds) {
+                    Text("Lose or gain").tag(false)
+                    Text("Hold").tag(true)
                 }
-                Section("Goal") {
+                .pickerStyle(.segmented)
+                // A hold has no separate start: it holds the weight below from today.
+                if !holds {
+                    Section("Start") {
+                        TextField("Start Weight (\(Self.symbol(units)))", text: $startText)
+                            .keyboardType(.decimalPad)
+                        DatePicker(
+                            "Start date",
+                            selection: $startDate,
+                            in: ...Date(),
+                            displayedComponents: .date
+                        )
+                    }
+                }
+                if holds {
+                    Section("Hold band") {
+                        Picker("Either side", selection: $holdBand) {
+                            ForEach(WeightGoal.holdBandOptions, id: \.self) { band in
+                                Text(
+                                    (units == .kilograms ? units : .pounds)
+                                        .text(band, locale: .current)
+                                )
+                                .tag(band)
+                            }
+                        }
+                    }
+                }
+                Section(holds ? "Weight to hold" : "Goal") {
                     TextField("Goal Weight (\(Self.symbol(units)))", text: $goalText)
                         .keyboardType(.decimalPad)
                 }
                 if let refusal {
                     Text(refusal.message).foregroundStyle(.red)
                 }
-                if let direction {
+                if !holds, let direction {
                     Section("Pace") {
                         Picker("Pace", selection: $byDate) {
                             Text("By rate").tag(false)
@@ -144,6 +192,14 @@ struct WeightGoalSheet: View {
             .navigationTitle("Weight Goal")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                if let remove {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button("Remove goal", role: .destructive) {
+                            remove()
+                            dismiss()
+                        }
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if let draft, refusal == nil { save(draft) }

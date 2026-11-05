@@ -113,12 +113,16 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
       Ease the goal's count (`WeightGoal.saved(over:on:)`).
     - Done when: criteria "Milestones 86, 84, 82, 80; 86 and 84 passed at 83.9", "50%, 5.0 kg
       lost, 5.0 to go", and the lb-unit Milestone steps.
-11. [ ] **Slice:** Reached, hold and ending goals. Trend Weight reaching Goal Weight marks Reached
+11. [x] **Slice:** Reached, hold and ending goals. Trend Weight reaching Goal Weight marks Reached
     and ends the goal; hold goals with an editable band (In band / Above band / Below band, no
     badge, projection or Milestones); changing direction or removing ends the goal. Shell: the
     celebration and one-tap hold, hold in the sheet.
     - Seam: Body view · Files: `WeightGoal.swift`, `BodyView.swift`, `BodyViewTests.swift`,
       `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightGoalSheet.swift`, `src/SerenixApp/BodyStore.swift`
+    - Tests in `WeightGoalTests.swift`. After review: the celebration shows only once the end is
+      saved; a hold starts today and the sheet hides Start in Hold mode.
+    - Open (asked the owner): refuse saving a goal Trend Weight has already reached? Offer Undo
+      in the celebration, since one mistyped Weigh-in can end a goal for good?
     - Done when: criteria "Reached on Trend Weight, not a raw Weigh-in", "hold at 78 ± 1",
       "changing direction ends the goal and keeps it".
 12. [ ] **Slice:** projected and planned dates. Projection from Weekly Rate, hidden during

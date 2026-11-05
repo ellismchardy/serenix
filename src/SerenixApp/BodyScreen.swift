@@ -7,6 +7,8 @@ struct BodyScreen: View {
     @ObservedObject var profile: ProfileStore
     @State private var showsWeighInSheet = false
     @State private var showsGoalSheet = false
+    /// The Goal Weight just reached, while its celebration shows (spec 014, Reached).
+    @State private var reachedWeight: Double?
 
     var body: some View {
         let view = BodyView(
@@ -35,8 +37,12 @@ struct BodyScreen: View {
                     }
                     WeightChartCard(view: view, units: profile.units)
                     if let card = view.goalCard {
-                        goalCards(card, weeklyRate: view.weeklyRate)
-                        milestonesCard(card)
+                        if let state = card.holdState {
+                            holdCard(card, state: state)
+                        } else {
+                            goalCards(card, weeklyRate: view.weeklyRate)
+                            milestonesCard(card)
+                        }
                     } else if view.trendWeight != nil {
                         setGoalCard
                     }
@@ -67,8 +73,38 @@ struct BodyScreen: View {
                 }
                 .accessibilityLabel("Log a Weigh-in")
             }
+            // A goal Trend Weight has reached ends, kept as Reached, and a celebration offers a
+            // hold goal at that weight (spec 014, Reached).
+            .task(id: view.goalCard?.reached) {
+                guard let card = view.goalCard, card.reached else { return }
+                // Celebrate only once the end is saved; a failed save shows its own alert.
+                if store.endGoal(.reached) { reachedWeight = card.goal.goalWeight }
+            }
+            .alert(
+                "Goal reached!",
+                isPresented: Binding(
+                    get: { reachedWeight != nil },
+                    set: { if !$0 { reachedWeight = nil } }
+                )
+            ) {
+                if let weight = reachedWeight {
+                    Button("Hold at \(profile.units.text(weight, locale: .current))") {
+                        store.setGoal(
+                            WeightGoal.hold(at: weight, on: Day(containing: Date(), in: .current))
+                        )
+                    }
+                }
+                Button("Not now", role: .cancel) {}
+            } message: {
+                Text("Your Trend Weight reached your Goal Weight.")
+            }
             .sheet(isPresented: $showsGoalSheet) {
-                WeightGoalSheet(view: view, units: profile.units) { store.setGoal($0) }
+                WeightGoalSheet(
+                    view: view,
+                    units: profile.units,
+                    save: { store.setGoal($0) },
+                    remove: view.goalCard == nil ? nil : { store.removeGoal() }
+                )
             }
             .sheet(isPresented: $showsWeighInSheet) {
                 WeighInSheet(units: profile.units, lastWeight: view.lastWeighIn?.kilograms) {
@@ -141,6 +177,40 @@ struct BodyScreen: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// A hold goal's card: where Trend Weight sits against the band (spec 014, Hold).
+    private func holdCard(_ card: GoalCard, state: HoldState) -> some View {
+        let units = profile.units
+        let band = card.goal.holdBand ?? 1
+        let (text, colour): (String, Color) =
+            switch state {
+            case .inBand: ("In band", .green)
+            case .aboveBand: ("Above band", .orange)
+            case .belowBand: ("Below band", .orange)
+            }
+        return Button {
+            showsGoalSheet = true
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("HOLD").font(.caption).foregroundStyle(.secondary)
+                Text(
+                    "\(units.text(card.goal.goalWeight, locale: .current)) ± "
+                        + (units == .kilograms ? units : .pounds).text(band, locale: .current)
+                )
+                .font(.headline)
+                Text(text)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(colour.opacity(0.18), in: Capsule())
+                    .foregroundStyle(colour)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .themeCard()
+        }
+        .buttonStyle(.plain)
     }
 
     /// The Milestones card: each Milestone, passed ones ticked, and how far along the goal is

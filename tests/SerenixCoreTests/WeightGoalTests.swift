@@ -826,3 +826,90 @@ private let largeStepGoal = WeightGoal(
     )
     #expect(edit.saved(over: current, on: nov5).changedDay == nov5)
 }
+
+// Reached and hold Weight Goals (spec 014, Weight Goal → Hold; Progress → Reached). A lose goal
+// is Reached at or below Goal Weight, a gain goal at or above, judged on Trend Weight, never a
+// single Weigh-in. A hold goal shows In band, Above band or Below band within ±its band.
+
+@Test func aLoseGoalIsReachedWhenTrendWeightIsAtOrBelowGoalWeight() {
+    // 88 → 78 at 0.5 kg a week.
+    #expect(card(milestoneGoal(from: 88, to: 78), trend: 78.0)?.reached == true)
+    #expect(card(milestoneGoal(from: 88, to: 78), trend: 77.5)?.reached == true)
+    #expect(card(milestoneGoal(from: 88, to: 78), trend: 78.2)?.reached == false)
+}
+
+@Test func aWeighInBelowGoalWeightWithTrendWeightAboveItIsNotReached() {
+    // 80.0 on 4 Nov starts the trend at 80.0; 77.0 on 5 Nov closes 1 − 0.9 = 0.1 of the gap:
+    // 80.0 + 0.1 × (77.0 − 80.0) = 79.7, still above the 78 Goal Weight.
+    let weighIns = [
+        WeighIn(time: at(4, 7), kilograms: 80.0),
+        WeighIn(time: at(5, 7), kilograms: 77.0),
+    ]
+    let card = bodyView(weighIns: weighIns, goal: milestoneGoal(from: 88, to: 78)).goalCard
+    #expect(card?.reached == false)
+}
+
+@Test func aGainGoalIsReachedWhenTrendWeightIsAtOrAboveGoalWeight() {
+    let gain = WeightGoal(
+        startWeight: 70.0,
+        startDay: nov5,
+        goalWeight: 75.0,
+        pace: .rate(kilogramsPerWeek: 0.25)
+    )
+    #expect(card(gain, trend: 75.0)?.reached == true)
+    #expect(card(gain, trend: 74.9)?.reached == false)
+}
+
+@Test func aHoldGoalHoldsAtItsWeightWithNoPaceAndAOneKilogramBand() {
+    let hold = WeightGoal.hold(at: 78, on: nov5)
+    #expect(hold.direction == .hold)
+    #expect(hold.pace == nil)
+    #expect(hold.holdBand == 1.0)
+    #expect(hold.startWeight == 78)
+    #expect(hold.goalWeight == 78)
+    #expect(hold.startDay == nov5)
+}
+
+@Test func aHoldGoalShowsInAboveOrBelowBandFromTrendWeight() {
+    let hold = WeightGoal.hold(at: 78, band: 1.0, on: nov5)
+    #expect(card(hold, trend: 78.9)?.holdState == .inBand)
+    #expect(card(hold, trend: 79.0)?.holdState == .inBand)
+    #expect(card(hold, trend: 79.1)?.holdState == .aboveBand)
+    #expect(card(hold, trend: 76.9)?.holdState == .belowBand)
+}
+
+@Test func aHoldGoalHasNoBadgeMilestonesEaseOrReached() {
+    let holdCard = card(WeightGoal.hold(at: 78, on: nov5), trend: 78.5)
+    #expect(holdCard != nil)
+    #expect(holdCard?.status == nil)
+    #expect(holdCard?.milestones == [])
+    #expect(holdCard?.ease == nil)
+    #expect(holdCard?.reached == false)
+}
+
+@Test func aLoseOrGainGoalHasNoHoldState() {
+    #expect(card(milestoneGoal(from: 88, to: 78), trend: 78.5)?.holdState == nil)
+}
+
+@Test func theHoldBandsOfferedRunFromHalfAKilogramToThreeInHalfKilogramSteps() {
+    #expect(WeightGoal.holdBandOptions == [0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
+}
+
+@Test func aHoldGoalWithAnOfferedBandCanBeSaved() {
+    #expect(WeightGoal.hold(at: 78, band: 1.0, on: nov5).refusal(units: .kilograms) == nil)
+}
+
+@Test func aHoldGoalWithABandNotOfferedIsRefused() {
+    let refusal = WeightGoal.hold(at: 78, band: 0.7, on: nov5).refusal(units: .kilograms)
+    #expect(refusal == .bandNotOffered)
+    #expect(refusal?.message == "Pick one of the bands offered.")
+}
+
+@Test func aHoldGoalOutsideTwentyToThreeHundredFiftyKilogramsIsRefused() {
+    #expect(WeightGoal.hold(at: 400, on: nov5).refusal(units: .kilograms) == .weightOutOfRange)
+}
+
+@Test func aHoldGoalEndsALoseGoalRatherThanEditingIt() {
+    let lose = milestoneGoal(from: 88, to: 78)
+    #expect(!WeightGoal.hold(at: 78, on: nov5).edits(lose))
+}

@@ -72,6 +72,9 @@ public struct WeightGoal: Equatable, Codable, Sendable {
     public let changedDay: Day?
     /// How far apart its Milestones are; nil is the medium step. Optional, so older goals decode.
     public let milestoneStep: MilestoneStep?
+    /// For a goal that holds weight: kg either side of Goal Weight; nil for lose and gain.
+    /// Optional, so older goals decode.
+    public let holdBand: Double?
 
     public init(
         startWeight: Double,
@@ -79,7 +82,8 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         goalWeight: Double,
         pace: GoalPace?,
         changedDay: Day? = nil,
-        milestoneStep: MilestoneStep? = nil
+        milestoneStep: MilestoneStep? = nil,
+        holdBand: Double? = nil
     ) {
         self.startWeight = startWeight
         self.startDay = startDay
@@ -87,6 +91,7 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         self.pace = pace
         self.changedDay = changedDay
         self.milestoneStep = milestoneStep
+        self.holdBand = holdBand
     }
 
     /// This goal as saved over `current` on `day`: marked as changed that Day when it aims
@@ -96,13 +101,15 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         let aimsTheSame =
             startWeight == current.startWeight && startDay == current.startDay
             && goalWeight == current.goalWeight && pace == current.pace
+            && holdBand == current.holdBand
         return WeightGoal(
             startWeight: startWeight,
             startDay: startDay,
             goalWeight: goalWeight,
             pace: pace,
             changedDay: aimsTheSame ? current.changedDay : day,
-            milestoneStep: milestoneStep
+            milestoneStep: milestoneStep,
+            holdBand: holdBand
         )
     }
 
@@ -114,14 +121,29 @@ public struct WeightGoal: Equatable, Codable, Sendable {
             goalWeight: goalWeight,
             pace: pace,
             changedDay: day,
-            milestoneStep: milestoneStep
+            milestoneStep: milestoneStep,
+            holdBand: holdBand
         )
     }
 
-    /// Lose when Goal Weight is below Start Weight, otherwise gain.
+    /// Hold with a hold band; otherwise lose when Goal Weight is below Start Weight, else gain.
     public var direction: GoalDirection {
-        goalWeight < startWeight ? .lose : .gain
+        holdBand != nil ? .hold : goalWeight < startWeight ? .lose : .gain
     }
+
+    /// A goal that holds `weight`, within `band` kg either side, from `day` (spec 014, Hold).
+    public static func hold(at weight: Double, band: Double = 1.0, on day: Day) -> WeightGoal {
+        WeightGoal(
+            startWeight: weight,
+            startDay: day,
+            goalWeight: weight,
+            pace: nil,
+            holdBand: band
+        )
+    }
+
+    /// The hold bands offered, kg either side of Goal Weight (spec 014: 0.5 to 3 kg by 0.5).
+    public static let holdBandOptions = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 }
 
 /// Where a new Weight Goal starts by default: today's Trend Weight, today.
@@ -152,6 +174,11 @@ public struct GoalCard: Equatable, Sendable {
     public let milestones: [Milestone]
     /// How far along the goal is.
     public let progress: GoalProgress
+    /// Trend Weight has reached Goal Weight (at or below to lose, at or above to gain); never
+    /// for a hold goal. A Reached goal ends (spec 014, Reached).
+    public let reached: Bool
+    /// Where Trend Weight sits against a hold goal's band; nil for lose and gain.
+    public let holdState: HoldState?
 
     /// `weighInSpan` is the Days from the first counted Weigh-in to the latest.
     init(
@@ -166,6 +193,15 @@ public struct GoalCard: Equatable, Sendable {
         self.ease = ease
         milestones = Milestone.all(for: goal, trendWeight: trendWeight, units: units)
         progress = GoalProgress(goal: goal, trendWeight: trendWeight)
+        switch goal.direction {
+        case .lose: reached = trendWeight <= goal.goalWeight
+        case .gain: reached = trendWeight >= goal.goalWeight
+        case .hold: reached = false
+        }
+        holdState = goal.holdBand.map { band in
+            trendWeight > goal.goalWeight + band
+                ? .aboveBand : trendWeight < goal.goalWeight - band ? .belowBand : .inBand
+        }
         self.goal = goal
         direction = goal.direction
         if let kilogramsPerWeek = goal.paceKilogramsPerWeek(trendWeight: trendWeight, today: today)
@@ -202,6 +238,7 @@ public enum GoalRefusal: Equatable, Sendable {
     case weightOutOfRange
     case rateNotOffered
     case dateTooEarly
+    case bandNotOffered
 
     public var message: String {
         switch self {
@@ -209,6 +246,7 @@ public enum GoalRefusal: Equatable, Sendable {
         case .weightOutOfRange: "Weights must be 20–350 kg."
         case .rateNotOffered: "Pick one of the Paces offered."
         case .dateTooEarly: "Pick a date no earlier than a 1%-a-week Pace allows."
+        case .bandNotOffered: "Pick one of the bands offered."
         }
     }
 }
@@ -235,6 +273,10 @@ extension WeightGoal {
         let allowed = WeighIn.allowedKilograms
         guard allowed.contains(startWeight), allowed.contains(goalWeight) else {
             return .weightOutOfRange
+        }
+        if let holdBand {
+            let offered = Self.holdBandOptions.contains { abs($0 - holdBand) < Self.rateTolerance }
+            return offered ? nil : .bandNotOffered
         }
         guard let direction = Self.direction(startWeight: startWeight, goalWeight: goalWeight)
         else { return .sameAsStart }
@@ -425,7 +467,8 @@ extension WeightGoal {
             goalWeight: goalWeight,
             pace: pace,
             changedDay: day,
-            milestoneStep: milestoneStep
+            milestoneStep: milestoneStep,
+            holdBand: holdBand
         )
     }
 }
@@ -503,4 +546,11 @@ public struct GoalProgress: Equatable, Sendable {
             goal.direction == .lose ? trendWeight - goal.goalWeight : goal.goalWeight - trendWeight
         toGo = max(0, left)
     }
+}
+
+/// Where Trend Weight sits against a hold goal's band (spec 014, Hold).
+public enum HoldState: String, Sendable {
+    case inBand
+    case aboveBand
+    case belowBand
 }
