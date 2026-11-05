@@ -23,6 +23,7 @@ struct BodyScreen: View {
                         Text("Log your first Weigh-in")
                             .font(.title3.weight(.semibold))
                     }
+                    WeightChartCard(view: view)
                     if !view.weighIns.isEmpty {
                         NavigationLink("All Weigh-ins") {
                             WeighInList(store: store)

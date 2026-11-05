@@ -46,10 +46,10 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
      `src/SerenixApp/BodyStore.swift` (edit and delete by row)
    - Done when: criteria "15 Days restarts, 14 does not" and "under 20, over 350 or future is
      refused".
-3. [ ] **Slice:** the chart. Points per range (1W, 1M, 3M, 6M, All) with line breaks; empty
+3. [x] **Slice:** the chart. Points per range (1W, 1M, 3M, 6M, All) with line breaks; empty
    states (no Weigh-ins, one Weigh-in). Shell draws the chart and range chips.
    - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`,
-     `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightChart.swift` (new)
+     `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightChartCard.swift` (new)
    - Done when: the spec's chart ranges and empty/early states hold in the Body view's output
      (tests per range, no Weigh-ins, one Weigh-in).
 4. [ ] **Slice:** units and Profile. `Profile` gains height (cm) and Units (kg default, lb, st
@@ -106,7 +106,7 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
     Settling in or when Weekly Rate is zero or away; planned date; "All" extends to the
     projection. Shell: the Goal card dates and the dashed projection.
     - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`,
-      `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightChart.swift`
+      `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightChartCard.swift`
     - Done when: criterion "projection hidden …; 10 weeks at 83 kg, Goal 78, −0.5".
 13. [ ] **Slice:** JSON backup and import. `BodyDataFile` encodes all Body data (versioned) and
     decodes it; an import adds new entries and skips exact duplicates, with counts; an

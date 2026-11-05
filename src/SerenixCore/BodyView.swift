@@ -11,8 +11,11 @@ public struct BodyView: Equatable, Sendable {
     public let lastWeighIn: WeighIn?
     /// Every Weigh-in, newest first, for the Weigh-in list.
     public let weighIns: [WeighIn]
+    /// Today, where every chart range ends.
+    private let today: Day
 
     public init(weighIns: [WeighIn], now: Date, timeZone: TimeZone) {
+        today = Day(containing: now, in: timeZone)
         let newestFirst = weighIns.sorted { $0.time > $1.time }
         self.weighIns = newestFirst
         lastWeighIn = newestFirst.first
@@ -54,4 +57,51 @@ public struct BodyView: Equatable, Sendable {
         }
         return points
     }
+
+    /// The chart over `range`, ending today (spec 014, Screen); nil with no Weigh-ins, when the
+    /// screen shows "Log your first Weigh-in" instead.
+    public func chart(_ range: ChartRange) -> WeightChart? {
+        guard let first = trend.first else { return nil }
+        let firstDay = range.days.map { today.adding(days: 1 - $0) } ?? first.day
+        let points = trend.filter { $0.day >= firstDay && $0.day <= today }
+        return WeightChart(firstDay: firstDay, lastDay: today, points: points)
+    }
+}
+
+/// How far back the Body tab's chart reaches (spec 014, Screen).
+public enum ChartRange: CaseIterable, Sendable {
+    case week, month, threeMonths, sixMonths, all
+
+    public var label: String {
+        switch self {
+        case .week: "1W"
+        case .month: "1M"
+        case .threeMonths: "3M"
+        case .sixMonths: "6M"
+        case .all: "All"
+        }
+    }
+
+    /// How many Days the range shows, today included: a week, about a month (30), 13 weeks (91)
+    /// and 26 weeks (182); nil for All, which starts at the first counted Weigh-in.
+    var days: Int? {
+        switch self {
+        case .week: 7
+        case .month: 30
+        case .threeMonths: 91
+        case .sixMonths: 182
+        case .all: nil
+        }
+    }
+}
+
+/// The Body tab's chart over one range: Trend Weight points from `firstDay` to `lastDay` (today).
+public struct WeightChart: Equatable, Sendable {
+    public let firstDay: Day
+    public let lastDay: Day
+    /// Oldest first.
+    public let points: [TrendPoint]
+
+    /// One point is a dot with no line; two or more draw Trend Weight's line.
+    public var showsLine: Bool { points.count >= 2 }
 }

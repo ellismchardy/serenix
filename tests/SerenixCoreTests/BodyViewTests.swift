@@ -133,3 +133,87 @@ private func isClose(_ actual: Double?, _ expected: Double) -> Bool {
     #expect(WeighIn(time: at(4, 7), kilograms: 20.0).refusal(now: now) == nil)
     #expect(WeighIn(time: at(4, 7), kilograms: 350.0).refusal(now: now) == nil)
 }
+
+// The chart (spec 014, Screen: chart ranges, empty and early states). Range first Days are
+// today (5 Nov 2026) minus 6, 29, 90 and 181 Days, counted by hand on the calendar.
+
+private let oct20 = Day(year: 2026, month: 10, day: 20)
+
+private let nov5 = Day(year: 2026, month: 11, day: 5)
+
+@Test func eachChartRangeRunsFromItsFirstDayToToday() {
+    let view = bodyView(weighIns: [WeighIn(time: at(4, 7), kilograms: 80.0)])
+
+    #expect(view.chart(.week)?.firstDay == Day(year: 2026, month: 10, day: 30))
+    #expect(view.chart(.month)?.firstDay == Day(year: 2026, month: 10, day: 7))
+    #expect(view.chart(.threeMonths)?.firstDay == Day(year: 2026, month: 8, day: 7))
+    #expect(view.chart(.sixMonths)?.firstDay == Day(year: 2026, month: 5, day: 8))
+    for range in ChartRange.allCases {
+        #expect(view.chart(range)?.lastDay == nov5)
+    }
+}
+
+@Test func theWeekChartHoldsOnlyTrendWeightPointsFromTheLastSevenDays() {
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 20, 7), kilograms: 81.0),
+        WeighIn(time: at(1, 7), kilograms: 80.0),
+        WeighIn(time: at(4, 7), kilograms: 79.0),
+    ])
+
+    #expect(view.chart(.week)?.points.map(\.day) == [nov1, nov4])
+}
+
+@Test func theAllChartStartsAtTheFirstCountedWeighInAndHoldsEveryPoint() {
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 20, 7), kilograms: 81.0),
+        WeighIn(time: at(1, 7), kilograms: 80.0),
+        WeighIn(time: at(4, 7), kilograms: 79.0),
+    ])
+
+    let chart = view.chart(.all)
+    #expect(chart?.firstDay == oct20)
+    #expect(chart?.lastDay == nov5)
+    #expect(chart?.points.map(\.day) == [oct20, nov1, nov4])
+}
+
+@Test func withNoWeighInsThereIsNoChartInAnyRange() {
+    let view = bodyView(weighIns: [])
+
+    for range in ChartRange.allCases {
+        #expect(view.chart(range) == nil)
+    }
+}
+
+@Test func oneWeighInGivesOneDotAndNoLine() {
+    let view = bodyView(weighIns: [WeighIn(time: at(4, 7), kilograms: 80.0)])
+
+    let chart = view.chart(.week)
+    #expect(chart?.points.map(\.day) == [nov4])
+    #expect(chart?.showsLine == false)
+}
+
+@Test func twoCountedWeighInsInRangeDrawTheLine() {
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(1, 7), kilograms: 80.0),
+        WeighIn(time: at(4, 7), kilograms: 79.0),
+    ])
+
+    let chart = view.chart(.week)
+    #expect(chart?.points.count == 2)
+    #expect(chart?.showsLine == true)
+}
+
+@Test func aRestartInsideTheRangeBreaksTheChartsLine() {
+    // 20 Oct to 4 Nov is 15 Days, so Trend Weight restarts on 4 Nov (spec 014, Trend Weight).
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 20, 7), kilograms: 80.0),
+        WeighIn(time: at(4, 7), kilograms: 79.0),
+        WeighIn(time: at(5, 7), kilograms: 78.0),
+    ])
+
+    #expect(view.chart(.month)?.points.map(\.startsNewLine) == [true, true, false])
+}
+
+@Test func chartRangesAreLabelledOneWeekToAll() {
+    #expect(ChartRange.allCases.map(\.label) == ["1W", "1M", "3M", "6M", "All"])
+}
