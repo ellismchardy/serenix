@@ -95,10 +95,14 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
      Settling in counts from the latest Trend Weight restart (after review).
    - Done when: criteria "13 Days old shows Settling in, day 13 of 14", "−0.45 / −0.44 / −0.29 /
      +0.1 at Pace 0.5", "Too fast at 80 kg but On pace at 140 kg".
-9. [ ] **Slice:** Ease the goal. Offered after 7 Days in a row Off pace or Too fast, with the
+9. [x] **Slice:** Ease the goal. Offered after 7 Days in a row Off pace or Too fast, with the
    slower or nearer rate option, or the projected date for a date Pace. Shell: the offer on the
    Rate card, applying it edits the Weight Goal.
    - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`, `src/SerenixApp/BodyScreen.swift`
+   - Tests in `WeightGoalTests.swift`, `GoalEase` in `WeightGoal.swift`. After review: no
+     offer that is the goal's own Pace, and a date offer never before the 1%-a-week Day.
+   - Open (asked the owner): after easing, the past 7 Days are judged against the new Pace, so
+     another offer can follow at once.
    - Done when: criterion "offered after 7 Days; 6 is not enough".
 10. [ ] **Slice:** Milestones and progress. Milestones at multiples of 1, 2 or 5 kg (2, 5, 10 lb)
     between Start and Goal Weight; progress %, change since start, to go. Shell: the Milestones

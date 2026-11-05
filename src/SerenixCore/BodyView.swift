@@ -38,25 +38,72 @@ public struct BodyView: Equatable, Sendable {
         trend = Self.trend(of: weighIns, in: timeZone)
         trendWeight = trend.last?.trendWeight
         weeklyRate = Self.weeklyRate(of: trend)
-        let latest = trend.last?.trendWeight
         let day = Day(containing: now, in: timeZone)
-        newGoalStart = latest.map { GoalStart(weight: $0, day: day) }
-        // Counted from the latest restart: after a long gap, Trend Weight starts again and so
-        // does Settling in, since the early water change applies again (issue #61).
-        let points = trend  // a copy: closures can't read `self` before init ends
-        let lineStart = points.last(where: \.startsNewLine)?.day
-        let weighInSpan = lineStart.map { $0.days(until: points.last?.day ?? $0) } ?? 0
-        if let goal, let latest {
-            goalCard = GoalCard(
-                goal: goal,
-                trendWeight: latest,
-                weeklyRate: weeklyRate,
-                weighInSpan: weighInSpan,
-                today: day
+        newGoalStart = trendWeight.map { GoalStart(weight: $0, day: day) }
+        if let goal {
+            goalCard = Self.goalCard(
+                for: goal,
+                trend: trend,
+                today: day,
+                units: units,
+                withEase: true
             )
         } else {
             goalCard = nil
         }
+    }
+
+    /// The goal's cards as of `today`, from the Trend Weight points up to it. With `withEase`,
+    /// easing is offered when the badge was Off pace or Too fast on each of the last
+    /// `GoalEase.offPaceDays` Days, each worked out the same way as of that Day (spec 014).
+    static func goalCard(
+        for goal: WeightGoal,
+        trend allPoints: [TrendPoint],
+        today: Day,
+        units: WeightUnits,
+        withEase: Bool
+    ) -> GoalCard? {
+        let points = Array(allPoints.prefix { $0.day <= today })  // the trend is sorted
+        guard let latest = points.last?.trendWeight else { return nil }
+        let weeklyRate = weeklyRate(of: points)
+        // Counted from the latest restart: after a long gap, Trend Weight starts again and so
+        // does Settling in, since the early water change applies again (issue #61).
+        let lineStart = points.last(where: \.startsNewLine)?.day
+        let weighInSpan = lineStart.map { $0.days(until: points.last?.day ?? $0) } ?? 0
+        var ease: GoalEase?
+        if withEase {
+            // Each of the last 7 Days' status, today first, each from the Weigh-ins up to it.
+            let statuses = (0..<GoalEase.offPaceDays).map { back in
+                goalCard(
+                    for: goal,
+                    trend: points,
+                    today: today.adding(days: -back),
+                    units: units,
+                    withEase: false
+                )?.status
+            }
+            let offPaceEveryDay = statuses.allSatisfy {
+                $0 == .badge(.offPace) || $0 == .badge(.tooFast)
+            }
+            if offPaceEveryDay, case .badge(let badge)?? = statuses.first {
+                ease = GoalEase.offer(
+                    goal: goal,
+                    badge: badge,
+                    weeklyRate: weeklyRate,
+                    trendWeight: latest,
+                    today: today,
+                    units: units
+                )
+            }
+        }
+        return GoalCard(
+            goal: goal,
+            trendWeight: latest,
+            weeklyRate: weeklyRate,
+            weighInSpan: weighInSpan,
+            today: today,
+            ease: ease
+        )
     }
 
     /// The earliest Day and quick picks for a Pace by date to `goalWeight`; nil with no Trend

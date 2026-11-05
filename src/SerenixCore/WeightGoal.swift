@@ -103,6 +103,8 @@ public struct GoalCard: Equatable, Sendable {
     public let paceBand: PaceBand?
     /// Settling in, or the pace badge; nil without a Pace.
     public let status: PaceStatus?
+    /// An easier goal to offer, only after 7 Days in a row Off pace or Too fast (spec 014).
+    public let ease: GoalEase?
 
     /// `weighInSpan` is the Days from the first counted Weigh-in to the latest.
     init(
@@ -110,8 +112,10 @@ public struct GoalCard: Equatable, Sendable {
         trendWeight: Double,
         weeklyRate: Double?,
         weighInSpan: Int,
-        today: Day
+        today: Day,
+        ease: GoalEase? = nil
     ) {
+        self.ease = ease
         self.goal = goal
         direction = goal.direction
         if let kilogramsPerWeek = goal.paceKilogramsPerWeek(trendWeight: trendWeight, today: today)
@@ -299,5 +303,76 @@ public enum PaceBadge: String, Sendable {
         } else {
             self = .offPace
         }
+    }
+}
+
+/// An easier goal offered after a week off pace (spec 014, Ease the goal).
+public enum GoalEase: Equatable, Sendable {
+    case rate(kilogramsPerWeek: Double)
+    case date(Day)
+
+    /// Days in a row the badge must be Off pace or Too fast before easing is offered (issue #61).
+    public static let offPaceDays = 7
+
+    /// What to offer for `badge`: for a rate Pace, the next slower option when Off pace (nil at
+    /// the slowest) or the option nearest Weekly Rate when Too fast; for a date Pace, the Day
+    /// Trend Weight reaches Goal Weight at Weekly Rate, when it's moving toward it. Nil otherwise.
+    public static func offer(
+        goal: WeightGoal,
+        badge: PaceBadge,
+        weeklyRate: Double?,
+        trendWeight: Double,
+        today: Day,
+        units: WeightUnits
+    ) -> GoalEase? {
+        guard badge == .offPace || badge == .tooFast else { return nil }
+        switch goal.pace {
+        case .rate(let current):
+            let options = RateOption.rates(for: goal.direction, units: units)
+            if badge == .tooFast {
+                guard let weeklyRate,
+                    let nearest = options.min(by: {
+                        abs($0 - abs(weeklyRate)) < abs($1 - abs(weeklyRate))
+                    }),
+                    abs(nearest - current) > WeightGoal.rateTolerance
+                else { return nil }  // the goal's own Pace would change nothing
+                return .rate(kilogramsPerWeek: nearest)
+            }
+            return options.last { $0 < current - WeightGoal.rateTolerance }
+                .map { .rate(kilogramsPerWeek: $0) }
+        case .date:
+            guard let weeklyRate else { return nil }
+            let toward = goal.direction == .lose ? -weeklyRate : weeklyRate
+            let left = abs(trendWeight - goal.goalWeight)
+            guard toward > 0, left > 0 else { return nil }
+            let days = Int((left / toward * 7 - GoalDates.dayTolerance).rounded(.up))
+            let projected = today.adding(days: days)
+            // Never earlier than a 1%-a-week Pace allows, as the goal sheet requires.
+            let earliest = GoalDates(
+                trendWeight: trendWeight,
+                goalWeight: goal.goalWeight,
+                today: today
+            )?.earliest
+            return .date(max(projected, earliest ?? projected))
+        case nil:
+            return nil
+        }
+    }
+}
+
+extension WeightGoal {
+    /// This goal with the offered easier Pace; its start and Goal Weight stay.
+    public func eased(by ease: GoalEase) -> WeightGoal {
+        let pace: GoalPace =
+            switch ease {
+            case .rate(let kilogramsPerWeek): .rate(kilogramsPerWeek: kilogramsPerWeek)
+            case .date(let day): .date(day)
+            }
+        return WeightGoal(
+            startWeight: startWeight,
+            startDay: startDay,
+            goalWeight: goalWeight,
+            pace: pace
+        )
     }
 }

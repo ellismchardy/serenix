@@ -478,3 +478,176 @@ private let oct31 = Day(year: 2026, month: 10, day: 31)
     )
     #expect(view.goalCard?.status == .settlingIn(day: 5))
 }
+
+// Ease the goal (spec 014, "Pace badge" → "Ease the goal"): after the badge has been Off pace or
+// Too fast on each of the last 7 Days, the Rate card offers the next slower rate option (Off
+// pace), the rate option nearest Weekly Rate (Too fast), or for a date Pace the projected Day:
+// today plus the Days Trend Weight needs at Weekly Rate, rounded up.
+
+/// Whether `ease` is a rate within 1e-9 of `expected` kg a week.
+private func isRate(_ ease: GoalEase?, _ expected: Double) -> Bool {
+    guard case .rate(let kilogramsPerWeek) = ease else { return false }
+    return isClose(kilogramsPerWeek, expected)
+}
+
+@Test func anOffPaceRateGoalIsOfferedTheNextSlowerRate() {
+    // Lose rates in kg: 0.25, 0.5, 0.75, 1.0. The next slower than 0.5 is 0.25.
+    let ease = GoalEase.offer(
+        goal: rateGoal(80.0, 75.0, rate: 0.5),
+        badge: .offPace,
+        weeklyRate: 0,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(isRate(ease, 0.25))
+}
+
+@Test func anOffPaceRateGoalAtTheSlowestRateIsOfferedNothing() {
+    let ease = GoalEase.offer(
+        goal: rateGoal(80.0, 75.0, rate: 0.25),
+        badge: .offPace,
+        weeklyRate: 0,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(ease == nil)
+}
+
+@Test func aTooFastRateGoalIsOfferedTheRateNearestWeeklyRate() {
+    // Losing 0.9 kg a week: of 0.25, 0.5, 0.75 and 1.0, 1.0 is nearest (0.1 away; 0.75 is 0.15).
+    let ease = GoalEase.offer(
+        goal: rateGoal(80.0, 75.0, rate: 0.5),
+        badge: .tooFast,
+        weeklyRate: -0.9,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(isRate(ease, 1.0))
+}
+
+@Test func anOffPaceRateGoalInPoundsIsOfferedTheNextSlowerPoundRate() {
+    // 1 lb a week (0.45359237 kg) eases to 0.5 lb (0.226796185 kg).
+    let ease = GoalEase.offer(
+        goal: rateGoal(80.0, 75.0, rate: 0.45359237),
+        badge: .offPace,
+        weeklyRate: 0,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .pounds
+    )
+    #expect(isRate(ease, 0.226796185))
+}
+
+@Test func anOffPaceDateGoalIsOfferedTheProjectedDay() {
+    // 2 kg left at 0.2 kg a week = 10 weeks = 70 Days after 5 Nov 2026 → 14 Jan 2027.
+    let ease = GoalEase.offer(
+        goal: dateGoal(by: dec10),
+        badge: .offPace,
+        weeklyRate: -0.2,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(ease == .date(Day(year: 2027, month: 1, day: 14)))
+}
+
+@Test(arguments: [0.1, nil] as [Double?])
+func aDateGoalMovingAwayFromGoalWeightOrWithoutWeeklyRateIsOfferedNothing(weeklyRate: Double?) {
+    let ease = GoalEase.offer(
+        goal: dateGoal(by: dec10),
+        badge: .offPace,
+        weeklyRate: weeklyRate,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(ease == nil)
+}
+
+@Test func anOnPaceGoalIsOfferedNothing() {
+    let ease = GoalEase.offer(
+        goal: rateGoal(80.0, 75.0, rate: 0.5),
+        badge: .onPace,
+        weeklyRate: -0.5,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(ease == nil)
+}
+
+@Test func aGoalOffPaceOnEachOfTheLastSevenDaysIsOfferedEasing() {
+    // Goal and daily flat 80.0 Weigh-ins from 16 Oct: settled from its 14th Day, 30 Oct, then
+    // Off pace (Weekly Rate 0) on 30 Oct, 31 Oct and 1–5 Nov = 7 Days.
+    let view = bodyView(
+        weighIns: flatEighties(from: oct16),
+        goal: loseHalfAKilogramAWeek(from: oct16)
+    )
+    #expect(isRate(view.goalCard?.ease, 0.25))
+}
+
+@Test func aGoalOffPaceOnOnlySixDaysIsNotOfferedEasing() {
+    // Goal and Weigh-ins from 17 Oct: Settling in until 31 Oct, then Off pace on 31 Oct and
+    // 1–5 Nov = 6 Days, one short.
+    let oct17 = Day(year: 2026, month: 10, day: 17)
+    let view = bodyView(
+        weighIns: flatEighties(from: oct17),
+        goal: loseHalfAKilogramAWeek(from: oct17)
+    )
+    #expect(view.goalCard != nil)
+    #expect(view.goalCard?.ease == nil)
+}
+
+@Test func easingARateGoalKeepsItsStartAndGoalAndChangesThePace() {
+    let goal = loseHalfAKilogramAWeek(from: nov5)
+    #expect(
+        goal.eased(by: .rate(kilogramsPerWeek: 0.25))
+            == WeightGoal(
+                startWeight: 80.0,
+                startDay: nov5,
+                goalWeight: 75.0,
+                pace: .rate(kilogramsPerWeek: 0.25)
+            )
+    )
+}
+
+@Test func easingADateGoalMovesItsDate() {
+    let eased = dateGoal(by: dec10).eased(by: .date(Day(year: 2027, month: 1, day: 14)))
+    #expect(eased.pace == .date(Day(year: 2027, month: 1, day: 14)))
+    #expect(eased.startWeight == 80.0 && eased.goalWeight == 78.0 && eased.startDay == nov5)
+}
+
+@Test func aTooFastRateGoalWhoseNearestRateIsItsOwnIsOfferedNothing() {
+    // Pace 1.0 kg, Weekly Rate −1.3: the nearest option is 1.0, the goal's own Pace.
+    let goal = WeightGoal(
+        startWeight: 80.0,
+        startDay: nov5,
+        goalWeight: 75.0,
+        pace: .rate(kilogramsPerWeek: 1.0)
+    )
+    let offer = GoalEase.offer(
+        goal: goal,
+        badge: .tooFast,
+        weeklyRate: -1.3,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(offer == nil)
+}
+
+@Test func aTooFastDateGoalIsOfferedNoEarlierThanTheOnePercentDay() {
+    // 2 kg at 1.5 kg a week is 9.33 Days → 15 Nov, before the 1%-a-week Day, 23 Nov.
+    let offer = GoalEase.offer(
+        goal: dateGoal(by: dec10),
+        badge: .tooFast,
+        weeklyRate: -1.5,
+        trendWeight: 80.0,
+        today: nov5,
+        units: .kilograms
+    )
+    #expect(offer == .date(nov23))
+}

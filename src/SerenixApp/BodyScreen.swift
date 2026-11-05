@@ -105,6 +105,12 @@ struct BodyScreen: View {
                 case nil:
                     EmptyView()
                 }
+                if let ease = card.ease {
+                    Button(easeLabel(ease)) { store.setGoal(card.goal.eased(by: ease)) }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .tint(Theme.accent)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
@@ -130,6 +136,26 @@ struct BodyScreen: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// The Ease the goal offer's words (spec 014).
+    private func easeLabel(_ ease: GoalEase) -> String {
+        switch ease {
+        case .rate(let kilogramsPerWeek):
+            "Ease to \(profile.units.paceText(kilogramsPerWeek, locale: .current))"
+        case .date(let day):
+            "Move the date to \(Self.shown(day))"
+        }
+    }
+
+    /// `day` as the phone shows a date, e.g. "14 Jan 2027", on the Gregorian calendar a Day uses.
+    private static func shown(_ day: Day) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let date = calendar.date(
+            from: DateComponents(year: day.year, month: day.month, day: day.dayOfMonth, hour: 12)
+        )
+        return date?.formatted(date: .abbreviated, time: .omitted) ?? ""
     }
 
     /// In place of the goal cards when there is no Weight Goal.
