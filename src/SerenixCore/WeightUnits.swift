@@ -46,6 +46,17 @@ public enum WeightUnits: String, CaseIterable, Sendable {
         return "\(sign)\(number) \(units == .kilograms ? "kg" : "lb") a week"
     }
 
+    /// A Pace, unsigned, to one or two decimals: "0.25 kg a week", "1.0 kg a week", and in lb for
+    /// lb or st: "0.5 lb a week".
+    public func paceText(_ kilogramsPerWeek: Double, locale: Locale) -> String {
+        let inKilograms = self == .kilograms
+        let value = inKilograms ? kilogramsPerWeek : kilogramsPerWeek / Self.kilogramsPerPound
+        let number = value.formatted(
+            .number.precision(.fractionLength(1...2)).grouping(.never).locale(locale)
+        )
+        return "\(number) \(inKilograms ? "kg" : "lb") a week"
+    }
+
     /// What the chart plots: kg in kg units, total pounds in lb or st units.
     public func chartValue(_ kilograms: Double) -> Double {
         self == .kilograms ? kilograms : kilograms / Self.kilogramsPerPound

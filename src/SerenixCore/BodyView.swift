@@ -18,10 +18,15 @@ public struct BodyView: Equatable, Sendable {
     private let today: Day
     /// How weights are shown (the Profile's units).
     public let units: WeightUnits
+    /// The current Weight Goal's cards; nil with no goal or no Trend Weight.
+    public let goalCard: GoalCard?
+    /// Where a new Weight Goal starts by default; nil with no Weigh-ins.
+    public let newGoalStart: GoalStart?
 
     public init(
         weighIns: [WeighIn],
         units: WeightUnits = .kilograms,
+        goal: WeightGoal? = nil,
         now: Date,
         timeZone: TimeZone
     ) {
@@ -33,6 +38,22 @@ public struct BodyView: Equatable, Sendable {
         trend = Self.trend(of: weighIns, in: timeZone)
         trendWeight = trend.last?.trendWeight
         weeklyRate = Self.weeklyRate(of: trend)
+        let latest = trend.last?.trendWeight
+        let day = Day(containing: now, in: timeZone)
+        newGoalStart = latest.map { GoalStart(weight: $0, day: day) }
+        if let goal, let latest {
+            goalCard = GoalCard(goal: goal, trendWeight: latest)
+        } else {
+            goalCard = nil
+        }
+    }
+
+    /// The rates a new Weight Goal's sheet offers in `direction`; empty with no Trend Weight.
+    public func rateOptions(for direction: GoalDirection) -> [RateOption] {
+        guard let trendWeight else { return [] }
+        return RateOption.rates(for: direction, units: units).map {
+            RateOption(kilogramsPerWeek: $0, trendWeight: trendWeight)
+        }
     }
 
     /// The fewest Days Weekly Rate looks back over (issue #61: a week, since Trend Weight is

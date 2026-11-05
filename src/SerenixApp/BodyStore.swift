@@ -16,10 +16,23 @@ final class StoredWeighIn {
     var weighIn: WeighIn { WeighIn(time: time, kilograms: kilograms) }
 }
 
-/// What the user enters on the Body tab, on the phone only and kept forever (ADR 0008). It lives
-/// in its own store file, apart from History Records and Nights, so a build that doesn't know
-/// the Body models never opens it and so can't drop its tables. Body data is never written to
-/// the Sync Log, `os.Logger` or bug reports.
+/// One stored Weight Goal (spec 014), current or ended. The goal itself is kept as JSON; any
+/// field `WeightGoal` gains later must be optional so goals stored before it still decode. It
+/// ends with a time and why.
+@Model
+final class StoredWeightGoal {
+    var goalJSON: Data
+    var endedAt: Date? = nil
+    /// A `GoalEnd` raw value; nil while current.
+    var endReason: String? = nil
+
+    init(_ goal: WeightGoal) throws {
+        goalJSON = try JSONEncoder().encode(goal)
+    }
+
+    func goal() throws -> WeightGoal { try JSONDecoder().decode(WeightGoal.self, from: goalJSON) }
+}
+
 /// One stored Weigh-in with the ID of its row, so editing or deleting it touches that row only,
 /// even when another has the same time and weight.
 struct WeighInRow: Identifiable, Equatable {
@@ -27,10 +40,16 @@ struct WeighInRow: Identifiable, Equatable {
     let weighIn: WeighIn
 }
 
+/// What the user enters on the Body tab, on the phone only and kept forever (ADR 0008). It lives
+/// in its own store file, apart from History Records and Nights, so a build that doesn't know
+/// the Body models never opens it and so can't drop its tables. Body data is never written to
+/// the Sync Log, `os.Logger` or bug reports.
 @MainActor
 final class BodyStore: ObservableObject {
     /// Every stored Weigh-in with its row ID, newest first.
     @Published private(set) var rows: [WeighInRow] = []
+    /// The Weight Goal not yet ended; nil when there is none.
+    @Published private(set) var currentGoal: WeightGoal?
     /// Why the last open or save failed, shown to the user; nil when all is well. Typed-in Body
     /// data can't be rebuilt, so a failure is never swallowed (ADR 0008).
     @Published var failure: String?
@@ -45,11 +64,12 @@ final class BodyStore: ObservableObject {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let configuration = ModelConfiguration(
                 "Body",
-                schema: Schema([StoredWeighIn.self]),
+                schema: Schema([StoredWeighIn.self, StoredWeightGoal.self]),
                 url: folder.appending(path: "Body.store")
             )
             let container = try ModelContainer(
                 for: StoredWeighIn.self,
+                StoredWeightGoal.self,
                 configurations: configuration
             )
             context = ModelContext(container)
@@ -80,6 +100,39 @@ final class BodyStore: ObservableObject {
             let stored = try Self.stored(id, in: context)
             stored.time = new.time
             stored.kilograms = new.kilograms
+        }
+    }
+
+    /// Saves `goal`. In the same direction as the current Weight Goal it edits that one in place;
+    /// otherwise the current one ends now, kept (ADR 0008), and `goal` starts (spec 014).
+    func setGoal(_ goal: WeightGoal) {
+        change { context in
+            if let current = try Self.currentGoal(in: context),
+                try goal.edits(current.goal())
+            {
+                current.goalJSON = try JSONEncoder().encode(goal)
+            } else {
+                try Self.endCurrentGoal(in: context, reason: .changed)
+                context.insert(try StoredWeightGoal(goal))
+            }
+        }
+    }
+
+    /// Ends the current Weight Goal, keeping it.
+    func removeGoal() {
+        change { context in try Self.endCurrentGoal(in: context, reason: .removed) }
+    }
+
+    private static func currentGoal(in context: ModelContext) throws -> StoredWeightGoal? {
+        try context.fetch(
+            FetchDescriptor<StoredWeightGoal>(predicate: #Predicate { $0.endedAt == nil })
+        ).first
+    }
+
+    private static func endCurrentGoal(in context: ModelContext, reason: GoalEnd) throws {
+        if let current = try currentGoal(in: context) {
+            current.endedAt = Date()
+            current.endReason = reason.rawValue
         }
     }
 
@@ -115,6 +168,12 @@ final class BodyStore: ObservableObject {
 
     private func reload() {
         guard let context else { return }
+        // Goals and Weigh-ins load apart, so one that can't be read never hides the other.
+        do {
+            currentGoal = try Self.currentGoal(in: context)?.goal()
+        } catch {
+            failure = "Your Weight Goal couldn't be read: \(error.localizedDescription)"
+        }
         do {
             rows = try context.fetch(
                 FetchDescriptor<StoredWeighIn>(sortBy: [SortDescriptor(\.time, order: .reverse)])

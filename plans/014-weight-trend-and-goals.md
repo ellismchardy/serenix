@@ -67,14 +67,18 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
    - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`, `src/SerenixApp/BodyScreen.swift`,
      and its text in `WeightUnits.swift` / `WeightUnitsTests.swift`
    - Done when: criterion "falling 0.5 kg over 7 Days gives −0.5 kg a week; none without 7 Days".
-6. [ ] **Slice:** Weight Goal to lose or gain, Pace by rate. `WeightGoal` (direction from Goal vs
+6. [x] **Slice:** Weight Goal to lose or gain, Pace by rate. `WeightGoal` (direction from Goal vs
    Start Weight, Start Weight and date defaulting to Trend Weight and today); Pace bands for lose
    and gain; each rate option with its share and band; Aggressive and Too fast still save.
    Shell: the Weight Goal sheet (gear), the Rate and Goal cards, and a "Set a goal" card when
    there is none; ended Weight Goals kept in the Body store.
    - Seam: Body view · Files: `src/SerenixCore/WeightGoal.swift` (new), `BodyView.swift`,
      `BodyViewTests.swift`, `src/SerenixApp/BodyStore.swift`, `src/SerenixApp/BodyScreen.swift`,
-     `src/SerenixApp/WeightGoalSheet.swift` (new)
+     `src/SerenixApp/WeightGoalSheet.swift` (new); tests in `WeightGoalTests.swift` (new), the
+     goal checks (`refusal`, `direction`, `edits`, `GoalEnd`) and `paceText` added after review
+   - Note: the goal is stored as JSON, so fields `WeightGoal` gains later must be optional. A
+     build from before this task opening `Body.store` could drop the goal table (memory: older
+     builds drop new fields); accepted, since none has shipped and task 13 adds the backup.
    - Done when: criteria "lose Pace bands at 80 kg", "gain Pace bands at 80 kg", "a Pace in the
      Aggressive or Too fast band can still be saved".
 7. [ ] **Slice:** Pace by date. Pace worked out from today's Trend Weight to the date; earliest

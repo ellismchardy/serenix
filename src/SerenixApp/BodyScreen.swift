@@ -6,11 +6,13 @@ struct BodyScreen: View {
     @ObservedObject var store: BodyStore
     @ObservedObject var profile: ProfileStore
     @State private var showsWeighInSheet = false
+    @State private var showsGoalSheet = false
 
     var body: some View {
         let view = BodyView(
             weighIns: store.weighIns,
             units: profile.units,
+            goal: store.currentGoal,
             now: Date(),
             timeZone: .current
         )
@@ -31,13 +33,12 @@ struct BodyScreen: View {
                         Text("Log your first Weigh-in")
                             .font(.title3.weight(.semibold))
                     }
-                    if let weeklyRate = view.weeklyRate {
-                        Text(
-                            "Weekly Rate \(profile.units.rateText(weeklyRate, locale: .current))"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                    }
                     WeightChartCard(view: view, units: profile.units)
+                    if let card = view.goalCard {
+                        goalCards(card, weeklyRate: view.weeklyRate)
+                    } else if view.trendWeight != nil {
+                        setGoalCard
+                    }
                     if !view.weighIns.isEmpty {
                         NavigationLink("All Weigh-ins") {
                             WeighInList(store: store, units: profile.units)
@@ -52,11 +53,21 @@ struct BodyScreen: View {
             .navigationTitle("Body")
             .toolbar {
                 Button {
+                    showsGoalSheet = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("Weight Goal")
+                .disabled(view.trendWeight == nil)
+                Button {
                     showsWeighInSheet = true
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Log a Weigh-in")
+            }
+            .sheet(isPresented: $showsGoalSheet) {
+                WeightGoalSheet(view: view, units: profile.units) { store.setGoal($0) }
             }
             .sheet(isPresented: $showsWeighInSheet) {
                 WeighInSheet(units: profile.units, lastWeight: view.lastWeighIn?.kilograms) {
@@ -75,6 +86,53 @@ struct BodyScreen: View {
                 Text(store.failure ?? "")
             }
         }
+    }
+    /// The Rate and Goal cards (spec 014, Screen).
+    private func goalCards(_ card: GoalCard, weeklyRate: Double?) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("RATE").font(.caption).foregroundStyle(.secondary)
+                Text(weeklyRate.map { profile.units.rateText($0, locale: .current) } ?? "—")
+                    .font(.headline)
+                Text("Weekly Rate").font(.caption).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .themeCard()
+            Button {
+                showsGoalSheet = true
+            } label: {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("GOAL").font(.caption).foregroundStyle(.secondary)
+                    Text(profile.units.text(card.goal.goalWeight, locale: .current))
+                        .font(.headline)
+                    if let pace = card.paceKilogramsPerWeek {
+                        Text(
+                            "Pace \(profile.units.paceText(pace, locale: .current))"
+                        )
+                        .font(.caption)
+                    }
+                    if let band = card.paceBand { BandLabel(band: band) }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .themeCard()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// In place of the goal cards when there is no Weight Goal.
+    private var setGoalCard: some View {
+        VStack(spacing: 10) {
+            Text("No Weight Goal yet").font(.headline)
+            Button("Set a goal") { showsGoalSheet = true }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .themeCard()
     }
 }
 
