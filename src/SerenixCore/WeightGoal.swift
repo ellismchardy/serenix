@@ -96,16 +96,17 @@ public struct GoalStart: Equatable, Sendable {
 public struct GoalCard: Equatable, Sendable {
     public let goal: WeightGoal
     public let direction: GoalDirection
-    /// A rate Pace's kg a week; nil otherwise.
+    /// The Pace in kg a week, for a rate or a date; nil with no Pace left to cover.
     public let paceKilogramsPerWeek: Double?
     /// The Pace as a share of current Trend Weight a week, in %.
     public let pacePercentOfTrendWeight: Double?
     public let paceBand: PaceBand?
 
-    init(goal: WeightGoal, trendWeight: Double) {
+    init(goal: WeightGoal, trendWeight: Double, today: Day) {
         self.goal = goal
         direction = goal.direction
-        if case .rate(let kilogramsPerWeek) = goal.pace {
+        if let kilogramsPerWeek = goal.paceKilogramsPerWeek(trendWeight: trendWeight, today: today)
+        {
             let option = RateOption(kilogramsPerWeek: kilogramsPerWeek, trendWeight: trendWeight)
             paceKilogramsPerWeek = kilogramsPerWeek
             pacePercentOfTrendWeight = option.percentOfTrendWeight
@@ -123,12 +124,14 @@ public enum GoalRefusal: Equatable, Sendable {
     case sameAsStart
     case weightOutOfRange
     case rateNotOffered
+    case dateTooEarly
 
     public var message: String {
         switch self {
         case .sameAsStart: "Goal Weight must differ from Start Weight."
         case .weightOutOfRange: "Weights must be 20–350 kg."
         case .rateNotOffered: "Pick one of the Paces offered."
+        case .dateTooEarly: "Pick a date no earlier than a 1%-a-week Pace allows."
         }
     }
 }
@@ -172,5 +175,53 @@ extension WeightGoal {
     /// when the direction changes, which ends `current` and starts this one (spec 014).
     public func edits(_ current: WeightGoal) -> Bool {
         direction == current.direction
+    }
+}
+
+/// The dates a Pace by date can pick from (spec 014, Weight Goal → By date).
+public struct GoalDates: Equatable, Sendable {
+    /// The earliest Day allowed: a Pace of 1% of Trend Weight a week reaches Goal Weight by it.
+    public let earliest: Day
+    /// The quick pick at 0.5% a week.
+    public let halfPercent: Day
+    /// The quick pick at 0.75% a week.
+    public let threeQuarterPercent: Day
+
+    /// The quick picks' Paces, in % of Trend Weight a week (issue #51).
+    static let halfPercentPace = 0.5
+    static let threeQuarterPercentPace = 0.75
+    /// Days of rounding noise ignored when rounding up to a whole Day.
+    static let dayTolerance = 1e-9
+
+    init?(trendWeight: Double, goalWeight: Double, today: Day) {
+        let change = abs(trendWeight - goalWeight)
+        guard change > 0 else { return nil }
+        func day(atPercent percent: Double) -> Day {
+            let weeks = change / (trendWeight * percent / 100)
+            // Less a hair, so float noise (35.0000000001 Days) never adds a whole Day.
+            return today.adding(days: Int((weeks * 7 - Self.dayTolerance).rounded(.up)))
+        }
+        earliest = day(atPercent: PaceBand.aggressivePercent)
+        halfPercent = day(atPercent: Self.halfPercentPace)
+        threeQuarterPercent = day(atPercent: Self.threeQuarterPercentPace)
+    }
+}
+
+extension WeightGoal {
+    /// The Pace in kg a week: a rate's own, or for a date what reaches Goal Weight from
+    /// `trendWeight` by that Day, worked out each time (spec 014); nil when there's no Pace or
+    /// the date isn't after today.
+    func paceKilogramsPerWeek(trendWeight: Double, today: Day) -> Double? {
+        switch pace {
+        case .rate(let kilogramsPerWeek):
+            return kilogramsPerWeek
+        case .date(let day):
+            let days = today.days(until: day)
+            let left = direction == .lose ? trendWeight - goalWeight : goalWeight - trendWeight
+            guard days > 0, left > 0 else { return nil }
+            return left / (Double(days) / 7)
+        case nil:
+            return nil
+        }
     }
 }

@@ -240,3 +240,101 @@ func aPaceInPoundsOrStonesReadsInPounds(units: WeightUnits) {
     #expect(units.paceText(0.226796185, locale: posix) == "0.5 lb a week")
     #expect(units.paceText(0.113398093, locale: posix) == "0.25 lb a week")
 }
+
+// A Pace by date (spec 014, "Weight Goal" → "By date"): the Pace is what reaches Goal Weight from
+// the current Trend Weight by that Day, |Trend Weight − Goal Weight| / (Days from today / 7) kg a
+// week. The earliest allowed Day is the one a 1%-of-Trend-Weight-a-week Pace reaches Goal Weight
+// by, rounded up to a whole Day; the quick picks are the same for 0.5% and 0.75% a week. Trend
+// Weight is 80.0 kg throughout, today 5 Nov 2026.
+
+private let nov23 = Day(year: 2026, month: 11, day: 23)
+private let nov29 = Day(year: 2026, month: 11, day: 29)
+private let dec10 = Day(year: 2026, month: 12, day: 10)
+
+@Test func goalDatesToLoseTwoKilogramsAreTheOnePercentHalfAndThreeQuarterPercentDays() {
+    // 2 kg to lose. 1% = 0.8 kg a week → 2.5 weeks = 17.5 Days → 18 → 23 Nov.
+    // 0.5% = 0.4 kg a week → 5 weeks = 35 Days → 10 Dec.
+    // 0.75% = 0.6 kg a week → 3.33 weeks = 23.33 Days → 24 → 29 Nov.
+    let dates = bodyView().goalDates(goalWeight: 78.0)
+
+    #expect(dates?.earliest == nov23)
+    #expect(dates?.halfPercent == dec10)
+    #expect(dates?.threeQuarterPercent == nov29)
+}
+
+@Test func goalDatesToGainTwoKilogramsMatchThoseToLoseTwo() {
+    // Same 2 kg gap the other way, so the same Days as losing to 78.
+    let dates = bodyView().goalDates(goalWeight: 82.0)
+
+    #expect(dates?.earliest == nov23)
+    #expect(dates?.halfPercent == dec10)
+    #expect(dates?.threeQuarterPercent == nov29)
+}
+
+@Test func thereAreNoGoalDatesWhenGoalWeightIsTrendWeight() {
+    #expect(bodyView().goalDates(goalWeight: 80.0) == nil)
+}
+
+@Test func thereAreNoGoalDatesWithoutWeighIns() {
+    #expect(bodyView(weighIns: []).goalDates(goalWeight: 78.0) == nil)
+}
+
+/// A goal from 80.0 to 78.0 kg starting today, reaching Goal Weight by `day`.
+private func dateGoal(by day: Day) -> WeightGoal {
+    WeightGoal(startWeight: 80.0, startDay: nov5, goalWeight: 78.0, pace: .date(day))
+}
+
+@Test func aDatePaceFiveWeeksOutIsSustainable() {
+    // 2 kg over 35 Days = 5 weeks → 0.4 kg a week = 0.5% of 80.0.
+    let card = bodyView(goal: dateGoal(by: dec10)).goalCard
+
+    #expect(isClose(card?.paceKilogramsPerWeek, 0.4))
+    #expect(isClose(card?.pacePercentOfTrendWeight, 0.5))
+    #expect(card?.paceBand == .sustainable)
+}
+
+@Test func aDatePaceByTheEarliestDayIsAggressive() {
+    // 2 kg over 18 Days → 2 / (18/7) = 0.7777777777777778 kg a week = 0.9722222222222222% of 80.0.
+    let card = bodyView(goal: dateGoal(by: nov23)).goalCard
+
+    #expect(isClose(card?.paceKilogramsPerWeek, 0.7777777777777778))
+    #expect(isClose(card?.pacePercentOfTrendWeight, 0.9722222222222222))
+    #expect(card?.paceBand == .aggressive)
+}
+
+// A date Pace can't be earlier than the 1%-a-week Day (spec 014, Weight Goal → By date).
+
+@Test func aDatePaceBeforeTheEarliestDayIsRefused() {
+    // Earliest for 80 → 78 kg is 23 Nov (see above); 22 Nov needs over 1% a week.
+    let view = bodyView()
+    let refusal = view.goalRefusal(dateGoal(by: Day(year: 2026, month: 11, day: 22)))
+    #expect(refusal == .dateTooEarly)
+    #expect(refusal?.message == "Pick a date no earlier than a 1%-a-week Pace allows.")
+}
+
+@Test func aDatePaceOfTodayIsRefused() {
+    #expect(bodyView().goalRefusal(dateGoal(by: nov5)) == .dateTooEarly)
+}
+
+@Test func aDatePaceOnTheEarliestDayCanBeSaved() {
+    #expect(bodyView().goalRefusal(dateGoal(by: nov23)) == nil)
+}
+
+@Test func aRateGoalsRefusalIsTheSameThroughTheBodyView() {
+    let goal = WeightGoal(
+        startWeight: 80.0,
+        startDay: nov5,
+        goalWeight: 78.0,
+        pace: .rate(kilogramsPerWeek: 0.3)
+    )
+    #expect(bodyView().goalRefusal(goal) == .rateNotOffered)
+}
+
+@Test func aDatePaceHasNoPaceOnceTrendWeightHasPassedGoalWeight() {
+    // Trend Weight 77.0 is already below the 78.0 Goal Weight, so nothing is left to lose.
+    let view = bodyView(
+        weighIns: [WeighIn(time: at(5, 7), kilograms: 77.0)],
+        goal: dateGoal(by: dec10)
+    )
+    #expect(view.goalCard?.paceKilogramsPerWeek == nil)
+}

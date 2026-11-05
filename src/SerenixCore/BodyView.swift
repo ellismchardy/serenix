@@ -42,10 +42,27 @@ public struct BodyView: Equatable, Sendable {
         let day = Day(containing: now, in: timeZone)
         newGoalStart = latest.map { GoalStart(weight: $0, day: day) }
         if let goal, let latest {
-            goalCard = GoalCard(goal: goal, trendWeight: latest)
+            goalCard = GoalCard(goal: goal, trendWeight: latest, today: day)
         } else {
             goalCard = nil
         }
+    }
+
+    /// The earliest Day and quick picks for a Pace by date to `goalWeight`; nil with no Trend
+    /// Weight or when `goalWeight` is Trend Weight.
+    public func goalDates(goalWeight: Double) -> GoalDates? {
+        trendWeight.flatMap { GoalDates(trendWeight: $0, goalWeight: goalWeight, today: today) }
+    }
+
+    /// Why `goal` can't be saved now; nil when it can. Adds to `WeightGoal.refusal(units:)` the
+    /// date rule, which needs Trend Weight: a date Pace can't be earlier than the 1%-a-week Day.
+    public func goalRefusal(_ goal: WeightGoal) -> GoalRefusal? {
+        if let refusal = goal.refusal(units: units) { return refusal }
+        guard case .date(let day) = goal.pace else { return nil }
+        guard let dates = goalDates(goalWeight: goal.goalWeight), day >= dates.earliest else {
+            return .dateTooEarly
+        }
+        return nil
     }
 
     /// The rates a new Weight Goal's sheet offers in `direction`; empty with no Trend Weight.

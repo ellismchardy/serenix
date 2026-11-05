@@ -81,10 +81,12 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
      builds drop new fields); accepted, since none has shipped and task 13 adds the backup.
    - Done when: criteria "lose Pace bands at 80 kg", "gain Pace bands at 80 kg", "a Pace in the
      Aggressive or Too fast band can still be saved".
-7. [ ] **Slice:** Pace by date. Pace worked out from today's Trend Weight to the date; earliest
+7. [x] **Slice:** Pace by date. Pace worked out from today's Trend Weight to the date; earliest
    allowed date at 1% a week; quick picks at 0.5% and 0.75%. Shell: date mode in the sheet.
    - Seam: Body view · Files: `WeightGoal.swift`, `BodyView.swift`, `BodyViewTests.swift`,
      `src/SerenixApp/WeightGoalSheet.swift`
+   - Tests in `WeightGoalTests.swift`; after review the date rule is enforced in core
+     (`BodyView.goalRefusal`, `GoalRefusal.dateTooEarly`), not only by the date picker.
    - Done when: criterion "earliest allowed date at 1%; quick picks at 0.5% and 0.75%".
 8. [ ] **Slice:** pace badge and Settling in. Settling in while the goal is under 14 Days old or
    Weigh-ins span under 14 Days; then On pace / A bit behind / Off pace / Too fast.

@@ -2,8 +2,9 @@ import SerenixCore
 import SwiftUI
 
 /// Sets a Weight Goal (spec 014, Weight Goal): Start Weight and start date (today's Trend Weight
-/// and today by default), Goal Weight, and a Pace chosen from the rate options, each showing its
-/// share of Trend Weight and its band. Aggressive and Too fast Paces warn but still save.
+/// and today by default), Goal Weight, and a Pace chosen either from the rate options, each
+/// showing its share of Trend Weight and its band, or as a date to reach Goal Weight by, no
+/// earlier than a 1%-a-week Pace allows. Aggressive and Too fast Paces warn but still save.
 struct WeightGoalSheet: View {
     let view: BodyView
     let units: WeightUnits
@@ -12,6 +13,8 @@ struct WeightGoalSheet: View {
     @State private var startDate: Date
     @State private var goalText = ""
     @State private var rate: Double?
+    @State private var byDate = false
+    @State private var targetDate = Date()
     @Environment(\.dismiss) private var dismiss
 
     init(view: BodyView, units: WeightUnits, save: @escaping (WeightGoal) -> Void) {
@@ -27,8 +30,14 @@ struct WeightGoalSheet: View {
         )
         if let goal = existing {
             _goalText = State(initialValue: Self.text(goal.goalWeight, in: units))
-            if case .rate(let kilogramsPerWeek) = goal.pace {
+            switch goal.pace {
+            case .rate(let kilogramsPerWeek):
                 _rate = State(initialValue: kilogramsPerWeek)
+            case .date(let day):
+                _byDate = State(initialValue: true)
+                _targetDate = State(initialValue: Self.midday(day))
+            case nil:
+                break
             }
         }
     }
@@ -43,16 +52,27 @@ struct WeightGoalSheet: View {
 
     /// The goal as typed, once every field reads.
     private var draft: WeightGoal? {
-        guard let startWeight, let goalWeight, let rate else { return nil }
+        guard let startWeight, let goalWeight else { return nil }
+        let pace: GoalPace
+        if byDate {
+            pace = .date(Day(containing: targetDate, in: .current))
+        } else if let rate {
+            pace = .rate(kilogramsPerWeek: rate)
+        } else {
+            return nil
+        }
         return WeightGoal(
             startWeight: startWeight,
             startDay: Day(containing: startDate, in: .current),
             goalWeight: goalWeight,
-            pace: .rate(kilogramsPerWeek: rate)
+            pace: pace
         )
     }
 
-    private var refusal: GoalRefusal? { draft?.refusal(units: units) }
+    /// The earliest date allowed and the quick picks, for the Goal Weight typed.
+    private var dates: GoalDates? { goalWeight.flatMap { view.goalDates(goalWeight: $0) } }
+
+    private var refusal: GoalRefusal? { draft.flatMap { view.goalRefusal($0) } }
 
     var body: some View {
         NavigationStack {
@@ -76,30 +96,39 @@ struct WeightGoalSheet: View {
                 }
                 if let direction {
                     Section("Pace") {
-                        ForEach(view.rateOptions(for: direction), id: \.kilogramsPerWeek) {
-                            option in
-                            Button {
-                                rate = option.kilogramsPerWeek
-                            } label: {
-                                HStack {
-                                    Text(units.paceText(option.kilogramsPerWeek, locale: .current))
-                                    Spacer()
-                                    Text(
-                                        "\(option.percentOfTrendWeight.formatted(.number.precision(.fractionLength(2))))%"
-                                    )
-                                    .foregroundStyle(.secondary)
-                                    BandLabel(band: option.band)
-                                    if rate == option.kilogramsPerWeek {
-                                        Image(systemName: "checkmark").foregroundStyle(Theme.accent)
-                                    }
+                        Picker("Pace", selection: $byDate) {
+                            Text("By rate").tag(false)
+                            Text("By date").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        if byDate, let dates {
+                            DatePicker(
+                                "Reach it by",
+                                selection: $targetDate,
+                                in: Self.midday(dates.earliest)...,
+                                displayedComponents: .date
+                            )
+                            HStack {
+                                Button("0.5% a week") {
+                                    targetDate = Self.midday(dates.halfPercent)
+                                }
+                                Button("0.75% a week") {
+                                    targetDate = Self.midday(dates.threeQuarterPercent)
                                 }
                             }
-                            .foregroundStyle(.primary)
+                            .buttonStyle(.bordered)
                         }
+                    }
+                    if !byDate {
+                        rateSection(direction)
                     }
                 }
             }
             .onChange(of: direction) { rate = nil }
+            // Date mode opens on the 0.5%-a-week date, never on today, which is too early.
+            .onChange(of: byDate) {
+                if byDate, let dates { targetDate = Self.midday(dates.halfPercent) }
+            }
             .navigationTitle("Weight Goal")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
@@ -110,6 +139,32 @@ struct WeightGoalSheet: View {
                     }
                     .disabled(draft == nil || refusal != nil)
                 }
+            }
+        }
+    }
+
+    /// The rate options for `direction`, each with its share of Trend Weight and its band.
+    private func rateSection(_ direction: GoalDirection) -> some View {
+        Section("Rate") {
+            ForEach(view.rateOptions(for: direction), id: \.kilogramsPerWeek) {
+                option in
+                Button {
+                    rate = option.kilogramsPerWeek
+                } label: {
+                    HStack {
+                        Text(units.paceText(option.kilogramsPerWeek, locale: .current))
+                        Spacer()
+                        Text(
+                            "\(option.percentOfTrendWeight.formatted(.number.precision(.fractionLength(2))))%"
+                        )
+                        .foregroundStyle(.secondary)
+                        BandLabel(band: option.band)
+                        if rate == option.kilogramsPerWeek {
+                            Image(systemName: "checkmark").foregroundStyle(Theme.accent)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
             }
         }
     }
