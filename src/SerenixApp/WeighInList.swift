@@ -6,6 +6,7 @@ import SwiftUI
 /// same time and weight as another is never touched by mistake.
 struct WeighInList: View {
     @ObservedObject var store: BodyStore
+    let units: WeightUnits
     @State private var editing: WeighInRow?
 
     var body: some View {
@@ -18,10 +19,8 @@ struct WeighInList: View {
                     HStack {
                         Text(row.weighIn.time.formatted(date: .abbreviated, time: .shortened))
                         Spacer()
-                        Text(
-                            "\(row.weighIn.kilograms.formatted(.number.precision(.fractionLength(1)))) kg"
-                        )
-                        .monospacedDigit()
+                        Text(units.text(row.weighIn.kilograms, locale: .current))
+                            .monospacedDigit()
                     }
                 }
                 .foregroundStyle(.primary)
@@ -32,7 +31,7 @@ struct WeighInList: View {
         }
         .navigationTitle("Weigh-ins")
         .sheet(item: $editing) { row in
-            WeighInSheet(editing: row.weighIn, lastWeight: row.weighIn.kilograms) {
+            WeighInSheet(units: units, editing: row.weighIn, lastWeight: row.weighIn.kilograms) {
                 store.replace(row.id, with: $0)
             }
         }

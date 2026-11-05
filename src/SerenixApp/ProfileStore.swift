@@ -36,6 +36,14 @@ final class ProfileStore: ObservableObject {
             onLoadInputsChange?()
         }
     }
+    /// The user's height in cm; nil when not set (spec 014, Units and Profile).
+    @Published var heightCentimetres: Double? {
+        didSet { defaults.set(heightCentimetres, forKey: heightKey) }
+    }
+    /// How weights are shown; kg when not set. Everything is stored in kg (spec 014).
+    @Published var units: WeightUnits {
+        didSet { defaults.set(units.rawValue, forKey: unitsKey) }
+    }
     /// Called after birth year, sex or Max HR changes, whoever changed it, so every Day still on
     /// the phone gets its Load worked out again (spec 005, Profile changes).
     var onLoadInputsChange: (@MainActor () -> Void)?
@@ -52,6 +60,8 @@ final class ProfileStore: ObservableObject {
         _birthYear = Published(initialValue: stored.birthYear)
         _sex = Published(initialValue: stored.sex)
         _maxHR = Published(initialValue: stored.maxHR)
+        _heightCentimetres = Published(initialValue: stored.heightCentimetres)
+        _units = Published(initialValue: stored.units)
     }
 
     /// Records the first-launch prompt's answer: the name after Continue (none if left blank),
@@ -77,7 +87,10 @@ extension ProfileStore {
             name: defaults.string(forKey: nameKey),
             birthYear: defaults.object(forKey: birthYearKey) as? Int,
             sex: defaults.string(forKey: sexKey).flatMap(Sex.init(rawValue:)) ?? .preferNotToSay,
-            maxHR: defaults.object(forKey: maxHRKey) as? Int
+            maxHR: defaults.object(forKey: maxHRKey) as? Int,
+            heightCentimetres: defaults.object(forKey: heightKey) as? Double,
+            units: defaults.string(forKey: unitsKey).flatMap(WeightUnits.init(rawValue:))
+                ?? .kilograms
         )
     }
 }
@@ -87,3 +100,5 @@ private let birthYearKey = "profileBirthYear"
 private let sexKey = "profileSex"
 private let maxHRKey = "profileMaxHR"
 private let askedKey = "profileNameAsked"
+private let heightKey = "profileHeightCentimetres"
+private let unitsKey = "profileUnits"

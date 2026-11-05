@@ -51,3 +51,19 @@ func aBirthYearOutsideThePickersRangeStillGivesAnEstimate(birthYear: Int, year: 
 
     #expect(abs(estimate - maxHR) < 1e-9)
 }
+
+// Spec 014, "Units and Profile": the Profile gains Height and Units, kg by default.
+
+@Test func aNewProfileHasNoHeightAndKilogramsAsUnits() {
+    let profile = Profile(name: nil)
+
+    #expect(profile.heightCentimetres == nil)
+    #expect(profile.units == .kilograms)
+}
+
+@Test func aProfileKeepsTheHeightAndUnitsItWasGiven() {
+    let profile = Profile(name: nil, heightCentimetres: 180, units: .pounds)
+
+    #expect(profile.heightCentimetres == 180)
+    #expect(profile.units == .pounds)
+}

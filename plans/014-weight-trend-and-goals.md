@@ -52,11 +52,15 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
      `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightChartCard.swift` (new)
    - Done when: the spec's chart ranges and empty/early states hold in the Body view's output
      (tests per range, no Weigh-ins, one Weigh-in).
-4. [ ] **Slice:** units and Profile. `Profile` gains height (cm) and Units (kg default, lb, st
+4. [x] **Slice:** units and Profile. `Profile` gains height (cm) and Units (kg default, lb, st
    and lb); `BodyView` formats every weight in the chosen units. Shell: Height and Units rows in
    the Profile menu, kept with the Profile.
    - Seam: Body view · Files: `src/SerenixCore/Profile.swift`, `BodyView.swift`,
-     `BodyViewTests.swift`, `src/SerenixApp/ProfileStore.swift`, `src/SerenixApp/ProfileMenu.swift`
+     `BodyViewTests.swift`, `ProfileTests.swift`, `src/SerenixApp/ProfileStore.swift`,
+     `src/SerenixApp/ProfileMenu.swift`, and the screens that show weights: `BodyScreen.swift`,
+     `WeighInList.swift`, `MainTabs.swift`, `WeightChartCard.swift`; unit conversions in
+     `src/SerenixCore/WeightUnits.swift` (new, with `WeightUnitsTests.swift`) and the refusal in
+     the user's units in `WeighIn.swift` (both after review)
    - Done when: criterion "82.4 kg shows as 82.4 kg, 181.7 lb, 12 st 13.7 lb".
 5. [ ] **Slice:** Weekly Rate. Latest Trend Weight minus the Trend Weight 7 or more Days earlier,
    per week; none without that span or across a restart.

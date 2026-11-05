@@ -13,9 +13,17 @@ public struct BodyView: Equatable, Sendable {
     public let weighIns: [WeighIn]
     /// Today, where every chart range ends.
     private let today: Day
+    /// How weights are shown (the Profile's units).
+    public let units: WeightUnits
 
-    public init(weighIns: [WeighIn], now: Date, timeZone: TimeZone) {
+    public init(
+        weighIns: [WeighIn],
+        units: WeightUnits = .kilograms,
+        now: Date,
+        timeZone: TimeZone
+    ) {
         today = Day(containing: now, in: timeZone)
+        self.units = units
         let newestFirst = weighIns.sorted { $0.time > $1.time }
         self.weighIns = newestFirst
         lastWeighIn = newestFirst.first
@@ -56,6 +64,11 @@ public struct BodyView: Equatable, Sendable {
             points.append(TrendPoint(day: day, weighIn: weight, trendWeight: trend))
         }
         return points
+    }
+
+    /// `kilograms` in the view's units, to one decimal (spec 014, Units and Profile).
+    public func text(_ kilograms: Double) -> String {
+        units.text(kilograms)
     }
 
     /// The chart over `range`, ending today (spec 014, Screen); nil with no Weigh-ins, when the

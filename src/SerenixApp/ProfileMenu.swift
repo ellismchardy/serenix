@@ -64,6 +64,17 @@ struct ProfileMenu: View {
                             Text("\(bpm) bpm").tag(Int?.some(bpm))
                         }
                     }
+                    Picker("Height", selection: $profile.heightCentimetres) {
+                        Text("Not set").tag(Double?.none)
+                        ForEach(Height.options(units: profile.units), id: \.self) { centimetres in
+                            Text(Height.text(centimetres: centimetres, units: profile.units)).tag(
+                                Double?.some(centimetres)
+                            )
+                        }
+                    }
+                    Picker("Units", selection: $profile.units) {
+                        ForEach(WeightUnits.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
                 }
                 .pickerStyle(.navigationLink)
                 .listRowBackground(Theme.card)
@@ -242,6 +253,17 @@ extension Sex {
         case .female: "Female"
         case .male: "Male"
         case .preferNotToSay: "Prefer not to say"
+        }
+    }
+}
+
+extension WeightUnits {
+    /// The Units picker's names.
+    fileprivate var label: String {
+        switch self {
+        case .kilograms: "kg"
+        case .pounds: "lb"
+        case .stonesAndPounds: "st and lb"
         }
     }
 }

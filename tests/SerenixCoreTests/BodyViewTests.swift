@@ -217,3 +217,24 @@ private let nov5 = Day(year: 2026, month: 11, day: 5)
 @Test func chartRangesAreLabelledOneWeekToAll() {
     #expect(ChartRange.allCases.map(\.label) == ["1W", "1M", "3M", "6M", "All"])
 }
+
+// Units (spec 014, Units and Profile): weights show to one decimal in the chosen units, from kg
+// stored. 82.4 kg = 181.66 lb (1 lb = 0.45359237 kg), and 181.7 lb = 12 st 13.7 lb.
+
+@Test(arguments: [
+    (WeightUnits.kilograms, "82.4 kg"),
+    (WeightUnits.pounds, "181.7 lb"),
+    (WeightUnits.stonesAndPounds, "12 st 13.7 lb"),
+])
+func aWeightShowsToOneDecimalInTheChosenUnits(units: WeightUnits, text: String) {
+    let view = BodyView(weighIns: [], units: units, now: now, timeZone: london)
+
+    #expect(view.text(82.4) == text)
+}
+
+@Test func aWeightThatRoundsUpToAWholeStoneShowsNoPoundsNotFourteen() {
+    // 88.89 kg = 195.9689 lb, which rounds to 196.0 lb = 14 st exactly.
+    let view = BodyView(weighIns: [], units: .stonesAndPounds, now: now, timeZone: london)
+
+    #expect(view.text(88.89) == "14 st 0.0 lb")
+}

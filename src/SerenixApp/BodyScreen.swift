@@ -4,29 +4,37 @@ import SwiftUI
 /// The Body tab (spec 014): draws the Body view, and logs Weigh-ins.
 struct BodyScreen: View {
     @ObservedObject var store: BodyStore
+    @ObservedObject var profile: ProfileStore
     @State private var showsWeighInSheet = false
 
     var body: some View {
-        let view = BodyView(weighIns: store.weighIns, now: Date(), timeZone: .current)
+        let view = BodyView(
+            weighIns: store.weighIns,
+            units: profile.units,
+            now: Date(),
+            timeZone: .current
+        )
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     if let trendWeight = view.trendWeight {
-                        Text(oneDecimal(trendWeight))
-                            .font(.system(size: 52, weight: .bold, design: .rounded))
+                        Text(profile.units.text(trendWeight, locale: .current))
+                            .font(.system(size: 44, weight: .bold, design: .rounded))
                         if let last = view.lastWeighIn {
-                            Text("kg Trend Weight · last Weigh-in \(oneDecimal(last.kilograms)) kg")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            Text(
+                                "Trend Weight · last Weigh-in \(profile.units.text(last.kilograms, locale: .current))"
+                            )
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                         }
                     } else {
                         Text("Log your first Weigh-in")
                             .font(.title3.weight(.semibold))
                     }
-                    WeightChartCard(view: view)
+                    WeightChartCard(view: view, units: profile.units)
                     if !view.weighIns.isEmpty {
                         NavigationLink("All Weigh-ins") {
-                            WeighInList(store: store)
+                            WeighInList(store: store, units: profile.units)
                         }
                         .padding(.top, 8)
                     }
@@ -45,7 +53,9 @@ struct BodyScreen: View {
                 .accessibilityLabel("Log a Weigh-in")
             }
             .sheet(isPresented: $showsWeighInSheet) {
-                WeighInSheet(lastWeight: view.lastWeighIn?.kilograms) { store.add($0) }
+                WeighInSheet(units: profile.units, lastWeight: view.lastWeighIn?.kilograms) {
+                    store.add($0)
+                }
             }
             .alert(
                 "Body data",
@@ -62,35 +72,56 @@ struct BodyScreen: View {
     }
 }
 
-/// A weight to one decimal, with the phone's own decimal separator.
-private func oneDecimal(_ value: Double) -> String {
-    value.formatted(.number.precision(.fractionLength(1)))
-}
-
-/// Logs one Weigh-in, or edits one: the last weight filled in, and an editable date and time
-/// (spec 014). The field is text, parsed on every keystroke, because a number field only updates
-/// when it commits and the decimal pad has no Return key. A refused Weigh-in isn't saved; the
-/// sheet shows why.
+/// Logs one Weigh-in, or edits one, in the Profile's units: the last weight filled in, and an
+/// editable date and time (spec 014). Fields are text, parsed on every keystroke, because a
+/// number field only updates when it commits and the decimal pad has no Return key. The weight
+/// is stored in kg. A refused Weigh-in isn't saved; the sheet shows why.
 struct WeighInSheet: View {
-    let lastWeight: Double?
+    let units: WeightUnits
     let save: (WeighIn) -> Void
     private let isEditing: Bool
+    /// kg, lb, or (for st and lb) the pounds part.
     @State private var text = ""
+    /// The stones part, in st and lb only.
+    @State private var stonesText = ""
     @State private var time: Date
     @Environment(\.dismiss) private var dismiss
 
-    /// `editing` fills in that Weigh-in at its full precision, so saving it untouched never
-    /// rounds a stored value.
-    init(editing: WeighIn? = nil, lastWeight: Double?, save: @escaping (WeighIn) -> Void) {
-        self.lastWeight = lastWeight
+    /// `editing` fills in that Weigh-in (at full precision in kg), otherwise `lastWeight` to one
+    /// decimal.
+    init(
+        units: WeightUnits,
+        editing: WeighIn? = nil,
+        lastWeight: Double?,
+        save: @escaping (WeighIn) -> Void
+    ) {
+        self.units = units
         self.save = save
         isEditing = editing != nil
         _time = State(initialValue: editing?.time ?? Date())
-        _text = State(initialValue: editing.map { $0.kilograms.formatted(.number) } ?? "")
+        if let editing, units == .kilograms {
+            // Every digit, so saving it untouched never rounds a stored value.
+            _text = State(initialValue: editing.kilograms.formatted(.number.grouping(.never)))
+        } else if let kilograms = editing?.kilograms ?? lastWeight {
+            let fields = units.fields(kilograms)
+            _stonesText = State(initialValue: fields.stones.map(String.init) ?? "")
+            _text = State(
+                initialValue: fields.rest.formatted(
+                    .number.precision(.fractionLength(1)).grouping(.never)
+                )
+            )
+        }
     }
 
+    /// The weight typed in, in kg; nil until it reads as a number.
     private var weight: Double? {
-        try? Double(text, format: .number)
+        guard let rest = try? Double(text, format: .number) else { return nil }
+        var stones: Int?
+        if units == .stonesAndPounds {
+            guard let typed = Int(stonesText) else { return nil }
+            stones = typed
+        }
+        return units.kilograms(WeightFields(stones: stones, rest: rest))
     }
 
     private var refusal: WeighInRefusal? {
@@ -100,11 +131,22 @@ struct WeighInSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Weight (kg)", text: $text)
-                    .keyboardType(.decimalPad)
+                switch units {
+                case .kilograms:
+                    TextField("Weight (kg)", text: $text).keyboardType(.decimalPad)
+                case .pounds:
+                    TextField("Weight (lb)", text: $text).keyboardType(.decimalPad)
+                case .stonesAndPounds:
+                    HStack {
+                        TextField("st", text: $stonesText).keyboardType(.numberPad)
+                        Text("st")
+                        TextField("lb", text: $text).keyboardType(.decimalPad)
+                        Text("lb")
+                    }
+                }
                 DatePicker("Taken", selection: $time, in: ...Date())
                 if let refusal {
-                    Text(refusal.message).foregroundStyle(.red)
+                    Text(refusal.message(in: units)).foregroundStyle(.red)
                 }
             }
             .navigationTitle(isEditing ? "Edit Weigh-in" : "Log Weigh-in")
@@ -117,9 +159,6 @@ struct WeighInSheet: View {
                     }
                     .disabled(weight == nil || refusal != nil)
                 }
-            }
-            .onAppear {
-                if text.isEmpty, let lastWeight { text = oneDecimal(lastWeight) }
             }
         }
     }

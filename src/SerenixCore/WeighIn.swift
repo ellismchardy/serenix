@@ -44,6 +44,17 @@ public enum WeighInRefusal: Equatable, Sendable {
         case .inTheFuture: "A Weigh-in can't be in the future."
         }
     }
+
+    /// The message with its limit in the user's units, e.g. "A Weigh-in can't be under 44.1 lb."
+    public func message(in units: WeightUnits) -> String {
+        switch self {
+        case .tooLight:
+            "A Weigh-in can't be under \(units.text(WeighIn.allowedKilograms.lowerBound))."
+        case .tooHeavy:
+            "A Weigh-in can't be over \(units.text(WeighIn.allowedKilograms.upperBound))."
+        case .inTheFuture: message
+        }
+    }
 }
 
 extension WeighIn {

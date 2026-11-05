@@ -6,6 +6,8 @@ import SwiftUI
 /// that breaks where Trend Weight restarted, over the range chips below it.
 struct WeightChartCard: View {
     let view: BodyView
+    /// Weights plot in kg, or in total pounds for lb and st.
+    let units: WeightUnits
     @State private var range: ChartRange = .threeMonths
 
     var body: some View {
@@ -17,7 +19,7 @@ struct WeightChartCard: View {
                             if chart.showsLine {
                                 LineMark(
                                     x: .value("Day", date(point.day)),
-                                    y: .value("Trend Weight", point.trendWeight),
+                                    y: .value("Trend Weight", units.chartValue(point.trendWeight)),
                                     series: .value("Line", "line \(index)")
                                 )
                                 .foregroundStyle(Theme.accent)
@@ -25,7 +27,7 @@ struct WeightChartCard: View {
                             }
                             PointMark(
                                 x: .value("Day", date(point.day)),
-                                y: .value("Weigh-in", point.weighIn)
+                                y: .value("Weigh-in", units.chartValue(point.weighIn))
                             )
                             .symbolSize(18)
                             .foregroundStyle(Theme.accentMiddle)

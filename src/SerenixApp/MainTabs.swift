@@ -29,7 +29,7 @@ struct MainTabs: View {
                 dismissedPill: $dismissedPill
             )
             .tabItem { Label("Sleep", systemImage: "moon.zzz") }
-            BodyScreen(store: bodyStore)
+            BodyScreen(store: bodyStore, profile: profile)
                 .tabItem { Label("Body", systemImage: "figure") }
         }
         // The selected tab in the accent colour (spec 012, Tab bar).
