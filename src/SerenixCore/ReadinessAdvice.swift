@@ -33,7 +33,7 @@ enum ReadinessAdvice {
             }
         guard band != .ready else { return sentence }
         guard let breakdown else { return sentence }
-        let reasons = costliest(breakdown).enumerated().compactMap { position, input in
+        let reasons = breakdown.costliestInputs.enumerated().compactMap { position, input in
             reason(
                 input,
                 first: position == 0,
@@ -44,21 +44,6 @@ enum ReadinessAdvice {
             )
         }
         return reasons.isEmpty ? sentence : "\(joined(reasons)). \(sentence)"
-    }
-
-    /// The inputs at −`verdictPointsThreshold` points or fewer, lowest points first; ties keep
-    /// the inputs' order (spec 002, Readiness message).
-    private static func costliest(_ breakdown: Readiness.Breakdown) -> [Readiness.Input] {
-        let threshold = ReadinessWhyRow.verdictPointsThreshold
-        typealias Cost = (order: Int, input: Readiness.Input, points: Int)
-        let costs: [Cost] = zip(breakdown.parts, breakdown.points).enumerated().map {
-            (order: $0.offset, input: $0.element.0.input, points: $0.element.1)
-        }
-        return
-            costs
-            .filter { $0.points <= -threshold }
-            .sorted { $0.points != $1.points ? $0.points < $1.points : $0.order < $1.order }
-            .map(\.input)
     }
 
     /// One input's reason; "You slept" is lower-cased when it isn't the first.
@@ -79,7 +64,7 @@ enum ReadinessAdvice {
             guard let bpm = sleepingHR?.differenceAsShown, bpm != 0 else { return nil }
             return "Sleeping HR is up \(abs(bpm)) bpm"
         case .timeAsleep:
-            let minutesShort = Int((breakdown.sleepShortfall / 60).rounded())
+            let minutesShort = breakdown.minutesShort
             guard minutesShort > 0 else { return nil }
             return "\(first ? "You" : "you") slept \(hoursMinutesText(minutesShort)) less than "
                 + "your Sleep Need"
