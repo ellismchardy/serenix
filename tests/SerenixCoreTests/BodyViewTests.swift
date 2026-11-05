@@ -82,3 +82,54 @@ private func isClose(_ actual: Double?, _ expected: Double) -> Bool {
 
     #expect(view.trend.map(\.day) == [nov1, nov4])
 }
+
+@Test func aWeighInFifteenDaysAfterThePreviousRestartsTrendWeightAndBreaksTheLine() {
+    // 19 Oct to 3 Nov is 15 Days, more than 14, so Trend Weight restarts at 79.0.
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 19, 7), kilograms: 80.0),
+        WeighIn(time: at(3, 7), kilograms: 79.0),
+    ])
+
+    #expect(view.trend.map(\.startsNewLine) == [true, true])
+    #expect(isClose(view.trend.last?.trendWeight, 79.0))
+    #expect(isClose(view.trendWeight, 79.0))
+}
+
+@Test func aWeighInFourteenDaysAfterThePreviousCarriesTrendWeightOnWithoutABreak() {
+    // 20 Oct to 3 Nov is 14 Days. α = 1 − 0.9^14 = 1 − 0.2287679245496101 = 0.7712320754503899,
+    // so 80.0 + 0.7712320754503899 × (79.0 − 80.0) = 79.2287679245496101.
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 20, 7), kilograms: 80.0),
+        WeighIn(time: at(3, 7), kilograms: 79.0),
+    ])
+
+    #expect(view.trend.map(\.startsNewLine) == [true, false])
+    #expect(isClose(view.trend.last?.trendWeight, 79.2287679245496101))
+    #expect(isClose(view.trendWeight, 79.2287679245496101))
+}
+
+@Test func aWeighInUnderTwentyKilogramsIsRefusedWithAMessage() {
+    let refusal = WeighIn(time: at(4, 7), kilograms: 19.9).refusal(now: now)
+
+    #expect(refusal == .tooLight)
+    #expect(refusal?.message == "A Weigh-in can't be under 20 kg.")
+}
+
+@Test func aWeighInOverThreeHundredFiftyKilogramsIsRefusedWithAMessage() {
+    let refusal = WeighIn(time: at(4, 7), kilograms: 350.1).refusal(now: now)
+
+    #expect(refusal == .tooHeavy)
+    #expect(refusal?.message == "A Weigh-in can't be over 350 kg.")
+}
+
+@Test func aWeighInInTheFutureIsRefusedWithAMessage() {
+    let refusal = WeighIn(time: at(5, 10), kilograms: 80.0).refusal(now: now)
+
+    #expect(refusal == .inTheFuture)
+    #expect(refusal?.message == "A Weigh-in can't be in the future.")
+}
+
+@Test func weighInsOfExactlyTwentyAndThreeHundredFiftyKilogramsAreAllowed() {
+    #expect(WeighIn(time: at(4, 7), kilograms: 20.0).refusal(now: now) == nil)
+    #expect(WeighIn(time: at(4, 7), kilograms: 350.0).refusal(now: now) == nil)
+}

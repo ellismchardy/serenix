@@ -26,6 +26,11 @@ public struct BodyView: Equatable, Sendable {
     /// `1 − trendKeep^Δd`, so a gap counts as that many daily steps.
     static let trendKeep = 0.9
 
+    /// The most Days between counted Weigh-ins that Trend Weight carries across; after a longer
+    /// gap it restarts at the new Weigh-in (issue #50: after 14 Days only 0.9^14 ≈ 23% of the
+    /// old trend would remain, so it says little).
+    static let longestGap = 14
+
     /// Trend Weight over the counted Weigh-ins: the lowest on each Day (spec 014, Weigh-ins).
     static func trend(of weighIns: [WeighIn], in timeZone: TimeZone) -> [TrendPoint] {
         var lowest: [Day: Double] = [:]
@@ -35,8 +40,12 @@ public struct BodyView: Equatable, Sendable {
         }
         var points: [TrendPoint] = []
         for (day, weight) in lowest.sorted(by: { $0.key < $1.key }) {
-            guard let previous = points.last else {
-                points.append(TrendPoint(day: day, weighIn: weight, trendWeight: weight))
+            guard let previous = points.last,
+                previous.day.days(until: day) <= longestGap
+            else {
+                points.append(
+                    TrendPoint(day: day, weighIn: weight, trendWeight: weight, startsNewLine: true)
+                )
                 continue
             }
             let step = 1 - pow(trendKeep, Double(previous.day.days(until: day)))

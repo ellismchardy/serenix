@@ -20,14 +20,24 @@ final class StoredWeighIn {
 /// in its own store file, apart from History Records and Nights, so a build that doesn't know
 /// the Body models never opens it and so can't drop its tables. Body data is never written to
 /// the Sync Log, `os.Logger` or bug reports.
+/// One stored Weigh-in with the ID of its row, so editing or deleting it touches that row only,
+/// even when another has the same time and weight.
+struct WeighInRow: Identifiable, Equatable {
+    let id: PersistentIdentifier
+    let weighIn: WeighIn
+}
+
 @MainActor
 final class BodyStore: ObservableObject {
-    /// Every Weigh-in, as stored.
-    @Published private(set) var weighIns: [WeighIn] = []
+    /// Every stored Weigh-in with its row ID, newest first.
+    @Published private(set) var rows: [WeighInRow] = []
     /// Why the last open or save failed, shown to the user; nil when all is well. Typed-in Body
     /// data can't be rebuilt, so a failure is never swallowed (ADR 0008).
     @Published var failure: String?
     private let context: ModelContext?
+
+    /// Every stored Weigh-in.
+    var weighIns: [WeighIn] { rows.map(\.weighIn) }
 
     init() {
         do {
@@ -50,28 +60,73 @@ final class BodyStore: ObservableObject {
         reload()
     }
 
-    /// Saves a Weigh-in. On failure nothing is kept and the user is told.
+    /// Saves a Weigh-in. A refused one, or a failed save, keeps nothing and tells the user.
     func add(_ weighIn: WeighIn) {
+        change { context in
+            try Self.check(weighIn)
+            context.insert(StoredWeighIn(weighIn))
+        }
+    }
+
+    /// Deletes the Weigh-in in row `id`.
+    func delete(_ id: PersistentIdentifier) {
+        change { context in context.delete(try Self.stored(id, in: context)) }
+    }
+
+    /// Replaces the Weigh-in in row `id` with its edited version.
+    func replace(_ id: PersistentIdentifier, with new: WeighIn) {
+        change { context in
+            try Self.check(new)
+            let stored = try Self.stored(id, in: context)
+            stored.time = new.time
+            stored.kilograms = new.kilograms
+        }
+    }
+
+    /// Makes a change and saves it; on any failure nothing changes and the user is told.
+    private func change(_ edit: (ModelContext) throws -> Void) {
         guard let context else {
-            failure = "Your Body data couldn't be opened, so the Weigh-in wasn't saved."
+            failure = "Your Body data couldn't be opened, so the change wasn't saved."
             return
         }
-        context.insert(StoredWeighIn(weighIn))
         do {
+            try edit(context)
             try context.save()
         } catch {
             context.rollback()
-            failure = "The Weigh-in couldn't be saved: \(error.localizedDescription)"
+            failure = "The change wasn't saved: \(error.localizedDescription)"
         }
         reload()
+    }
+
+    private static func check(_ weighIn: WeighIn) throws {
+        if let refusal = weighIn.refusal(now: Date()) { throw BodyStoreError(refusal.message) }
+    }
+
+    private static func stored(
+        _ id: PersistentIdentifier,
+        in context: ModelContext
+    ) throws -> StoredWeighIn {
+        guard let stored = context.model(for: id) as? StoredWeighIn, !stored.isDeleted else {
+            throw BodyStoreError("That Weigh-in is no longer stored.")
+        }
+        return stored
     }
 
     private func reload() {
         guard let context else { return }
         do {
-            weighIns = try context.fetch(FetchDescriptor<StoredWeighIn>()).map(\.weighIn)
+            rows = try context.fetch(
+                FetchDescriptor<StoredWeighIn>(sortBy: [SortDescriptor(\.time, order: .reverse)])
+            ).map { WeighInRow(id: $0.persistentModelID, weighIn: $0.weighIn) }
         } catch {
             failure = "Your Weigh-ins couldn't be read: \(error.localizedDescription)"
         }
     }
+}
+
+/// A Body store failure, with the message shown to the user.
+private struct BodyStoreError: LocalizedError {
+    let errorDescription: String?
+    init(_ message: String) { errorDescription = message }
 }

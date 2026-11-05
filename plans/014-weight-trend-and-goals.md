@@ -38,11 +38,12 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
      `src/SerenixApp/SerenixApp.swift`
    - Done when: spec criteria "80.0 then 79.0 → 80.0 then 79.9", "3 Days later → 79.729", "two
      Weigh-ins on one Day", "Days without a Weigh-in have no point".
-2. [ ] **Slice:** gaps and validation. Restart after more than 14 Days with a break; refuse
+2. [x] **Slice:** gaps and validation. Restart after more than 14 Days with a break; refuse
    Weigh-ins under 20 kg, over 350 kg or in the future with a message. Shell: the Weigh-in list,
    with edit and delete.
    - Seam: Body view · Files: `WeighIn.swift`, `BodyView.swift`, `BodyViewTests.swift`,
-     `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeighInList.swift` (new)
+     `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeighInList.swift` (new),
+     `src/SerenixApp/BodyStore.swift` (edit and delete by row)
    - Done when: criteria "15 Days restarts, 14 does not" and "under 20, over 350 or future is
      refused".
 3. [ ] **Slice:** the chart. Points per range (1W, 1M, 3M, 6M, All) with line breaks; empty

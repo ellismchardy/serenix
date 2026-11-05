@@ -23,6 +23,12 @@ struct BodyScreen: View {
                         Text("Log your first Weigh-in")
                             .font(.title3.weight(.semibold))
                     }
+                    if !view.weighIns.isEmpty {
+                        NavigationLink("All Weigh-ins") {
+                            WeighInList(store: store)
+                        }
+                        .padding(.top, 8)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -60,18 +66,34 @@ private func oneDecimal(_ value: Double) -> String {
     value.formatted(.number.precision(.fractionLength(1)))
 }
 
-/// Logs one Weigh-in: the last weight filled in, and an editable date and time (spec 014). The
-/// field is text, parsed on every keystroke, because a number field only updates when it
-/// commits and the decimal pad has no Return key.
-private struct WeighInSheet: View {
+/// Logs one Weigh-in, or edits one: the last weight filled in, and an editable date and time
+/// (spec 014). The field is text, parsed on every keystroke, because a number field only updates
+/// when it commits and the decimal pad has no Return key. A refused Weigh-in isn't saved; the
+/// sheet shows why.
+struct WeighInSheet: View {
     let lastWeight: Double?
     let save: (WeighIn) -> Void
+    private let isEditing: Bool
     @State private var text = ""
-    @State private var time = Date()
+    @State private var time: Date
     @Environment(\.dismiss) private var dismiss
+
+    /// `editing` fills in that Weigh-in at its full precision, so saving it untouched never
+    /// rounds a stored value.
+    init(editing: WeighIn? = nil, lastWeight: Double?, save: @escaping (WeighIn) -> Void) {
+        self.lastWeight = lastWeight
+        self.save = save
+        isEditing = editing != nil
+        _time = State(initialValue: editing?.time ?? Date())
+        _text = State(initialValue: editing.map { $0.kilograms.formatted(.number) } ?? "")
+    }
 
     private var weight: Double? {
         try? Double(text, format: .number)
+    }
+
+    private var refusal: WeighInRefusal? {
+        weight.flatMap { WeighIn(time: time, kilograms: $0).refusal(now: Date()) }
     }
 
     var body: some View {
@@ -80,8 +102,11 @@ private struct WeighInSheet: View {
                 TextField("Weight (kg)", text: $text)
                     .keyboardType(.decimalPad)
                 DatePicker("Taken", selection: $time, in: ...Date())
+                if let refusal {
+                    Text(refusal.message).foregroundStyle(.red)
+                }
             }
-            .navigationTitle("Log Weigh-in")
+            .navigationTitle(isEditing ? "Edit Weigh-in" : "Log Weigh-in")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -89,7 +114,7 @@ private struct WeighInSheet: View {
                         if let weight { save(WeighIn(time: time, kilograms: weight)) }
                         dismiss()
                     }
-                    .disabled(weight == nil)
+                    .disabled(weight == nil || refusal != nil)
                 }
             }
             .onAppear {
