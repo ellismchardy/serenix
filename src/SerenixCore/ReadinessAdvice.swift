@@ -1,11 +1,8 @@
 import Foundation
 
 /// The advice under the Readiness message's band word (spec 002, Readiness message): the band's
-/// sentence, led for Steady and Take it easy by why, from the Night's own numbers.
+/// sentence, led for Steady and Take it easy by why: the inputs that cost Readiness the most.
 enum ReadinessAdvice {
-    /// A Load at or above this, the Day before, counts as high: about a hard hour. Load points,
-    /// 0–100 (ADR 0005; spec 005, Readiness advice). Assumption: tune with real Days.
-    static let highLoad = 55
     /// The Load to stay under today when Steady: about an hour of moderate exercise. Load points,
     /// 0–100 (ADR 0005; spec 005, Readiness advice). Assumption: tune with real Days.
     static let steadyLoadCap = 50
@@ -13,10 +10,11 @@ enum ReadinessAdvice {
     /// 0–100 (ADR 0005; spec 005, Readiness advice). Assumption: tune with real Days.
     static let takeItEasyLoadCap = 33
 
-    /// `yesterdayLoad` is the Load of the Day before the Day shown; `hrv` and `sleepingHR` are the
-    /// Night's tiles.
+    /// `breakdown` is the Night's Readiness breakdown; `yesterdayLoad` is the Load of the Day
+    /// before the Day shown; `hrv` and `sleepingHR` are the Night's tiles.
     static func text(
         for band: ReadinessBand,
+        breakdown: Readiness.Breakdown?,
         yesterdayLoad: Int?,
         hrv: MetricTile?,
         sleepingHR: MetricTile?
@@ -34,30 +32,63 @@ enum ReadinessAdvice {
                     + "Load under \(takeItEasyLoadCap) today."
             }
         guard band != .ready else { return sentence }
-        let reasons = reasons(yesterdayLoad: yesterdayLoad, hrv: hrv, sleepingHR: sleepingHR)
+        guard let breakdown else { return sentence }
+        let reasons = costliest(breakdown).enumerated().compactMap { position, input in
+            reason(
+                input,
+                first: position == 0,
+                breakdown: breakdown,
+                yesterdayLoad: yesterdayLoad,
+                hrv: hrv,
+                sleepingHR: sleepingHR
+            )
+        }
         return reasons.isEmpty ? sentence : "\(joined(reasons)). \(sentence)"
     }
 
-    /// What applies, in order: a high Load yesterday, HRV below Baseline, Sleeping HR above it.
-    private static func reasons(yesterdayLoad: Int?, hrv: MetricTile?, sleepingHR: MetricTile?)
-        -> [String]
-    {
-        var reasons: [String] = []
-        if let load = yesterdayLoad, load >= highLoad {
-            reasons.append("Yesterday's Load was high (\(load))")
+    /// The inputs at −`verdictPointsThreshold` points or fewer, lowest points first; ties keep
+    /// the inputs' order (spec 002, Readiness message).
+    private static func costliest(_ breakdown: Readiness.Breakdown) -> [Readiness.Input] {
+        let threshold = ReadinessWhyRow.verdictPointsThreshold
+        typealias Cost = (order: Int, input: Readiness.Input, points: Int)
+        let costs: [Cost] = zip(breakdown.parts, breakdown.points).enumerated().map {
+            (order: $0.offset, input: $0.element.0.input, points: $0.element.1)
         }
-        if let hrv, hrv.differenceDirection == .down, let percent = hrv.differenceAsShown {
-            reasons.append("HRV is \(abs(percent))% below your Baseline")
-        }
-        if let sleepingHR, sleepingHR.differenceDirection == .up,
-            let bpm = sleepingHR.differenceAsShown
-        {
-            reasons.append("Sleeping HR is up \(bpm) bpm")
-        }
-        return reasons
+        return
+            costs
+            .filter { $0.points <= -threshold }
+            .sorted { $0.points != $1.points ? $0.points < $1.points : $0.order < $1.order }
+            .map(\.input)
     }
 
-    /// "A", "A and B", "A, B and C".
+    /// One input's reason; "You slept" is lower-cased when it isn't the first.
+    private static func reason(
+        _ input: Readiness.Input,
+        first: Bool,
+        breakdown: Readiness.Breakdown,
+        yesterdayLoad: Int?,
+        hrv: MetricTile?,
+        sleepingHR: MetricTile?
+    ) -> String? {
+        switch input {
+        case .hrv:
+            // A difference that rounds to 0 isn't worth a reason, whatever its points.
+            guard let percent = hrv?.differenceAsShown, percent != 0 else { return nil }
+            return "HRV is \(abs(percent))% below your Baseline"
+        case .sleepingHR:
+            guard let bpm = sleepingHR?.differenceAsShown, bpm != 0 else { return nil }
+            return "Sleeping HR is up \(abs(bpm)) bpm"
+        case .timeAsleep:
+            let minutesShort = Int((breakdown.sleepShortfall / 60).rounded())
+            guard minutesShort > 0 else { return nil }
+            return "\(first ? "You" : "you") slept \(hoursMinutesText(minutesShort)) less than "
+                + "your Sleep Need"
+        case .previousDayLoad:
+            return yesterdayLoad.map { "Yesterday's Load was high (\($0))" }
+        }
+    }
+
+    /// "A", "A and B", "A, B and C", "A, B, C and D".
     private static func joined(_ parts: [String]) -> String {
         guard let last = parts.last, parts.count > 1 else { return parts.first ?? "" }
         return parts.dropLast().joined(separator: ", ") + " and " + last

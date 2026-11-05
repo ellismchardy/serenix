@@ -20,7 +20,7 @@ stable-sorted by points so ties keep the `Readiness.Input.allCases` order. Reaso
 is deleted. `TodayView` passes `nightReadiness.breakdown`.
 
 ## Tasks
-1. [ ] **Slice:** the reasons follow the points, and Time Asleep is one of them
+1. [x] **Slice:** the reasons follow the points, and Time Asleep is one of them
    - Seam: `TodayView.readinessAdvice` · Files: `src/SerenixCore/ReadinessAdvice.swift`,
      `src/SerenixCore/TodayView.swift`, `tests/SerenixCoreTests/TodayViewTests.swift`
    - Rewrite the Take it easy test around spec 012's "all four off" Night, with the four reasons
