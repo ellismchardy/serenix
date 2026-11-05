@@ -73,11 +73,14 @@ public struct BodyView: Equatable, Sendable {
         var ease: GoalEase?
         if withEase {
             // Each of the last 7 Days' status, today first, each from the Weigh-ins up to it.
-            let statuses = (0..<GoalEase.offPaceDays).map { back in
-                goalCard(
+            // Days before the goal was last changed don't count: each edit gets a full week.
+            let statuses = (0..<GoalEase.offPaceDays).map { back -> PaceStatus? in
+                let day = today.adding(days: -back)
+                if let changed = goal.changedDay, day < changed { return nil }
+                return goalCard(
                     for: goal,
                     trend: points,
-                    today: today.adding(days: -back),
+                    today: day,
                     units: units,
                     withEase: false
                 )?.status

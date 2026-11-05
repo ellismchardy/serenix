@@ -96,7 +96,10 @@ warnings when that Pace is too fast.
   - **Too fast** — over 125% of Pace **and** over 0.5% of Trend Weight a week
 - **Ease the goal:** when the badge has been Off pace or Too fast on each of the last 7 Days, the
   Rate card offers: for a rate Pace, the next slower rate option (Off pace) or the rate nearest
-  Weekly Rate (Too fast); for a date Pace, moving the date to the projected date.
+  Weekly Rate (Too fast); for a date Pace, moving the date to the projected date (never earlier
+  than the 1%-a-week date). It offers nothing that would leave the goal as it is. Those 7 Days
+  count only from the Day the Weight Goal was last changed, so each edit (easing included) gets
+  a full week before the next offer.
 
 ### Progress
 - **Milestones**: every 1, 2 or 5 kg (lb units: 2, 5 or 10 lb), at whole multiples of the step
@@ -191,6 +194,8 @@ Weekly Rate and badge
       0.5% of 140 kg).
 - [ ] Ease the goal is offered only when the badge was Off pace or Too fast on each of the last 7
       Days; 6 Days is not enough.
+- [ ] After a Weight Goal is changed (easing included), Ease the goal waits for 7 Days counted
+      from that change before it's offered again.
 Pace and warnings
 - [ ] At Trend Weight 80 kg, a lose Pace of 0.25 kg is Sustainable, 0.5 kg (0.625%) Aggressive,
       1.0 kg (1.25%) Too fast; each rate option reports its share and band.

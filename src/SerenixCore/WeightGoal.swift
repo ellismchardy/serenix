@@ -67,12 +67,33 @@ public struct WeightGoal: Equatable, Codable, Sendable {
     public let goalWeight: Double
     /// Nil for a goal that holds weight.
     public let pace: GoalPace?
+    /// The Day it was last edited (easing included); nil when never. Optional, so goals stored
+    /// before it existed still decode (ADR 0008).
+    public let changedDay: Day?
 
-    public init(startWeight: Double, startDay: Day, goalWeight: Double, pace: GoalPace?) {
+    public init(
+        startWeight: Double,
+        startDay: Day,
+        goalWeight: Double,
+        pace: GoalPace?,
+        changedDay: Day? = nil
+    ) {
         self.startWeight = startWeight
         self.startDay = startDay
         self.goalWeight = goalWeight
         self.pace = pace
+        self.changedDay = changedDay
+    }
+
+    /// This goal marked as edited on `day`.
+    public func changed(on day: Day) -> WeightGoal {
+        WeightGoal(
+            startWeight: startWeight,
+            startDay: startDay,
+            goalWeight: goalWeight,
+            pace: pace,
+            changedDay: day
+        )
     }
 
     /// Lose when Goal Weight is below Start Weight, otherwise gain.
@@ -361,8 +382,9 @@ public enum GoalEase: Equatable, Sendable {
 }
 
 extension WeightGoal {
-    /// This goal with the offered easier Pace; its start and Goal Weight stay.
-    public func eased(by ease: GoalEase) -> WeightGoal {
+    /// This goal with the offered easier Pace, marked as changed on `day`; its start and Goal
+    /// Weight stay.
+    public func eased(by ease: GoalEase, on day: Day) -> WeightGoal {
         let pace: GoalPace =
             switch ease {
             case .rate(let kilogramsPerWeek): .rate(kilogramsPerWeek: kilogramsPerWeek)
@@ -372,7 +394,8 @@ extension WeightGoal {
             startWeight: startWeight,
             startDay: startDay,
             goalWeight: goalWeight,
-            pace: pace
+            pace: pace,
+            changedDay: day
         )
     }
 }

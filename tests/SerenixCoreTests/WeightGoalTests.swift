@@ -603,19 +603,16 @@ func aDateGoalMovingAwayFromGoalWeightOrWithoutWeeklyRateIsOfferedNothing(weekly
 
 @Test func easingARateGoalKeepsItsStartAndGoalAndChangesThePace() {
     let goal = loseHalfAKilogramAWeek(from: nov5)
-    #expect(
-        goal.eased(by: .rate(kilogramsPerWeek: 0.25))
-            == WeightGoal(
-                startWeight: 80.0,
-                startDay: nov5,
-                goalWeight: 75.0,
-                pace: .rate(kilogramsPerWeek: 0.25)
-            )
-    )
+    let eased = goal.eased(by: .rate(kilogramsPerWeek: 0.25), on: nov5)
+    #expect(eased.pace == .rate(kilogramsPerWeek: 0.25))
+    #expect(eased.startWeight == 80.0 && eased.goalWeight == 75.0 && eased.startDay == nov5)
 }
 
 @Test func easingADateGoalMovesItsDate() {
-    let eased = dateGoal(by: dec10).eased(by: .date(Day(year: 2027, month: 1, day: 14)))
+    let eased = dateGoal(by: dec10).eased(
+        by: .date(Day(year: 2027, month: 1, day: 14)),
+        on: nov5
+    )
     #expect(eased.pace == .date(Day(year: 2027, month: 1, day: 14)))
     #expect(eased.startWeight == 80.0 && eased.goalWeight == 78.0 && eased.startDay == nov5)
 }
@@ -650,4 +647,39 @@ func aDateGoalMovingAwayFromGoalWeightOrWithoutWeeklyRateIsOfferedNothing(weekly
         units: .kilograms
     )
     #expect(offer == .date(nov23))
+}
+
+// Ease the goal waits 7 Days after each change (spec 014).
+
+@Test func easingRecordsTheDayOfTheChange() {
+    let eased = loseHalfAKilogramAWeek(from: Day(year: 2026, month: 10, day: 16))
+        .eased(by: .rate(kilogramsPerWeek: 0.25), on: nov5)
+    #expect(eased.changedDay == nov5)
+}
+
+@Test func aGoalChangedTwoDaysAgoIsNotOfferedEasingAgain() {
+    // Flat 80s and a goal from 16 Oct (Off pace 30 Oct–5 Nov), but changed on 3 Nov: only
+    // 3 Nov–5 Nov count, 3 Days, so nothing is offered.
+    let goal = loseHalfAKilogramAWeek(from: Day(year: 2026, month: 10, day: 16))
+        .changed(on: Day(year: 2026, month: 11, day: 3))
+    let view = bodyView(
+        weighIns: flatEighties(from: Day(year: 2026, month: 10, day: 16)),
+        goal: goal
+    )
+    #expect(view.goalCard?.ease == nil)
+}
+
+@Test func aGoalChangedSevenDaysAgoCountsAWholeWeek() {
+    // Changed on 30 Oct: 30 Oct–5 Nov are 7 Days, all Off pace, so 0.25 is offered.
+    let goal = loseHalfAKilogramAWeek(from: Day(year: 2026, month: 10, day: 16))
+        .changed(on: Day(year: 2026, month: 10, day: 30))
+    let view = bodyView(
+        weighIns: flatEighties(from: Day(year: 2026, month: 10, day: 16)),
+        goal: goal
+    )
+    #expect(view.goalCard?.ease == .rate(kilogramsPerWeek: 0.25))
+}
+
+@Test func aGoalNeverChangedCountsFromItsStart() {
+    #expect(loseHalfAKilogramAWeek(from: nov5).changedDay == nil)
 }

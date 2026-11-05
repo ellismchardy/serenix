@@ -110,7 +110,9 @@ final class BodyStore: ObservableObject {
             if let current = try Self.currentGoal(in: context),
                 try goal.edits(current.goal())
             {
-                current.goalJSON = try JSONEncoder().encode(goal)
+                // An edit restarts Ease the goal's 7-Day count (spec 014).
+                let edited = goal.changed(on: Day(containing: Date(), in: .current))
+                current.goalJSON = try JSONEncoder().encode(edited)
             } else {
                 try Self.endCurrentGoal(in: context, reason: .changed)
                 context.insert(try StoredWeightGoal(goal))

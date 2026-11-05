@@ -101,8 +101,8 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
    - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`, `src/SerenixApp/BodyScreen.swift`
    - Tests in `WeightGoalTests.swift`, `GoalEase` in `WeightGoal.swift`. After review: no
      offer that is the goal's own Pace, and a date offer never before the 1%-a-week Day.
-   - Open (asked the owner): after easing, the past 7 Days are judged against the new Pace, so
-     another offer can follow at once.
+   - Owner's decision (spec updated): the 7 Days count from the goal's last change, so each edit
+     or easing gets a full week (`WeightGoal.changedDay`).
    - Done when: criterion "offered after 7 Days; 6 is not enough".
 10. [ ] **Slice:** Milestones and progress. Milestones at multiples of 1, 2 or 5 kg (2, 5, 10 lb)
     between Start and Goal Weight; progress %, change since start, to go. Shell: the Milestones

@@ -106,10 +106,14 @@ struct BodyScreen: View {
                     EmptyView()
                 }
                 if let ease = card.ease {
-                    Button(easeLabel(ease)) { store.setGoal(card.goal.eased(by: ease)) }
-                        .font(.caption.weight(.semibold))
-                        .buttonStyle(.bordered)
-                        .tint(Theme.accent)
+                    Button(easeLabel(ease)) {
+                        store.setGoal(
+                            card.goal.eased(by: ease, on: Day(containing: Date(), in: .current))
+                        )
+                    }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    .tint(Theme.accent)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
