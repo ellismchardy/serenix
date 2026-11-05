@@ -14,6 +14,7 @@ struct WeightGoalSheet: View {
     @State private var goalText = ""
     @State private var rate: Double?
     @State private var byDate = false
+    @State private var milestoneStep: MilestoneStep = .medium
     @State private var targetDate = Date()
     @Environment(\.dismiss) private var dismiss
 
@@ -30,6 +31,7 @@ struct WeightGoalSheet: View {
         )
         if let goal = existing {
             _goalText = State(initialValue: Self.text(goal.goalWeight, in: units))
+            _milestoneStep = State(initialValue: goal.milestoneStep ?? .medium)
             switch goal.pace {
             case .rate(let kilogramsPerWeek):
                 _rate = State(initialValue: kilogramsPerWeek)
@@ -65,7 +67,8 @@ struct WeightGoalSheet: View {
             startWeight: startWeight,
             startDay: Day(containing: startDate, in: .current),
             goalWeight: goalWeight,
-            pace: pace
+            pace: pace,
+            milestoneStep: milestoneStep
         )
     }
 
@@ -121,6 +124,15 @@ struct WeightGoalSheet: View {
                     }
                     if !byDate {
                         rateSection(direction)
+                    }
+                    Section("Milestone every") {
+                        Picker("Milestone every", selection: $milestoneStep) {
+                            ForEach(MilestoneStep.allCases, id: \.self) { step in
+                                Text(Self.stepLabel(step, units: units))
+                                    .tag(step)
+                            }
+                        }
+                        .pickerStyle(.segmented)
                     }
                 }
             }
@@ -179,6 +191,13 @@ struct WeightGoalSheet: View {
         guard let value = try? Double(text, format: .number) else { return nil }
         let fields = WeightFields(stones: nil, rest: value)
         return units == .kilograms ? fields.rest : WeightUnits.pounds.kilograms(fields)
+    }
+
+    /// A Milestone step as a whole number: "2 kg", or "5 lb" in lb and st units.
+    private static func stepLabel(_ step: MilestoneStep, units: WeightUnits) -> String {
+        let inKilograms = units == .kilograms
+        let size = step.size(in: units) / (inKilograms ? 1 : WeightUnits.kilogramsPerPound)
+        return "\(Int(size.rounded())) \(inKilograms ? "kg" : "lb")"
     }
 
     /// Midday on `day` in the phone's time zone, on the Gregorian calendar a Day uses.

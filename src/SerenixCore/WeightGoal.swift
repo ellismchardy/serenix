@@ -70,19 +70,40 @@ public struct WeightGoal: Equatable, Codable, Sendable {
     /// The Day it was last edited (easing included); nil when never. Optional, so goals stored
     /// before it existed still decode (ADR 0008).
     public let changedDay: Day?
+    /// How far apart its Milestones are; nil is the medium step. Optional, so older goals decode.
+    public let milestoneStep: MilestoneStep?
 
     public init(
         startWeight: Double,
         startDay: Day,
         goalWeight: Double,
         pace: GoalPace?,
-        changedDay: Day? = nil
+        changedDay: Day? = nil,
+        milestoneStep: MilestoneStep? = nil
     ) {
         self.startWeight = startWeight
         self.startDay = startDay
         self.goalWeight = goalWeight
         self.pace = pace
         self.changedDay = changedDay
+        self.milestoneStep = milestoneStep
+    }
+
+    /// This goal as saved over `current` on `day`: marked as changed that Day when it aims
+    /// differently (start, Goal Weight or Pace), otherwise keeping `current`'s change Day, so a
+    /// new Milestone step alone doesn't restart Ease the goal's count (spec 014).
+    public func saved(over current: WeightGoal, on day: Day) -> WeightGoal {
+        let aimsTheSame =
+            startWeight == current.startWeight && startDay == current.startDay
+            && goalWeight == current.goalWeight && pace == current.pace
+        return WeightGoal(
+            startWeight: startWeight,
+            startDay: startDay,
+            goalWeight: goalWeight,
+            pace: pace,
+            changedDay: aimsTheSame ? current.changedDay : day,
+            milestoneStep: milestoneStep
+        )
     }
 
     /// This goal marked as edited on `day`.
@@ -92,7 +113,8 @@ public struct WeightGoal: Equatable, Codable, Sendable {
             startDay: startDay,
             goalWeight: goalWeight,
             pace: pace,
-            changedDay: day
+            changedDay: day,
+            milestoneStep: milestoneStep
         )
     }
 
@@ -126,6 +148,10 @@ public struct GoalCard: Equatable, Sendable {
     public let status: PaceStatus?
     /// An easier goal to offer, only after 7 Days in a row Off pace or Too fast (spec 014).
     public let ease: GoalEase?
+    /// The Milestones from Start Weight toward Goal Weight.
+    public let milestones: [Milestone]
+    /// How far along the goal is.
+    public let progress: GoalProgress
 
     /// `weighInSpan` is the Days from the first counted Weigh-in to the latest.
     init(
@@ -134,9 +160,12 @@ public struct GoalCard: Equatable, Sendable {
         weeklyRate: Double?,
         weighInSpan: Int,
         today: Day,
-        ease: GoalEase? = nil
+        ease: GoalEase? = nil,
+        units: WeightUnits
     ) {
         self.ease = ease
+        milestones = Milestone.all(for: goal, trendWeight: trendWeight, units: units)
+        progress = GoalProgress(goal: goal, trendWeight: trendWeight)
         self.goal = goal
         direction = goal.direction
         if let kilogramsPerWeek = goal.paceKilogramsPerWeek(trendWeight: trendWeight, today: today)
@@ -395,7 +424,83 @@ extension WeightGoal {
             startDay: startDay,
             goalWeight: goalWeight,
             pace: pace,
-            changedDay: day
+            changedDay: day,
+            milestoneStep: milestoneStep
         )
+    }
+}
+
+/// How far apart a goal's Milestones are (spec 014, Progress).
+public enum MilestoneStep: String, Codable, CaseIterable, Sendable {
+    case small
+    case medium
+    case large
+
+    /// The step in kg: 1, 2 or 5 kg, or 2, 5 or 10 lb in lb and st units.
+    public func size(in units: WeightUnits) -> Double {
+        let kilograms = units == .kilograms
+        let size: Double =
+            switch self {
+            case .small: kilograms ? 1 : 2
+            case .medium: kilograms ? 2 : 5
+            case .large: kilograms ? 5 : 10
+            }
+        return kilograms ? size : size * WeightUnits.kilogramsPerPound
+    }
+}
+
+/// A mark on the way from Start Weight to Goal Weight (GLOSSARY, Milestone).
+public struct Milestone: Equatable, Sendable {
+    public let kilograms: Double
+    /// Trend Weight has reached it.
+    public let passed: Bool
+
+    /// Ignored at the ends, so a Milestone never sits on Start or Goal Weight by float noise.
+    static let edgeTolerance = 1e-9
+
+    /// Whole multiples of the step, in the units shown, strictly between Start and Goal Weight,
+    /// from Start toward Goal.
+    static func all(for goal: WeightGoal, trendWeight: Double, units: WeightUnits) -> [Milestone] {
+        let perUnit = units == .kilograms ? 1 : WeightUnits.kilogramsPerPound
+        let step = (goal.milestoneStep ?? .medium).size(in: units) / perUnit
+        let start = goal.startWeight / perUnit
+        let end = goal.goalWeight / perUnit
+        let losing = end < start
+        let low = min(start, end)
+        let high = max(start, end)
+        var marks: [Double] = []
+        var multiple = (low / step + edgeTolerance).rounded(.up)
+        while multiple * step < high - edgeTolerance {
+            if multiple * step > low + edgeTolerance { marks.append(multiple * step) }
+            multiple += 1
+        }
+        if losing { marks.reverse() }
+        return marks.map { mark in
+            let kilograms = mark * perUnit
+            return Milestone(
+                kilograms: kilograms,
+                passed: losing ? trendWeight <= kilograms : trendWeight >= kilograms
+            )
+        }
+    }
+}
+
+/// How far along a Weight Goal is (spec 014, Progress).
+public struct GoalProgress: Equatable, Sendable {
+    /// The share of the way from Start Weight to Goal Weight, 0–100.
+    public let percent: Double
+    /// Trend Weight − Start Weight, in kg: negative when lost.
+    public let changeSinceStart: Double
+    /// How far Trend Weight still is from Goal Weight, in kg; 0 once there.
+    public let toGo: Double
+
+    init(goal: WeightGoal, trendWeight: Double) {
+        let whole = goal.goalWeight - goal.startWeight
+        let done = trendWeight - goal.startWeight
+        percent = whole == 0 ? 100 : min(100, max(0, done / whole * 100))
+        changeSinceStart = done
+        let left =
+            goal.direction == .lose ? trendWeight - goal.goalWeight : goal.goalWeight - trendWeight
+        toGo = max(0, left)
     }
 }

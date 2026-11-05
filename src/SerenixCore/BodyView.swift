@@ -105,7 +105,8 @@ public struct BodyView: Equatable, Sendable {
             weeklyRate: weeklyRate,
             weighInSpan: weighInSpan,
             today: today,
-            ease: ease
+            ease: ease,
+            units: units
         )
     }
 

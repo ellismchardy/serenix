@@ -683,3 +683,146 @@ func aDateGoalMovingAwayFromGoalWeightOrWithoutWeeklyRateIsOfferedNothing(weekly
 @Test func aGoalNeverChangedCountsFromItsStart() {
     #expect(loseHalfAKilogramAWeek(from: nov5).changedDay == nil)
 }
+
+// Milestones and progress (spec 014, Progress). Trend Weight is a single Weigh-in today, so it
+// is exactly that Weigh-in.
+
+/// A goal from `start` to `goal` kg, started today, at a 0.5 kg-a-week rate.
+private func milestoneGoal(
+    from start: Double,
+    to goal: Double,
+    step: MilestoneStep? = nil
+) -> WeightGoal {
+    WeightGoal(
+        startWeight: start,
+        startDay: nov5,
+        goalWeight: goal,
+        pace: .rate(kilogramsPerWeek: 0.5),
+        milestoneStep: step
+    )
+}
+
+/// The goal card with Trend Weight `trend` kg.
+private func card(
+    _ goal: WeightGoal,
+    trend: Double,
+    units: WeightUnits = .kilograms
+) -> GoalCard? {
+    bodyView(weighIns: [WeighIn(time: at(5, 7), kilograms: trend)], units: units, goal: goal)
+        .goalCard
+}
+
+/// Whether `milestones` are at `kilograms` (within 1e-9) with `passed`, in order.
+private func milestonesMatch(
+    _ milestones: [Milestone]?,
+    _ kilograms: [Double],
+    _ passed: [Bool]
+) -> Bool {
+    guard let milestones, milestones.count == kilograms.count else { return false }
+    return zip(milestones, zip(kilograms, passed)).allSatisfy { milestone, want in
+        isClose(milestone.kilograms, want.0) && milestone.passed == want.1
+    }
+}
+
+@Test func milestonesEveryTwoKilogramsLieBetweenStartAndGoalAndPassAtTrendWeight() {
+    // 88 → 78 every 2 kg: 86, 84, 82, 80 (78 is the goal). 83.9 has reached 86 and 84.
+    let milestones = card(milestoneGoal(from: 88, to: 78, step: .medium), trend: 83.9)?.milestones
+    #expect(milestonesMatch(milestones, [86, 84, 82, 80], [true, true, false, false]))
+}
+
+@Test func progressHalfwayToALoseGoal() {
+    // 88 → 78 at 83: 5 of 10 kg, so 50%, 5.0 kg lost and 5.0 kg to go.
+    let progress = card(milestoneGoal(from: 88, to: 78), trend: 83)?.progress
+    #expect(isClose(progress?.percent, 50))
+    #expect(isClose(progress?.changeSinceStart, -5.0))
+    #expect(isClose(progress?.toGo, 5.0))
+}
+
+@Test func milestonesAndProgressForAGainGoal() {
+    // 70 → 75 every 1 kg: 71, 72, 73, 74; 72.5 has reached 71 and 72, and is 2.5 of 5 kg.
+    let gain = card(milestoneGoal(from: 70, to: 75, step: .small), trend: 72.5)
+    #expect(milestonesMatch(gain?.milestones, [71, 72, 73, 74], [true, true, false, false]))
+    #expect(isClose(gain?.progress.percent, 50))
+    #expect(isClose(gain?.progress.changeSinceStart, 2.5))
+    #expect(isClose(gain?.progress.toGo, 2.5))
+}
+
+@Test func milestoneStepsAreOneTwoAndFiveKilograms() {
+    #expect(MilestoneStep.small.size(in: .kilograms) == 1)
+    #expect(MilestoneStep.medium.size(in: .kilograms) == 2)
+    #expect(MilestoneStep.large.size(in: .kilograms) == 5)
+}
+
+@Test(arguments: [WeightUnits.pounds, .stonesAndPounds])
+func milestoneStepsInPoundsAreTwoFiveAndTenPounds(units: WeightUnits) {
+    // 2, 5 and 10 lb × 0.45359237 kg/lb.
+    #expect(isClose(MilestoneStep.small.size(in: units), 0.90718474))
+    #expect(isClose(MilestoneStep.medium.size(in: units), 2.26796185))
+    #expect(isClose(MilestoneStep.large.size(in: units), 4.5359237))
+}
+
+@Test func milestonesInPoundsAreWholeMultiplesOfTheStepInPounds() {
+    // 88 kg = 194.007 lb and 78 kg = 171.961 lb; every 10 lb between them: 190 and 180 lb,
+    // 190 × 0.45359237 = 86.1825503 kg and 180 × 0.45359237 = 81.6466266 kg. 85 kg has
+    // reached 190 lb only.
+    let milestones = card(milestoneGoal(from: 88, to: 78, step: .large), trend: 85, units: .pounds)?
+        .milestones
+    #expect(milestonesMatch(milestones, [86.1825503, 81.6466266], [true, false]))
+}
+
+@Test func aGoalWithNoMilestoneStepUsesTheMediumStep() {
+    // No step stored (a goal saved before it existed): every 2 kg, as for .medium.
+    let milestones = card(milestoneGoal(from: 88, to: 78, step: nil), trend: 83.9)?.milestones
+    #expect(milestonesMatch(milestones, [86, 84, 82, 80], [true, true, false, false]))
+}
+
+@Test func progressPastGoalWeightStopsAtOneHundredPercent() {
+    // 88 → 78 at 77: past the goal, so 100% with nothing to go.
+    let progress = card(milestoneGoal(from: 88, to: 78), trend: 77)?.progress
+    #expect(isClose(progress?.percent, 100))
+    #expect(isClose(progress?.toGo, 0))
+}
+
+// Edits keep the Milestone step, and only a change to what the goal aims for restarts Ease the
+// goal's 7-Day count (spec 014).
+
+private let largeStepGoal = WeightGoal(
+    startWeight: 88.0,
+    startDay: nov5,
+    goalWeight: 78.0,
+    pace: .rate(kilogramsPerWeek: 0.5),
+    milestoneStep: .large
+)
+
+@Test func easingAndMarkingAChangeKeepTheMilestoneStep() {
+    #expect(
+        largeStepGoal.eased(by: .rate(kilogramsPerWeek: 0.25), on: nov5).milestoneStep == .large
+    )
+    #expect(largeStepGoal.changed(on: nov5).milestoneStep == .large)
+}
+
+@Test func savingOnlyANewMilestoneStepKeepsTheDayTheGoalLastChanged() {
+    let current = largeStepGoal.changed(on: Day(year: 2026, month: 10, day: 30))
+    let edit = WeightGoal(
+        startWeight: 88.0,
+        startDay: nov5,
+        goalWeight: 78.0,
+        pace: .rate(kilogramsPerWeek: 0.5),
+        milestoneStep: .small
+    )
+    let saved = edit.saved(over: current, on: nov5)
+    #expect(saved.milestoneStep == .small)
+    #expect(saved.changedDay == Day(year: 2026, month: 10, day: 30))
+}
+
+@Test func savingANewPaceMarksTheGoalChangedThatDay() {
+    let current = largeStepGoal.changed(on: Day(year: 2026, month: 10, day: 30))
+    let edit = WeightGoal(
+        startWeight: 88.0,
+        startDay: nov5,
+        goalWeight: 78.0,
+        pace: .rate(kilogramsPerWeek: 0.25),
+        milestoneStep: .large
+    )
+    #expect(edit.saved(over: current, on: nov5).changedDay == nov5)
+}

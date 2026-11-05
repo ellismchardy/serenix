@@ -110,8 +110,11 @@ final class BodyStore: ObservableObject {
             if let current = try Self.currentGoal(in: context),
                 try goal.edits(current.goal())
             {
-                // An edit restarts Ease the goal's 7-Day count (spec 014).
-                let edited = goal.changed(on: Day(containing: Date(), in: .current))
+                // An edit to what the goal aims for restarts Ease the goal's count (spec 014).
+                let edited = try goal.saved(
+                    over: current.goal(),
+                    on: Day(containing: Date(), in: .current)
+                )
                 current.goalJSON = try JSONEncoder().encode(edited)
             } else {
                 try Self.endCurrentGoal(in: context, reason: .changed)

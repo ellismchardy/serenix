@@ -36,6 +36,7 @@ struct BodyScreen: View {
                     WeightChartCard(view: view, units: profile.units)
                     if let card = view.goalCard {
                         goalCards(card, weeklyRate: view.weeklyRate)
+                        milestonesCard(card)
                     } else if view.trendWeight != nil {
                         setGoalCard
                     }
@@ -140,6 +141,47 @@ struct BodyScreen: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// The Milestones card: each Milestone, passed ones ticked, and how far along the goal is
+    /// (spec 014, Progress).
+    private func milestonesCard(_ card: GoalCard) -> some View {
+        let units = profile.units
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("MILESTONES").font(.caption).foregroundStyle(.secondary)
+            if !card.milestones.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(card.milestones, id: \.kilograms) { milestone in
+                            Text(
+                                (milestone.passed ? "✓ " : "")
+                                    + units.text(milestone.kilograms, locale: .current)
+                            )
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                milestone.passed ? Theme.accent : Theme.accentSoft,
+                                in: Capsule()
+                            )
+                            .foregroundStyle(milestone.passed ? .white : Theme.accent)
+                        }
+                    }
+                }
+            }
+            ProgressView(value: card.progress.percent, total: 100).tint(Theme.accent)
+            Text(
+                "\(Int(card.progress.percent.rounded()))% of the way · "
+                    + "\(units.text(abs(card.progress.changeSinceStart), locale: .current)) "
+                    + "\(card.direction == .lose ? "lost" : "gained") · "
+                    + "\(units.text(card.progress.toGo, locale: .current)) to go"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .themeCard()
     }
 
     /// The Ease the goal offer's words (spec 014).

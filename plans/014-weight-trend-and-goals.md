@@ -104,11 +104,13 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
    - Owner's decision (spec updated): the 7 Days count from the goal's last change, so each edit
      or easing gets a full week (`WeightGoal.changedDay`).
    - Done when: criterion "offered after 7 Days; 6 is not enough".
-10. [ ] **Slice:** Milestones and progress. Milestones at multiples of 1, 2 or 5 kg (2, 5, 10 lb)
+10. [x] **Slice:** Milestones and progress. Milestones at multiples of 1, 2 or 5 kg (2, 5, 10 lb)
     between Start and Goal Weight; progress %, change since start, to go. Shell: the Milestones
     card and step choice in the sheet.
     - Seam: Body view · Files: `WeightGoal.swift`, `BodyView.swift`, `BodyViewTests.swift`,
       `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightGoalSheet.swift`
+    - Tests in `WeightGoalTests.swift`. After review: a new Milestone step alone doesn't restart
+      Ease the goal's count (`WeightGoal.saved(over:on:)`).
     - Done when: criteria "Milestones 86, 84, 82, 80; 86 and 84 passed at 83.9", "50%, 5.0 kg
       lost, 5.0 to go", and the lb-unit Milestone steps.
 11. [ ] **Slice:** Reached, hold and ending goals. Trend Weight reaching Goal Weight marks Reached
