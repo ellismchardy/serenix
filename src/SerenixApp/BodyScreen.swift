@@ -31,6 +31,12 @@ struct BodyScreen: View {
                         Text("Log your first Weigh-in")
                             .font(.title3.weight(.semibold))
                     }
+                    if let weeklyRate = view.weeklyRate {
+                        Text(
+                            "Weekly Rate \(profile.units.rateText(weeklyRate, locale: .current))"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                    }
                     WeightChartCard(view: view, units: profile.units)
                     if !view.weighIns.isEmpty {
                         NavigationLink("All Weigh-ins") {

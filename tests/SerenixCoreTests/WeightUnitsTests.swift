@@ -145,3 +145,17 @@ func heightShowsInFeetAndInchesInPoundAndStoneUnits(units: WeightUnits) {
 
     #expect(Set(texts).count == texts.count)
 }
+
+@Test func aWeeklyRateShowsItsSignAndUnitsAWeek() {
+    let posix = Locale(identifier: "en_US_POSIX")
+    #expect(WeightUnits.kilograms.rateText(-0.5217031, locale: posix) == "−0.5 kg a week")
+    #expect(WeightUnits.kilograms.rateText(0.24, locale: posix) == "+0.2 kg a week")
+    // −0.5217031 kg / 0.45359237 = −1.150159… lb; stones show the rate in lb, not "0 st 1.2 lb".
+    #expect(WeightUnits.stonesAndPounds.rateText(-0.5217031, locale: posix) == "−1.2 lb a week")
+    #expect(WeightUnits.pounds.rateText(-0.5217031, locale: posix) == "−1.2 lb a week")
+}
+
+@Test func aWeeklyRateThatRoundsToZeroShowsNoSign() {
+    let posix = Locale(identifier: "en_US_POSIX")
+    #expect(WeightUnits.kilograms.rateText(-0.04, locale: posix) == "0.0 kg a week")
+}

@@ -33,6 +33,19 @@ public enum WeightUnits: String, CaseIterable, Sendable {
         }
     }
 
+    /// A change in weight per week, to one decimal with its sign: "−0.5 kg a week",
+    /// "+0.2 kg a week", "0.0 kg a week" when it rounds to nothing. In st and lb it shows in lb,
+    /// since a week's change is under a stone.
+    public func rateText(_ kilogramsPerWeek: Double, locale: Locale) -> String {
+        let units: WeightUnits = self == .kilograms ? .kilograms : .pounds
+        let rest = units.fields(abs(kilogramsPerWeek)).rest
+        let number = rest.formatted(
+            .number.precision(.fractionLength(1)).grouping(.never).locale(locale)
+        )
+        let sign = rest == 0 ? "" : kilogramsPerWeek < 0 ? "−" : "+"
+        return "\(sign)\(number) \(units == .kilograms ? "kg" : "lb") a week"
+    }
+
     /// What the chart plots: kg in kg units, total pounds in lb or st units.
     public func chartValue(_ kilograms: Double) -> Double {
         self == .kilograms ? kilograms : kilograms / Self.kilogramsPerPound

@@ -7,6 +7,9 @@ public struct BodyView: Equatable, Sendable {
     public let trend: [TrendPoint]
     /// The latest Trend Weight in kg; nil with no Weigh-ins.
     public let trendWeight: Double?
+    /// How fast Trend Weight is changing, in kg a week (negative when falling); nil without a
+    /// counted Weigh-in 7 or more Days before the latest, or across a restart (spec 014).
+    public let weeklyRate: Double?
     /// The most recent Weigh-in by time.
     public let lastWeighIn: WeighIn?
     /// Every Weigh-in, newest first, for the Weigh-in list.
@@ -29,6 +32,24 @@ public struct BodyView: Equatable, Sendable {
         lastWeighIn = newestFirst.first
         trend = Self.trend(of: weighIns, in: timeZone)
         trendWeight = trend.last?.trendWeight
+        weeklyRate = Self.weeklyRate(of: trend)
+    }
+
+    /// The fewest Days Weekly Rate looks back over (issue #61: a week, since Trend Weight is
+    /// already smoothed; 28 Days reacted about a month late).
+    static let weeklyRateDays = 7
+
+    /// The latest Trend Weight minus the Trend Weight at the last counted Weigh-in on or before
+    /// `weeklyRateDays` earlier, per week (spec 014, Weekly Rate).
+    static func weeklyRate(of trend: [TrendPoint]) -> Double? {
+        guard let latest = trend.last else { return nil }
+        let cutoff = latest.day.adding(days: -weeklyRateDays)
+        guard let earlierIndex = trend.lastIndex(where: { $0.day <= cutoff }) else { return nil }
+        let since = trend[(earlierIndex + 1)...]
+        guard !since.contains(where: \.startsNewLine) else { return nil }
+        let earlier = trend[earlierIndex]
+        let days = Double(earlier.day.days(until: latest.day))
+        return (latest.trendWeight - earlier.trendWeight) * 7 / days
     }
 
     /// The share of the gap between Trend Weight and a new Weigh-in that Trend Weight keeps over

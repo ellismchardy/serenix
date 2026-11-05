@@ -238,3 +238,68 @@ func aWeightShowsToOneDecimalInTheChosenUnits(units: WeightUnits, text: String) 
 
     #expect(view.text(88.89) == "14 st 0.0 lb")
 }
+
+// Weekly Rate (spec 014, Weekly Rate): the latest Trend Weight minus the Trend Weight at the last
+// counted Weigh-in on or before 7 Days earlier, per week. Today is 5 Nov, so 7 Days earlier is
+// 29 Oct. 0.9^7 = 0.4782969 and 0.9^9 = 0.387420489 exactly.
+
+@Test func weeklyRateIsTheChangeInTrendWeightOverSevenDays() {
+    // 29 Oct to 5 Nov is 7 Days: α = 1 − 0.9^7 = 0.5217031, so Trend Weight goes 80.0 →
+    // 80.0 − 0.5217031 = 79.4782969, a change of −0.5217031 kg over exactly one week.
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 29, 7), kilograms: 80.0),
+        WeighIn(time: at(5, 7), kilograms: 79.0),
+    ])
+
+    #expect(isClose(view.weeklyRate, -0.5217031))
+}
+
+@Test func weeklyRateOverMoreThanSevenDaysIsScaledToPerWeek() {
+    // 27 Oct to 5 Nov is 9 Days: α = 1 − 0.9^9 = 0.612579511, so the change is −0.612579511 kg,
+    // and per week −0.612579511 × 7 / 9 = −4.288056577 / 9 = −0.476450730777…
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 27, 7), kilograms: 80.0),
+        WeighIn(time: at(5, 7), kilograms: 79.0),
+    ])
+
+    #expect(isClose(view.weeklyRate, -0.47645073077777778))
+}
+
+@Test func weeklyRateCountsFromTheLastWeighInOnOrBeforeSevenDaysEarlier() {
+    // 28 and 29 Oct both qualify; 29 Oct (Trend Weight 80.0) is the last, 7 Days before 5 Nov,
+    // so Weekly Rate is (79.4782969 − 80.0) × 7 / 7 = −0.5217031. Counting from 28 Oct would
+    // give × 7 / 8 instead.
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 28, 7), kilograms: 80.0),
+        WeighIn(time: at(month: 10, 29, 7), kilograms: 80.0),
+        WeighIn(time: at(5, 7), kilograms: 79.0),
+    ])
+
+    #expect(isClose(view.weeklyRate, -0.5217031))
+}
+
+@Test func thereIsNoWeeklyRateWhenCountedWeighInsSpanUnderSevenDays() {
+    // 30 Oct to 5 Nov is 6 Days, so no Weigh-in is on or before 29 Oct.
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 30, 7), kilograms: 80.0),
+        WeighIn(time: at(5, 7), kilograms: 79.0),
+    ])
+
+    #expect(view.weeklyRate == nil)
+}
+
+@Test func thereIsNoWeeklyRateWhenTrendWeightRestartedSinceTheEarlierPoint() {
+    // 10 Oct is the last Weigh-in on or before 29 Oct, but 10 Oct to 1 Nov is 22 Days, more
+    // than 14, so Trend Weight restarts on 1 Nov, between that point and 5 Nov.
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 10, 7), kilograms: 80.0),
+        WeighIn(time: at(1, 7), kilograms: 79.0),
+        WeighIn(time: at(5, 7), kilograms: 78.5),
+    ])
+
+    #expect(view.weeklyRate == nil)
+}
+
+@Test func thereIsNoWeeklyRateWithoutWeighIns() {
+    #expect(bodyView(weighIns: []).weeklyRate == nil)
+}

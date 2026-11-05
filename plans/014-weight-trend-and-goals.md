@@ -62,9 +62,10 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
      `src/SerenixCore/WeightUnits.swift` (new, with `WeightUnitsTests.swift`) and the refusal in
      the user's units in `WeighIn.swift` (both after review)
    - Done when: criterion "82.4 kg shows as 82.4 kg, 181.7 lb, 12 st 13.7 lb".
-5. [ ] **Slice:** Weekly Rate. Latest Trend Weight minus the Trend Weight 7 or more Days earlier,
+5. [x] **Slice:** Weekly Rate. Latest Trend Weight minus the Trend Weight 7 or more Days earlier,
    per week; none without that span or across a restart.
-   - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`, `src/SerenixApp/BodyScreen.swift`
+   - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`, `src/SerenixApp/BodyScreen.swift`,
+     and its text in `WeightUnits.swift` / `WeightUnitsTests.swift`
    - Done when: criterion "falling 0.5 kg over 7 Days gives −0.5 kg a week; none without 7 Days".
 6. [ ] **Slice:** Weight Goal to lose or gain, Pace by rate. `WeightGoal` (direction from Goal vs
    Start Weight, Start Weight and date defaulting to Trend Weight and today); Pace bands for lose
