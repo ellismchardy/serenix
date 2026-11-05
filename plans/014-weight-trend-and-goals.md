@@ -28,7 +28,7 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice (tracer):** Trend Weight from daily Weigh-ins. `WeighIn`, and `BodyView` returning
+1. [x] **Slice (tracer):** Trend Weight from daily Weigh-ins. `WeighIn`, and `BodyView` returning
    Trend Weight points (α = 1 − 0.9^Δd), the lowest Weigh-in per Day counting, no point on Days
    without one. Shell: Body tab after Sleep, its own SwiftData container, the + sheet (last
    weight prefilled, editable date and time), the large Trend Weight and last Weigh-in.
