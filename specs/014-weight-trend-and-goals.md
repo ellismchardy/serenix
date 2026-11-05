@@ -1,6 +1,6 @@
 # 014 — Weight trend and goals
 
-**Status:** draft
+**Status:** approved
 **Last updated:** 2026-11-05
 **Issue:** https://github.com/ellismchardy/serenix/issues/49 (map; decisions #50, #51, #59, #60, #61)
 
