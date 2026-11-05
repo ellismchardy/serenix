@@ -101,8 +101,17 @@ public struct GoalCard: Equatable, Sendable {
     /// The Pace as a share of current Trend Weight a week, in %.
     public let pacePercentOfTrendWeight: Double?
     public let paceBand: PaceBand?
+    /// Settling in, or the pace badge; nil without a Pace.
+    public let status: PaceStatus?
 
-    init(goal: WeightGoal, trendWeight: Double, today: Day) {
+    /// `weighInSpan` is the Days from the first counted Weigh-in to the latest.
+    init(
+        goal: WeightGoal,
+        trendWeight: Double,
+        weeklyRate: Double?,
+        weighInSpan: Int,
+        today: Day
+    ) {
         self.goal = goal
         direction = goal.direction
         if let kilogramsPerWeek = goal.paceKilogramsPerWeek(trendWeight: trendWeight, today: today)
@@ -111,10 +120,24 @@ public struct GoalCard: Equatable, Sendable {
             paceKilogramsPerWeek = kilogramsPerWeek
             pacePercentOfTrendWeight = option.percentOfTrendWeight
             paceBand = option.band
+            let settled = min(goal.startDay.days(until: today), weighInSpan)
+            status =
+                settled < PaceStatus.settlingDays
+                // A start date in the future counts as day 0.
+                ? .settlingIn(day: max(0, settled))
+                : .badge(
+                    PaceBadge(
+                        weeklyRate: weeklyRate,
+                        paceKilogramsPerWeek: kilogramsPerWeek,
+                        direction: goal.direction,
+                        trendWeight: trendWeight
+                    )
+                )
         } else {
             paceKilogramsPerWeek = nil
             pacePercentOfTrendWeight = nil
             paceBand = nil
+            status = nil
         }
     }
 }
@@ -222,6 +245,59 @@ extension WeightGoal {
             return left / (Double(days) / 7)
         case nil:
             return nil
+        }
+    }
+}
+
+/// Settling in while a goal or its Weigh-ins are too new to judge, then the pace badge (spec 014).
+public enum PaceStatus: Equatable, Sendable {
+    case settlingIn(day: Int)
+    case badge(PaceBadge)
+
+    /// Days a new goal settles before it gets a badge: the first weeks' water and glycogen
+    /// change would read as too fast, then behind (issue #61).
+    public static let settlingDays = 14
+}
+
+/// How Weekly Rate compares with the Pace (spec 014, Pace badge).
+public enum PaceBadge: String, Sendable {
+    case onPace
+    case behind
+    case offPace
+    case tooFast
+
+    /// Shares of Pace (issue #61): on pace from 90%, a bit behind from 60%, too fast over 125%
+    /// when also over the sustainable 0.5% of Trend Weight a week.
+    static let onPaceShare = 0.9
+    static let behindShare = 0.6
+    static let tooFastShare = 1.25
+    /// Tolerance on every comparison (shares and %), so 0.45 of a 0.5 Pace is on pace despite
+    /// float rounding.
+    static let comparisonTolerance = 1e-9
+
+    public init(
+        weeklyRate: Double?,
+        paceKilogramsPerWeek: Double,
+        direction: GoalDirection,
+        trendWeight: Double
+    ) {
+        guard let weeklyRate, paceKilogramsPerWeek > 0 else {
+            self = .offPace
+            return
+        }
+        let toward = direction == .lose ? -weeklyRate : weeklyRate
+        let share = toward / paceKilogramsPerWeek
+        let percent = toward / trendWeight * 100
+        if share > Self.tooFastShare + Self.comparisonTolerance,
+            percent > PaceBand.sustainablePercent + Self.comparisonTolerance
+        {
+            self = .tooFast
+        } else if share >= Self.onPaceShare - Self.comparisonTolerance {
+            self = .onPace
+        } else if share >= Self.behindShare - Self.comparisonTolerance {
+            self = .behind
+        } else {
+            self = .offPace
         }
     }
 }

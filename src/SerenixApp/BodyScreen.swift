@@ -95,6 +95,16 @@ struct BodyScreen: View {
                 Text(weeklyRate.map { profile.units.rateText($0, locale: .current) } ?? "—")
                     .font(.headline)
                 Text("Weekly Rate").font(.caption).foregroundStyle(.secondary)
+                switch card.status {
+                case .settlingIn(let day):
+                    Text("Settling in, day \(day) of \(PaceStatus.settlingDays)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                case .badge(let badge):
+                    PaceBadgeLabel(badge: badge)
+                case nil:
+                    EmptyView()
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
@@ -225,5 +235,26 @@ struct WeighInSheet: View {
                 }
             }
         }
+    }
+}
+
+/// The pace badge in its colour (spec 014, Pace badge).
+struct PaceBadgeLabel: View {
+    let badge: PaceBadge
+
+    var body: some View {
+        let (text, colour): (String, Color) =
+            switch badge {
+            case .onPace: ("On pace", .green)
+            case .behind: ("A bit behind", .orange)
+            case .offPace: ("Off pace", .red)
+            case .tooFast: ("Too fast", .orange)
+            }
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(colour.opacity(0.18), in: Capsule())
+            .foregroundStyle(colour)
     }
 }

@@ -41,8 +41,19 @@ public struct BodyView: Equatable, Sendable {
         let latest = trend.last?.trendWeight
         let day = Day(containing: now, in: timeZone)
         newGoalStart = latest.map { GoalStart(weight: $0, day: day) }
+        // Counted from the latest restart: after a long gap, Trend Weight starts again and so
+        // does Settling in, since the early water change applies again (issue #61).
+        let points = trend  // a copy: closures can't read `self` before init ends
+        let lineStart = points.last(where: \.startsNewLine)?.day
+        let weighInSpan = lineStart.map { $0.days(until: points.last?.day ?? $0) } ?? 0
         if let goal, let latest {
-            goalCard = GoalCard(goal: goal, trendWeight: latest, today: day)
+            goalCard = GoalCard(
+                goal: goal,
+                trendWeight: latest,
+                weeklyRate: weeklyRate,
+                weighInSpan: weighInSpan,
+                today: day
+            )
         } else {
             goalCard = nil
         }

@@ -88,9 +88,11 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
    - Tests in `WeightGoalTests.swift`; after review the date rule is enforced in core
      (`BodyView.goalRefusal`, `GoalRefusal.dateTooEarly`), not only by the date picker.
    - Done when: criterion "earliest allowed date at 1%; quick picks at 0.5% and 0.75%".
-8. [ ] **Slice:** pace badge and Settling in. Settling in while the goal is under 14 Days old or
+8. [x] **Slice:** pace badge and Settling in. Settling in while the goal is under 14 Days old or
    Weigh-ins span under 14 Days; then On pace / A bit behind / Off pace / Too fast.
    - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`, `src/SerenixApp/BodyScreen.swift`
+   - Tests in `WeightGoalTests.swift`, `GoalCard` in `WeightGoal.swift`. The Weigh-in span for
+     Settling in counts from the latest Trend Weight restart (after review).
    - Done when: criteria "13 Days old shows Settling in, day 13 of 14", "−0.45 / −0.44 / −0.29 /
      +0.1 at Pace 0.5", "Too fast at 80 kg but On pace at 140 kg".
 9. [ ] **Slice:** Ease the goal. Offered after 7 Days in a row Off pace or Too fast, with the

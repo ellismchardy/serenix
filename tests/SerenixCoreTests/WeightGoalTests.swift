@@ -338,3 +338,143 @@ private func dateGoal(by day: Day) -> WeightGoal {
     )
     #expect(view.goalCard?.paceKilogramsPerWeek == nil)
 }
+
+// The Pace badge (spec 014, "Pace badge (lose and gain)"): Weekly Rate in the goal's direction as
+// a share of Pace. On pace at 90% or more; a bit behind from 60% to under 90%; off pace under 60%,
+// at zero, the wrong way or with no Weekly Rate; too fast over 125% of Pace and over 0.5% of Trend
+// Weight a week, checked first.
+
+@Test(arguments: [
+    (-0.45, PaceBadge.onPace),  // 90% of 0.5
+    (-0.44, .behind),  // 88%
+    (-0.29, .offPace),  // 58%
+    (0.1, .offPace),  // the wrong way
+    (-0.30, .behind),  // exactly 60%
+    (-0.625, .onPace),  // exactly 125% is not over it, so not Too fast
+])
+func aLoseGoalsBadgeIsWeeklyRateAsAShareOfPace(weeklyRate: Double, badge: PaceBadge) {
+    #expect(
+        PaceBadge(
+            weeklyRate: weeklyRate,
+            paceKilogramsPerWeek: 0.5,
+            direction: .lose,
+            trendWeight: 80
+        )
+            == badge
+    )
+}
+
+@Test func aGoalWithNoWeeklyRateIsOffPace() {
+    #expect(
+        PaceBadge(weeklyRate: nil, paceKilogramsPerWeek: 0.5, direction: .lose, trendWeight: 80)
+            == .offPace
+    )
+}
+
+@Test func losingOverAQuarterFasterThanPaceAndOverHalfAPercentAWeekIsTooFast() {
+    // 0.63 is 126% of 0.5, and over 0.5% of 80 kg (0.4) a week.
+    #expect(
+        PaceBadge(weeklyRate: -0.63, paceKilogramsPerWeek: 0.5, direction: .lose, trendWeight: 80)
+            == .tooFast
+    )
+}
+
+@Test func losingFasterThanPaceButUnderHalfAPercentOfAHeavierTrendWeightIsOnPace() {
+    // 0.65 is 130% of 0.5, but under 0.5% of 140 kg (0.7) a week.
+    #expect(
+        PaceBadge(weeklyRate: -0.65, paceKilogramsPerWeek: 0.5, direction: .lose, trendWeight: 140)
+            == .onPace
+    )
+}
+
+@Test(arguments: [(0.25, PaceBadge.onPace), (-0.1, .offPace)])
+func aGainGoalsBadgeCountsWeeklyRateUpward(weeklyRate: Double, badge: PaceBadge) {
+    #expect(
+        PaceBadge(
+            weeklyRate: weeklyRate,
+            paceKilogramsPerWeek: 0.25,
+            direction: .gain,
+            trendWeight: 80
+        )
+            == badge
+    )
+}
+
+// Settling in (spec 014): while the Weight Goal is under 14 Days old or the counted Weigh-ins span
+// under 14 Days, the cards say "Settling in, day N of 14", N being the younger of the two.
+
+/// A Weigh-in of 80.0 kg at 07:00 UTC on each Day from `first` to 5 Nov 2026.
+private func flatEighties(from first: Day) -> [WeighIn] {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC")!
+    var weighIns: [WeighIn] = []
+    var time = calendar.date(
+        from: DateComponents(year: first.year, month: first.month, day: first.dayOfMonth, hour: 7)
+    )!
+    while time <= at(5, 7) {
+        weighIns.append(WeighIn(time: time, kilograms: 80.0))
+        time = calendar.date(byAdding: .day, value: 1, to: time)!
+    }
+    return weighIns
+}
+
+/// A goal to lose from 80 to 75 kg at 0.5 kg a week, starting on `startDay`.
+private func loseHalfAKilogramAWeek(from startDay: Day) -> WeightGoal {
+    WeightGoal(
+        startWeight: 80.0,
+        startDay: startDay,
+        goalWeight: 75.0,
+        pace: .rate(kilogramsPerWeek: 0.5)
+    )
+}
+
+private let oct16 = Day(year: 2026, month: 10, day: 16)
+private let oct22 = Day(year: 2026, month: 10, day: 22)
+private let oct23 = Day(year: 2026, month: 10, day: 23)
+private let oct31 = Day(year: 2026, month: 10, day: 31)
+
+@Test func aGoalThirteenDaysOldIsSettlingInOnDayThirteen() {
+    // Goal from 23 Oct: 13 Days old on 5 Nov. Weigh-ins 22 Oct to 5 Nov span 14 Days.
+    let view = bodyView(
+        weighIns: flatEighties(from: oct22),
+        goal: loseHalfAKilogramAWeek(from: oct23)
+    )
+
+    #expect(view.goalCard?.status == .settlingIn(day: 13))
+}
+
+@Test func aGoalFourteenDaysOldWithFourteenDaysOfWeighInsShowsItsBadge() {
+    // Goal from 22 Oct: 14 Days old on 5 Nov, Weigh-ins span 14 Days. Flat 80s: Weekly Rate 0.
+    let view = bodyView(
+        weighIns: flatEighties(from: oct22),
+        goal: loseHalfAKilogramAWeek(from: oct22)
+    )
+
+    #expect(view.goalCard?.status == .badge(.offPace))
+}
+
+@Test func anOlderGoalWithFiveDaysOfWeighInsIsSettlingInOnDayFive() {
+    // Goal from 16 Oct: 20 Days old. Weigh-ins 31 Oct to 5 Nov span 5 Days.
+    let view = bodyView(
+        weighIns: flatEighties(from: oct31),
+        goal: loseHalfAKilogramAWeek(from: oct16)
+    )
+
+    #expect(view.goalCard?.status == .settlingIn(day: 5))
+}
+
+@Test func aGoalIsSettlingInAgainAfterTrendWeightRestarts() {
+    // Weigh-ins 1–10 Oct, then none until 31 Oct (21 Days: Trend Weight restarts), then daily
+    // to 5 Nov. The span since the restart is 31 Oct → 5 Nov = 5 Days, so it settles again
+    // although the goal (from 1 Oct) is 35 Days old.
+    let eleventhOctober = flatEighties(from: Day(year: 2026, month: 10, day: 11))[0].time
+    let before = flatEighties(from: Day(year: 2026, month: 10, day: 1)).filter {
+        $0.time < eleventhOctober
+    }
+    let after = flatEighties(from: Day(year: 2026, month: 10, day: 31))
+    let view = bodyView(
+        weighIns: before + after,
+        goal: loseHalfAKilogramAWeek(from: Day(year: 2026, month: 10, day: 1))
+    )
+    #expect(view.goalCard?.status == .settlingIn(day: 5))
+}
