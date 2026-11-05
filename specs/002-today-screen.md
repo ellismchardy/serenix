@@ -186,10 +186,9 @@ one describes the Night shown:
 
 Tapping the Load ring does nothing in this spec (spec 006 now opens the Load popup from it).
 
-**Profile.** The user's name, kept only on the phone (GLOSSARY). On first launch, before the
-Today screen, Serenix asks "What should we call you?" with a name field, Continue and Skip; it
-never asks again, whichever is chosen. The name is trimmed of spaces; a blank name counts as
-none. It can be added or changed from the profile menu. It is never sent anywhere, and never
+**Profile.** The user's name, kept only on the phone (GLOSSARY). On first launch it is asked
+for in Onboarding (spec 014), which replaced this spec's one-question name prompt. The name is
+trimmed of spaces; a blank name counts as none. It can be added or changed from the profile menu. It is never sent anywhere, and never
 appears in the Sync Log, a shared log or any report.
 
 The **avatar** is a circle with the first letter of the name, upper-cased; with no name it
@@ -347,8 +346,8 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
       with the Strap out of range, "Sync paused" shows amber with a ⚠; tapping a paused or
       failed pill shows the reason and Retry restarts the sync; with nothing to say, no pill
       shows. Pulling down on the Today screen starts a sync.
-- [ ] On first launch Serenix asks "What should we call you?"; after Continue the Today screen
-      greets by name, after Skip it greets without one, and the prompt never shows again.
+- [ ] After Onboarding (spec 014) the Today screen greets by the name given there, or without a
+      name if it was skipped.
 - [ ] The avatar opens the menu with the name (or "Add your name") under a large letter (or
       person icon); editing the name there updates the greeting's name and the avatar; the Strap
       rows
