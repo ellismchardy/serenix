@@ -56,7 +56,15 @@ existing tests there do.
    - Files: `src/SerenixApp/TodayPopups.swift`
    - Done when: `swift build` of `SerenixCore` is green and the drawing uses only `LoadPopup`
      fields (no logic in the view); phone check carried to the PR checklist.
-5. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
+5. [ ] **Slice: the Day's Load while typical Load is learned.** Add
+   `LoadPopup.learningLoadText: String?`: "Load 40" ("Load —" with the Load missing, from the
+   ring's `loadText`) while typical Load is calibrating; nil with a typical Load. Draw it in the
+   shell's against-typical card in place of the Load bar. Also fix the stale "Heart rate zones"
+   doc comment on `LoadPopupZoneRow.label` (the heading is now "How hard").
+   - Seam: Today view · Files: `src/SerenixCore/Popups.swift`, `tests/SerenixCoreTests/LoadPopupTests.swift`, `src/SerenixApp/TodayPopups.swift`
+   - Done when: the criterion "with fewer than 4 Days, a Load of 40 shows "Load 40" in place of
+     the Load bar…" passes.
+6. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`
    and `swift build` green; every unticked Today view criterion ticked in the spec.
    - Carried to the PR checklist: macOS CI app build, and the by-hand phone check of the redrawn
      popup in its new order (plus the other unticked by-hand checks the spec still lists).

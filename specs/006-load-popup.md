@@ -1,7 +1,7 @@
 # 006 — Load popup
 
 **Status:** approved
-**Last updated:** 2026-11-05 (popup redrawn: a sentence and bar against typical Load, the HR Zone mix, then the hourly bars; approved)
+**Last updated:** 2026-11-06 (the Day's Load shows as a number while typical Load is learned; popup redrawn: a sentence and bar against typical Load, the HR Zone mix, then the hourly bars; approved)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -58,6 +58,9 @@ no History Records. The popup slides up and closes like spec 002's popups.
      "typical" at its middle. With the Day's Load missing, the bar is empty with the marker; with
      no typical Load yet, there is no bar. With a typical Load of 0, the bar is full for any Load
      over 0 and empty for 0.
+   - **The Day's Load while typical Load is learned**: with no typical Load yet, in place of the
+     bar, the Day's Load as a large number, "Load 40" ("Load —" with it missing), so the popup
+     always shows the Day's Load.
    - On today, "As of your last sync at 08:12" (the time the last History Sync ended, local
      time).
 3. **How hard**: one bar split by the Day's time in each HR Zone, HR Zone 1 to 5 left to right,
@@ -132,7 +135,8 @@ by "Share log". It never holds Profile fields.
   arrived and the current time, what the pill shows. It never reads the clock.
 - **`SerenixCore`: Today view** gains the Load popup's content, whether the Load ring opens the
   popup or the profile menu, whether the pill shows, and the last sync's end time. The content
-  includes the sentence, the Load bar's fill and whether it shows, the HR Zone mix as shares,
+  includes the sentence, the Load bar's fill and whether it shows, the Day's Load in its place
+  while typical Load is learned, the HR Zone mix as shares,
   and the HR Zone rows hardest first, so the shell only draws them.
 - **Shell:** stores the new Day fields in SwiftData beside Load; queues due Days whose HR Zones
   weren't kept on every launch (spec 007's missing-values queue); opens and closes the Live HR connection with the popup and
@@ -204,6 +208,8 @@ Max HR 190: 95, 114, 133, 152 and 171 bpm.
 - [ ] Today view: with typical Load 50, a Load of 25 fills the Load bar to 0.25, 100 to 1.0
       and 130 to 1.0; with the Day's Load missing it shows empty; with fewer than 4 Days it
       doesn't show; with typical Load 0, Load 0 fills 0 and Load 5 fills 1.0.
+- [ ] Today view: with fewer than 4 Days, a Load of 40 shows "Load 40" in place of the Load bar
+      and a missing Load "Load —"; with a typical Load (4 Days or more) there is no such number.
 - [ ] Today view: 30 minutes in HR Zone 2 and 90 minutes in HR Zone 4 give mix shares 0.25 and
       0.75 and none for the others; HR Zone rows come Zone 5 first, Zone 1 last; a Day with no
       time in HR Zones has no mix.
@@ -212,9 +218,10 @@ Max HR 190: 95, 114, 133, 152 and 171 bpm.
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
 - [ ] On the phone (by hand): tapping the Load ring opens the popup with, top to bottom, the
-      sentence, typical line and Load bar with its typical marker, the HR Zone mix bar and rows
-      (Zone 5 first), the hourly bars stacked by HR Zone, then Highest HR and Max HR used, and a tap outside or a swipe down closes
-      it; with no age it still opens the profile menu.
+      sentence, typical line and Load bar with its typical marker (on a new profile's first
+      Days, "Load 40" in its place), the HR Zone mix bar and rows (Zone 5 first), the hourly
+      bars stacked by HR Zone, then Highest HR and Max HR used, and a tap outside or a swipe
+      down closes it; with no age it still opens the profile menu.
 - [ ] On the phone (by hand): on today the pill shows "…", then a heart rate within a few
       seconds that follows a few squats; on an earlier Day there's no pill.
 - [ ] On the phone (by hand): with the Strap off the wrist or out of range, the pill goes to "—"
