@@ -154,6 +154,53 @@ final class BodyStore: ObservableObject {
         }
     }
 
+    /// All Body data, for the backup file (spec 014, Backup and import). Throws, with a message
+    /// for the user, when it can't be read.
+    func allData() throws -> BodyData {
+        guard let context else { throw BodyStoreError("Your Body data couldn't be opened.") }
+        do {
+            let goals = try context.fetch(FetchDescriptor<StoredWeightGoal>()).map {
+                stored in
+                var endReason: GoalEnd?
+                if let raw = stored.endReason {
+                    // An end this build doesn't know is never dropped from the backup.
+                    guard let known = GoalEnd(rawValue: raw) else {
+                        throw BodyStoreError("A Weight Goal ended for an unknown reason.")
+                    }
+                    endReason = known
+                }
+                return GoalRecord(
+                    goal: try stored.goal(),
+                    endedAt: stored.endedAt,
+                    endReason: endReason
+                )
+            }
+            // Fetched afresh, not from `rows`, so a failed read throws rather than exporting or
+            // comparing against an incomplete list.
+            let weighIns = try context.fetch(FetchDescriptor<StoredWeighIn>()).map(\.weighIn)
+            return BodyData(weighIns: weighIns, goals: goals)
+        } catch {
+            throw BodyStoreError("Your Body data couldn't be read: \(error.localizedDescription)")
+        }
+    }
+
+    /// Adds what an import found new, all or nothing: one refused Weigh-in or a failed save
+    /// keeps none of it and tells the user.
+    func add(_ found: BodyImport) {
+        change { context in
+            for weighIn in found.weighInsToAdd {
+                try Self.check(weighIn)
+                context.insert(StoredWeighIn(weighIn))
+            }
+            for record in found.goalsToAdd {
+                let stored = try StoredWeightGoal(record.goal)
+                stored.endedAt = record.endedAt
+                stored.endReason = record.endReason?.rawValue
+                context.insert(stored)
+            }
+        }
+    }
+
     private static func currentGoal(in context: ModelContext) throws -> StoredWeightGoal? {
         try context.fetch(
             FetchDescriptor<StoredWeightGoal>(predicate: #Predicate { $0.endedAt == nil })

@@ -146,7 +146,7 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
       dashed Goal Weight line. After review: one `GoalDates.arrival` works out every projected,
       planned, picked and eased date.
     - Done when: criterion "projection hidden …; 10 weeks at 83 kg, Goal 78, −0.5".
-13. [ ] **Slice:** JSON backup and import. `BodyDataFile` encodes all Body data (versioned) and
+13. [x] **Slice:** JSON backup and import. `BodyDataFile` encodes all Body data (versioned) and
     decodes it; an import adds new entries and skips exact duplicates, with counts; an
     unreadable file returns a typed error and imports nothing. Shell: Export (share sheet) and
     Import (file picker, confirmation) rows in the Profile menu.
@@ -154,6 +154,13 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
     - Seam: Body data file · Files: `src/SerenixCore/BodyDataFile.swift` (new),
       `tests/SerenixCoreTests/BodyDataFileTests.swift` (new), `src/SerenixApp/ProfileMenu.swift`,
       `src/SerenixApp/BodyStore.swift`
+    - Also `src/SerenixApp/BodyBackup.swift` (new, the share sheet's file) and
+      `src/SerenixApp/MainTabs.swift` (hands the Body store to the profile menu). A file's current
+      goal arrives ended as changed when a goal is already current, so there's never two.
+    - After review: a file is untrusted, so any Weigh-in or Weight Goal Serenix would refuse
+      refuses the whole file before the question (`BodyDataFile.refusal`); export reads the store
+      afresh and never drops a goal's end. Two goals are "the same" only with every field equal,
+      so an older export of a since-edited goal adds that version, ended.
     - Done when: criteria "export then import gives identical data", "add and skip counts",
       "truncated or wrong-format file imports nothing".
 14. [ ] **Slice:** Happy Scale CSV import. **Waits for a real Happy Scale export from the owner**

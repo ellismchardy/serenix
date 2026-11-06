@@ -34,6 +34,8 @@ struct MainTabs: View {
         }
         // The selected tab in the accent colour (spec 012, Tab bar).
         .tint(Theme.accent)
+        // For the profile menu's Body data export and import (spec 014).
+        .environmentObject(bodyStore)
         // Serenix opens on today (spec 002), on both tabs, also when iOS kept it suspended
         // overnight.
         .onChange(of: scenePhase) { oldPhase, newPhase in
