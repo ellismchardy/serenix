@@ -103,7 +103,7 @@ private let fourDaysBeforeNov1 = [
     )
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.dateText == "Sun 1 Nov")
+    #expect(popup.dateText == "Today")
     #expect(popup.loadText == "57")
     #expect(popup.showsLiveHR)
     #expect(popup.lastSyncText == "As of your last sync at 08:12")

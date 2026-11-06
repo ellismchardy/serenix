@@ -651,7 +651,7 @@ public struct MetricPopupZoneRow: Equatable, Sendable {
 /// The Load popup (spec 006): the Day's Load against typical Load, its time in each HR Zone, hour
 /// by hour, its Highest HR and the Max HR used, and on today the Live HR pill.
 public struct LoadPopup: Equatable, Sendable {
-    /// e.g. "Sun 1 Nov".
+    /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
     public let dateText: String
     /// As on the ring.
     public let loadText: String
@@ -695,7 +695,7 @@ public struct LoadPopup: Equatable, Sendable {
         timeZone: TimeZone
     ) {
         let load = dayLoad?.load
-        dateText = day.text
+        dateText = isToday ? "Today" : day.text
         self.loadText = loadText
         lastSyncText =
             isToday
