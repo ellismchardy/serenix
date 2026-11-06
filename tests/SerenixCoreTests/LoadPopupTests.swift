@@ -165,31 +165,32 @@ private let fourDaysBeforeNov1 = [
 
 // MARK: Heart rate zones
 
-@Test func zoneRowsRunFromHRZone1To5WithTheirLabels() throws {
+@Test func zoneRowsRunFromHRZone5To1WithTheirLabels() throws {
     let view = todayView(dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate())])
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.zoneRows.map(\.zone) == [.one, .two, .three, .four, .five])
+    #expect(popup.zoneRows.map(\.zone) == [.five, .four, .three, .two, .one])
     #expect(
         popup.zoneRows.map(\.label) == [
-            "Zone 1 · 50–60%",
-            "Zone 2 · 60–70%",
-            "Zone 3 · 70–80%",
-            "Zone 4 · 80–90%",
             "Zone 5 · 90–100%",
+            "Zone 4 · 80–90%",
+            "Zone 3 · 70–80%",
+            "Zone 2 · 60–70%",
+            "Zone 1 · 50–60%",
         ]
     )
 }
 
 @Test func zoneTimesAreWholeMinutesWithHoursFromAnHour() throws {
-    // 42 min, 65 min, none, 10 min, 30 s (rounds up to a minute), and 29 s rounds down.
+    // Zones 1 to 5: 42 min, 65 min, none, 10 min, 30 s (rounds up to a minute), and 29 s rounds
+    // down. Rows run Zone 5 first.
     let seconds: [HRZone: Int] = [.one: 2_520, .two: 3_900, .three: 0, .four: 600, .five: 30]
     let view = todayView(
         dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate(zoneSeconds: seconds))]
     )
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.zoneRows.map(\.timeText) == ["42m", "1h 05m", "0m", "10m", "1m"])
+    #expect(popup.zoneRows.map(\.timeText) == ["1m", "10m", "0m", "1h 05m", "42m"])
 
     let underHalf = todayView(
         dayLoads: [
@@ -202,19 +203,19 @@ private let fourDaysBeforeNov1 = [
             )
         ]
     )
-    #expect(underHalf.loadPopup?.zoneRows.first?.timeText == "0m")
+    #expect(underHalf.loadPopup?.zoneRows.last?.timeText == "0m")
 }
 
 @Test func eachZoneBarIsItsShareOfTheDaysTimeInHRZones() throws {
-    // 30 min, 1 h, none, 30 min, none: 2 h in HR Zones.
+    // Zones 1 to 5: 30 min, 1 h, none, 30 min, none: 2 h in HR Zones. Rows run Zone 5 first.
     let seconds: [HRZone: Int] = [.one: 1_800, .two: 3_600, .three: 0, .four: 1_800, .five: 0]
     let view = todayView(
         dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate(zoneSeconds: seconds))]
     )
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.zoneRows.map(\.share) == [0.25, 0.5, 0, 0.25, 0])
-    #expect(popup.zoneRows.map(\.timeText) == ["30m", "1h 00m", "0m", "30m", "0m"])
+    #expect(popup.zoneRows.map(\.share) == [0, 0.25, 0, 0.5, 0.25])
+    #expect(popup.zoneRows.map(\.timeText) == ["0m", "30m", "0m", "1h 00m", "30m"])
 }
 
 @Test func aDayWithNoTimeInHRZonesHasEmptyBars() throws {
@@ -223,6 +224,34 @@ private let fourDaysBeforeNov1 = [
 
     #expect(popup.zoneRows.map(\.share) == [0, 0, 0, 0, 0])
     #expect(popup.zoneRows.map(\.timeText) == ["0m", "0m", "0m", "0m", "0m"])
+}
+
+// MARK: HR Zone mix
+
+@Test func theMixIsEachHRZonesShareOfTheDaysTimeInHRZonesFromZone1To5() throws {
+    // Spec 006: 30 min in HR Zone 2 and 90 min in HR Zone 4, none in the others.
+    let seconds: [HRZone: Int] = [.one: 0, .two: 1_800, .three: 0, .four: 5_400, .five: 0]
+    let view = todayView(
+        dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate(zoneSeconds: seconds))]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.zoneMix.map(\.zone) == [.two, .four])
+    #expect(popup.zoneMix.map(\.share) == [0.25, 0.75])
+}
+
+@Test func aDayWithNoTimeInHRZonesHasNoMix() throws {
+    let view = todayView(dayLoads: [DayLoad(day: nov1, load: 0, heartRate: heartRate())])
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.zoneMix.isEmpty)
+}
+
+@Test func aDayWithNoRecordsHasNoMix() throws {
+    let view = todayView(dayLoads: [DayLoad(day: nov1, load: nil, missingReason: .noRecords)])
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.zoneMix.isEmpty)
 }
 
 // MARK: Hourly bars

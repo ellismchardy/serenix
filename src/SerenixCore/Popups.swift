@@ -681,8 +681,11 @@ public struct LoadPopup: Equatable, Sendable {
     public let showsLiveHR: Bool
     /// Why there are no HR Zones, Highest HR or Max HR used; nil when they're there.
     public let note: String?
-    /// HR Zone 1 to 5; none when there's a note.
+    /// HR Zone 5 down to 1, hardest first; none when there's a note.
     public let zoneRows: [LoadPopupZoneRow]
+    /// The bar split by HR Zone: each HR Zone with time in it, HR Zone 1 to 5, and its share of
+    /// the Day's time in HR Zones; none with no time in any, or when there's a note.
+    public let zoneMix: [LoadPopupZoneShare]
     /// The Day's seconds in each HR Zone, hour by hour from local midnight; none when there's a
     /// note.
     public let hourlyZoneSeconds: [[HRZone: Int]]
@@ -723,10 +726,12 @@ public struct LoadPopup: Equatable, Sendable {
         let zoneTotal = heartRate.map { $0.zoneSeconds.values.reduce(0, +) } ?? 0
         zoneRows =
             heartRate.map { heartRate in
-                HRZone.allCases.map { zone in
+                HRZone.allCases.reversed().map { zone in
                     LoadPopupZoneRow(zone, seconds: heartRate.zoneSeconds[zone] ?? 0, of: zoneTotal)
                 }
             } ?? []
+        zoneMix = zoneRows.reversed().filter { $0.share > 0 }
+            .map { LoadPopupZoneShare(zone: $0.zone, share: $0.share) }
         hourlyZoneSeconds = heartRate?.hourlyZoneSeconds ?? []
         highestHRText = heartRate.map { heartRate in
             let highest = heartRate.highestHR.map {
@@ -793,6 +798,13 @@ public struct LoadPopup: Equatable, Sendable {
         guard typical > 0 else { return 1 }
         return min(1, Double(load) / Double(loadBarSpan * typical))
     }
+}
+
+/// One part of the Load popup's HR Zone mix bar: an HR Zone and its share of the Day's time in
+/// HR Zones, 0 to 1.
+public struct LoadPopupZoneShare: Equatable, Sendable {
+    public let zone: HRZone
+    public let share: Double
 }
 
 /// One HR Zone in the Load popup.

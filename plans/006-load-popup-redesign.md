@@ -39,7 +39,7 @@ existing tests there do.
      → nil; typical 0) passes, and the "texts still come with the sentence, typical line and Load
      bar" criterion passes (a no-records Day and a not-available Day both have `comparisonText`,
      `typicalText` and `loadBarFill`).
-3. [ ] **Slice: HR Zone mix and row order.** Reverse `zoneRows` to Zone 5 first; add
+3. [x] **Slice: HR Zone mix and row order.** Reverse `zoneRows` to Zone 5 first; add
    `LoadPopup.zoneMix: [LoadPopupZoneShare]` (zone + share, HR Zone 1 to 5, only zones with time,
    empty with none). Rewrite the existing order tests (`zoneRowsRunFromHRZone1To5WithTheirLabels`
    and the share/time-text order expectations near lines 168–225) to the new order — the spec
