@@ -677,6 +677,9 @@ public struct LoadPopup: Equatable, Sendable {
     /// marker at the middle (spec 006). 0 with the Day's Load missing; nil, no bar, with no
     /// typical Load yet.
     public let loadBarFill: Double?
+    /// The Day's Load in the Load bar's place while typical Load is learned, e.g. "Load 40" or
+    /// "Load —"; nil once there's a typical Load (spec 006).
+    public let learningLoadText: String?
     /// Today only.
     public let showsLiveHR: Bool
     /// Why there are no HR Zones, Highest HR or Max HR used; nil when they're there.
@@ -713,6 +716,8 @@ public struct LoadPopup: Equatable, Sendable {
         typicalText = Self.typicalText(typical, load: load, dayWord: isToday ? "today" : "that Day")
         comparisonText = Self.comparisonText(typical, load: load)
         loadBarFill = Self.loadBarFill(typical, load: load)
+        learningLoadText =
+            if case .calibrating = typical { "Load \(loadText)" } else { nil }
         showsLiveHR = isToday
         let heartRate = dayLoad?.heartRate
         note =
@@ -810,8 +815,8 @@ public struct LoadPopupZoneShare: Equatable, Sendable {
 /// One HR Zone in the Load popup.
 public struct LoadPopupZoneRow: Equatable, Sendable {
     public let zone: HRZone
-    /// e.g. "Zone 1 · 50–60%" (the popup heads these "Heart rate zones", so "Zone" alone is
-    /// clear there).
+    /// e.g. "Zone 1 · 50–60%" (the popup heads these "How hard", beside the HR Zone mix bar, so
+    /// "Zone" alone is clear there).
     public let label: String
     /// Whole minutes: "42m" under an hour, "1h 05m" from an hour.
     public let timeText: String

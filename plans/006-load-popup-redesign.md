@@ -56,7 +56,7 @@ existing tests there do.
    - Files: `src/SerenixApp/TodayPopups.swift`
    - Done when: `swift build` of `SerenixCore` is green and the drawing uses only `LoadPopup`
      fields (no logic in the view); phone check carried to the PR checklist.
-5. [ ] **Slice: the Day's Load while typical Load is learned.** Add
+5. [x] **Slice: the Day's Load while typical Load is learned.** Add
    `LoadPopup.learningLoadText: String?`: "Load 40" ("Load —" with the Load missing, from the
    ring's `loadText`) while typical Load is calibrating; nil with a typical Load. Draw it in the
    shell's against-typical card in place of the Load bar. Also fix the stale "Heart rate zones"

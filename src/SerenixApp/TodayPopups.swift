@@ -983,13 +983,17 @@ private struct LoadPopupView: View {
         }
     }
 
-    /// The sentence, the typical line, the Load bar and, on today, when the last sync ended.
+    /// The sentence, the typical line, the Load bar (or, while typical Load is learned, the Day's
+    /// Load in its place) and, on today, when the last sync ended.
     private var againstTypicalCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(popup.comparisonText).font(.title3.bold())
             Text(popup.typicalText).font(.subheadline).foregroundStyle(.secondary)
             if let fill = popup.loadBarFill {
                 LoadBarView(fill: fill, loadText: popup.loadText).padding(.vertical, 10)
+            } else if let learningLoad = popup.learningLoadText {
+                Text(learningLoad).font(.largeTitle.bold()).monospacedDigit()
+                    .padding(.vertical, 4)
             }
             if let lastSync = popup.lastSyncText {
                 Text(lastSync).font(.footnote).foregroundStyle(.secondary)

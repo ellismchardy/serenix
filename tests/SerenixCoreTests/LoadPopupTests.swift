@@ -546,3 +546,36 @@ func theLoadBarAgainstTypicalLoadZero(load: Int, fill: Double) {
     #expect(popup.typicalText == "Typical: 50 · today −10")
     #expect(popup.loadBarFill == 0.4)
 }
+
+// MARK: The Day's Load while typical Load is learned
+
+@Test func withFewerThan4DaysTheDaysLoadShowsAsANumber() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 40, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.learningLoadText == "Load 40")
+}
+
+@Test func withFewerThan4DaysAMissingLoadShowsADash() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.learningLoadText == "Load —")
+}
+
+@Test func withATypicalLoadTheDaysLoadDoesNotShowAsANumber() throws {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: 40, heartRate: heartRate())
+        ]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.learningLoadText == nil)
+}
