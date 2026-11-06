@@ -34,7 +34,7 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice (tracer bullet):** a Day's Intake. `FoodEntry` (time, kcal, optional protein, fat,
+1. [x] **Slice (tracer bullet):** a Day's Intake. `FoodEntry` (time, kcal, optional protein, fat,
    carbs, optional name); `FoodView` returns the shown Day's entries (newest first) and Intake
    (blank macros count 0), each entry on the local Day of its time. Shell: the Weight | Food
    switch, a `StoredFoodEntry` model in a new `Food.store` container in `BodyStore`, the Food view listing the Day's entries
@@ -43,6 +43,12 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
      `src/SerenixCore/FoodView.swift` (new), `tests/SerenixCoreTests/FoodViewTests.swift` (new),
      `src/SerenixApp/BodyStore.swift`, `src/SerenixApp/BodyScreen.swift`,
      `src/SerenixApp/FoodScreen.swift` (new), `src/SerenixApp/FoodEntrySheet.swift` (new)
+   - Built: `Food.store` belongs to a small `FoodStore` of its own (`src/SerenixApp/FoodStore.swift`,
+     new) instead of a second container inside `BodyStore`; `MainTabs.swift` creates it. Later
+     tasks' "`BodyStore.swift`" means `FoodStore.swift` for food data.
+     After review: the Food view follows today past midnight (`pickedDay`, nil is today), and
+     user-facing text says "Food Entries", not the avoided "food log". Task 2 must key the list
+     rows by `FoodEntryRow.id`, not the list offset, before adding edit and delete.
    - Done when: criteria "500 kcal + 700 kcal give 1,200 kcal and 30/0/0 g" and "23:30 counts
      that Day, 00:30 the next".
 2. [ ] **Slice:** limits, edit and delete. `FoodEntry.refusal(now:)`: over 5,000 kcal, a macro

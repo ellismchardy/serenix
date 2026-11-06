@@ -1,0 +1,94 @@
+import Foundation
+import SerenixCore
+import Testing
+
+// A Day's Food Entries and Intake (spec 016, "Food Entries" and "Intake"). Expected values are
+// spec 016's success criteria, worked by hand.
+
+/// 1–5 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC then. In
+/// October before the 25th London is on BST, one hour ahead of UTC.
+private let london = TimeZone(identifier: "Europe/London")!
+
+private let oct20 = Day(year: 2026, month: 10, day: 20)
+
+private let oct21 = Day(year: 2026, month: 10, day: 21)
+
+private let nov2 = Day(year: 2026, month: 11, day: 2)
+
+/// `hour`:`minute` UTC on `month`/`day` 2026 (November by default, when it is also London
+/// local time).
+private func at(month: Int = 11, _ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC")!
+    return calendar.date(
+        from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute)
+    )!
+}
+
+/// 5 Nov 2026 09:00 in London, after every Food Entry here.
+private let now = at(5, 9)
+
+private func foodView(foodEntries: [FoodEntry], day: Day) -> FoodView {
+    FoodView(foodEntries: foodEntries, day: day, now: now, timeZone: london)
+}
+
+@Test func intakeAddsUpADaysFoodEntriesCountingABlankMacroAsZero() {
+    let view = foodView(
+        foodEntries: [
+            FoodEntry(time: at(2, 8), kilocalories: 500, protein: 30),
+            FoodEntry(time: at(2, 13), kilocalories: 700),
+        ],
+        day: nov2
+    )
+
+    #expect(view.day == nov2)
+    #expect(view.intake == Intake(kilocalories: 1200, protein: 30, fat: 0, carbs: 0))
+}
+
+@Test func aDayWithNoFoodEntriesHasZeroIntake() {
+    let view = foodView(foodEntries: [], day: nov2)
+
+    #expect(view.entries.isEmpty)
+    #expect(view.intake == Intake(kilocalories: 0, protein: 0, fat: 0, carbs: 0))
+}
+
+@Test func foodEntriesOnOtherDaysAreLeftOutOfTheShownDay() {
+    let shown = FoodEntry(time: at(2, 12), kilocalories: 600, protein: 40, fat: 20, carbs: 50)
+    let view = foodView(
+        foodEntries: [
+            FoodEntry(time: at(1, 19), kilocalories: 900, protein: 50, fat: 30, carbs: 80),
+            shown,
+            FoodEntry(time: at(3, 8), kilocalories: 400, protein: 10, fat: 5, carbs: 60),
+        ],
+        day: nov2
+    )
+
+    #expect(view.entries == [shown])
+    #expect(view.intake == Intake(kilocalories: 600, protein: 40, fat: 20, carbs: 50))
+}
+
+@Test func aFoodEntryAtHalfPastElevenCountsOnThatDayAndOneAtHalfPastMidnightOnTheNext() {
+    // 20 Oct 2026 is in BST (UTC+1): 23:30 local on the 20th is 22:30 UTC, and 00:30 local on
+    // the 21st is 23:30 UTC on the 20th, so only local time puts it on the 21st.
+    let lateEvening = FoodEntry(time: at(month: 10, 20, 22, 30), kilocalories: 300)
+    let afterMidnight = FoodEntry(time: at(month: 10, 20, 23, 30), kilocalories: 200)
+    let entries = [lateEvening, afterMidnight]
+
+    let twentieth = foodView(foodEntries: entries, day: oct20)
+    let twentyFirst = foodView(foodEntries: entries, day: oct21)
+
+    #expect(twentieth.entries == [lateEvening])
+    #expect(twentieth.intake.kilocalories == 300)
+    #expect(twentyFirst.entries == [afterMidnight])
+    #expect(twentyFirst.intake.kilocalories == 200)
+}
+
+@Test func aDaysFoodEntriesAreListedNewestFirst() {
+    // Given out of time order, so neither input order nor its reverse is newest first.
+    let breakfast = FoodEntry(time: at(2, 8), kilocalories: 400, name: "Porridge")
+    let lunch = FoodEntry(time: at(2, 13), kilocalories: 650, name: "Sandwich")
+    let dinner = FoodEntry(time: at(2, 19), kilocalories: 800, name: "Pasta")
+    let view = foodView(foodEntries: [lunch, dinner, breakfast], day: nov2)
+
+    #expect(view.entries == [dinner, lunch, breakfast])
+}

@@ -1,10 +1,13 @@
 import SerenixCore
 import SwiftUI
 
-/// The Body tab (spec 015): draws the Body view, and logs Weigh-ins.
+/// The Body tab: a Weight | Food switch (spec 016) over the weight screen, which draws the Body
+/// view and logs Weigh-ins (spec 015), and the Food view.
 struct BodyScreen: View {
     @ObservedObject var store: BodyStore
+    @ObservedObject var foodStore: FoodStore
     @ObservedObject var profile: ProfileStore
+    @State private var section = BodySection.weight
     @State private var showsWeighInSheet = false
     @State private var showsGoalSheet = false
     /// The Goal Weight just reached, while its celebration shows (spec 015, Reached).
@@ -20,58 +23,36 @@ struct BodyScreen: View {
         )
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let trendWeight = view.trendWeight {
-                        Text(profile.units.text(trendWeight, locale: .current))
-                            .font(.system(size: 44, weight: .bold, design: .rounded))
-                        if let last = view.lastWeighIn {
-                            Text(
-                                "Trend Weight · last Weigh-in \(profile.units.text(last.kilograms, locale: .current))"
-                            )
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        Text("Log your first Weigh-in")
-                            .font(.title3.weight(.semibold))
-                    }
-                    WeightChartCard(view: view, units: profile.units)
-                    if let card = view.goalCard {
-                        if let state = card.holdState {
-                            holdCard(card, state: state)
-                        } else {
-                            goalCards(card, weeklyRate: view.weeklyRate)
-                            milestonesCard(card)
-                        }
-                    } else if view.trendWeight != nil {
-                        setGoalCard
-                    }
-                    if !view.weighIns.isEmpty {
-                        NavigationLink("All Weigh-ins") {
-                            WeighInList(store: store, units: profile.units)
-                        }
-                        .padding(.top, 8)
-                    }
+                Picker("Show", selection: $section) {
+                    Text("Weight").tag(BodySection.weight)
+                    Text("Food").tag(BodySection.food)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                if section == .food {
+                    FoodScreen(store: foodStore).padding()
+                } else {
+                    weightScreen(view)
+                }
             }
             .background(Theme.background)
             .navigationTitle("Body")
             .toolbar {
-                Button {
-                    showsGoalSheet = true
-                } label: {
-                    Image(systemName: "gearshape")
+                if section == .weight {
+                    Button {
+                        showsGoalSheet = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Weight Goal")
+                    .disabled(view.trendWeight == nil)
+                    Button {
+                        showsWeighInSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Log a Weigh-in")
                 }
-                .accessibilityLabel("Weight Goal")
-                .disabled(view.trendWeight == nil)
-                Button {
-                    showsWeighInSheet = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("Log a Weigh-in")
             }
             // A goal Trend Weight has reached ends, kept as Reached, and a celebration offers a
             // hold goal at that weight (spec 015, Reached).
@@ -128,6 +109,46 @@ struct BodyScreen: View {
             }
         }
     }
+
+    /// The weight screen (spec 015): Trend Weight, the chart and the goal cards.
+    private func weightScreen(_ view: BodyView) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let trendWeight = view.trendWeight {
+                Text(profile.units.text(trendWeight, locale: .current))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                if let last = view.lastWeighIn {
+                    Text(
+                        "Trend Weight · last Weigh-in \(profile.units.text(last.kilograms, locale: .current))"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("Log your first Weigh-in")
+                    .font(.title3.weight(.semibold))
+            }
+            WeightChartCard(view: view, units: profile.units)
+            if let card = view.goalCard {
+                if let state = card.holdState {
+                    holdCard(card, state: state)
+                } else {
+                    goalCards(card, weeklyRate: view.weeklyRate)
+                    milestonesCard(card)
+                }
+            } else if view.trendWeight != nil {
+                setGoalCard
+            }
+            if !view.weighIns.isEmpty {
+                NavigationLink("All Weigh-ins") {
+                    WeighInList(store: store, units: profile.units)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+    }
+
     /// The Rate and Goal cards (spec 015, Screen).
     private func goalCards(_ card: GoalCard, weeklyRate: Double?) -> some View {
         HStack(alignment: .top, spacing: 12) {
@@ -412,4 +433,10 @@ struct CapsuleTag: View {
             .background(colour.opacity(0.18), in: Capsule())
             .foregroundStyle(colour)
     }
+}
+
+/// Which half of the Body tab shows (spec 016, Screen).
+private enum BodySection {
+    case weight
+    case food
 }
