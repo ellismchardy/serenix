@@ -6,8 +6,8 @@
 
 ## Problem
 Serenix knows the user's nights and days from the Strap, but nothing about their body weight.
-People who want to lose, gain or hold weight use a separate app (Happy Scale is the model here)
-for a smoothed trend, a goal and a pace. That app can't use the Strap's data, which later Body
+People who want to lose, gain or hold weight use a separate app for a smoothed trend, a goal and
+a pace. That app can't use the Strap's data, which later Body
 specs need (Expenditure, Deficit Check). Weight is the base those specs build on.
 
 ## Goal
@@ -30,7 +30,7 @@ warnings when that Pace is too fast.
 9. As a user who weighs in irregularly, I want gaps handled honestly: no invented weights.
 10. As a user in the UK or US, I want my weight in st and lb or lb.
 11. As a user, I want to back up all my Body data to a file and restore it, because a deleted
-    sideload would otherwise lose it, and to bring my history over from Happy Scale.
+    sideload would otherwise lose it.
 12. As a user who mistyped, I want to edit or delete any Weigh-in.
 
 ## Behavior
@@ -142,8 +142,6 @@ warnings when that Pace is too fast.
   already here will be skipped." It adds to what's there; an exact duplicate (same time and
   weight, or the same Weight Goal) is skipped. A file that can't be read imports nothing and says
   why.
-- **Import (Happy Scale CSV)** reads Happy Scale's export into Weigh-ins only, with the same
-  confirmation and duplicate rule. Its trend values are ignored; Serenix works out its own.
 - Body data is never written to the Sync Log, `os.Logger` or bug reports.
 
 ## Design decisions
@@ -161,8 +159,7 @@ warnings when that Pace is too fast.
   Milestone step, and when it ended and why (Reached, changed, removed).
 - **`SerenixCore`: Body data file (new).** Encodes all Body data as versioned JSON
   (`format`, `version: 1`) and decodes it; given the current data and a decoded file, returns
-  what an import would add and skip; reads a Happy Scale CSV into Weigh-ins. Errors are typed;
-  nothing partial is returned.
+  what an import would add and skip. Errors are typed; nothing partial is returned.
 - **`SerenixCore`: Profile** gains an optional height (cm) and Units.
 - **Shell.** A new Body tab with the weight screen, the Weigh-in sheet, the Weight Goal sheet and
   the Weigh-in list; the Profile menu gains Height and Units, and Export / Import rows. Body data
@@ -177,8 +174,7 @@ warnings when that Pace is too fast.
   unit formatting. Expected values are literals worked out from issue #50's formula. Misses
   drawing, the sheets and saving, checked by hand on the phone (ADR 0002).
 - **Body data file (`SerenixCore`)**. Catches a lossless JSON round trip, the add/skip counts and
-  duplicate rule, unreadable files, and the Happy Scale CSV format against a real export as the
-  fixture. Misses the share sheet, the file picker and writing to the store, checked by hand.
+  duplicate rule, and unreadable files. Misses the share sheet, the file picker and writing to the store, checked by hand.
 
 ## Success criteria (must be checkable)
 Weigh-ins and Trend Weight
@@ -237,8 +233,6 @@ Backup and import
 - [ ] Importing a file into data that already holds some of it reports the right add and skip
       counts and adds only the new entries.
 - [ ] A truncated or wrong-format file imports nothing and returns a typed error.
-- [ ] A real Happy Scale CSV export (fixture) reads into the expected Weigh-ins, ignoring its
-      trend column.
 Shell (checked by hand on the phone, steps in the PR)
 - [ ] The Body tab appears after Sleep; logging, editing and deleting Weigh-ins works; the Weight
       Goal sheet saves both Pace kinds and hold.
@@ -254,14 +248,11 @@ Shell (checked by hand on the phone, steps in the PR)
 - Body measurements, body fat %, progress photos, weigh-in reminders (spec 1b).
 - Reading weigh-ins from Apple Health or smart scales; writing to Apple Health (waits for the
   Health export).
-- CSV export for a coach or doctor.
+- CSV export for a coach or doctor, and importing from other apps.
 - Look-ahead smoothing that revises past Trend Weight.
 - Food, Check-ins and blood pressure on the Body tab (their own specs).
 
 ## Open questions
-- **Happy Scale CSV format.** No real export has been seen. The import (and its fixture) waits
-  until the owner provides one; the plan should put that task last so the rest can ship without
-  it.
 - **Travel.** A Weigh-in's Day uses the time zone current when the Body view runs, as Nights and
   Days do. Assumption: good enough; revisit if it bites.
 

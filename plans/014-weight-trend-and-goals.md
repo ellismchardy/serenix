@@ -11,7 +11,7 @@ Two seams, both new in `SerenixCore`, as the spec says. The **Body view** (`Body
 a pure function in the shape of `TodayView` and `SleepView`: Weigh-ins, Weight Goals, Profile
 units, a time and a time zone in; everything the weight screen shows out. It grows one slice at
 a time, starting with Trend Weight alone. The **Body data file** (`BodyDataFile`) handles JSON
-backup and import, and last the Happy Scale CSV. New value types `WeighIn` and `WeightGoal` live
+backup and import. New value types `WeighIn` and `WeightGoal` live
 in their own files, in kg and UTC. Every constant is named and cites its issue (#50, #51, #61)
 and research note.
 
@@ -163,19 +163,12 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
       so an older export of a since-edited goal adds that version, ended.
     - Done when: criteria "export then import gives identical data", "add and skip counts",
       "truncated or wrong-format file imports nothing".
-14. [ ] **Slice:** Happy Scale CSV import. **Waits for a real Happy Scale export from the owner**
-    (spec open question), which becomes the fixture. Read it into Weigh-ins, ignoring its trend;
-    same confirmation and duplicate rule. Shell: the import accepts CSV.
-    - Blocked by: 13
-    - Seam: Body data file · Files: `BodyDataFile.swift`, `BodyDataFileTests.swift`,
-      `tests/SerenixCoreTests/Fixtures/happy-scale-export.csv` (new), `src/SerenixApp/ProfileMenu.swift`
-    - Done when: criterion "a real Happy Scale CSV export reads into the expected Weigh-ins".
-15. [ ] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
+14. [ ] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
     Package.swift` clean, `swift build` clean; every `SerenixCore` success criterion in spec 014
     checked. Carried to the PR checklist (need the PR): the macOS CI build, and the by-hand phone
     checks — Body tab and sheets, the other-branch build keeping every Weigh-in and Weight Goal
     (ADR 0008), Height and Units changing display only, export and import on a fresh install.
-    - Blocked by: 12, 14
+    - Blocked by: 12, 13
 
 ## Done when
 - All tasks checked, every success criterion in spec 014 met, suite green.
