@@ -1,7 +1,7 @@
 # 006 — Load popup
 
-**Status:** approved
-**Last updated:** 2026-11-06 (the Day's Load shows as a number while typical Load is learned; popup redrawn: a sentence and bar against typical Load, the HR Zone mix, then the hourly bars; approved)
+**Status:** built
+**Last updated:** 2026-11-06 (the Day's Load shows as a number while typical Load is learned; popup redrawn: a sentence and bar against typical Load, the HR Zone mix, then the hourly bars; built)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -200,20 +200,20 @@ Max HR 190: 95, 114, 133, 152 and 171 bpm.
 - [x] Today view: a Day with no records shows "No heart rate recorded this Day" and no zones,
       bars, Highest HR or Max HR used; a Day with a Load but no stored HR Zones shows "Heart
       rate zones aren't available for this Day"; zone times show "42m" and "1h 05m".
-- [ ] Today view: with typical Load 50, Loads 39, 40, 59, 60, 74 and 75 give "An easier Day
+- [x] Today view: with typical Load 50, Loads 39, 40, 59, 60, 74 and 75 give "An easier Day
       than usual", "About your usual Day", "About your usual Day", "A harder Day than usual", "A
       harder Day than usual" and "A much harder Day than usual"; with fewer than 4 Days,
       "Learning your typical Load"; with the Day's Load missing, "No Load this Day"; with typical
       Load 0, Load 0 is "About your usual Day" and Load 5 "A much harder Day than usual".
-- [ ] Today view: with typical Load 50, a Load of 25 fills the Load bar to 0.25, 100 to 1.0
+- [x] Today view: with typical Load 50, a Load of 25 fills the Load bar to 0.25, 100 to 1.0
       and 130 to 1.0; with the Day's Load missing it shows empty; with fewer than 4 Days it
       doesn't show; with typical Load 0, Load 0 fills 0 and Load 5 fills 1.0.
-- [ ] Today view: with fewer than 4 Days, a Load of 40 shows "Load 40" in place of the Load bar
+- [x] Today view: with fewer than 4 Days, a Load of 40 shows "Load 40" in place of the Load bar
       and a missing Load "Load —"; with a typical Load (4 Days or more) there is no such number.
-- [ ] Today view: 30 minutes in HR Zone 2 and 90 minutes in HR Zone 4 give mix shares 0.25 and
+- [x] Today view: 30 minutes in HR Zone 2 and 90 minutes in HR Zone 4 give mix shares 0.25 and
       0.75 and none for the others; HR Zone rows come Zone 5 first, Zone 1 last; a Day with no
       time in HR Zones has no mix.
-- [ ] Today view: the no-records and not-available texts still come with the sentence, typical
+- [x] Today view: the no-records and not-available texts still come with the sentence, typical
       line and Load bar.
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
