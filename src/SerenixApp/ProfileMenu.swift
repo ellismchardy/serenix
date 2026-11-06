@@ -1,5 +1,6 @@
 import SerenixCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The profile menu (spec 002), opened from the Today screen's avatar: the Profile's avatar and
 /// name, which can be edited, with its birth year, sex and Max HR (spec 005); the Strap's
@@ -17,10 +18,19 @@ struct ProfileMenu: View {
     /// The Today view's say on whether a sync is running, so 001's progress shows here.
     let showsSyncProgress: Bool
     @EnvironmentObject private var appearanceStore: AppearanceStore
+    /// The Body data the Export and Import rows back up (spec 015).
+    @EnvironmentObject private var bodyStore: BodyStore
     @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
     @State private var draftName = ""
+    @State private var picksImportFile = false
+    /// All Body data for Export, read when the menu opens and after an import, not per redraw.
+    @State private var backup: Result<BodyData, Error>?
+    /// What a picked file would import, while its confirmation shows.
+    @State private var pendingImport: BodyImport?
+    /// Why a picked file can't be imported, while that shows.
+    @State private var importRefusal: String?
 
     var body: some View {
         NavigationStack {
@@ -63,6 +73,17 @@ struct ProfileMenu: View {
                         ForEach(Profile.allowedMaxHR, id: \.self) { bpm in
                             Text("\(bpm) bpm").tag(Int?.some(bpm))
                         }
+                    }
+                    Picker("Height", selection: $profile.heightCentimetres) {
+                        Text("Not set").tag(Double?.none)
+                        ForEach(Height.options(units: profile.units), id: \.self) { centimetres in
+                            Text(Height.text(centimetres: centimetres, units: profile.units)).tag(
+                                Double?.some(centimetres)
+                            )
+                        }
+                    }
+                    Picker("Units", selection: $profile.units) {
+                        ForEach(WeightUnits.allCases, id: \.self) { Text($0.label).tag($0) }
                     }
                 }
                 .pickerStyle(.navigationLink)
@@ -117,6 +138,30 @@ struct ProfileMenu: View {
                     .pickerStyle(.segmented)
                 }
                 .listRowBackground(Theme.card)
+                // Spec 015, Backup and import: all Body data as one JSON file, and back.
+                Section("Body data") {
+                    switch backup {
+                    case .success(let data)?:
+                        ShareLink(
+                            item: BodyBackup(data: data),
+                            preview: SharePreview("Serenix Body data")
+                        ) {
+                            Label("Export Body data", systemImage: "square.and.arrow.up")
+                        }
+                    case .failure(let error)?:
+                        // Shown in place of the row, so a read failure is never hidden.
+                        Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.secondary)
+                    case nil:
+                        EmptyView()
+                    }
+                    Button {
+                        picksImportFile = true
+                    } label: {
+                        Label("Import Body data", systemImage: "square.and.arrow.down")
+                    }
+                }
+                .listRowBackground(Theme.card)
                 Section {
                     NavigationLink {
                         DebugView(connection: connection)
@@ -148,6 +193,48 @@ struct ProfileMenu: View {
                     .accessibilityLabel("Close")
                 }
             }
+            .onAppear { readBackup() }
+            .fileImporter(isPresented: $picksImportFile, allowedContentTypes: [.json]) {
+                readImport($0)
+            }
+            .alert(
+                "Import Body data?",
+                isPresented: Binding(
+                    get: { pendingImport != nil },
+                    set: { if !$0 { pendingImport = nil } }
+                ),
+                presenting: pendingImport
+            ) { found in
+                Button("Import") {
+                    bodyStore.add(found)
+                    readBackup()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text(importQuestion)
+            }
+            .alert(
+                "Nothing was imported",
+                isPresented: Binding(
+                    get: { importRefusal != nil },
+                    set: { if !$0 { importRefusal = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importRefusal ?? "")
+            }
+            .alert(
+                "Body data",
+                isPresented: Binding(
+                    get: { bodyStore.failure != nil },
+                    set: { if !$0 { bodyStore.failure = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(bodyStore.failure ?? "")
+            }
             .alert("Your name", isPresented: $editsName) {
                 TextField("Your name", text: $draftName)
                     .textContentType(.givenName)
@@ -159,6 +246,35 @@ struct ProfileMenu: View {
             }
         }
         .presentationDragIndicator(.visible)
+    }
+
+    /// "Add N Weigh-ins and M Weight Goals? K already here will be skipped." (spec 015).
+    private var importQuestion: String {
+        guard let found = pendingImport else { return "" }
+        return "Add \(found.weighInsToAdd.count) Weigh-ins and \(found.goalsToAdd.count) "
+            + "Weight Goals? \(found.skipped) already here will be skipped."
+    }
+
+    private func readBackup() {
+        backup = Result { try bodyStore.allData() }
+    }
+
+    /// Reads the picked file and asks before importing; a file that can't be read imports
+    /// nothing and says why.
+    private func readImport(_ picked: Result<URL, Error>) {
+        do {
+            let url = try picked.get()
+            let opened = url.startAccessingSecurityScopedResource()
+            defer { if opened { url.stopAccessingSecurityScopedResource() } }
+            let file = try BodyDataFile.decode(try Data(contentsOf: url))
+            if let refusal = BodyDataFile.refusal(file, now: Date()) { throw refusal }
+            let current = try bodyStore.allData()
+            pendingImport = BodyDataFile.importing(file, into: current, now: Date())
+        } catch let error as BodyDataFileError {
+            importRefusal = error.message
+        } catch {
+            importRefusal = "The file couldn't be opened: \(error.localizedDescription)"
+        }
     }
 
     private var currentYear: Int {
@@ -242,6 +358,17 @@ extension Sex {
         case .female: "Female"
         case .male: "Male"
         case .preferNotToSay: "Prefer not to say"
+        }
+    }
+}
+
+extension WeightUnits {
+    /// The Units picker's names.
+    fileprivate var label: String {
+        switch self {
+        case .kilograms: "kg"
+        case .pounds: "lb"
+        case .stonesAndPounds: "st and lb"
         }
     }
 }

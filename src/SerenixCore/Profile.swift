@@ -21,18 +21,26 @@ public struct Profile: Equatable, Sendable {
     /// The Max HR the user entered, in bpm; nil when not set or outside `allowedMaxHR` (the
     /// shell's field only offers that range).
     public let maxHR: Int?
+    /// The user's height in cm; nil when not set (spec 015, Units and Profile).
+    public let heightCentimetres: Double?
+    /// How weights are shown; kg when not set. Everything is stored in kg (spec 015).
+    public let units: WeightUnits
 
     public init(
         name: String?,
         birthYear: Int? = nil,
         sex: Sex = .preferNotToSay,
-        maxHR: Int? = nil
+        maxHR: Int? = nil,
+        heightCentimetres: Double? = nil,
+        units: WeightUnits = .kilograms
     ) {
         let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.name = trimmed.isEmpty ? nil : trimmed
         self.birthYear = birthYear
         self.sex = sex
         self.maxHR = maxHR.flatMap { Self.allowedMaxHR.contains($0) ? $0 : nil }
+        self.heightCentimetres = heightCentimetres
+        self.units = units
     }
 
     /// Whole bpm a user can enter as Max HR (spec 005, Profile).

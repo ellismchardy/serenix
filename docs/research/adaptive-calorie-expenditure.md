@@ -1,4 +1,4 @@
-# How do intake-plus-trend-weight methods (MacroFactor-style) estimate daily energy expenditure, and how accurate is ~7,700 kcal/kg?
+# How do intake-plus-trend-weight methods estimate daily energy expenditure, and how accurate is ~7,700 kcal/kg?
 
 **Date:** 2026-11-04 · **Unblocks:** the adaptive calorie target spec (issue #52)
 
@@ -63,7 +63,7 @@ from memory and was not confirmed.
   individuals: intake came out 8.7 ± 36.7% high, and the authors judged individual
   assessment unreliable **[verified]**
   ([de Jonge et al., Am J Clin Nutr 2007;85(1):73-79](https://doi.org/10.1093/ajcn/85.1.73)).
-  The same energy-balance identity underlies MacroFactor-style estimates, and the large
+  The same energy-balance identity underlies intake-plus-trend-weight estimates, and the large
   individual error is a reason to use long windows and damping. (The previous version of this
   note cited the wrong DOI, journal and description for this paper.)
 - Self-reported intake is unreliable. In non-obese adults the SD of individual error
@@ -75,20 +75,6 @@ from memory and was not confirmed.
 - Scale weight swings from day to day with water and gut content, so trend smoothing is
   needed. The 0.1 EMA comes from John Walker's *The Hacker's Diet* (fourmilab.ch/hackdiet),
   a book, not peer-reviewed **[unverified, lead only]**.
-- What MacroFactor's own help centre says **[verified]**:
-  - Expenditure = intake − change in stored energy, with the change taken from *trend*
-    weight and adjusted for the fat and lean make-up of the change
-    ([Expenditure](https://help.macrofactorapp.com/en/articles/20-expenditure)).
-  - Partial logging makes expenditure come out too low ([Expenditure](https://help.macrofactorapp.com/en/articles/20-expenditure)).
-    Skipping small items under ~50 kcal is fine, but leaving out whole meals is not
-    ([Do I need to log everything…](https://help.macrofactorapp.com/en/articles/140-do-i-need-to-log-everything-i-eat-and-drink-to-have-an-accurate-expenditure-and-use-macrofactor-s-coaching-features)).
-  - Per search-result summaries of its help centre (pages not opened directly), the estimate
-    looks back over about the past three weeks and starts from onboarding data or a manual
-    initial estimate. Optional "Step-Informed Updates" speed changes when step counts trend
-    ([Expenditure Modifiers](https://help.macrofactorapp.com/en/articles/274-expenditure-modifiers)).
-  - Not found in its docs: smoothing constants, minimum data, the kcal/kg used, or a
-    "mark day incomplete" rule. The earlier claim that MacroFactor excludes marked partial days
-    is **[unverified]**; MacroFactor links to a separate partial-logging article not yet read.
 - Mifflin-St Jeor predicted resting metabolic rate within 10% of measured in more non-obese
   and obese people than any other equation **[verified]**
   ([Frankenfield et al., J Am Diet Assoc 2005](https://doi.org/10.1016/j.jada.2005.02.005)).
@@ -98,14 +84,13 @@ from memory and was not confirmed.
 - **Verified (abstract or page, 2026-11-04):** Hall 2008's 3,500 kcal/lb statement; the
   Thomas 2013 citation; Forbes 2000 (DOI corrected); Hall 2011's ~1-year half-time;
   Fothergill 2016's numbers; de Jonge 2007 (citation corrected); Schoeller 1995's numbers;
-  Frankenfield 2005's ranking; MacroFactor's equation, trend weight and under-logging effect.
+  Frankenfield 2005's ranking.
 - **Unverified:** fat 9,400 and lean 1,800 kcal/kg; the 10 kcal/day-per-lb and 95%-in-3-years
-  rule; ~50–150 kcal/day ordinary adaptive thermogenesis; the glycogen early-weeks effect;
-  MacroFactor's 3-week window and its onboarding start (seen only in search summaries);
-  MacroFactor's handling of partial days. PubMed blocked automated fetching, so abstracts were
+  rule; ~50–150 kcal/day ordinary adaptive thermogenesis; the glycogen early-weeks effect.
+  PubMed blocked automated fetching, so abstracts were
   read through Europe PMC and Crossref.
-- MacroFactor publishes no constants. The recommended α 0.1, 14–21 Day window and 0.1 blend
-  are engineering choices consistent with its stated ~3-week lookback, not validated values.
+- The recommended α 0.1, 14–21 Day window and 0.1 blend are engineering choices, not
+  validated values.
   Tune them on the owner's own logs.
 - Whether Serenix's Load-based activity estimate beats a plain activity factor as the
   starting estimate is untested.

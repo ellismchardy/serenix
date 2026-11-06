@@ -31,13 +31,13 @@ public struct Day: Hashable, Comparable, Codable, Sendable {
 
     /// Midday on this Day in `timeZone`, on the Gregorian calendar whatever the phone's own
     /// calendar is, so no daylight-saving change can move it onto a neighbouring Day.
-    func midday(in timeZone: TimeZone) -> Date {
+    public func midday(in timeZone: TimeZone) -> Date {
         date(atMinutes: 12 * 60, in: timeZone)
     }
 
     /// `minutes` past local midnight on this Day in `timeZone` (e.g. 1380 for 23:00), on the
     /// Gregorian calendar.
-    func date(atMinutes minutes: Int, in timeZone: TimeZone) -> Date {
+    public func date(atMinutes minutes: Int, in timeZone: TimeZone) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let components = DateComponents(
