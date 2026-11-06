@@ -673,6 +673,10 @@ public struct LoadPopup: Equatable, Sendable {
     public let typicalText: String
     /// e.g. "A harder Day than usual": the Day's Load against typical Load (spec 006).
     public let comparisonText: String
+    /// How full the Load bar is, 0 to 1: the Day's Load on a bar from 0 to twice typical Load, its
+    /// marker at the middle (spec 006). 0 with the Day's Load missing; nil, no bar, with no
+    /// typical Load yet.
+    public let loadBarFill: Double?
     /// Today only.
     public let showsLiveHR: Bool
     /// Why there are no HR Zones, Highest HR or Max HR used; nil when they're there.
@@ -705,6 +709,7 @@ public struct LoadPopup: Equatable, Sendable {
         let typical = typicalLoad(for: day, among: dayLoads)
         typicalText = Self.typicalText(typical, load: load, dayWord: isToday ? "today" : "that Day")
         comparisonText = Self.comparisonText(typical, load: load)
+        loadBarFill = Self.loadBarFill(typical, load: load)
         showsLiveHR = isToday
         let heartRate = dayLoad?.heartRate
         note =
@@ -774,6 +779,19 @@ public struct LoadPopup: Equatable, Sendable {
         case ..<muchHarderFrom: "A harder Day than usual"
         default: "A much harder Day than usual"
         }
+    }
+
+    /// The Load bar runs from 0 to this many times typical Load, so typical sits at its middle
+    /// (spec 006).
+    static let loadBarSpan = 2
+
+    /// The Load bar's fill: the Day's Load over twice typical Load, full at that or more. With a
+    /// typical Load of 0, empty for a Load of 0 and full for any other.
+    private static func loadBarFill(_ typical: TypicalLoad, load: Int?) -> Double? {
+        guard case .value(let typical) = typical else { return nil }
+        guard let load, load > 0 else { return 0 }
+        guard typical > 0 else { return 1 }
+        return min(1, Double(load) / Double(loadBarSpan * typical))
     }
 }
 

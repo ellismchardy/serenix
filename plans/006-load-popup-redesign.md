@@ -31,7 +31,7 @@ existing tests there do.
    - Seam: Today view · Files: `src/SerenixCore/Popups.swift`, `tests/SerenixCoreTests/LoadPopupTests.swift`
    - Done when: the sentence criterion (typical 50 with Loads 39, 40, 59, 60, 74, 75; fewer than 4
      Days; Load missing; typical 0 with Loads 0 and 5) passes.
-2. [ ] **Slice: the Load bar.** Add `LoadPopup.loadBarFill: Double?`: Load ÷ (2 × typical), capped
+2. [x] **Slice: the Load bar.** Add `LoadPopup.loadBarFill: Double?`: Load ÷ (2 × typical), capped
    at 1; 0 with the Day's Load missing; nil while calibrating; typical 0 gives 0 for Load 0, 1 for
    any other. The marker always sits at the middle, so no field for it.
    - Seam: Today view · Files: same as task 1

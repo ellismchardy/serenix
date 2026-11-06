@@ -372,14 +372,9 @@ private let fourDaysBeforeNov1 = [
 
 // MARK: The sentence
 
-/// Load 50 on each of the 4 Days before 1 Nov: typical Load 50 on 1 Nov.
-private let typical50BeforeNov1 = [oct28, oct29, oct30, oct31].map {
-    DayLoad(day: $0, load: 50, heartRate: heartRate())
-}
-
-/// Load 0 on each of the 4 Days before 1 Nov: typical Load 0 on 1 Nov.
-private let typical0BeforeNov1 = [oct28, oct29, oct30, oct31].map {
-    DayLoad(day: $0, load: 0, heartRate: heartRate())
+/// The same Load on each of the 4 Days before 1 Nov, so it is the typical Load on 1 Nov.
+private func typicalLoadBeforeNov1(_ load: Int) -> [DayLoad] {
+    [oct28, oct29, oct30, oct31].map { DayLoad(day: $0, load: load, heartRate: heartRate()) }
 }
 
 @Test(
@@ -395,7 +390,9 @@ private let typical0BeforeNov1 = [oct28, oct29, oct30, oct31].map {
 )
 func theSentenceComparesTheDaysLoadToTypicalLoad(load: Int, sentence: String) {
     let view = todayView(
-        dayLoads: typical50BeforeNov1 + [DayLoad(day: nov1, load: load, heartRate: heartRate())]
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
     )
 
     #expect(view.loadPopup?.comparisonText == sentence)
@@ -403,7 +400,7 @@ func theSentenceComparesTheDaysLoadToTypicalLoad(load: Int, sentence: String) {
 
 @Test func withFewerThan4DaysTheSentenceSaysItIsLearningTypicalLoad() {
     let view = todayView(
-        dayLoads: Array(typical50BeforeNov1.dropFirst()) + [
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
             DayLoad(day: nov1, load: 57, heartRate: heartRate())
         ]
     )
@@ -413,7 +410,7 @@ func theSentenceComparesTheDaysLoadToTypicalLoad(load: Int, sentence: String) {
 
 @Test func aDayWithItsLoadMissingSaysNoLoadThisDay() {
     let view = todayView(
-        dayLoads: typical50BeforeNov1 + [
+        dayLoads: typicalLoadBeforeNov1(50) + [
             DayLoad(day: nov1, load: nil, missingReason: .noRecords)
         ]
     )
@@ -430,8 +427,93 @@ func theSentenceComparesTheDaysLoadToTypicalLoad(load: Int, sentence: String) {
 )
 func theSentenceAgainstTypicalLoadZero(load: Int, sentence: String) {
     let view = todayView(
-        dayLoads: typical0BeforeNov1 + [DayLoad(day: nov1, load: load, heartRate: heartRate())]
+        dayLoads: typicalLoadBeforeNov1(0) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
     )
 
     #expect(view.loadPopup?.comparisonText == sentence)
+}
+
+// MARK: The Load bar
+
+@Test(
+    "Against typical Load 50, the Load bar fills to Load over twice typical, full from 100",
+    arguments: [
+        (25, 0.25),
+        (100, 1.0),
+        (130, 1.0),
+    ]
+)
+func theLoadBarFillsToTheDaysLoadOverTwiceTypicalLoad(load: Int, fill: Double) {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.loadBarFill == fill)
+}
+
+@Test func aDayWithItsLoadMissingHasAnEmptyLoadBar() {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.loadBarFill == 0)
+}
+
+@Test func withFewerThan4DaysThereIsNoLoadBar() throws {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 57, heartRate: heartRate())
+        ]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.loadBarFill == nil)
+}
+
+@Test(
+    "Against typical Load 0, Load 0 leaves the Load bar empty and any other Load fills it",
+    arguments: [
+        (0, 0.0),
+        (5, 1.0),
+    ]
+)
+func theLoadBarAgainstTypicalLoadZero(load: Int, fill: Double) {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(0) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.loadBarFill == fill)
+}
+
+@Test func aDayWithNoRecordsStillHasTheSentenceTypicalLineAndLoadBar() throws {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.note == "No heart rate recorded this Day")
+    #expect(popup.comparisonText == "No Load this Day")
+    #expect(popup.typicalText == "Typical: 50")
+    #expect(popup.loadBarFill == 0)
+}
+
+@Test func aDayWithHRZonesNotAvailableStillHasTheSentenceTypicalLineAndLoadBar() throws {
+    // Load 40 against typical Load 50: 0.8 of typical, and 40 of the bar's 100.
+    let view = todayView(dayLoads: typicalLoadBeforeNov1(50) + [DayLoad(day: nov1, load: 40)])
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.note == "Heart rate zones aren't available for this Day")
+    #expect(popup.comparisonText == "About your usual Day")
+    #expect(popup.typicalText == "Typical: 50 · today −10")
+    #expect(popup.loadBarFill == 0.4)
 }
