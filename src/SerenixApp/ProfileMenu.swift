@@ -20,6 +20,8 @@ struct ProfileMenu: View {
     @EnvironmentObject private var appearanceStore: AppearanceStore
     /// The Body data the Export and Import rows back up (spec 015).
     @EnvironmentObject private var bodyStore: BodyStore
+    /// The food data the backup carries too (spec 016).
+    @EnvironmentObject private var foodStore: FoodStore
     @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
@@ -34,165 +36,188 @@ struct ProfileMenu: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Button {
-                        draftName = profile.name ?? ""
-                        editsName = true
-                    } label: {
-                        VStack(spacing: 12) {
-                            Avatar(letter: avatarLetter, diameter: 96)
-                            Text(menuName).font(.title2.bold())
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("Edit your name")
+            // Split in three so the type-checker can handle the body in reasonable time.
+            backupHandling(menuList)
+                .alert("Your name", isPresented: $editsName) {
+                    TextField("Your name", text: $draftName)
+                        .textContentType(.givenName)
+                        .textInputAutocapitalization(.words)
+                    Button("Save") { profile.rename(to: draftName) }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("It stays on this phone.")
                 }
-                .listRowBackground(Color.clear)
-                Section {
-                    Picker("Birth year", selection: $profile.birthYear) {
-                        Text("Not set").tag(Int?.none)
-                        ForEach(birthYearOptions, id: \.self) { year in
-                            Text(String(year)).tag(Int?.some(year))
-                        }
+        }
+        .presentationDragIndicator(.visible)
+    }
+
+    /// The menu's rows: the Profile, the Strap, Appearance, Today layout, Body data and Debug.
+    private var menuList: some View {
+        List {
+            Section {
+                Button {
+                    draftName = profile.name ?? ""
+                    editsName = true
+                } label: {
+                    VStack(spacing: 12) {
+                        Avatar(letter: avatarLetter, diameter: 96)
+                        Text(menuName).font(.title2.bold())
                     }
-                    Picker(selection: $profile.sex) {
-                        ForEach(Sex.allCases, id: \.self) { Text($0.label).tag($0) }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Sex")
-                            Text("Used only for heart-rate calculations")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Picker("Max HR", selection: $profile.maxHR) {
-                        Text(maxHRBlankText).tag(Int?.none)
-                        ForEach(Profile.allowedMaxHR, id: \.self) { bpm in
-                            Text("\(bpm) bpm").tag(Int?.some(bpm))
-                        }
-                    }
-                    Picker("Height", selection: $profile.heightCentimetres) {
-                        Text("Not set").tag(Double?.none)
-                        ForEach(Height.options(units: profile.units), id: \.self) { centimetres in
-                            Text(Height.text(centimetres: centimetres, units: profile.units)).tag(
-                                Double?.some(centimetres)
-                            )
-                        }
-                    }
-                    Picker("Units", selection: $profile.units) {
-                        ForEach(WeightUnits.allCases, id: \.self) { Text($0.label).tag($0) }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Edit your name")
+            }
+            .listRowBackground(Color.clear)
+            Section {
+                Picker("Birth year", selection: $profile.birthYear) {
+                    Text("Not set").tag(Int?.none)
+                    ForEach(birthYearOptions, id: \.self) { year in
+                        Text(String(year)).tag(Int?.some(year))
                     }
                 }
-                .pickerStyle(.navigationLink)
-                .listRowBackground(Theme.card)
-                Section("Strap") {
-                    LabeledContent {
-                        Text(connection.strapModel ?? "—")
-                    } label: {
-                        Label(connectionText, systemImage: "applewatch")
-                    }
-                    LabeledContent {
-                        Text(connection.lastBatteryLevel.map { "\($0)%" } ?? "—")
-                    } label: {
-                        Label("Battery", systemImage: "battery.75percent")
-                    }
-                    LabeledContent {
-                        Text(lastSyncText)
-                    } label: {
-                        Label("Last sync", systemImage: "clock")
-                    }
-                    HStack(spacing: 10) {
-                        // 001's Sync now; after a failed or paused sync it's a retry.
-                        Button {
-                            connection.syncNow()
-                        } label: {
-                            Label(
-                                syncOffersRetry ? "Retry sync" : "Sync now",
-                                systemImage: "arrow.triangle.2.circlepath"
-                            )
-                        }
-                        .disabled(connection.phase.isBusy)
-                        Spacer(minLength: 0)
-                        // 001's time left and progress, once the running sync reports progress.
-                        if showsSyncProgress, let progress = connection.syncProgress {
-                            SyncProgressView(progress: progress, timeLeft: connection.syncTimeLeft)
-                        }
-                    }
-                }
-                .listRowBackground(Theme.card)
-                Section("Appearance") {
-                    Picker("Appearance", selection: $appearanceStore.selected) {
-                        ForEach(Appearance.allCases) { Text($0.label).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                }
-                .listRowBackground(Theme.card)
-                // Spec 013: Rings or Story, applied to the Today screen at once.
-                Section("Today layout") {
-                    Picker("Today layout", selection: $todayLayout) {
-                        ForEach(TodayLayout.allCases) { Text($0.label).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                }
-                .listRowBackground(Theme.card)
-                // Spec 015, Backup and import: all Body data as one JSON file, and back.
-                Section("Body data") {
-                    switch backup {
-                    case .success(let data)?:
-                        ShareLink(
-                            item: BodyBackup(data: data),
-                            preview: SharePreview("Serenix Body data")
-                        ) {
-                            Label("Export Body data", systemImage: "square.and.arrow.up")
-                        }
-                    case .failure(let error)?:
-                        // Shown in place of the row, so a read failure is never hidden.
-                        Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
+                Picker(selection: $profile.sex) {
+                    ForEach(Sex.allCases, id: \.self) { Text($0.label).tag($0) }
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Sex")
+                        Text("Used only for heart-rate calculations")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
-                    case nil:
-                        EmptyView()
-                    }
-                    Button {
-                        picksImportFile = true
-                    } label: {
-                        Label("Import Body data", systemImage: "square.and.arrow.down")
                     }
                 }
-                .listRowBackground(Theme.card)
-                Section {
-                    NavigationLink {
-                        DebugView(connection: connection)
-                    } label: {
-                        Label("Debug", systemImage: "ladybug")
+                Picker("Max HR", selection: $profile.maxHR) {
+                    Text(maxHRBlankText).tag(Int?.none)
+                    ForEach(Profile.allowedMaxHR, id: \.self) { bpm in
+                        Text("\(bpm) bpm").tag(Int?.some(bpm))
                     }
-                } footer: {
-                    // Later specs add Integrations, Export data, Contact us, Report a bug and
-                    // Write a review above.
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Serenix \(BuildInfo.version)")
-                        Text("MIT licensed")
-                        Text("Not affiliated with WHOOP, Inc.")
-                    }
-                    .padding(.top, 8)
                 }
-                .listRowBackground(Theme.card)
-            }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Theme.background.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
+                Picker("Height", selection: $profile.heightCentimetres) {
+                    Text("Not set").tag(Double?.none)
+                    ForEach(Height.options(units: profile.units), id: \.self) { centimetres in
+                        Text(Height.text(centimetres: centimetres, units: profile.units)).tag(
+                            Double?.some(centimetres)
+                        )
                     }
-                    .accessibilityLabel("Close")
+                }
+                Picker("Units", selection: $profile.units) {
+                    ForEach(WeightUnits.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
             }
+            .pickerStyle(.navigationLink)
+            .listRowBackground(Theme.card)
+            Section("Strap") {
+                LabeledContent {
+                    Text(connection.strapModel ?? "—")
+                } label: {
+                    Label(connectionText, systemImage: "applewatch")
+                }
+                LabeledContent {
+                    Text(connection.lastBatteryLevel.map { "\($0)%" } ?? "—")
+                } label: {
+                    Label("Battery", systemImage: "battery.75percent")
+                }
+                LabeledContent {
+                    Text(lastSyncText)
+                } label: {
+                    Label("Last sync", systemImage: "clock")
+                }
+                HStack(spacing: 10) {
+                    // 001's Sync now; after a failed or paused sync it's a retry.
+                    Button {
+                        connection.syncNow()
+                    } label: {
+                        Label(
+                            syncOffersRetry ? "Retry sync" : "Sync now",
+                            systemImage: "arrow.triangle.2.circlepath"
+                        )
+                    }
+                    .disabled(connection.phase.isBusy)
+                    Spacer(minLength: 0)
+                    // 001's time left and progress, once the running sync reports progress.
+                    if showsSyncProgress, let progress = connection.syncProgress {
+                        SyncProgressView(progress: progress, timeLeft: connection.syncTimeLeft)
+                    }
+                }
+            }
+            .listRowBackground(Theme.card)
+            Section("Appearance") {
+                Picker("Appearance", selection: $appearanceStore.selected) {
+                    ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+            .listRowBackground(Theme.card)
+            // Spec 013: Rings or Story, applied to the Today screen at once.
+            Section("Today layout") {
+                Picker("Today layout", selection: $todayLayout) {
+                    ForEach(TodayLayout.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+            .listRowBackground(Theme.card)
+            // Spec 015, Backup and import: all Body data as one JSON file, and back.
+            Section("Body data") {
+                switch backup {
+                case .success(let data)?:
+                    ShareLink(
+                        item: BodyBackup(data: data),
+                        preview: SharePreview("Serenix Body data")
+                    ) {
+                        Label("Export Body data", systemImage: "square.and.arrow.up")
+                    }
+                case .failure(let error)?:
+                    // Shown in place of the row, so a read failure is never hidden.
+                    Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                case nil:
+                    EmptyView()
+                }
+                Button {
+                    picksImportFile = true
+                } label: {
+                    Label("Import Body data", systemImage: "square.and.arrow.down")
+                }
+            }
+            .listRowBackground(Theme.card)
+            Section {
+                NavigationLink {
+                    DebugView(connection: connection)
+                } label: {
+                    Label("Debug", systemImage: "ladybug")
+                }
+            } footer: {
+                // Later specs add Integrations, Export data, Contact us, Report a bug and
+                // Write a review above.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Serenix \(BuildInfo.version)")
+                    Text("MIT licensed")
+                    Text("Not affiliated with WHOOP, Inc.")
+                }
+                .padding(.top, 8)
+            }
+            .listRowBackground(Theme.card)
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Theme.background.ignoresSafeArea())
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("Close")
+            }
+        }
+    }
+
+    /// The backup's file picker and the import question, refusal and failure alerts (specs
+    /// 015, 016), on `content`.
+    private func backupHandling(_ content: some View) -> some View {
+        content
             .onAppear { readBackup() }
             .fileImporter(isPresented: $picksImportFile, allowedContentTypes: [.json]) {
                 readImport($0)
@@ -206,7 +231,10 @@ struct ProfileMenu: View {
                 presenting: pendingImport
             ) { found in
                 Button("Import") {
-                    bodyStore.add(found)
+                    // Two store files, so two saves: food first, and Weigh-ins and goals only
+                    // if that saved, so a failed food save imports nothing. Food then saved but
+                    // the second save failed can be retried: what's here is skipped.
+                    if foodStore.add(found) { bodyStore.add(found) }
                     readBackup()
                 }
                 Button("Cancel", role: .cancel) {}
@@ -235,28 +263,44 @@ struct ProfileMenu: View {
             } message: {
                 Text(bodyStore.failure ?? "")
             }
-            .alert("Your name", isPresented: $editsName) {
-                TextField("Your name", text: $draftName)
-                    .textContentType(.givenName)
-                    .textInputAutocapitalization(.words)
-                Button("Save") { profile.rename(to: draftName) }
-                Button("Cancel", role: .cancel) {}
+            .alert(
+                "Food data",
+                isPresented: Binding(
+                    get: { foodStore.failure != nil },
+                    set: { if !$0 { foodStore.failure = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
             } message: {
-                Text("It stays on this phone.")
+                Text(foodStore.failure ?? "")
             }
-        }
-        .presentationDragIndicator(.visible)
     }
 
     /// "Add N Weigh-ins and M Weight Goals? K already here will be skipped." (spec 015).
     private var importQuestion: String {
         guard let found = pendingImport else { return "" }
-        return "Add \(found.weighInsToAdd.count) Weigh-ins and \(found.goalsToAdd.count) "
-            + "Weight Goals? \(found.skipped) already here will be skipped."
+        let targets = found.foodTargetsToSet == nil ? "" : ", and your Calorie Target and macros"
+        return "Add \(found.weighInsToAdd.count) Weigh-ins, \(found.goalsToAdd.count) Weight "
+            + "Goals, \(found.foodEntriesToAdd.count) Food Entries and "
+            + "\(found.completeDaysToAdd.count) Complete Days\(targets)? "
+            + "\(found.skipped) already here or not needed will be skipped."
     }
 
     private func readBackup() {
-        backup = Result { try bodyStore.allData() }
+        backup = Result { try allData() }
+    }
+
+    /// All Body data from both store files: Weigh-ins and Weight Goals, and food.
+    private func allData() throws -> BodyData {
+        let body = try bodyStore.allData()
+        let food = try foodStore.storedFoodData()
+        return BodyData(
+            weighIns: body.weighIns,
+            goals: body.goals,
+            foodEntries: food.entries,
+            completeDays: food.completeDays,
+            foodTargets: food.targets
+        )
     }
 
     /// Reads the picked file and asks before importing; a file that can't be read imports
@@ -268,8 +312,13 @@ struct ProfileMenu: View {
             defer { if opened { url.stopAccessingSecurityScopedResource() } }
             let file = try BodyDataFile.decode(try Data(contentsOf: url))
             if let refusal = BodyDataFile.refusal(file, now: Date()) { throw refusal }
-            let current = try bodyStore.allData()
-            pendingImport = BodyDataFile.importing(file, into: current, now: Date())
+            let current = try allData()
+            pendingImport = BodyDataFile.importing(
+                file,
+                into: current,
+                now: Date(),
+                timeZone: .current
+            )
         } catch let error as BodyDataFileError {
             importRefusal = error.message
         } catch {

@@ -245,8 +245,17 @@ A mark on the way from Start Weight to Goal Weight, passed when Trend Weight rea
 _Avoid_: checkpoint
 
 **Intake**:
-The calories and macros the user logs as eaten on a Day.
+The calories and macros of a Day's Food Entries, added up.
 _Avoid_: consumption, food log total
+
+**Food Entry**:
+One thing the user logs as eaten, at a time on a Day: its calories, and optionally its protein,
+fat and carbs.
+_Avoid_: meal, food log, item
+
+**Macro Targets**:
+The grams of protein, fat and carbs the user aims for each Day, drawn from their Calorie Target.
+_Avoid_: macro goals, macro budget
 
 **Complete Day**:
 A Day the user marks as having all of its Intake logged.
