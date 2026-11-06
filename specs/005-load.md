@@ -99,6 +99,9 @@ assumption to tune with real Days: a Load of **55** or more yesterday counts as 
 hour); Steady says "keep your Load under **50** today" (about an hour of moderate exercise); Take
 it easy says "under **33**" (about a 30-minute brisk walk).
 
+_Since replaced:_ spec 002's Readiness message now names yesterday's Load by its Readiness points
+(−3 or fewer), not by the 55 mark, which is gone. The caps 50 and 33 still stand.
+
 ## Design decisions
 - **`SerenixCore`: Load of a Day.** Given a Day, its History Records, the Days' Resting HRs, the
   Profile's birth year, sex and Max HR, and a time zone, it returns the Load (0–100, whole number) or why

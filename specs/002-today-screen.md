@@ -117,7 +117,7 @@ or fewer (the popup verdict's mark), lowest points first. Ties keep the order HR
 Time Asleep, Yesterday's Load. Each reason reads:
 - HRV: "HRV is 14% below your Baseline"
 - Sleeping HR: "Sleeping HR is up 4 bpm"
-- Time Asleep: "You slept 1 h 10 m less than your Sleep Need" (the popup's Time Asleep
+- Time Asleep: "You slept 1h 10m less than your Sleep Need" (the popup's Time Asleep
   difference)
 - Yesterday's Load: "Yesterday's Load was high (82)"
 HRV and Sleeping HR use the same whole numbers as vs your Baseline. An input that cost less than
@@ -321,7 +321,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       while Calibrating.
 - [ ] The Readiness message's reasons follow the points: with spec 012's "all four off" Night
       (points HRV −23, Sleeping HR −19, Time Asleep −14, Yesterday's Load −7) Take it easy gives
-      "HRV is 17% below your Baseline, Sleeping HR is up 5 bpm, you slept 2 h 30 m less than your
+      "HRV is 17% below your Baseline, Sleeping HR is up 5 bpm, you slept 2h 30m less than your
       Sleep Need and Yesterday's Load was high (85). Your body hasn't recovered yet. Rest,
       hydrate and get to bed early, and keep your Load under 33 today."
 - [ ] A Steady Night where Time Asleep cost −8 points and HRV −1 names only Time Asleep: "You

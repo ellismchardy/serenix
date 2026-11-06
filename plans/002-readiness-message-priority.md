@@ -30,7 +30,7 @@ is deleted. `TodayView` passes `nightReadiness.breakdown`.
 2. [x] **Slice:** a Steady Night with Time Asleep around −8 and HRV −1 names only Time Asleep
    - Files: `tests/SerenixCoreTests/TodayViewTests.swift`
    - Done when: spec 002's "Time Asleep −8 and HRV −1" criterion passes.
-3. [ ] **Docs:** spec 002 example "1 h 10 m" → "1h 10m"; spec 005's Readiness advice notes that
+3. [x] **Docs:** spec 002 example "1 h 10 m" → "1h 10m"; spec 005's Readiness advice notes that
    spec 002 now replaces the 55 mark.
 4. [ ] **Verify:** `swift test`, `swift build`, lint green; every new spec 002 criterion ticked.
 
