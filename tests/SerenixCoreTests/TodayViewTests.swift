@@ -2732,7 +2732,7 @@ private func pointsText(_ name: String, in view: TodayView) -> String? {
 // Against Baselines of HRV 60 and Sleeping HR 52, with no Time Asleep:
 // - HRV 14% below, but Sleeping HR 8 bpm under lifts it: Readiness 82;
 // - Sleeping HR up 4 bpm, but HRV 20% above lifts it: Readiness 80.
-// Yesterday's high Load isn't given as a reason either.
+// No Load is given as a reason either.
 @Test(arguments: [(51.6, 44.0), (72.0, 56.0)])
 func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff(hrv: Double, sleepingHR: Double) {
     let night = Night(day: nov1, sleepingHR: sleepingHR, hrv: hrv)

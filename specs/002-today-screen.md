@@ -122,8 +122,9 @@ Time Asleep, Yesterday's Load. Each reason reads:
 - Yesterday's Load: "Yesterday's Load was high (82)"
 HRV and Sleeping HR use the same whole numbers as vs your Baseline. An input that cost less than
 3 points, or a dropped one, isn't named, even when it moved the bad way. The reasons are joined
-as "A.", "A and B.", "A, B and C." or "A, B, C and D." before the band's sentence, with only the
-first letter of the whole message in capitals (so "you slept" mid-sentence). The Load caps (50,
+as "A.", "A and B.", "A, B and C." or "A, B, C and D." before the band's sentence, with the
+message's first letter a capital and "you slept" in lower case mid-sentence (names such as HRV
+and Yesterday's Load keep their capitals). The Load caps (50,
 33) are named constants and assumptions, set by the Load spec (005) and to tune with real Days.
 Closing it hides it for that Night, remembered on the phone across
 relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
@@ -316,7 +317,7 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       evening!" at 18:00 and 04:59, on today and on an earlier Day alike; the name under it is
       "Ellis" for "Ellis" and none for no name or a name of only spaces.
 - [x] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
-      for a harder session if you feel like it."; Steady with nothing off gives "You're
+      for a harder session if you feel like it."; Steady with no input costing 3 points or more gives "You're
       part-way recovered. Train at a moderate pace and keep your Load under 50 today."; no advice
       while Calibrating.
 - [x] The Readiness message's reasons follow the points: with spec 012's "all four off" Night

@@ -33,23 +33,24 @@ enum ReadinessAdvice {
             }
         guard band != .ready else { return sentence }
         guard let breakdown else { return sentence }
-        let reasons = breakdown.costliestInputs.enumerated().compactMap { position, input in
+        let reasons = breakdown.costliestInputs.compactMap { input in
             reason(
                 input,
-                first: position == 0,
                 breakdown: breakdown,
                 yesterdayLoad: yesterdayLoad,
                 hrv: hrv,
                 sleepingHR: sleepingHR
             )
         }
-        return reasons.isEmpty ? sentence : "\(joined(reasons)). \(sentence)"
+        guard !reasons.isEmpty else { return sentence }
+        // Only the message's first letter is a capital, whichever reason comes first.
+        let why = joined(reasons)
+        return "\(why.prefix(1).uppercased())\(why.dropFirst()). \(sentence)"
     }
 
-    /// One input's reason; "You slept" is lower-cased when it isn't the first.
+    /// One input's reason, all in lower case but for names ("you slept …", "HRV is …").
     private static func reason(
         _ input: Readiness.Input,
-        first: Bool,
         breakdown: Readiness.Breakdown,
         yesterdayLoad: Int?,
         hrv: MetricTile?,
@@ -66,8 +67,7 @@ enum ReadinessAdvice {
         case .timeAsleep:
             let minutesShort = breakdown.minutesShort
             guard minutesShort > 0 else { return nil }
-            return "\(first ? "You" : "you") slept \(hoursMinutesText(minutesShort)) less than "
-                + "your Sleep Need"
+            return "you slept \(hoursMinutesText(minutesShort)) less than your Sleep Need"
         case .previousDayLoad:
             return yesterdayLoad.map { "Yesterday's Load was high (\($0))" }
         }

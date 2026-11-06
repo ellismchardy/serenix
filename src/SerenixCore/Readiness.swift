@@ -173,10 +173,15 @@ enum Readiness {
         /// The counted inputs from the lowest points to the highest; equal points keep the
         /// `Input.allCases` order (spec 012, Why; spec 002, Readiness message).
         var inputsByPoints: [(input: Input, points: Int)] {
-            let costs = zip(parts, points).enumerated().map { entry -> (Int, Input, Int) in
-                (entry.offset, entry.element.0.input, entry.element.1)
+            let costs: [(input: Input, points: Int)] = zip(parts, points).map {
+                (input: $0.0.input, points: $0.1)
             }
-            return costs.sorted { $0.2 != $1.2 ? $0.2 < $1.2 : $0.0 < $1.0 }.map { ($0.1, $0.2) }
+            // `sorted` isn't stable, so equal points fall back to `parts` order by index.
+            let order = costs.indices.sorted {
+                costs[$0].points != costs[$1].points
+                    ? costs[$0].points < costs[$1].points : $0 < $1
+            }
+            return order.map { costs[$0] }
         }
 
         /// The inputs that cost `namedCostPoints` or more, costliest first: the ones the popup's

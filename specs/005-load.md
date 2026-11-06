@@ -118,7 +118,8 @@ _Since replaced:_ spec 002's Readiness message now names yesterday's Load by its
 - **`SerenixCore`: Today view.** The Days with their Load also say why a missing Load is
   missing, so it can label the ring "Add your age" and say that tapping it opens the profile
   menu. `DayLoad` carries the reason.
-- **Readiness advice** constants change to 55, 50 and 33.
+- **Readiness advice** constants change to 55, 50 and 33. (The 55 mark has since been replaced
+  by Readiness points; see spec 002's Readiness message.)
 - **Shell:** it queues Days as each Batch is stored, alongside Night dates, and works them out
   after the Nights, one Day at a time off the main thread, storing one Load per Day in SwiftData.
   It stores the new Profile fields on the phone, draws the three rows, queues every due Day when
@@ -186,8 +187,9 @@ Resting HR (Resting HR 60), and one History Record per second.
 - [x] Today view: a Day whose Load is missing for no Max HR labels the ring "Add your age" and
       marks it as opening the profile menu; a Day missing Load for no records labels it "Load"
       (on today too) and marks no tap.
-- [x] Readiness advice: a Load of 55 yesterday is mentioned as high, 54 isn't; Steady says "keep
-      your Load under 50 today"; Take it easy says "keep your Load under 33 today".
+- [x] Readiness advice: Steady says "keep your Load under 50 today"; Take it easy says "keep your
+      Load under 33 today". (Whether yesterday's Load is named now follows its Readiness points:
+      spec 002's Readiness message.)
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
 - [ ] On the phone (by hand): with birth year set, after a morning sync the Load ring shows
