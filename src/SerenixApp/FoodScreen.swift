@@ -23,6 +23,8 @@ struct FoodScreen: View {
             foodEntries: store.entries,
             completeDays: store.completeDays,
             calorieTarget: store.calorieTarget,
+            proteinOverride: store.proteinOverride,
+            fatOverride: store.fatOverride,
             weighIns: bodyStore.weighIns,
             weightGoal: bodyStore.currentGoal,
             heightCentimetres: profile.heightCentimetres,
@@ -108,7 +110,20 @@ struct FoodScreen: View {
             .accessibilityLabel("Targets")
         }
         .sheet(isPresented: $showsTargetsSheet) {
-            FoodTargetsSheet(calorieTarget: store.calorieTarget) { store.setCalorieTarget($0) }
+            FoodTargetsSheet(
+                calorieTarget: store.calorieTarget,
+                proteinOverride: store.proteinOverride,
+                fatOverride: store.fatOverride,
+                suggested: { suggestedTargets(calorieTarget: $0) },
+                save: { calorieTarget, proteinOverride, fatOverride in
+                    store.setTargets(
+                        calorieTarget: calorieTarget,
+                        proteinOverride: proteinOverride,
+                        fatOverride: fatOverride,
+                        suggested: calorieTarget.flatMap { suggestedTargets(calorieTarget: $0) }
+                    )
+                }
+            )
         }
         .sheet(isPresented: $showsEntrySheet) {
             FoodEntrySheet(day: view.day) { store.add($0) }
@@ -168,6 +183,17 @@ struct FoodScreen: View {
         }
         .padding()
         .themeCard()
+    }
+
+    /// The suggested Macro Targets at `calorieTarget`, from the core; nil without Trend Weight.
+    private func suggestedTargets(calorieTarget: Double) -> MacroTargets? {
+        FoodView.suggestedMacroTargets(
+            calorieTarget: calorieTarget,
+            weighIns: bodyStore.weighIns,
+            weightGoal: bodyStore.currentGoal,
+            heightCentimetres: profile.heightCentimetres,
+            timeZone: .current
+        )
     }
 
     /// Protein, fat and carbs against their Macro Targets, with the carbs warning; or why there

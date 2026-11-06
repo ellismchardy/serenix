@@ -101,11 +101,17 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
      / 247", "100 kg, 175 cm: 168.4 g; no height 220 g", "1,500: 105.3 g with the warning",
      "1,000 at 100 kg: carbs 0 with the message", and the no-Weigh-ins half of "no Weigh-ins / no
      Calorie Target".
-6. [ ] **Slice:** overrides. Protein and fat set in grams replace the suggestions; carbs fill the
+6. [x] **Slice:** overrides. Protein and fat set in grams replace the suggestions; carbs fill the
    rest; an override leaving carbs below 0 is refused; "Use suggested" clears both. Shell: the
    override fields and "Use suggested" in the targets sheet, stored with the Calorie Target.
    - Seam: Food view · Files: `FoodView.swift`, `FoodViewTests.swift`, `BodyStore.swift`,
      `FoodTargetsSheet.swift`
+   - Built: overrides on the `StoredFoodTargets` row in `FoodStore.swift`; `FoodScreen.swift` wires
+     the sheet. After review: the core decides every override refusal
+     (`MacroTargets.overrideRefusal(proteinOverride:fatOverride:calorieTarget:suggested:)`), with
+     no Calorie Target or no Trend Weight too, and the store checks it again; the sheet's
+     suggestions come from `FoodView.suggestedMacroTargets`. Overrides also take the Food Entry
+     0–500 g limits, which the spec doesn't state: raised with the owner.
    - Done when: criterion "150 g and 70 g at 2,000 give 192.5 g carbs; below 0 refused; Use
      suggested restores 176 g and 55.6 g".
 7. [ ] **Slice:** backup version 2. `BodyData` gains Food Entries, Complete Days, the Calorie

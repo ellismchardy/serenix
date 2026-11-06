@@ -35,17 +35,21 @@ public struct MacroTargets: Equatable, Sendable {
         self.carbs = carbs
     }
 
-    /// The suggested targets, and any warning, for `calorieTarget` kcal at `trendWeight` kg.
+    /// The targets, and any warning, for `calorieTarget` kcal at `trendWeight` kg: an override
+    /// replaces that macro's suggestion, and carbs fill what's left.
     static func suggested(
         calorieTarget: Double,
         trendWeight: Double,
         direction: GoalDirection?,
-        heightCentimetres: Double?
+        heightCentimetres: Double?,
+        proteinOverride: Double? = nil,
+        fatOverride: Double? = nil
     ) -> (targets: MacroTargets, warning: MacroWarning?) {
         let perKilogram =
             direction == .lose ? losingProteinPerKilogram : otherProteinPerKilogram
-        let protein = perKilogram * proteinWeight(trendWeight, heightCentimetres)
-        let fat = calorieTarget * fatShare / kilocaloriesPerGramFat
+        let protein =
+            proteinOverride ?? perKilogram * proteinWeight(trendWeight, heightCentimetres)
+        let fat = fatOverride ?? calorieTarget * fatShare / kilocaloriesPerGramFat
         return withCarbs(protein: protein, fat: fat, calorieTarget: calorieTarget)
     }
 
@@ -77,6 +81,70 @@ public struct MacroTargets: Equatable, Sendable {
         guard let heightCentimetres, heightCentimetres > 0 else { return trendWeight }
         let metresSquared = (heightCentimetres / 100) * (heightCentimetres / 100)
         return trendWeight / metresSquared > obeseBMI ? referenceBMI * metresSquared : trendWeight
+    }
+}
+
+extension MacroTargets {
+    /// The most protein or fat an override may set, g a Day (spec 016, issue #54), as a Food
+    /// Entry's macros.
+    static let maxOverrideGrams = FoodEntry.maxMacroGrams
+
+    /// Why protein and fat overrides can't be saved at `calorieTarget`; nil when they can. With
+    /// one override, pass the other macro's suggestion. Carbs at exactly 0 are allowed; only
+    /// below 0 is refused (spec 016, Overrides).
+    public static func overrideRefusal(
+        protein: Double,
+        fat: Double,
+        calorieTarget: Double
+    ) -> MacroOverrideRefusal? {
+        if protein < 0 || fat < 0 { return .negative }
+        if protein > maxOverrideGrams || fat > maxOverrideGrams { return .tooLarge }
+        let used = protein * kilocaloriesPerGramProteinOrCarbs + fat * kilocaloriesPerGramFat
+        if used > calorieTarget + kilocalorieTolerance { return .noCarbsLeft }
+        return nil
+    }
+}
+
+extension MacroTargets {
+    /// Why protein and fat overrides (nil uses the suggestion) can't be saved; nil when they can.
+    /// The 0–500 g limits always apply to a set override, even with no Calorie Target or no
+    /// suggestion. The carbs check applies only with a Calorie Target, filling an unset override
+    /// from `suggested`; with an unset override and no suggestion there's nothing to check it
+    /// against.
+    public static func overrideRefusal(
+        proteinOverride: Double?,
+        fatOverride: Double?,
+        calorieTarget: Double?,
+        suggested: MacroTargets?
+    ) -> MacroOverrideRefusal? {
+        let set = [proteinOverride, fatOverride].compactMap { $0 }
+        if set.contains(where: { $0 < 0 }) { return .negative }
+        if set.contains(where: { $0 > maxOverrideGrams }) { return .tooLarge }
+        guard !set.isEmpty, let calorieTarget,
+            let protein = proteinOverride ?? suggested?.protein,
+            let fat = fatOverride ?? suggested?.fat
+        else { return nil }
+        return overrideRefusal(protein: protein, fat: fat, calorieTarget: calorieTarget)
+    }
+}
+
+/// Why protein and fat overrides can't be saved (spec 016, Overrides).
+public enum MacroOverrideRefusal: Equatable, Sendable {
+    /// Protein or fat below 0.
+    case negative
+    /// Protein or fat over 500 g.
+    case tooLarge
+    /// Protein and fat need more than the Calorie Target, leaving carbs below 0.
+    case noCarbsLeft
+
+    /// Built from the limits, so a changed limit changes its message too.
+    public var message: String {
+        switch self {
+        case .negative: "Protein and fat can't be below 0."
+        case .tooLarge:
+            "Protein and fat can't be over \(limitText(MacroTargets.maxOverrideGrams)) g each."
+        case .noCarbsLeft: "That leaves no room for carbs at this Calorie Target."
+        }
     }
 }
 

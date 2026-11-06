@@ -1,27 +1,61 @@
 import SerenixCore
 import SwiftUI
 
-/// Sets the Calorie Target (spec 016): kcal a Day, from 800 to 6,000, or none. A number Serenix
-/// would refuse shows why and can't be saved.
+/// Sets the Calorie Target and, optionally, protein and fat in place of the suggested Macro
+/// Targets (spec 016). Carbs always fill what's left. A blank field means none (the Calorie
+/// Target) or the suggestion (protein, fat). Anything Serenix would refuse shows why and can't
+/// be saved.
 struct FoodTargetsSheet: View {
-    let save: (Double?) -> Void
+    /// The suggested Macro Targets at a Calorie Target, from the core; nil without Trend Weight.
+    let suggested: (Double) -> MacroTargets?
+    /// Saves the Calorie Target, protein override and fat override.
+    let save: (Double?, Double?, Double?) -> Void
     @State private var calorieTargetText: String
+    @State private var proteinText: String
+    @State private var fatText: String
     @Environment(\.dismiss) private var dismiss
 
-    init(calorieTarget: Double?, save: @escaping (Double?) -> Void) {
+    init(
+        calorieTarget: Double?,
+        proteinOverride: Double?,
+        fatOverride: Double?,
+        suggested: @escaping (Double) -> MacroTargets?,
+        save: @escaping (Double?, Double?, Double?) -> Void
+    ) {
+        self.suggested = suggested
         self.save = save
-        _calorieTargetText = State(
-            initialValue: calorieTarget.map { $0.formatted(.number.grouping(.never)) } ?? ""
-        )
+        _calorieTargetText = State(initialValue: calorieTarget.map(Self.text) ?? "")
+        _proteinText = State(initialValue: proteinOverride.map(Self.text) ?? "")
+        _fatText = State(initialValue: fatOverride.map(Self.text) ?? "")
     }
 
-    /// The Calorie Target as typed; nil when the field is blank, which clears it.
-    private var calorieTarget: Double? { try? Double(calorieTargetText, format: .number) }
+    private var calorieTarget: Double? { Self.number(calorieTargetText) }
+    private var proteinOverride: Double? { Self.number(proteinText) }
+    private var fatOverride: Double? { Self.number(fatText) }
 
-    /// The field has text that doesn't read as a number.
-    private var unreadable: Bool { !calorieTargetText.isEmpty && calorieTarget == nil }
+    /// A field has text that doesn't read as a number.
+    private var unreadable: Bool {
+        (!calorieTargetText.isEmpty && calorieTarget == nil)
+            || (!proteinText.isEmpty && proteinOverride == nil)
+            || (!fatText.isEmpty && fatOverride == nil)
+    }
 
-    private var refusal: CalorieTargetRefusal? { calorieTarget.flatMap(CalorieTarget.refusal) }
+    /// The suggestions at the typed Calorie Target, for the placeholders and the check.
+    private var suggestion: MacroTargets? { calorieTarget.flatMap(suggested) }
+
+    private var calorieRefusal: CalorieTargetRefusal? {
+        calorieTarget.flatMap(CalorieTarget.refusal)
+    }
+
+    /// Why the overrides can't be saved, as the core decides.
+    private var overrideRefusal: MacroOverrideRefusal? {
+        MacroTargets.overrideRefusal(
+            proteinOverride: proteinOverride,
+            fatOverride: fatOverride,
+            calorieTarget: calorieTarget,
+            suggested: suggestion
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -33,8 +67,23 @@ struct FoodTargetsSheet: View {
                 } footer: {
                     Text("Leave it blank for no Calorie Target.")
                 }
-                if let refusal {
-                    Text(refusal.message).foregroundStyle(.red)
+                Section {
+                    TextField(placeholder("Protein", suggestion?.protein), text: $proteinText)
+                        .keyboardType(.decimalPad)
+                    TextField(placeholder("Fat", suggestion?.fat), text: $fatText)
+                        .keyboardType(.decimalPad)
+                    Button("Use suggested") {
+                        proteinText = ""
+                        fatText = ""
+                    }
+                    .disabled(proteinText.isEmpty && fatText.isEmpty)
+                } header: {
+                    Text("Macro Targets")
+                } footer: {
+                    Text("Leave protein or fat blank to use the suggestion. Carbs fill the rest.")
+                }
+                if let message = calorieRefusal?.message ?? overrideRefusal?.message {
+                    Text(message).foregroundStyle(.red)
                 }
             }
             .navigationTitle("Targets")
@@ -42,12 +91,25 @@ struct FoodTargetsSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        save(calorieTarget)
+                        save(calorieTarget, proteinOverride, fatOverride)
                         dismiss()
                     }
-                    .disabled(refusal != nil || unreadable)
+                    .disabled(calorieRefusal != nil || overrideRefusal != nil || unreadable)
                 }
             }
         }
+    }
+
+    /// "Protein (suggested 176 g)", or "Protein (g)" with no suggestion.
+    private func placeholder(_ name: String, _ grams: Double?) -> String {
+        grams.map { "\(name) (suggested \(Self.text($0.rounded())) g)" } ?? "\(name) (g)"
+    }
+
+    private static func text(_ value: Double) -> String {
+        value.formatted(.number.grouping(.never))
+    }
+
+    private static func number(_ text: String) -> Double? {
+        try? Double(text, format: .number)
     }
 }

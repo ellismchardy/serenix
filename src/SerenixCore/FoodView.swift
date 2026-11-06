@@ -17,7 +17,7 @@ public struct FoodView: Equatable, Sendable {
     public let calorieTarget: Double?
     /// Intake against the Calorie Target; nil with no Calorie Target.
     public let calorieBalance: CalorieBalance?
-    /// The suggested Macro Targets; nil with no Calorie Target or no Trend Weight.
+    /// The Macro Targets, suggested or overridden; nil with no Calorie Target or no Trend Weight.
     public let macroTargets: MacroTargets?
     /// A warning about the carbs the Macro Targets leave, if any.
     public let macroWarning: MacroWarning?
@@ -31,6 +31,8 @@ public struct FoodView: Equatable, Sendable {
         foodEntries: [FoodEntry],
         completeDays: Set<Day> = [],
         calorieTarget: Double? = nil,
+        proteinOverride: Double? = nil,
+        fatOverride: Double? = nil,
         weighIns: [WeighIn] = [],
         weightGoal: WeightGoal? = nil,
         heightCentimetres: Double? = nil,
@@ -57,7 +59,9 @@ public struct FoodView: Equatable, Sendable {
                 calorieTarget: calorieTarget,
                 trendWeight: trendWeight,
                 direction: weightGoal?.direction,
-                heightCentimetres: heightCentimetres
+                heightCentimetres: heightCentimetres,
+                proteinOverride: proteinOverride,
+                fatOverride: fatOverride
             )
             macroTargets = suggested.targets
             macroWarning = suggested.warning
@@ -66,6 +70,26 @@ public struct FoodView: Equatable, Sendable {
             macroWarning = nil
         }
         needsWeighIn = calorieTarget != nil && trendWeight == nil
+    }
+
+    /// The suggested Macro Targets (no overrides) at `calorieTarget`, from today's Trend Weight:
+    /// what the targets sheet shows and checks against while the user types; nil with no Trend
+    /// Weight.
+    public static func suggestedMacroTargets(
+        calorieTarget: Double,
+        weighIns: [WeighIn],
+        weightGoal: WeightGoal?,
+        heightCentimetres: Double?,
+        timeZone: TimeZone
+    ) -> MacroTargets? {
+        BodyView.trend(of: weighIns, in: timeZone).last.map {
+            MacroTargets.suggested(
+                calorieTarget: calorieTarget,
+                trendWeight: $0.trendWeight,
+                direction: weightGoal?.direction,
+                heightCentimetres: heightCentimetres
+            ).targets
+        }
     }
 
     /// The marked Days that still have a Food Entry: what the store keeps after an entry is
