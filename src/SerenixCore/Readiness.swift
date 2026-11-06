@@ -169,7 +169,36 @@ enum Readiness {
             }
             return points
         }
+
+        /// The counted inputs from the lowest points to the highest; equal points keep the
+        /// `Input.allCases` order (spec 012, Why; spec 002, Readiness message).
+        var inputsByPoints: [(input: Input, points: Int)] {
+            let costs: [(input: Input, points: Int)] = zip(parts, points).map {
+                (input: $0.0.input, points: $0.1)
+            }
+            // `sorted` isn't stable, so equal points fall back to `parts` order by index.
+            let order = costs.indices.sorted {
+                costs[$0].points != costs[$1].points
+                    ? costs[$0].points < costs[$1].points : $0 < $1
+            }
+            return order.map { costs[$0] }
+        }
+
+        /// The inputs that cost `namedCostPoints` or more, costliest first: the ones the popup's
+        /// verdict and the Readiness message name.
+        var costliestInputs: [Input] {
+            inputsByPoints.filter { $0.points <= -Readiness.namedCostPoints }.map(\.input)
+        }
+
+        /// `sleepShortfall` in whole minutes, as the popup and the Readiness message show it.
+        var minutesShort: Int {
+            Int((sleepShortfall / 60).rounded())
+        }
     }
+
+    /// An input that costs this many points or more is named, in the Readiness popup's verdict
+    /// (spec 012, Verdict) and the Readiness message (spec 002). Readiness points.
+    static let namedCostPoints = 3
 
     /// The usual Night's Readiness (spec 008, Score): what the points start from.
     static let usualScore = 70
