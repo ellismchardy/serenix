@@ -130,12 +130,16 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
    - Done when: criteria "version 2 round-trips everything", "a version 1 file imports",
      "partly-here counts; the file's Calorie Target only when none is set", "a 5,001 kcal Food
      Entry imports nothing".
-8. [ ] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
+8. [x] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
    Package.swift` clean, `swift build` clean; every `SerenixCore` success criterion in spec 016
    matched to a test and ticked. Carried to the PR checklist (need the PR): the macOS CI build,
    and the by-hand phone checks: the Weight | Food switch, logging, editing and deleting on today
    and a past Day, the targets sheet and "Use suggested", the Day complete toggle surviving a
    relaunch, and export then import on a fresh install restoring food data.
+   - Done: 1,050 tests, lint and build clean; every `SerenixCore` criterion matched to a test
+     (one fat check added for holding and no goal). Also for the PR's phone checks: the import
+     question's food counts, a failed food import showing in the menu, and an older build from
+     this branch dropping `Food.store` data it doesn't know (Complete Days, targets).
 
 ## Done when
 - All tasks checked, every success criterion in spec 016 met, suite green.

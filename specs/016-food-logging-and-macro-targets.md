@@ -1,6 +1,6 @@
 # 016 — Food logging and Macro Targets
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-06
 **Issue:** https://github.com/ellismchardy/serenix/issues/49 (Body tab map, spec 2)
 
@@ -115,37 +115,37 @@ Suggested from the Calorie Target, Trend Weight and the Weight Goal (issue #54,
 
 ## Success criteria (must be checkable)
 Food Entries and Intake
-- [ ] Food Entries of 500 kcal (30 g protein) and 700 kcal (no macros) on one Day give Intake
+- [x] Food Entries of 500 kcal (30 g protein) and 700 kcal (no macros) on one Day give Intake
       1,200 kcal and 30 g protein, 0 g fat, 0 g carbs.
-- [ ] A Food Entry at 23:30 local time counts on that Day, one at 00:30 on the next.
-- [ ] A Food Entry over 5,000 kcal, with a macro over 500 g, or in the future is refused with a
+- [x] A Food Entry at 23:30 local time counts on that Day, one at 00:30 on the next.
+- [x] A Food Entry over 5,000 kcal, with a macro over 500 g, or in the future is refused with a
       message; one of 0 kcal is accepted.
-- [ ] A Day with no Food Entries can't be marked complete; deleting a Complete Day's last entry
+- [x] A Day with no Food Entries can't be marked complete; deleting a Complete Day's last entry
       leaves it not complete; editing an entry keeps it complete.
 Calorie Target and Macro Targets
-- [ ] A Calorie Target of 799 or 6,001 kcal is refused; 800 and 6,000 are accepted.
-- [ ] Trend Weight 80 kg, losing, Calorie Target 2,000: protein 176 g, fat 55.6 g (500 kcal),
+- [x] A Calorie Target of 799 or 6,001 kcal is refused; 800 and 6,000 are accepted.
+- [x] Trend Weight 80 kg, losing, Calorie Target 2,000: protein 176 g, fat 55.6 g (500 kcal),
       carbs 199 g.
-- [ ] Trend Weight 80 kg, gaining (or holding, or no Weight Goal), Calorie Target 2,000: protein
+- [x] Trend Weight 80 kg, gaining (or holding, or no Weight Goal), Calorie Target 2,000: protein
       128 g, fat 55.6 g, carbs 247 g.
-- [ ] Trend Weight 100 kg, height 175 cm (BMI 32.7), losing: protein is 2.2 × 76.5625 = 168.4 g;
+- [x] Trend Weight 100 kg, height 175 cm (BMI 32.7), losing: protein is 2.2 × 76.5625 = 168.4 g;
       with no height it is 220 g.
-- [ ] Trend Weight 80 kg, losing, Calorie Target 1,500: carbs 105.3 g, with the under-130 g
+- [x] Trend Weight 80 kg, losing, Calorie Target 1,500: carbs 105.3 g, with the under-130 g
       warning.
-- [ ] Trend Weight 100 kg, no height, losing, Calorie Target 1,000: carbs 0 g, with the "protein
+- [x] Trend Weight 100 kg, no height, losing, Calorie Target 1,000: carbs 0 g, with the "protein
       and fat use up the Calorie Target" message.
-- [ ] With no Weigh-ins there are no Macro Targets; with no Calorie Target there are no targets
+- [x] With no Weigh-ins there are no Macro Targets; with no Calorie Target there are no targets
       and no "left".
-- [ ] Overriding protein to 150 g and fat to 70 g at Calorie Target 2,000 gives carbs 192.5 g; an
+- [x] Overriding protein to 150 g and fat to 70 g at Calorie Target 2,000 gives carbs 192.5 g; an
       override leaving carbs below 0 is refused; "Use suggested" restores 176 g and 55.6 g.
-- [ ] Intake 1,450 kcal against 2,000 shows 550 left; 2,120 shows 120 over.
+- [x] Intake 1,450 kcal against 2,000 shows 550 left; 2,120 shows 120 over.
 Backup
-- [ ] A version 2 file round-trips Weigh-ins, Weight Goals, Food Entries, Complete Days, the
+- [x] A version 2 file round-trips Weigh-ins, Weight Goals, Food Entries, Complete Days, the
       Calorie Target and overrides unchanged.
-- [ ] A version 1 file imports its Weigh-ins and Weight Goals.
-- [ ] Importing a file whose Food Entries and Complete Days are partly here reports the right add
+- [x] A version 1 file imports its Weigh-ins and Weight Goals.
+- [x] Importing a file whose Food Entries and Complete Days are partly here reports the right add
       and skip counts; a file's Calorie Target is used only when none is set here.
-- [ ] A file with a Food Entry over 5,000 kcal imports nothing.
+- [x] A file with a Food Entry over 5,000 kcal imports nothing.
 Shell (checked by hand on the phone, steps in the PR)
 - [ ] The Weight | Food switch shows each view; logging, editing and deleting a Food Entry works,
       on today and on a past Day.

@@ -373,6 +373,7 @@ private func macroView(
         let targets = macroView(weighIns: weighInToday(80.0), weightGoal: goal).macroTargets
 
         #expect(isClose(targets?.protein, 128))
+        #expect(isClose(targets?.fat, 55.555_555_555_555_556))  // 500 kcal / 9
         #expect(isClose(targets?.carbs, 247))
     }
 }
