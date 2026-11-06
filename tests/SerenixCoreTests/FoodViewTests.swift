@@ -32,12 +32,18 @@ private func foodView(
     foodEntries: [FoodEntry],
     completeDays: Set<Day> = [],
     calorieTarget: Double? = nil,
+    weighIns: [WeighIn] = [],
+    weightGoal: WeightGoal? = nil,
+    heightCentimetres: Double? = nil,
     day: Day
 ) -> FoodView {
     FoodView(
         foodEntries: foodEntries,
         completeDays: completeDays,
         calorieTarget: calorieTarget,
+        weighIns: weighIns,
+        weightGoal: weightGoal,
+        heightCentimetres: heightCentimetres,
         day: day,
         now: now,
         timeZone: london
@@ -287,4 +293,127 @@ private let nov3 = Day(year: 2026, month: 11, day: 3)
 
     #expect(view.calorieTarget == nil)
     #expect(view.calorieBalance == nil)
+}
+
+// Macro Targets (spec 016, "Macro Targets"). Protein 2.2 g/kg losing, else 1.6 g/kg; fat 25% of
+// the Calorie Target at 9 kcal/g; carbs what's left at 4 kcal/g. Worked by hand.
+
+/// Whether `actual` is within 1e-9 of `expected`.
+private func isClose(_ actual: Double?, _ expected: Double) -> Bool {
+    guard let actual else { return false }
+    return abs(actual - expected) < 1e-9
+}
+
+/// One Weigh-in this morning, so today's Trend Weight is exactly `kilograms`.
+private func weighInToday(_ kilograms: Double) -> [WeighIn] {
+    [WeighIn(time: at(5, 7), kilograms: kilograms)]
+}
+
+private let losing = WeightGoal(startWeight: 90.0, startDay: oct20, goalWeight: 75.0, pace: nil)
+
+private let gaining = WeightGoal(startWeight: 70.0, startDay: oct20, goalWeight: 85.0, pace: nil)
+
+private let holding = WeightGoal.hold(at: 80.0, on: oct20)
+
+/// The Food view for 2 Nov with `weighIns`, `weightGoal`, height and Calorie Target.
+private func macroView(
+    calorieTarget: Double? = 2000,
+    weighIns: [WeighIn],
+    weightGoal: WeightGoal?,
+    heightCentimetres: Double? = nil
+) -> FoodView {
+    foodView(
+        foodEntries: [],
+        calorieTarget: calorieTarget,
+        weighIns: weighIns,
+        weightGoal: weightGoal,
+        heightCentimetres: heightCentimetres,
+        day: nov2
+    )
+}
+
+@Test func losingAt80KgWithACalorieTargetOf2000Suggests176GProtein55Point6GFatAnd199GCarbs() {
+    let targets = macroView(weighIns: weighInToday(80.0), weightGoal: losing).macroTargets
+
+    // Protein 2.2 × 80 = 176 g (704 kcal); fat 25% × 2000 = 500 kcal / 9 = 55.555… g;
+    // carbs (2000 − 704 − 500) / 4 = 199 g.
+    #expect(isClose(targets?.protein, 176))
+    #expect(isClose(targets?.fat, 55.555_555_555_555_556))
+    #expect(isClose(targets?.carbs, 199))
+}
+
+@Test func losingAt80KgWithACalorieTargetOf2000HasNoMacroWarning() {
+    let view = macroView(weighIns: weighInToday(80.0), weightGoal: losing)
+
+    #expect(view.macroWarning == nil)
+    #expect(view.needsWeighIn == false)
+}
+
+@Test func gainingAt80KgWithACalorieTargetOf2000Suggests128GProtein55Point6GFatAnd247GCarbs() {
+    let targets = macroView(weighIns: weighInToday(80.0), weightGoal: gaining).macroTargets
+
+    // Protein 1.6 × 80 = 128 g (512 kcal); fat 500 kcal / 9 = 55.555… g;
+    // carbs (2000 − 512 − 500) / 4 = 247 g.
+    #expect(isClose(targets?.protein, 128))
+    #expect(isClose(targets?.fat, 55.555_555_555_555_556))
+    #expect(isClose(targets?.carbs, 247))
+}
+
+@Test func holdingOrNoWeightGoalAt80KgSuggests128GProteinAnd247GCarbs() {
+    // Protein 1.6 × 80 = 128 g; carbs (2000 − 512 − 500) / 4 = 247 g, as for gaining.
+    for goal in [holding, nil] {
+        let targets = macroView(weighIns: weighInToday(80.0), weightGoal: goal).macroTargets
+
+        #expect(isClose(targets?.protein, 128))
+        #expect(isClose(targets?.carbs, 247))
+    }
+}
+
+@Test func losingAt100KgAnd175CmTakesProteinFromTheWeightAtBMI25() {
+    // BMI 100 / 1.75² = 32.65, over 30, so the kg is 25 × 1.75² = 76.5625:
+    // protein 2.2 × 76.5625 = 168.4375 g.
+    let targets = macroView(
+        weighIns: weighInToday(100.0),
+        weightGoal: losing,
+        heightCentimetres: 175
+    ).macroTargets
+
+    #expect(isClose(targets?.protein, 168.4375))
+}
+
+@Test func losingAt100KgWithNoHeightTakesProteinFromTrendWeight() {
+    // Protein 2.2 × 100 = 220 g.
+    let targets = macroView(weighIns: weighInToday(100.0), weightGoal: losing).macroTargets
+
+    #expect(isClose(targets?.protein, 220))
+}
+
+@Test func losingAt80KgWithACalorieTargetOf1500GivesCarbsUnder130GAndWarns() {
+    let view = macroView(calorieTarget: 1500, weighIns: weighInToday(80.0), weightGoal: losing)
+
+    // Protein 176 g = 704 kcal; fat 25% × 1500 = 375 kcal; carbs (1500 − 704 − 375) / 4 = 105.25 g.
+    #expect(isClose(view.macroTargets?.carbs, 105.25))
+    #expect(view.macroWarning == .lowCarbs)
+}
+
+@Test func whenProteinAndFatUseUpTheCalorieTargetCarbsAreZeroAndTheFoodViewSaysSo() {
+    let view = macroView(calorieTarget: 1000, weighIns: weighInToday(100.0), weightGoal: losing)
+
+    // Protein 2.2 × 100 = 220 g = 880 kcal; fat 250 kcal; (1000 − 880 − 250) / 4 = −32.5 → 0 g.
+    #expect(isClose(view.macroTargets?.carbs, 0))
+    #expect(view.macroWarning == .noCarbsLeft)
+}
+
+@Test func withNoWeighInsThereAreNoMacroTargetsAndTheFoodViewSaysAWeighInIsNeeded() {
+    let view = macroView(weighIns: [], weightGoal: losing)
+
+    #expect(view.macroTargets == nil)
+    #expect(view.needsWeighIn == true)
+}
+
+@Test func withNoCalorieTargetThereAreNoMacroTargetsAndNoWeighInIsAskedFor() {
+    let view = macroView(calorieTarget: nil, weighIns: weighInToday(80.0), weightGoal: losing)
+
+    #expect(view.macroTargets == nil)
+    #expect(view.needsWeighIn == false)
 }

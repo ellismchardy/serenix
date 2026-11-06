@@ -85,11 +85,18 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
      branch opened against `Food.store` drops the stored targets.
    - Done when: criteria "799 and 6,001 refused, 800 and 6,000 accepted", "1,450 of 2,000 is 550
      left; 2,120 is 120 over", and the no-target half of "no Weigh-ins / no Calorie Target".
-5. [ ] **Slice:** suggested Macro Targets. Protein 2.2 g/kg losing, 1.6 g/kg otherwise, on Trend
+5. [x] **Slice:** suggested Macro Targets. Protein 2.2 g/kg losing, 1.6 g/kg otherwise, on Trend
    Weight or, with height and BMI over 30, the weight at BMI 25; fat 25% of the Calorie Target;
    carbs the rest, with the under-130 g warning and the "protein and fat use up the Calorie
    Target" message at 0; none without Trend Weight. Shell: the three macro bars.
    - Seam: Food view · Files: `FoodView.swift`, `FoodViewTests.swift`, `FoodScreen.swift`
+   - Built: the rules live in `src/SerenixCore/MacroTargets.swift` (new); the Food screen now also
+     takes the Body store (Weigh-ins, Weight Goal) and the Profile (height), so `BodyScreen.swift`
+     passes them in.
+     After review: protein and fat using up the target exactly also says "none left for carbs";
+     the screen's 130 g comes from `MacroTargets.lowCarbsGrams`; Trend Weight comes from
+     `BodyView.trend(of:in:)` directly. On a past Day the bars use today's targets (the spec's
+     "current Trend Weight"); tested through the Food view, so no `MacroTargetsTests.swift`.
    - Done when: criteria "80 kg losing: 176 / 55.6 / 199", "80 kg gaining or holding: 128 / 55.6
      / 247", "100 kg, 175 cm: 168.4 g; no height 220 g", "1,500: 105.3 g with the warning",
      "1,000 at 100 kg: carbs 0 with the message", and the no-Weigh-ins half of "no Weigh-ins / no

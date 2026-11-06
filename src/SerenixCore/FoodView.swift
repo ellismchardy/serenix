@@ -17,13 +17,23 @@ public struct FoodView: Equatable, Sendable {
     public let calorieTarget: Double?
     /// Intake against the Calorie Target; nil with no Calorie Target.
     public let calorieBalance: CalorieBalance?
+    /// The suggested Macro Targets; nil with no Calorie Target or no Trend Weight.
+    public let macroTargets: MacroTargets?
+    /// A warning about the carbs the Macro Targets leave, if any.
+    public let macroWarning: MacroWarning?
+    /// A Calorie Target is set but there's no Trend Weight yet, so a Weigh-in is needed.
+    public let needsWeighIn: Bool
 
     /// Each Food Entry counts on the local Day of its time in `timeZone`, as Weigh-ins do.
-    /// `completeDays` are the Days the user marked complete.
+    /// `completeDays` are the Days the user marked complete. Macro Targets use today's Trend
+    /// Weight, worked out by the Body view from `weighIns`, so the two never disagree.
     public init(
         foodEntries: [FoodEntry],
         completeDays: Set<Day> = [],
         calorieTarget: Double? = nil,
+        weighIns: [WeighIn] = [],
+        weightGoal: WeightGoal? = nil,
+        heightCentimetres: Double? = nil,
         day: Day,
         now: Date,
         timeZone: TimeZone
@@ -40,6 +50,22 @@ public struct FoodView: Equatable, Sendable {
         calorieBalance = calorieTarget.map { [intake] in
             CalorieBalance(intake: intake.kilocalories, target: $0)
         }
+        // The Body view's own Trend Weight rule, so the two never disagree.
+        let trendWeight = BodyView.trend(of: weighIns, in: timeZone).last?.trendWeight
+        if let calorieTarget, let trendWeight {
+            let suggested = MacroTargets.suggested(
+                calorieTarget: calorieTarget,
+                trendWeight: trendWeight,
+                direction: weightGoal?.direction,
+                heightCentimetres: heightCentimetres
+            )
+            macroTargets = suggested.targets
+            macroWarning = suggested.warning
+        } else {
+            macroTargets = nil
+            macroWarning = nil
+        }
+        needsWeighIn = calorieTarget != nil && trendWeight == nil
     }
 
     /// The marked Days that still have a Food Entry: what the store keeps after an entry is

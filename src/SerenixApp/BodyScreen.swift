@@ -30,7 +30,7 @@ struct BodyScreen: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
                 if section == .food {
-                    FoodScreen(store: foodStore).padding()
+                    FoodScreen(store: foodStore, bodyStore: store, profile: profile).padding()
                 } else {
                     weightScreen(view)
                 }

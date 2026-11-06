@@ -5,6 +5,10 @@ import SwiftUI
 /// date picker, and + to log a Food Entry. It draws the Food view and decides nothing.
 struct FoodScreen: View {
     @ObservedObject var store: FoodStore
+    /// For Trend Weight and the Weight Goal, which the Macro Targets are drawn from.
+    @ObservedObject var bodyStore: BodyStore
+    /// For the height the Macro Targets' BMI rule uses.
+    @ObservedObject var profile: ProfileStore
     /// The Day picked; nil is today, whatever today is when the view draws, so it rolls over at
     /// midnight as the Today and Sleep tabs do.
     @State private var pickedDay: Day?
@@ -19,6 +23,9 @@ struct FoodScreen: View {
             foodEntries: store.entries,
             completeDays: store.completeDays,
             calorieTarget: store.calorieTarget,
+            weighIns: bodyStore.weighIns,
+            weightGoal: bodyStore.currentGoal,
+            heightCentimetres: profile.heightCentimetres,
             day: pickedDay ?? today,
             now: Date(),
             timeZone: .current
@@ -55,6 +62,7 @@ struct FoodScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
             .themeCard()
+            macroCard(view)
             if view.entries.isEmpty {
                 Text("Nothing logged on this Day.").foregroundStyle(.secondary)
             }
@@ -160,6 +168,56 @@ struct FoodScreen: View {
         }
         .padding()
         .themeCard()
+    }
+
+    /// Protein, fat and carbs against their Macro Targets, with the carbs warning; or why there
+    /// are no targets (spec 016, Macro Targets).
+    @ViewBuilder
+    private func macroCard(_ view: FoodView) -> some View {
+        if let targets = view.macroTargets {
+            VStack(alignment: .leading, spacing: 10) {
+                macroBar("Protein", eaten: view.intake.protein, target: targets.protein)
+                macroBar("Fat", eaten: view.intake.fat, target: targets.fat)
+                macroBar("Carbs", eaten: view.intake.carbs, target: targets.carbs)
+                switch view.macroWarning {
+                case .lowCarbs:
+                    Text(
+                        "Carbs are under \(Self.whole(MacroTargets.lowCarbsGrams)) g a Day at this Calorie Target."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(Color.orange)
+                case .noCarbsLeft:
+                    Text(
+                        "Protein and fat use up the whole Calorie Target, so there's none left for carbs."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(Color.orange)
+                case nil:
+                    EmptyView()
+                }
+            }
+            .padding()
+            .themeCard()
+        } else if view.needsWeighIn {
+            Text("Log a Weigh-in to get your Macro Targets.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// One macro's grams eaten against its target, as a bar.
+    private func macroBar(_ name: String, eaten: Double, target: Double) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(name).font(.subheadline.weight(.semibold))
+                Spacer()
+                Text("\(Self.whole(eaten)) / \(Self.whole(target)) g")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            ProgressView(value: min(eaten, target), total: max(target, 1))
+                .tint(Theme.accent)
+        }
     }
 
     /// "550 left" or "120 over" (spec 016, Screen).
