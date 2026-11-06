@@ -20,6 +20,8 @@ struct ProfileMenu: View {
     @EnvironmentObject private var appearanceStore: AppearanceStore
     /// The Body data the Export and Import rows back up (spec 015).
     @EnvironmentObject private var bodyStore: BodyStore
+    /// The food data the backup carries too (spec 016).
+    @EnvironmentObject private var foodStore: FoodStore
     @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
@@ -206,7 +208,10 @@ struct ProfileMenu: View {
                 presenting: pendingImport
             ) { found in
                 Button("Import") {
-                    bodyStore.add(found)
+                    // Two store files, so two saves: food first, and Weigh-ins and goals only
+                    // if that saved, so a failed food save imports nothing. Food then saved but
+                    // the second save failed can be retried: what's here is skipped.
+                    if foodStore.add(found) { bodyStore.add(found) }
                     readBackup()
                 }
                 Button("Cancel", role: .cancel) {}
@@ -235,6 +240,17 @@ struct ProfileMenu: View {
             } message: {
                 Text(bodyStore.failure ?? "")
             }
+            .alert(
+                "Food data",
+                isPresented: Binding(
+                    get: { foodStore.failure != nil },
+                    set: { if !$0 { foodStore.failure = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(foodStore.failure ?? "")
+            }
             .alert("Your name", isPresented: $editsName) {
                 TextField("Your name", text: $draftName)
                     .textContentType(.givenName)
@@ -251,12 +267,28 @@ struct ProfileMenu: View {
     /// "Add N Weigh-ins and M Weight Goals? K already here will be skipped." (spec 015).
     private var importQuestion: String {
         guard let found = pendingImport else { return "" }
-        return "Add \(found.weighInsToAdd.count) Weigh-ins and \(found.goalsToAdd.count) "
-            + "Weight Goals? \(found.skipped) already here will be skipped."
+        let targets = found.foodTargetsToSet == nil ? "" : ", and your Calorie Target and macros"
+        return "Add \(found.weighInsToAdd.count) Weigh-ins, \(found.goalsToAdd.count) Weight "
+            + "Goals, \(found.foodEntriesToAdd.count) Food Entries and "
+            + "\(found.completeDaysToAdd.count) Complete Days\(targets)? "
+            + "\(found.skipped) already here or not needed will be skipped."
     }
 
     private func readBackup() {
-        backup = Result { try bodyStore.allData() }
+        backup = Result { try allData() }
+    }
+
+    /// All Body data from both store files: Weigh-ins and Weight Goals, and food.
+    private func allData() throws -> BodyData {
+        let body = try bodyStore.allData()
+        let food = try foodStore.storedFoodData()
+        return BodyData(
+            weighIns: body.weighIns,
+            goals: body.goals,
+            foodEntries: food.entries,
+            completeDays: food.completeDays,
+            foodTargets: food.targets
+        )
     }
 
     /// Reads the picked file and asks before importing; a file that can't be read imports
@@ -268,8 +300,13 @@ struct ProfileMenu: View {
             defer { if opened { url.stopAccessingSecurityScopedResource() } }
             let file = try BodyDataFile.decode(try Data(contentsOf: url))
             if let refusal = BodyDataFile.refusal(file, now: Date()) { throw refusal }
-            let current = try bodyStore.allData()
-            pendingImport = BodyDataFile.importing(file, into: current, now: Date())
+            let current = try allData()
+            pendingImport = BodyDataFile.importing(
+                file,
+                into: current,
+                now: Date(),
+                timeZone: .current
+            )
         } catch let error as BodyDataFileError {
             importRefusal = error.message
         } catch {

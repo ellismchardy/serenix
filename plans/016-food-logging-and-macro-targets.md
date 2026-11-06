@@ -114,13 +114,19 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
      0–500 g limits, which the spec doesn't state: raised with the owner.
    - Done when: criterion "150 g and 70 g at 2,000 give 192.5 g carbs; below 0 refused; Use
      suggested restores 176 g and 55.6 g".
-7. [ ] **Slice:** backup version 2. `BodyData` gains Food Entries, Complete Days, the Calorie
+7. [x] **Slice:** backup version 2. `BodyData` gains Food Entries, Complete Days, the Calorie
    Target and overrides; the file writes version 2 and reads 1 and 2; import adds and skips
    Food Entries and Complete Days by the spec's duplicate rule, takes the file's targets only
    when none is set here, and `refusal` covers out-of-limit Food Entries and targets. Shell:
    `BodyStore.allData()` and `add(_:)` carry the new data.
    - Seam: Body data file · Files: `src/SerenixCore/BodyDataFile.swift`,
      `tests/SerenixCoreTests/BodyDataFileTests.swift`, `BodyStore.swift`
+   - Built: food lives in `Food.store`, so `FoodStore.swift` (`storedFoodData()`, `add(_:)`) carries
+     it, `ProfileMenu.swift` merges both stores for export and import, and `MainTabs.swift` hands
+     the food store to the menu. Import saves food first and Weigh-ins and goals only if that
+     saved, and the menu shows either store's failure. Two saves can't be one transaction: if the
+     food save works and the second fails, a retry skips what's here. The question counts Food
+     Entries, Complete Days and targets.
    - Done when: criteria "version 2 round-trips everything", "a version 1 file imports",
      "partly-here counts; the file's Calorie Target only when none is set", "a 5,001 kcal Food
      Entry imports nothing".

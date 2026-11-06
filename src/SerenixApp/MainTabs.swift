@@ -38,6 +38,7 @@ struct MainTabs: View {
         .tint(Theme.accent)
         // For the profile menu's Body data export and import (spec 015).
         .environmentObject(bodyStore)
+        .environmentObject(foodStore)
         // Serenix opens on today (spec 002), on both tabs, also when iOS kept it suspended
         // overnight.
         .onChange(of: scenePhase) { oldPhase, newPhase in

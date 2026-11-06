@@ -85,6 +85,9 @@ private let fullData = BodyData(
 
 private let empty = BodyData(weighIns: [], goals: [])
 
+/// The fixtures' times are UTC, so their Days are UTC Days.
+private let utc = TimeZone(identifier: "UTC")!
+
 /// `object` as JSON bytes.
 private func json(_ object: [String: Any]) -> Data {
     try! JSONSerialization.data(withJSONObject: object)
@@ -98,12 +101,12 @@ private func json(_ object: [String: Any]) -> Data {
     #expect(try BodyDataFile.decode(file) == fullData)
 }
 
-@Test func theFileSaysItIsVersionOneOfTheSerenixBodyFormat() throws {
+@Test func theFileSaysItIsVersionTwoOfTheSerenixBodyFormat() throws {
     let file = try BodyDataFile.encode(fullData)
 
     let top = try #require(try JSONSerialization.jsonObject(with: file) as? [String: Any])
     #expect(top["format"] as? String == "serenix-body")
-    #expect(top["version"] as? Int == 1)
+    #expect(top["version"] as? Int == 2)
 }
 
 @Test func emptyBodyDataRoundTrips() throws {
@@ -113,7 +116,7 @@ private func json(_ object: [String: Any]) -> Data {
 // MARK: - Import: add and skip
 
 @Test func importingIntoEmptyBodyDataAddsEverything() {
-    let result = BodyDataFile.importing(fullData, into: empty, now: now)
+    let result = BodyDataFile.importing(fullData, into: empty, now: now, timeZone: utc)
 
     #expect(result.weighInsToAdd == fullData.weighIns)
     #expect(result.goalsToAdd == fullData.goals)
@@ -138,7 +141,7 @@ private func json(_ object: [String: Any]) -> Data {
         goals: [endedRateGoal]
     )
 
-    let result = BodyDataFile.importing(file, into: current, now: now)
+    let result = BodyDataFile.importing(file, into: current, now: now, timeZone: utc)
 
     #expect(result.weighInsToAdd == [newWeighIn])
     #expect(result.goalsToAdd == [endedDateGoal])
@@ -152,7 +155,8 @@ private func json(_ object: [String: Any]) -> Data {
     let result = BodyDataFile.importing(
         BodyData(weighIns: [corrected], goals: []),
         into: BodyData(weighIns: [here], goals: []),
-        now: now
+        now: now,
+        timeZone: utc
     )
 
     #expect(result.weighInsToAdd == [corrected])
@@ -166,7 +170,8 @@ private func json(_ object: [String: Any]) -> Data {
     let result = BodyDataFile.importing(
         BodyData(weighIns: [], goals: [currentHoldGoal]),
         into: BodyData(weighIns: [], goals: [endedHere]),
-        now: now
+        now: now,
+        timeZone: utc
     )
 
     #expect(result.goalsToAdd == [])
@@ -179,7 +184,8 @@ private func json(_ object: [String: Any]) -> Data {
     let result = BodyDataFile.importing(
         BodyData(weighIns: [weighIn, weighIn], goals: []),
         into: empty,
-        now: now
+        now: now,
+        timeZone: utc
     )
 
     #expect(result.weighInsToAdd == [weighIn])
@@ -192,7 +198,8 @@ private func json(_ object: [String: Any]) -> Data {
     let result = BodyDataFile.importing(
         BodyData(weighIns: [], goals: [currentHoldGoal]),
         into: BodyData(weighIns: [], goals: [currentLoseGoal]),
-        now: now
+        now: now,
+        timeZone: utc
     )
 
     #expect(
@@ -207,7 +214,8 @@ private func json(_ object: [String: Any]) -> Data {
     let result = BodyDataFile.importing(
         BodyData(weighIns: [], goals: [currentHoldGoal]),
         into: BodyData(weighIns: [], goals: [endedRateGoal]),
-        now: now
+        now: now,
+        timeZone: utc
     )
 
     #expect(result.goalsToAdd == [currentHoldGoal])
@@ -233,9 +241,9 @@ private func json(_ object: [String: Any]) -> Data {
 }
 
 @Test func aFileFromANewerVersionSaysWhichVersion() {
-    let file = json(["format": "serenix-body", "version": 2, "weighIns": [], "goals": []])
+    let file = json(["format": "serenix-body", "version": 3, "weighIns": [], "goals": []])
 
-    #expect(throws: BodyDataFileError.newerVersion(2)) { try BodyDataFile.decode(file) }
+    #expect(throws: BodyDataFileError.newerVersion(3)) { try BodyDataFile.decode(file) }
 }
 
 // MARK: - Entries Serenix would refuse
@@ -293,4 +301,226 @@ private func loseGoal(to goalWeight: Double = 80.0, pace: GoalPace?) -> WeightGo
     )
 
     #expect(BodyDataFile.refusal(fileWith(goal), now: now) == .invalidEntry)
+}
+
+// MARK: - Version 2: food (spec 016, Backup)
+
+/// A Food Entry with every field set.
+private let fullEntry = FoodEntry(
+    time: at(4, 12, 30),
+    kilocalories: 650,
+    protein: 42.5,
+    fat: 21,
+    carbs: 70.25,
+    name: "Chicken wrap"
+)
+
+/// A Food Entry with only its calories.
+private let kcalOnlyEntry = FoodEntry(time: at(5, 8, 15), kilocalories: 320)
+
+private let fullDataWithFood = BodyData(
+    weighIns: fullData.weighIns,
+    goals: fullData.goals,
+    foodEntries: [fullEntry, kcalOnlyEntry],
+    completeDays: [Day(year: 2026, month: 11, day: 4)],
+    foodTargets: FoodTargets(calorieTarget: 2000, proteinOverride: 150, fatOverride: 70)
+)
+
+@Test func aVersionTwoFileRoundTripsFoodEntriesCompleteDaysAndTargets() throws {
+    let file = try BodyDataFile.encode(fullDataWithFood)
+
+    #expect(try BodyDataFile.decode(file) == fullDataWithFood)
+    let top = try #require(try JSONSerialization.jsonObject(with: file) as? [String: Any])
+    #expect(top["version"] as? Int == 2)
+}
+
+/// A version 1 file's layout, as spec 015's Serenix wrote it: no food keys.
+private struct VersionOneFile: Encodable {
+    let format = "serenix-body"
+    let version = 1
+    let weighIns: [WeighIn]
+    let goals: [GoalRecord]
+}
+
+@Test func aVersionOneFileImportsItsWeighInsAndGoalsWithNoFood() throws {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    let file = try encoder.encode(
+        VersionOneFile(weighIns: fullData.weighIns, goals: fullData.goals)
+    )
+    let top = try #require(try JSONSerialization.jsonObject(with: file) as? [String: Any])
+    #expect(Set(top.keys) == ["format", "version", "weighIns", "goals"])
+
+    let decoded = try BodyDataFile.decode(file)
+
+    #expect(decoded.weighIns == fullData.weighIns)
+    #expect(decoded.goals == fullData.goals)
+    #expect(decoded.foodEntries == [])
+    #expect(decoded.completeDays == [])
+    #expect(decoded.foodTargets == FoodTargets())
+    #expect(decoded.foodTargets.isEmpty)
+}
+
+/// Food Entry A, on 4 Nov (UTC).
+private let entryA = FoodEntry(time: at(4, 8), kilocalories: 400, protein: 20, name: "Porridge")
+/// Food Entry B, on 4 Nov (UTC).
+private let entryB = FoodEntry(time: at(4, 13), kilocalories: 550)
+/// Food Entry C, on 5 Nov (UTC).
+private let entryC = FoodEntry(time: at(5, 19), kilocalories: 700, fat: 30)
+
+@Test func importingFoodAddsWhatIsNewAndSkipsWhatIsHere() {
+    let d1 = Day(year: 2026, month: 11, day: 4)
+    let d2 = Day(year: 2026, month: 11, day: 5)
+    let current = BodyData(
+        weighIns: [],
+        goals: [],
+        foodEntries: [entryA, entryB],
+        completeDays: [d1]
+    )
+    let file = BodyData(
+        weighIns: [],
+        goals: [],
+        foodEntries: [entryA, entryC],
+        completeDays: [d1, d2],
+        foodTargets: FoodTargets(calorieTarget: 2000)
+    )
+
+    let result = BodyDataFile.importing(file, into: current, now: now, timeZone: utc)
+
+    #expect(result.foodEntriesToAdd == [entryC])
+    #expect(result.completeDaysToAdd == [d2])
+    #expect(result.foodTargetsToSet == FoodTargets(calorieTarget: 2000))
+    #expect(result.skipped == 2)  // entry A and Day d1, both already here
+}
+
+@Test func aFoodEntryDifferingOnlyInItsNameIsAdded() {
+    let renamed = FoodEntry(time: at(4, 8), kilocalories: 400, protein: 20, name: "Oats")
+
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodEntries: [renamed]),
+        into: BodyData(weighIns: [], goals: [], foodEntries: [entryA]),
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodEntriesToAdd == [renamed])
+    #expect(result.skipped == 0)
+}
+
+@Test func aFoodEntryRepeatedInTheFileIsAddedOnceAndSkippedOnce() {
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodEntries: [entryC, entryC]),
+        into: empty,
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodEntriesToAdd == [entryC])
+    #expect(result.skipped == 1)
+}
+
+@Test func aCompleteDayWithNoFoodEntryHereOrInTheFileIsSkippedAndCounted() {
+    // Entry A is on 4 Nov; nothing is on 3 Nov.
+    let empty3Nov = Day(year: 2026, month: 11, day: 3)
+    let file = BodyData(
+        weighIns: [],
+        goals: [],
+        foodEntries: [entryA],
+        completeDays: [empty3Nov]
+    )
+
+    let result = BodyDataFile.importing(file, into: empty, now: now, timeZone: utc)
+
+    #expect(result.completeDaysToAdd == [])
+    #expect(result.foodEntriesToAdd == [entryA])
+    #expect(result.skipped == 1)
+}
+
+@Test func aCompleteDayWhoseFoodEntryIsAlreadyHereIsAdded() {
+    let d1 = Day(year: 2026, month: 11, day: 4)
+
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], completeDays: [d1]),
+        into: BodyData(weighIns: [], goals: [], foodEntries: [entryA]),
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.completeDaysToAdd == [d1])
+    #expect(result.skipped == 0)
+}
+
+@Test func aCompleteDayFollowsTheEntrysLocalDay() {
+    // 5 Nov 23:30 UTC is 6 Nov 08:30 in Tokyo: in Tokyo that entry makes 6 Nov complete-able,
+    // not 5 Nov.
+    let lateEntry = FoodEntry(time: at(5, 23, 30), kilocalories: 300)
+    let tokyo = TimeZone(identifier: "Asia/Tokyo")!
+    let file = BodyData(
+        weighIns: [],
+        goals: [],
+        foodEntries: [lateEntry],
+        completeDays: [Day(year: 2026, month: 11, day: 5), Day(year: 2026, month: 11, day: 6)]
+    )
+
+    let result = BodyDataFile.importing(file, into: empty, now: now, timeZone: tokyo)
+
+    #expect(result.completeDaysToAdd == [Day(year: 2026, month: 11, day: 6)])
+    #expect(result.skipped == 1)
+}
+
+@Test func aFilesTargetsAreNotUsedWhenTargetsAreAlreadySetHere() {
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodTargets: FoodTargets(calorieTarget: 2000)),
+        into: BodyData(weighIns: [], goals: [], foodTargets: FoodTargets(calorieTarget: 1800)),
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodTargetsToSet == nil)
+    #expect(result.skipped == 1)
+}
+
+@Test func aFileWithNoTargetsSetsNoneAndSkipsNothing() {
+    let result = BodyDataFile.importing(
+        empty,
+        into: BodyData(weighIns: [], goals: [], foodTargets: FoodTargets(calorieTarget: 1800)),
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodTargetsToSet == nil)
+    #expect(result.skipped == 0)
+}
+
+// MARK: - Version 2: food Serenix would refuse
+
+@Test func aFileOfFoodSerenixWouldSaveIsNotRefused() {
+    #expect(BodyDataFile.refusal(fullDataWithFood, now: now) == nil)
+}
+
+@Test func aFileWithAFoodEntryOver5000KilocaloriesIsRefused() {
+    let file = BodyData(
+        weighIns: [],
+        goals: [],
+        foodEntries: [FoodEntry(time: at(4, 12), kilocalories: 5_001)]
+    )
+
+    #expect(BodyDataFile.refusal(file, now: now) == .invalidEntry)
+}
+
+@Test func aFileWithACalorieTargetUnder800IsRefused() {
+    let file = BodyData(weighIns: [], goals: [], foodTargets: FoodTargets(calorieTarget: 799))
+
+    #expect(BodyDataFile.refusal(file, now: now) == .invalidEntry)
+}
+
+@Test func aFileWithOverridesLeavingNoRoomForCarbsIsRefused() {
+    // 300 g protein (1,200 kcal) and 100 g fat (900 kcal) need 2,100 kcal of a 2,000 target.
+    let file = BodyData(
+        weighIns: [],
+        goals: [],
+        foodTargets: FoodTargets(calorieTarget: 2000, proteinOverride: 300, fatOverride: 100)
+    )
+
+    #expect(BodyDataFile.refusal(file, now: now) == .invalidEntry)
 }

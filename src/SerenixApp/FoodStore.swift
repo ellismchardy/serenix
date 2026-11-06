@@ -162,6 +162,43 @@ final class FoodStore: ObservableObject {
         }
     }
 
+    /// Every stored Food Entry, Complete Day and food target, fetched afresh in one go, so a
+    /// failed read throws rather than exporting or comparing against stale data.
+    func storedFoodData() throws -> (
+        entries: [FoodEntry], completeDays: Set<Day>, targets: FoodTargets
+    ) {
+        guard let context else { throw FoodStoreError("Your Food Entries couldn't be opened.") }
+        let targets = try context.fetch(FetchDescriptor<StoredFoodTargets>()).first
+        return (
+            try context.fetch(FetchDescriptor<StoredFoodEntry>()).map(\.entry),
+            Set(try context.fetch(FetchDescriptor<StoredCompleteDay>()).map(\.day)),
+            FoodTargets(
+                calorieTarget: targets?.calorieTarget,
+                proteinOverride: targets?.proteinOverride,
+                fatOverride: targets?.fatOverride
+            )
+        )
+    }
+
+    /// Adds the food an import found new, all or nothing: one refused Food Entry or a failed
+    /// save keeps none of it and tells the user (spec 016, Backup). Returns whether it saved.
+    @discardableResult
+    func add(_ found: BodyImport) -> Bool {
+        change { context in
+            for entry in found.foodEntriesToAdd {
+                try Self.check(entry)
+                context.insert(StoredFoodEntry(entry))
+            }
+            for day in found.completeDaysToAdd { context.insert(StoredCompleteDay(day)) }
+            if let targets = found.foodTargetsToSet {
+                let stored = try Self.targets(in: context)
+                stored.calorieTarget = targets.calorieTarget
+                stored.proteinOverride = targets.proteinOverride
+                stored.fatOverride = targets.fatOverride
+            }
+        }
+    }
+
     /// Saves the Calorie Target and the protein and fat overrides (nil clears each), checked by
     /// the core against `suggested`, the suggestions at that Calorie Target. A refused save keeps
     /// nothing and tells the user.
@@ -230,18 +267,22 @@ final class FoodStore: ObservableObject {
     }
 
     /// Makes a change and saves it; on any failure nothing changes and the user is told.
-    private func change(_ edit: (ModelContext) throws -> Void) {
+    /// Returns whether it saved.
+    @discardableResult
+    private func change(_ edit: (ModelContext) throws -> Void) -> Bool {
         guard let context else {
             failure = "Your Food Entries couldn't be opened, so the change wasn't saved."
-            return
+            return false
         }
         defer { reload() }
         do {
             try edit(context)
             try context.save()
+            return true
         } catch {
             context.rollback()
             failure = "The change wasn't saved: \(error.localizedDescription)"
+            return false
         }
     }
 
