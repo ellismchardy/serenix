@@ -48,7 +48,7 @@ existing tests there do.
    - Done when: the mix criterion (Zone 2 30m + Zone 4 90m → shares 0.25, 0.75, none for others;
      rows Zone 5 first; no time → no mix) passes, and the existing zone-time-text criterion
      ("42m", "1h 05m") still passes in the new order.
-4. [ ] **Shell: redraw `LoadPopupView`** as variant C: pill + date header; a card with the sentence,
+4. [x] **Shell: redraw `LoadPopupView`** as variant C: pill + date header; a card with the sentence,
    `typicalText`, the Load bar (fill from `loadBarFill`, Load written at its end, "typical" marker
    at the middle, hidden when nil) and `lastSyncText`; "How hard" with the split bar from `zoneMix`
    and the rows; "When" with the existing `hourlyBars` chart; a small card with Highest HR and Max

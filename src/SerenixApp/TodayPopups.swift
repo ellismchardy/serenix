@@ -951,39 +951,84 @@ extension MetricPopupBlockState {
     }
 }
 
-/// The Load popup (spec 006): the Day's Load against typical Load, its time in each HR Zone, hour
-/// by hour, its Highest HR and the Max HR used, with the Live HR pill at the top left on today.
+/// The Load popup (spec 006), the layout of prototype variant C (branch
+/// `prototype/load-popup-ui`): the Live HR pill on today and the date; the sentence, typical line
+/// and Load bar against typical Load; how hard, as the HR Zone mix and its rows; when, as the
+/// hourly bars; then Highest HR and the Max HR used.
 private struct LoadPopupView: View {
     let popup: LoadPopup
     let connection: StrapConnection
 
     var body: some View {
-        if popup.showsLiveHR { LiveHRPillView(connection: connection) }
-        Text("Load").font(.headline)
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(popup.loadText).font(.largeTitle.bold()).monospacedDigit()
-            Text(popup.dateText).foregroundStyle(.secondary)
+        HStack {
+            if popup.showsLiveHR { LiveHRPillView(connection: connection) }
+            Spacer()
+            Text(popup.dateText).font(.footnote).foregroundStyle(.secondary)
         }
-        if let lastSync = popup.lastSyncText {
-            Text(lastSync).font(.footnote).foregroundStyle(.secondary)
-        }
-        Text(popup.typicalText)
+        againstTypicalCard
         if let note = popup.note {
-            Text(note).foregroundStyle(.secondary)
+            Text(note).foregroundStyle(.secondary).popupCard()
         } else {
-            Text("Heart rate zones").font(.headline)
-            ForEach(popup.zoneRows, id: \.zone) { row in
-                VStack(alignment: .leading, spacing: 4) {
-                    LabeledContent(row.label) { Text(row.timeText).monospacedDigit() }
-                    ProgressView(value: row.share).tint(row.zone.colour)
+            PopupSectionTitle("How hard")
+            howHardCard
+            PopupSectionTitle("When")
+            hourlyBars.frame(height: 160).popupCard()
+            VStack(alignment: .leading, spacing: 4) {
+                if let highest = popup.highestHRText { Text(highest) }
+                if let maxHR = popup.maxHRText {
+                    Text(maxHR).font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            hourlyBars.frame(height: 160)
-            if let highest = popup.highestHRText { Text(highest) }
-            if let maxHR = popup.maxHRText {
-                Text(maxHR).font(.footnote).foregroundStyle(.secondary)
+            .popupCard()
+        }
+    }
+
+    /// The sentence, the typical line, the Load bar and, on today, when the last sync ended.
+    private var againstTypicalCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(popup.comparisonText).font(.title3.bold())
+            Text(popup.typicalText).font(.subheadline).foregroundStyle(.secondary)
+            if let fill = popup.loadBarFill {
+                LoadBarView(fill: fill, loadText: popup.loadText).padding(.vertical, 10)
+            }
+            if let lastSync = popup.lastSyncText {
+                Text(lastSync).font(.footnote).foregroundStyle(.secondary)
             }
         }
+        .popupCard()
+    }
+
+    /// The HR Zone mix as one bar split by HR Zone, then each HR Zone's time, hardest first.
+    private var howHardCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if !popup.zoneMix.isEmpty {
+                GeometryReader { geometry in
+                    let gaps = CGFloat(popup.zoneMix.count - 1) * 2
+                    HStack(spacing: 2) {
+                        ForEach(popup.zoneMix, id: \.zone) { part in
+                            Rectangle()
+                                .fill(part.zone.colour)
+                                .frame(width: (geometry.size.width - gaps) * part.share)
+                        }
+                    }
+                }
+                .frame(height: 24)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.bottom, 8)
+                .accessibilityHidden(true)
+            }
+            ForEach(Array(popup.zoneRows.enumerated()), id: \.offset) { index, row in
+                if index > 0 { Divider() }
+                HStack {
+                    Circle().fill(row.zone.colour).frame(width: 9, height: 9)
+                    Text(row.label)
+                    Spacer()
+                    Text(row.timeText).monospacedDigit()
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .popupCard()
     }
 
     /// Minutes in each HR Zone, hour by hour from local midnight, stacked HR Zone 1 at the
@@ -1007,6 +1052,46 @@ private struct LoadPopupView: View {
         // clock change.
         .chartXAxis(.hidden)
         .accessibilityLabel("Minutes in each heart rate zone, hour by hour")
+    }
+}
+
+/// The Load popup's bar from 0 to twice typical Load (spec 006): filled to the Day's Load with the
+/// Load written at its end, and a "typical" marker at its middle.
+private struct LoadBarView: View {
+    /// 0 to 1.
+    let fill: Double
+    let loadText: String
+
+    /// The narrowest a filled bar draws, so the Load written inside it still fits.
+    private static let minimumFillWidth: CGFloat = 44
+
+    var body: some View {
+        VStack(spacing: 4) {
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 10).fill(Theme.accentSoft)
+                    if fill > 0 {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Theme.accent)
+                            .frame(width: max(Self.minimumFillWidth, geometry.size.width * fill))
+                            .overlay(alignment: .trailing) {
+                                Text(loadText).font(.subheadline.bold()).monospacedDigit()
+                                    .foregroundStyle(.white).padding(.trailing, 10)
+                            }
+                    } else {
+                        // An empty bar (a Load of 0, or none) still says its Load, at the start.
+                        Text(loadText).font(.subheadline.bold()).monospacedDigit()
+                            .foregroundStyle(.secondary).padding(.leading, 10)
+                    }
+                }
+            }
+            .frame(height: 34)
+            // The typical marker at the middle, standing a little proud of the bar.
+            .overlay { Capsule().fill(.primary).frame(width: 3, height: 46) }
+            Text("typical").font(.caption2).foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Load \(loadText)")
     }
 }
 
