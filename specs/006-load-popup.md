@@ -1,7 +1,7 @@
 # 006 — Load popup
 
 **Status:** built
-**Last updated:** 2026-11-04 (Days missing their HR Zones are queued on every launch, not once; built)
+**Last updated:** 2026-11-06 (the Day's Load shows as a number while typical Load is learned; popup redrawn: a sentence and bar against typical Load, the HR Zone mix, then the hourly bars; built)
 **Issue:** https://github.com/ellismchardy/serenix/issues/12 (wayfinder map)
 
 ## Problem
@@ -39,30 +39,48 @@ no History Records. The popup slides up and closes like spec 002's popups.
 
 **Contents, top to bottom.**
 1. **Live HR pill** at the top left, on today only (see Live HR). Earlier Days have no pill.
-2. **The Day and Load**: the Day's date and its Load, or "—". On today, "As of your last sync at
-   08:12" (the time the last History Sync ended, local time).
-3. **Typical Load**: "Typical: 45 · today +12" ("that Day" on an earlier Day; differences
-   signed, "−" for below, "±0" for equal). Typical Load is the median Load of the 28 Days before
-   the Day shown, not counting it; missing Loads are skipped, a Load of 0 counts; an even count
-   takes the mean of the middle two, rounded to a whole number with halves up. With fewer than
-   4 such Days the line reads "Typical Load after 4 Days (N so far)". With the Day's Load
-   missing, only "Typical: 45" shows.
-4. **Heart rate zones**: under that heading, five rows, "Zone 1 · 50–60%" to "Zone 5 · 90–100%",
-   each with a bar (its share of the Day's time in HR Zones) and its time, rounded to whole
-   minutes: "42m" under an hour, "1h 05m" from an hour. Rows are rounded on their own and
-   needn't add up to anything.
-5. **Hourly bars**: one bar per local hour of the Day (23 or 25 across a clock change), each
-   stacked by HR Zone from that hour's seconds in each, on a 0–60 minute scale. On today, hours
-   after now are empty.
-6. **Highest HR**: "Highest HR 172 bpm at 18:40", the highest heart rate in the Day's History
-   Records with HR 0 skipped, even under the floor; the earliest time if it repeats. "—" with
-   no heart rate over 0.
-7. **Max HR used**: "Using Max HR 190 (entered)" or "Using Max HR 180 (estimated from your
-   age)", the Max HR that Day's Load and HR Zones were worked out with.
+   The Day's date ("Today" on today) at the top right.
+2. **Against typical** (a card):
+   - **The sentence**, from the Day's Load ÷ typical Load: under 0.8 "An easier Day than
+     usual"; 0.8 to under 1.2 "About your usual Day"; 1.2 to under 1.5 "A harder Day than
+     usual"; 1.5 and over "A much harder Day than usual". With no typical Load yet, "Learning
+     your typical Load"; with the Day's Load missing, "No Load this Day". With a typical Load of
+     0, a Load of 0 is "About your usual Day" and any other Load "A much harder Day than usual"
+     (a named assumption).
+   - **The typical line** under it: "Typical: 45 · today +12" ("that Day" on an earlier Day;
+     differences signed, "−" for below, "±0" for equal). Typical Load is the median Load of the
+     28 Days before the Day shown, not counting it; missing Loads are skipped, a Load of 0
+     counts; an even count takes the mean of the middle two, rounded to a whole number with
+     halves up. With fewer than 4 such Days the line reads "Typical Load after 4 Days (N so
+     far)". With the Day's Load missing, only "Typical: 45".
+   - **The Load bar**: a bar running from 0 to twice typical Load, filled to the Day's Load
+     (full at twice typical or more) with the Load written at its end, and a marker labelled
+     "typical" at its middle. With the Day's Load missing, the bar is empty with the marker; with
+     no typical Load yet, there is no bar. With a typical Load of 0, the bar is full for any Load
+     over 0 and empty for 0.
+   - **The Day's Load while typical Load is learned**: with no typical Load yet, in place of the
+     bar, the Day's Load as a large number, "Load 40" ("Load —" with it missing), so the popup
+     always shows the Day's Load.
+   - On today, "As of your last sync at 08:12" (the time the last History Sync ended, local
+     time).
+3. **How hard**: one bar split by the Day's time in each HR Zone, HR Zone 1 to 5 left to right,
+   each part's width its share of the Day's time in HR Zones (no bar with no time in any). Under
+   it five rows, hardest first, "Zone 5 · 90–100%" down to "Zone 1 · 50–60%", each with its
+   colour and its time, rounded to whole minutes: "42m" under an hour, "1h 05m" from an hour.
+   Rows are rounded on their own and needn't add up to anything.
+4. **When**: one bar per local hour of the Day (23 or 25 across a clock change), each stacked
+   by HR Zone from that hour's seconds in each, on a 0–60 minute scale. On today, hours after
+   now are empty.
+5. **Highest HR and Max HR used** (a small card): "Highest HR 172 bpm at 18:40", the highest
+   heart rate in the Day's History Records with HR 0 skipped, even under the floor; the
+   earliest time if it repeats; "—" with no heart rate over 0. Under it "Using Max HR 190
+   (entered)" or "Using Max HR 180 (estimated from your age)", the Max HR that Day's Load and HR
+   Zones were worked out with.
 
-A Day with no History Records shows "No heart rate recorded this Day" in place of items 4–7. A
+A Day with no History Records shows "No heart rate recorded this Day" in place of items 3–5. A
 Day with a Load but no stored HR Zones (worked out before this spec, its History Records since
-pruned) shows "Heart rate zones aren't available for this Day" in place of items 4–7.
+pruned) shows "Heart rate zones aren't available for this Day" in place of items 3–5. Item 2
+shows in both.
 
 **HR Zones.** Each History Record with a heart rate counts as one second in the HR Zone its
 exact share of Max HR falls in (not rounded to bpm), each band including its lower edge: ≥50%
@@ -116,7 +134,10 @@ by "Share log". It never holds Profile fields.
 - **`SerenixCore`: Live HR pill**: given the connection state, the last reading, when it
   arrived and the current time, what the pill shows. It never reads the clock.
 - **`SerenixCore`: Today view** gains the Load popup's content, whether the Load ring opens the
-  popup or the profile menu, whether the pill shows, and the last sync's end time.
+  popup or the profile menu, whether the pill shows, and the last sync's end time. The content
+  includes the sentence, the Load bar's fill and whether it shows, the Day's Load in its place
+  while typical Load is learned, the HR Zone mix as shares,
+  and the HR Zone rows hardest first, so the shell only draws them.
 - **Shell:** stores the new Day fields in SwiftData beside Load; queues due Days whose HR Zones
   weren't kept on every launch (spec 007's missing-values queue); opens and closes the Live HR connection with the popup and
   the foreground, sharing a running sync's connection; feeds `0x28` Frames to the decoder and
@@ -179,11 +200,28 @@ Max HR 190: 95, 114, 133, 152 and 171 bpm.
 - [x] Today view: a Day with no records shows "No heart rate recorded this Day" and no zones,
       bars, Highest HR or Max HR used; a Day with a Load but no stored HR Zones shows "Heart
       rate zones aren't available for this Day"; zone times show "42m" and "1h 05m".
+- [x] Today view: with typical Load 50, Loads 39, 40, 59, 60, 74 and 75 give "An easier Day
+      than usual", "About your usual Day", "About your usual Day", "A harder Day than usual", "A
+      harder Day than usual" and "A much harder Day than usual"; with fewer than 4 Days,
+      "Learning your typical Load"; with the Day's Load missing, "No Load this Day"; with typical
+      Load 0, Load 0 is "About your usual Day" and Load 5 "A much harder Day than usual".
+- [x] Today view: with typical Load 50, a Load of 25 fills the Load bar to 0.25, 100 to 1.0
+      and 130 to 1.0; with the Day's Load missing it shows empty; with fewer than 4 Days it
+      doesn't show; with typical Load 0, Load 0 fills 0 and Load 5 fills 1.0.
+- [x] Today view: with fewer than 4 Days, a Load of 40 shows "Load 40" in place of the Load bar
+      and a missing Load "Load —"; with a typical Load (4 Days or more) there is no such number.
+- [x] Today view: 30 minutes in HR Zone 2 and 90 minutes in HR Zone 4 give mix shares 0.25 and
+      0.75 and none for the others; HR Zone rows come Zone 5 first, Zone 1 last; a Day with no
+      time in HR Zones has no mix.
+- [x] Today view: the no-records and not-available texts still come with the sentence, typical
+      line and Load bar.
 - [ ] `swift test`, `swift format lint --strict` and `swift build` pass, and the macOS CI job
       builds the app.
-- [ ] On the phone (by hand): tapping the Load ring opens the popup with the zones, hourly bars
-      stacked by HR Zone, Highest HR and Max HR used, and a tap outside or a swipe down closes
-      it; with no age it still opens the profile menu.
+- [ ] On the phone (by hand): tapping the Load ring opens the popup with, top to bottom, the
+      sentence, typical line and Load bar with its typical marker (on a new profile's first
+      Days, "Load 40" in its place), the HR Zone mix bar and rows (Zone 5 first), the hourly
+      bars stacked by HR Zone, then Highest HR and Max HR used, and a tap outside or a swipe
+      down closes it; with no age it still opens the profile menu.
 - [ ] On the phone (by hand): on today the pill shows "…", then a heart rate within a few
       seconds that follows a few squats; on an earlier Day there's no pill.
 - [ ] On the phone (by hand): with the Strap off the wrist or out of range, the pill goes to "—"
@@ -221,5 +259,8 @@ Max HR 190: 95, 114, 133, 152 and 171 bpm.
 - Specs 002 (popups, the Load ring), 005 (Load, Day rebuilds, "Add your age") and 001 (History
   Sync, Sync Log). ADRs 0002, 0005, 0006 and 0007 (new).
 - Prototype: branch `prototype/homescreen`, the Load popup with hourly bars (`?variant=E`).
+- Prototype: branch `prototype/load-popup-ui`, the popup's layout (`?variant=C`, "Verdict +
+  effort mix", chosen 2026-11-05 over a Day timeline and a week-first layout). The sentence
+  bands and the Load bar's scale (twice typical) were settled after it.
 - HR Zone edges from Edwards, matching Load's 50% floor (docs/research/cardio-load-methods.md).
 - Glossary: new terms HR Zone and Live HR.

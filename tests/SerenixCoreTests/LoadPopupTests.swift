@@ -103,7 +103,7 @@ private let fourDaysBeforeNov1 = [
     )
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.dateText == "Sun 1 Nov")
+    #expect(popup.dateText == "Today")
     #expect(popup.loadText == "57")
     #expect(popup.showsLiveHR)
     #expect(popup.lastSyncText == "As of your last sync at 08:12")
@@ -165,31 +165,32 @@ private let fourDaysBeforeNov1 = [
 
 // MARK: Heart rate zones
 
-@Test func zoneRowsRunFromHRZone1To5WithTheirLabels() throws {
+@Test func zoneRowsRunFromHRZone5To1WithTheirLabels() throws {
     let view = todayView(dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate())])
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.zoneRows.map(\.zone) == [.one, .two, .three, .four, .five])
+    #expect(popup.zoneRows.map(\.zone) == [.five, .four, .three, .two, .one])
     #expect(
         popup.zoneRows.map(\.label) == [
-            "Zone 1 · 50–60%",
-            "Zone 2 · 60–70%",
-            "Zone 3 · 70–80%",
-            "Zone 4 · 80–90%",
             "Zone 5 · 90–100%",
+            "Zone 4 · 80–90%",
+            "Zone 3 · 70–80%",
+            "Zone 2 · 60–70%",
+            "Zone 1 · 50–60%",
         ]
     )
 }
 
 @Test func zoneTimesAreWholeMinutesWithHoursFromAnHour() throws {
-    // 42 min, 65 min, none, 10 min, 30 s (rounds up to a minute), and 29 s rounds down.
+    // Zones 1 to 5: 42 min, 65 min, none, 10 min, 30 s (rounds up to a minute), and 29 s rounds
+    // down. Rows run Zone 5 first.
     let seconds: [HRZone: Int] = [.one: 2_520, .two: 3_900, .three: 0, .four: 600, .five: 30]
     let view = todayView(
         dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate(zoneSeconds: seconds))]
     )
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.zoneRows.map(\.timeText) == ["42m", "1h 05m", "0m", "10m", "1m"])
+    #expect(popup.zoneRows.map(\.timeText) == ["1m", "10m", "0m", "1h 05m", "42m"])
 
     let underHalf = todayView(
         dayLoads: [
@@ -202,19 +203,19 @@ private let fourDaysBeforeNov1 = [
             )
         ]
     )
-    #expect(underHalf.loadPopup?.zoneRows.first?.timeText == "0m")
+    #expect(underHalf.loadPopup?.zoneRows.last?.timeText == "0m")
 }
 
 @Test func eachZoneBarIsItsShareOfTheDaysTimeInHRZones() throws {
-    // 30 min, 1 h, none, 30 min, none: 2 h in HR Zones.
+    // Zones 1 to 5: 30 min, 1 h, none, 30 min, none: 2 h in HR Zones. Rows run Zone 5 first.
     let seconds: [HRZone: Int] = [.one: 1_800, .two: 3_600, .three: 0, .four: 1_800, .five: 0]
     let view = todayView(
         dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate(zoneSeconds: seconds))]
     )
     let popup = try #require(view.loadPopup)
 
-    #expect(popup.zoneRows.map(\.share) == [0.25, 0.5, 0, 0.25, 0])
-    #expect(popup.zoneRows.map(\.timeText) == ["30m", "1h 00m", "0m", "30m", "0m"])
+    #expect(popup.zoneRows.map(\.share) == [0, 0.25, 0, 0.5, 0.25])
+    #expect(popup.zoneRows.map(\.timeText) == ["0m", "30m", "0m", "1h 00m", "30m"])
 }
 
 @Test func aDayWithNoTimeInHRZonesHasEmptyBars() throws {
@@ -223,6 +224,34 @@ private let fourDaysBeforeNov1 = [
 
     #expect(popup.zoneRows.map(\.share) == [0, 0, 0, 0, 0])
     #expect(popup.zoneRows.map(\.timeText) == ["0m", "0m", "0m", "0m", "0m"])
+}
+
+// MARK: HR Zone mix
+
+@Test func theMixIsEachHRZonesShareOfTheDaysTimeInHRZonesFromZone1To5() throws {
+    // Spec 006: 30 min in HR Zone 2 and 90 min in HR Zone 4, none in the others.
+    let seconds: [HRZone: Int] = [.one: 0, .two: 1_800, .three: 0, .four: 5_400, .five: 0]
+    let view = todayView(
+        dayLoads: [DayLoad(day: nov1, load: 57, heartRate: heartRate(zoneSeconds: seconds))]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.zoneMix.map(\.zone) == [.two, .four])
+    #expect(popup.zoneMix.map(\.share) == [0.25, 0.75])
+}
+
+@Test func aDayWithNoTimeInHRZonesHasNoMix() throws {
+    let view = todayView(dayLoads: [DayLoad(day: nov1, load: 0, heartRate: heartRate())])
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.zoneMix.isEmpty)
+}
+
+@Test func aDayWithNoRecordsHasNoMix() throws {
+    let view = todayView(dayLoads: [DayLoad(day: nov1, load: nil, missingReason: .noRecords)])
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.zoneMix.isEmpty)
 }
 
 // MARK: Hourly bars
@@ -368,4 +397,185 @@ private let fourDaysBeforeNov1 = [
     #expect(popup?.note == nil)
     #expect(popup?.zoneRows.count == 5)
     #expect(popup?.maxHRText == "Using Max HR 190 (entered)")
+}
+
+// MARK: The sentence
+
+/// The same Load on each of the 4 Days before 1 Nov, so it is the typical Load on 1 Nov.
+private func typicalLoadBeforeNov1(_ load: Int) -> [DayLoad] {
+    [oct28, oct29, oct30, oct31].map { DayLoad(day: $0, load: load, heartRate: heartRate()) }
+}
+
+@Test(
+    "Against typical Load 50, the sentence names the Day's band",
+    arguments: [
+        (39, "An easier Day than usual"),
+        (40, "About your usual Day"),
+        (59, "About your usual Day"),
+        (60, "A harder Day than usual"),
+        (74, "A harder Day than usual"),
+        (75, "A much harder Day than usual"),
+    ]
+)
+func theSentenceComparesTheDaysLoadToTypicalLoad(load: Int, sentence: String) {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.comparisonText == sentence)
+}
+
+@Test func withFewerThan4DaysTheSentenceSaysItIsLearningTypicalLoad() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 57, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.comparisonText == "Learning your typical Load")
+}
+
+@Test func aDayWithItsLoadMissingSaysNoLoadThisDay() {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.comparisonText == "No Load this Day")
+}
+
+@Test(
+    "Against typical Load 0, Load 0 is usual and any other Load much harder",
+    arguments: [
+        (0, "About your usual Day"),
+        (5, "A much harder Day than usual"),
+    ]
+)
+func theSentenceAgainstTypicalLoadZero(load: Int, sentence: String) {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(0) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.comparisonText == sentence)
+}
+
+// MARK: The Load bar
+
+@Test(
+    "Against typical Load 50, the Load bar fills to Load over twice typical, full from 100",
+    arguments: [
+        (25, 0.25),
+        (100, 1.0),
+        (130, 1.0),
+    ]
+)
+func theLoadBarFillsToTheDaysLoadOverTwiceTypicalLoad(load: Int, fill: Double) {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.loadBarFill == fill)
+}
+
+@Test func aDayWithItsLoadMissingHasAnEmptyLoadBar() {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.loadBarFill == 0)
+}
+
+@Test func withFewerThan4DaysThereIsNoLoadBar() throws {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 57, heartRate: heartRate())
+        ]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.loadBarFill == nil)
+}
+
+@Test(
+    "Against typical Load 0, Load 0 leaves the Load bar empty and any other Load fills it",
+    arguments: [
+        (0, 0.0),
+        (5, 1.0),
+    ]
+)
+func theLoadBarAgainstTypicalLoadZero(load: Int, fill: Double) {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(0) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.loadBarFill == fill)
+}
+
+@Test func aDayWithNoRecordsStillHasTheSentenceTypicalLineAndLoadBar() throws {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.note == "No heart rate recorded this Day")
+    #expect(popup.comparisonText == "No Load this Day")
+    #expect(popup.typicalText == "Typical: 50")
+    #expect(popup.loadBarFill == 0)
+}
+
+@Test func aDayWithHRZonesNotAvailableStillHasTheSentenceTypicalLineAndLoadBar() throws {
+    // Load 40 against typical Load 50: 0.8 of typical, and 40 of the bar's 100.
+    let view = todayView(dayLoads: typicalLoadBeforeNov1(50) + [DayLoad(day: nov1, load: 40)])
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.note == "Heart rate zones aren't available for this Day")
+    #expect(popup.comparisonText == "About your usual Day")
+    #expect(popup.typicalText == "Typical: 50 · today −10")
+    #expect(popup.loadBarFill == 0.4)
+}
+
+// MARK: The Day's Load while typical Load is learned
+
+@Test func withFewerThan4DaysTheDaysLoadShowsAsANumber() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 40, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.learningLoadText == "Load 40")
+}
+
+@Test func withFewerThan4DaysAMissingLoadShowsADash() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.learningLoadText == "Load —")
+}
+
+@Test func withATypicalLoadTheDaysLoadDoesNotShowAsANumber() throws {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: 40, heartRate: heartRate())
+        ]
+    )
+    let popup = try #require(view.loadPopup)
+
+    #expect(popup.learningLoadText == nil)
 }
