@@ -369,3 +369,69 @@ private let fourDaysBeforeNov1 = [
     #expect(popup?.zoneRows.count == 5)
     #expect(popup?.maxHRText == "Using Max HR 190 (entered)")
 }
+
+// MARK: The sentence
+
+/// Load 50 on each of the 4 Days before 1 Nov: typical Load 50 on 1 Nov.
+private let typical50BeforeNov1 = [oct28, oct29, oct30, oct31].map {
+    DayLoad(day: $0, load: 50, heartRate: heartRate())
+}
+
+/// Load 0 on each of the 4 Days before 1 Nov: typical Load 0 on 1 Nov.
+private let typical0BeforeNov1 = [oct28, oct29, oct30, oct31].map {
+    DayLoad(day: $0, load: 0, heartRate: heartRate())
+}
+
+@Test(
+    "Against typical Load 50, the sentence names the Day's band",
+    arguments: [
+        (39, "An easier Day than usual"),
+        (40, "About your usual Day"),
+        (59, "About your usual Day"),
+        (60, "A harder Day than usual"),
+        (74, "A harder Day than usual"),
+        (75, "A much harder Day than usual"),
+    ]
+)
+func theSentenceComparesTheDaysLoadToTypicalLoad(load: Int, sentence: String) {
+    let view = todayView(
+        dayLoads: typical50BeforeNov1 + [DayLoad(day: nov1, load: load, heartRate: heartRate())]
+    )
+
+    #expect(view.loadPopup?.comparisonText == sentence)
+}
+
+@Test func withFewerThan4DaysTheSentenceSaysItIsLearningTypicalLoad() {
+    let view = todayView(
+        dayLoads: Array(typical50BeforeNov1.dropFirst()) + [
+            DayLoad(day: nov1, load: 57, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.comparisonText == "Learning your typical Load")
+}
+
+@Test func aDayWithItsLoadMissingSaysNoLoadThisDay() {
+    let view = todayView(
+        dayLoads: typical50BeforeNov1 + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.comparisonText == "No Load this Day")
+}
+
+@Test(
+    "Against typical Load 0, Load 0 is usual and any other Load much harder",
+    arguments: [
+        (0, "About your usual Day"),
+        (5, "A much harder Day than usual"),
+    ]
+)
+func theSentenceAgainstTypicalLoadZero(load: Int, sentence: String) {
+    let view = todayView(
+        dayLoads: typical0BeforeNov1 + [DayLoad(day: nov1, load: load, heartRate: heartRate())]
+    )
+
+    #expect(view.loadPopup?.comparisonText == sentence)
+}

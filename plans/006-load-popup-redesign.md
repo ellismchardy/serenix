@@ -24,7 +24,7 @@ fields. Every Core task tests at the **Today view** seam in
 existing tests there do.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
-1. [ ] **Slice: the sentence.** Add `LoadPopup.comparisonText: String`: the four bands from Load ÷
+1. [x] **Slice: the sentence.** Add `LoadPopup.comparisonText: String`: the four bands from Load ÷
    typical Load (<0.8, <1.2, <1.5, ≥1.5), "Learning your typical Load" while calibrating, "No Load
    this Day" with the Day's Load missing, and typical Load 0 (Load 0 usual, else much harder). Band
    edges are named constants with a comment pointing at spec 006.
