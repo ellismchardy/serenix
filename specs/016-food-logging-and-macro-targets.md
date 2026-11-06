@@ -63,8 +63,9 @@ Suggested from the Calorie Target, Trend Weight and the Weight Goal (issue #54,
 - **No Trend Weight** (no Weigh-ins yet): no Macro Targets; the Food view says a Weigh-in is
   needed.
 - **Overrides:** the user can set protein and fat in grams instead of the suggestions; carbs
-  always fill what's left. An override that leaves carbs below 0 is refused. "Use suggested"
-  clears both overrides.
+  always fill what's left. An override that leaves carbs below 0 is refused, and so is one
+  below 0 g or over 500 g (a Food Entry's macro limits, to catch typos), with or without a
+  Calorie Target. "Use suggested" clears both overrides.
 - Grams show as whole numbers; working stays unrounded.
 
 ### Screen
@@ -100,8 +101,9 @@ Suggested from the Calorie Target, Trend Weight and the Weight Goal (issue #54,
 - **`SerenixCore`: Food Entry (new)** value type, in kcal, grams and UTC.
 - **`SerenixCore`: Body data file** goes to version 2 as above.
 - **Shell.** The Weight | Food switch, the Food view, the Food Entry sheet and the targets sheet.
-  Food Entries, Complete Days, the Calorie Target and overrides live in the Body store (ADR 0008:
-  raw entries only, kept forever; Intake and Macro Targets are never stored).
+  Food Entries, Complete Days, the Calorie Target and overrides are Body data (ADR 0008: raw
+  entries only, kept forever; Intake and Macro Targets are never stored), in their own store
+  file beside the Weigh-ins' one, so a build that knows Weigh-ins but not food never opens it.
 - Follows ADR 0002 and ADR 0008. No new ADR.
 
 ## Seams under test
@@ -138,6 +140,7 @@ Calorie Target and Macro Targets
       and no "left".
 - [x] Overriding protein to 150 g and fat to 70 g at Calorie Target 2,000 gives carbs 192.5 g; an
       override leaving carbs below 0 is refused; "Use suggested" restores 176 g and 55.6 g.
+- [x] A protein or fat override of −1 g or 501 g is refused, even with no Calorie Target.
 - [x] Intake 1,450 kcal against 2,000 shows 550 left; 2,120 shows 120 over.
 Backup
 - [x] A version 2 file round-trips Weigh-ins, Weight Goals, Food Entries, Complete Days, the
