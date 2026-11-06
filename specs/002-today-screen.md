@@ -319,14 +319,14 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       for a harder session if you feel like it."; Steady with nothing off gives "You're
       part-way recovered. Train at a moderate pace and keep your Load under 50 today."; no advice
       while Calibrating.
-- [ ] The Readiness message's reasons follow the points: with spec 012's "all four off" Night
+- [x] The Readiness message's reasons follow the points: with spec 012's "all four off" Night
       (points HRV −23, Sleeping HR −19, Time Asleep −14, Yesterday's Load −7) Take it easy gives
       "HRV is 17% below your Baseline, Sleeping HR is up 5 bpm, you slept 2h 30m less than your
       Sleep Need and Yesterday's Load was high (85). Your body hasn't recovered yet. Rest,
       hydrate and get to bed early, and keep your Load under 33 today."
-- [ ] A Steady Night where Time Asleep cost −8 points and HRV −1 names only Time Asleep: "You
+- [x] A Steady Night where Time Asleep cost −8 points and HRV −1 names only Time Asleep: "You
       slept … less than your Sleep Need. You're part-way recovered. …"; HRV isn't mentioned.
-- [ ] An input at exactly −3 points is named; one at −2 isn't. Equal points keep the order HRV,
+- [x] An input at exactly −3 points is named; one at −2 isn't. Equal points keep the order HRV,
       Sleeping HR, Time Asleep, Yesterday's Load.
 - [x] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
       "Ellis"; with no name there is no letter and the menu name is "Add your name".

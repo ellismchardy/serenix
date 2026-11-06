@@ -32,7 +32,7 @@ is deleted. `TodayView` passes `nightReadiness.breakdown`.
    - Done when: spec 002's "Time Asleep −8 and HRV −1" criterion passes.
 3. [x] **Docs:** spec 002 example "1 h 10 m" → "1h 10m"; spec 005's Readiness advice notes that
    spec 002 now replaces the 55 mark.
-4. [ ] **Verify:** `swift test`, `swift build`, lint green; every new spec 002 criterion ticked.
+4. [x] **Verify:** `swift test`, `swift build`, lint green; every new spec 002 criterion ticked.
 
 ## Done when
 - All tasks checked, every success criterion in the spec met, suite green.
