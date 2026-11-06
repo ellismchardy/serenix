@@ -51,11 +51,15 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
      rows by `FoodEntryRow.id`, not the list offset, before adding edit and delete.
    - Done when: criteria "500 kcal + 700 kcal give 1,200 kcal and 30/0/0 g" and "23:30 counts
      that Day, 00:30 the next".
-2. [ ] **Slice:** limits, edit and delete. `FoodEntry.refusal(now:)`: over 5,000 kcal, a macro
+2. [x] **Slice:** limits, edit and delete. `FoodEntry.refusal(now:)`: over 5,000 kcal, a macro
    over 500 g, a name over 40 characters, or a future time is refused with a message; 0 kcal is
    fine. Shell: the sheet shows the refusal and edits an existing entry; swipe to delete.
    - Seam: Food view · Files: `FoodEntry.swift`, `FoodViewTests.swift`, `BodyStore.swift`,
      `FoodScreen.swift`, `FoodEntrySheet.swift`
+   - Built: the rows sit in a scroll view, not a List, so delete is a "Delete Food Entry" button
+     in the edit sheet (and on holding a row), not a swipe. Negative values are refused too (the
+     spec's 0 lower bound). The edit sheet's time picker keeps the entry on its Day. Messages
+     are built from the limit constants.
    - Done when: criterion "over 5,000 kcal, a macro over 500 g, or in the future is refused; 0
      kcal is accepted".
 3. [ ] **Slice:** Complete Days. `FoodView` says whether the shown Day is complete and whether it

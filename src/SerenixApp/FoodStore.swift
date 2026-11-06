@@ -75,9 +75,45 @@ final class FoodStore: ObservableObject {
         reload()
     }
 
-    /// Saves a Food Entry; a failed save keeps nothing and tells the user.
+    /// Saves a Food Entry. A refused one, or a failed save, keeps nothing and tells the user.
     func add(_ entry: FoodEntry) {
-        change { context in context.insert(StoredFoodEntry(entry)) }
+        change { context in
+            try Self.check(entry)
+            context.insert(StoredFoodEntry(entry))
+        }
+    }
+
+    /// Replaces the Food Entry in row `id` with its edited version.
+    func replace(_ id: PersistentIdentifier, with new: FoodEntry) {
+        change { context in
+            try Self.check(new)
+            let stored = try Self.stored(id, in: context)
+            stored.time = new.time
+            stored.kilocalories = new.kilocalories
+            stored.protein = new.protein
+            stored.fat = new.fat
+            stored.carbs = new.carbs
+            stored.name = new.name
+        }
+    }
+
+    /// Deletes the Food Entry in row `id`.
+    func delete(_ id: PersistentIdentifier) {
+        change { context in context.delete(try Self.stored(id, in: context)) }
+    }
+
+    private static func check(_ entry: FoodEntry) throws {
+        if let refusal = entry.refusal(now: Date()) { throw FoodStoreError(refusal.message) }
+    }
+
+    private static func stored(
+        _ id: PersistentIdentifier,
+        in context: ModelContext
+    ) throws -> StoredFoodEntry {
+        guard let stored = context.model(for: id) as? StoredFoodEntry, !stored.isDeleted else {
+            throw FoodStoreError("That Food Entry is no longer stored.")
+        }
+        return stored
     }
 
     /// Makes a change and saves it; on any failure nothing changes and the user is told.
@@ -106,4 +142,10 @@ final class FoodStore: ObservableObject {
             failure = "Your Food Entries couldn't be read: \(error.localizedDescription)"
         }
     }
+}
+
+/// A food store failure, with the message shown to the user.
+private struct FoodStoreError: LocalizedError {
+    let errorDescription: String?
+    init(_ message: String) { errorDescription = message }
 }

@@ -9,6 +9,8 @@ struct FoodScreen: View {
     /// midnight as the Today and Sleep tabs do.
     @State private var pickedDay: Day?
     @State private var showsEntrySheet = false
+    /// The row being edited, while its sheet shows.
+    @State private var editing: FoodEntryRow?
 
     var body: some View {
         let today = Day(containing: Date(), in: .current)
@@ -47,8 +49,18 @@ struct FoodScreen: View {
             if view.entries.isEmpty {
                 Text("Nothing logged on this Day.").foregroundStyle(.secondary)
             }
-            ForEach(Array(view.entries.enumerated()), id: \.offset) { _, entry in
-                entryRow(entry)
+            // Tap to edit or delete; holding also offers Delete (spec 016: any Food Entry can be
+            // edited or deleted).
+            ForEach(Self.rows(for: view.entries, in: store.rows)) { row in
+                Button {
+                    editing = row
+                } label: {
+                    entryRow(row.entry)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button("Delete", role: .destructive) { store.delete(row.id) }
+                }
             }
             Button {
                 showsEntrySheet = true
@@ -61,6 +73,14 @@ struct FoodScreen: View {
         .sheet(isPresented: $showsEntrySheet) {
             FoodEntrySheet(day: view.day) { store.add($0) }
         }
+        .sheet(item: $editing) { row in
+            FoodEntrySheet(
+                day: view.day,
+                editing: row.entry,
+                delete: { store.delete(row.id) },
+                save: { store.replace(row.id, with: $0) }
+            )
+        }
         .alert(
             "Body data",
             isPresented: Binding(
@@ -71,6 +91,17 @@ struct FoodScreen: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(store.failure ?? "")
+        }
+    }
+
+    /// The stored rows for `entries`, in their order: each entry paired with a row holding the
+    /// same values, each row used once, so identical entries still get their own rows. Both come
+    /// from `store.rows`, so every entry has a row.
+    private static func rows(for entries: [FoodEntry], in rows: [FoodEntryRow]) -> [FoodEntryRow] {
+        var unused = rows
+        return entries.compactMap { entry in
+            guard let index = unused.firstIndex(where: { $0.entry == entry }) else { return nil }
+            return unused.remove(at: index)
         }
     }
 
