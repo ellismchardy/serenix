@@ -49,6 +49,16 @@ final class StoredCompleteDay {
     var day: Day { Day(year: year, month: month, day: dayOfMonth) }
 }
 
+/// The user's food targets (spec 016): one row at most. Fields added later must be optional so
+/// a stored row still loads.
+@Model
+final class StoredFoodTargets {
+    /// kcal a Day; nil when not set.
+    var calorieTarget: Double?
+
+    init() {}
+}
+
 /// One stored Food Entry with the ID of its row, so editing or deleting it touches that row only.
 struct FoodEntryRow: Identifiable, Equatable {
     let id: PersistentIdentifier
@@ -65,6 +75,8 @@ final class FoodStore: ObservableObject {
     @Published private(set) var rows: [FoodEntryRow] = []
     /// The Days marked complete.
     @Published private(set) var completeDays: Set<Day> = []
+    /// The Calorie Target, kcal a Day; nil when not set.
+    @Published private(set) var calorieTarget: Double?
     /// Why the last open or save failed, shown to the user; nil when all is well.
     @Published var failure: String?
     private let context: ModelContext?
@@ -78,12 +90,15 @@ final class FoodStore: ObservableObject {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let configuration = ModelConfiguration(
                 "Food",
-                schema: Schema([StoredFoodEntry.self, StoredCompleteDay.self]),
+                schema: Schema([
+                    StoredFoodEntry.self, StoredCompleteDay.self, StoredFoodTargets.self,
+                ]),
                 url: folder.appending(path: "Food.store")
             )
             let container = try ModelContainer(
                 for: StoredFoodEntry.self,
                 StoredCompleteDay.self,
+                StoredFoodTargets.self,
                 configurations: configuration
             )
             context = ModelContext(container)
@@ -140,6 +155,27 @@ final class FoodStore: ObservableObject {
         }
     }
 
+    /// Sets the Calorie Target, or clears it with nil. A refused one keeps nothing and tells the
+    /// user.
+    func setCalorieTarget(_ kilocalories: Double?) {
+        change { context in
+            if let kilocalories, let refusal = CalorieTarget.refusal(kilocalories) {
+                throw FoodStoreError(refusal.message)
+            }
+            try Self.targets(in: context).calorieTarget = kilocalories
+        }
+    }
+
+    /// The one targets row, made when first needed.
+    private static func targets(in context: ModelContext) throws -> StoredFoodTargets {
+        if let stored = try context.fetch(FetchDescriptor<StoredFoodTargets>()).first {
+            return stored
+        }
+        let new = StoredFoodTargets()
+        context.insert(new)
+        return new
+    }
+
     /// Unmarks every Complete Day left with no Food Entry, as the Food view decides.
     private static func keepCompleteDaysWithEntries(in context: ModelContext) throws {
         // A just-deleted entry can still be fetched until the save, so it's skipped here.
@@ -192,6 +228,8 @@ final class FoodStore: ObservableObject {
                 FetchDescriptor<StoredFoodEntry>(sortBy: [SortDescriptor(\.time, order: .reverse)])
             ).map { FoodEntryRow(id: $0.persistentModelID, entry: $0.entry) }
             completeDays = Set(try context.fetch(FetchDescriptor<StoredCompleteDay>()).map(\.day))
+            calorieTarget = try context.fetch(FetchDescriptor<StoredFoodTargets>()).first?
+                .calorieTarget
         } catch {
             failure = "Your Food Entries couldn't be read: \(error.localizedDescription)"
         }

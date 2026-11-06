@@ -72,12 +72,17 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
      bring a mark back. Task 7's import must check Complete Days against the same rule.
    - Done when: criterion "no entries can't be marked; deleting the last entry leaves it not
      complete; editing keeps it complete".
-4. [ ] **Slice:** Calorie Target. Its refusal outside 800–6,000; `FoodView` gives "left" or
+4. [x] **Slice:** Calorie Target. Its refusal outside 800–6,000; `FoodView` gives "left" or
    "over" against it, and nothing when there's no target. Shell: a stored Calorie Target (one
    current value), the targets sheet (Calorie Target only for now) behind a gear, the calories
    line on the Food view.
    - Seam: Food view · Files: `FoodView.swift`, `FoodViewTests.swift`, `BodyStore.swift`,
      `FoodScreen.swift`, `src/SerenixApp/FoodTargetsSheet.swift` (new)
+   - Built: the refusal and "left or over" live in `src/SerenixCore/CalorieTarget.swift` (new);
+     the target is a `StoredFoodTargets` row in `Food.store`, which task 6's overrides join.
+     After review: the limit tests live in `CalorieTargetTests.swift`, mirroring the new file; the
+     limit messages share one formatter (`limitText`). PR phone check: an older build from this
+     branch opened against `Food.store` drops the stored targets.
    - Done when: criteria "799 and 6,001 refused, 800 and 6,000 accepted", "1,450 of 2,000 is 550
      left; 2,120 is 120 over", and the no-target half of "no Weigh-ins / no Calorie Target".
 5. [ ] **Slice:** suggested Macro Targets. Protein 2.2 g/kg losing, 1.6 g/kg otherwise, on Trend

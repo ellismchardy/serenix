@@ -31,11 +31,13 @@ private let now = at(5, 9)
 private func foodView(
     foodEntries: [FoodEntry],
     completeDays: Set<Day> = [],
+    calorieTarget: Double? = nil,
     day: Day
 ) -> FoodView {
     FoodView(
         foodEntries: foodEntries,
         completeDays: completeDays,
+        calorieTarget: calorieTarget,
         day: day,
         now: now,
         timeZone: london
@@ -236,4 +238,53 @@ private let nov3 = Day(year: 2026, month: 11, day: 3)
     let kept = FoodView.completeDays([oct20, oct21], keepingThoseWith: afterMidnight, in: london)
 
     #expect(kept == [oct21])
+}
+
+// Intake against the Calorie Target (spec 016, the Screen's "550 left" / "120 over").
+
+@Test func intakeOf1450KcalAgainstACalorieTargetOf2000Shows550Left() {
+    let view = foodView(
+        foodEntries: [
+            FoodEntry(time: at(2, 8), kilocalories: 450),
+            FoodEntry(time: at(2, 13), kilocalories: 1000),
+        ],
+        calorieTarget: 2000,
+        day: nov2
+    )
+
+    #expect(view.calorieTarget == 2000)
+    #expect(view.calorieBalance == .left(550))
+}
+
+@Test func intakeOf2120KcalAgainstACalorieTargetOf2000Shows120Over() {
+    let view = foodView(
+        foodEntries: [
+            FoodEntry(time: at(2, 8), kilocalories: 620),
+            FoodEntry(time: at(2, 19), kilocalories: 1500),
+        ],
+        calorieTarget: 2000,
+        day: nov2
+    )
+
+    #expect(view.calorieBalance == .over(120))
+}
+
+@Test func intakeEqualToTheCalorieTargetShowsNoneLeft() {
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 13), kilocalories: 2000)],
+        calorieTarget: 2000,
+        day: nov2
+    )
+
+    #expect(view.calorieBalance == .left(0))
+}
+
+@Test func withNoCalorieTargetThereIsNoTargetAndNothingLeftOrOver() {
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 13), kilocalories: 1450)],
+        day: nov2
+    )
+
+    #expect(view.calorieTarget == nil)
+    #expect(view.calorieBalance == nil)
 }

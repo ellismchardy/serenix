@@ -13,12 +13,17 @@ public struct FoodView: Equatable, Sendable {
     public let isComplete: Bool
     /// The shown Day has a Food Entry, so it may be marked complete (spec 016).
     public let canBeMarkedComplete: Bool
+    /// The Calorie Target, kcal a Day; nil when not set.
+    public let calorieTarget: Double?
+    /// Intake against the Calorie Target; nil with no Calorie Target.
+    public let calorieBalance: CalorieBalance?
 
     /// Each Food Entry counts on the local Day of its time in `timeZone`, as Weigh-ins do.
     /// `completeDays` are the Days the user marked complete.
     public init(
         foodEntries: [FoodEntry],
         completeDays: Set<Day> = [],
+        calorieTarget: Double? = nil,
         day: Day,
         now: Date,
         timeZone: TimeZone
@@ -31,6 +36,10 @@ public struct FoodView: Equatable, Sendable {
         intake = Intake(entries)
         canBeMarkedComplete = !entries.isEmpty
         isComplete = canBeMarkedComplete && completeDays.contains(day)
+        self.calorieTarget = calorieTarget
+        calorieBalance = calorieTarget.map { [intake] in
+            CalorieBalance(intake: intake.kilocalories, target: $0)
+        }
     }
 
     /// The marked Days that still have a Food Entry: what the store keeps after an entry is

@@ -9,6 +9,7 @@ struct FoodScreen: View {
     /// midnight as the Today and Sleep tabs do.
     @State private var pickedDay: Day?
     @State private var showsEntrySheet = false
+    @State private var showsTargetsSheet = false
     /// The row being edited, while its sheet shows.
     @State private var editing: FoodEntryRow?
 
@@ -17,6 +18,7 @@ struct FoodScreen: View {
         let view = FoodView(
             foodEntries: store.entries,
             completeDays: store.completeDays,
+            calorieTarget: store.calorieTarget,
             day: pickedDay ?? today,
             now: Date(),
             timeZone: .current
@@ -38,6 +40,12 @@ struct FoodScreen: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(Self.whole(view.intake.kilocalories)) kcal")
                     .font(.system(size: 40, weight: .bold, design: .rounded))
+                // Against the Calorie Target, when there is one (spec 016, Screen).
+                if let target = view.calorieTarget, let balance = view.calorieBalance {
+                    Text("of \(Self.whole(target)) kcal · \(Self.balanceText(balance))")
+                        .font(.headline)
+                        .foregroundStyle(Self.isOver(balance) ? Color.orange : Color.secondary)
+                }
                 Text(
                     "Protein \(Self.whole(view.intake.protein)) g · Fat \(Self.whole(view.intake.fat)) g · Carbs \(Self.whole(view.intake.carbs)) g"
                 )
@@ -82,6 +90,17 @@ struct FoodScreen: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.accent)
+        }
+        .toolbar {
+            Button {
+                showsTargetsSheet = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .accessibilityLabel("Targets")
+        }
+        .sheet(isPresented: $showsTargetsSheet) {
+            FoodTargetsSheet(calorieTarget: store.calorieTarget) { store.setCalorieTarget($0) }
         }
         .sheet(isPresented: $showsEntrySheet) {
             FoodEntrySheet(day: view.day) { store.add($0) }
@@ -141,6 +160,18 @@ struct FoodScreen: View {
         }
         .padding()
         .themeCard()
+    }
+
+    /// "550 left" or "120 over" (spec 016, Screen).
+    private static func balanceText(_ balance: CalorieBalance) -> String {
+        switch balance {
+        case .left(let kilocalories): "\(whole(kilocalories)) left"
+        case .over(let kilocalories): "\(whole(kilocalories)) over"
+        }
+    }
+
+    private static func isOver(_ balance: CalorieBalance) -> Bool {
+        if case .over = balance { true } else { false }
     }
 
     /// A value as a whole number, as kcal and grams are shown (spec 016).

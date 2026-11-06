@@ -70,18 +70,19 @@ public enum FoodEntryRefusal: Equatable, Sendable {
         switch self {
         case .negative: "Calories and macros can't be below 0."
         case .tooManyCalories:
-            "A Food Entry can't be over \(Self.whole(FoodEntry.maxKilocalories)) kcal."
+            "A Food Entry can't be over \(limitText(FoodEntry.maxKilocalories)) kcal."
         case .macroTooLarge:
-            "Protein, fat and carbs can't be over \(Self.whole(FoodEntry.maxMacroGrams)) g each."
+            "Protein, fat and carbs can't be over \(limitText(FoodEntry.maxMacroGrams)) g each."
         case .nameTooLong: "A name can't be over \(FoodEntry.maxNameLength) characters."
         case .inTheFuture: "A Food Entry can't be in the future."
         }
     }
 
-    /// A limit as the messages write it: whole, with a thousands comma ("5,000").
-    private static func whole(_ value: Double) -> String {
-        Int(value).formatted(.number.locale(Locale(identifier: "en_GB")))
-    }
+}
+
+/// A limit as refusal messages write it: whole, with a thousands comma ("5,000").
+func limitText(_ value: Double) -> String {
+    Int(value).formatted(.number.locale(Locale(identifier: "en_GB")))
 }
 
 extension FoodEntry {
