@@ -254,6 +254,18 @@ func aWeightShowsToOneDecimalInTheChosenUnits(units: WeightUnits, text: String) 
     #expect(isClose(view.weeklyRate, -0.5217031))
 }
 
+@Test func trendWeightFallingHalfAKilogramOverSevenDaysIsAWeeklyRateOfMinusHalf() {
+    // The spec's own number. With α = 0.5217031 over 29 Oct → 5 Nov, a Weigh-in of
+    // 79.04160048119323 kg (80 − 0.5 / 0.5217031) takes Trend Weight from 80.0 to 79.5.
+    let view = bodyView(weighIns: [
+        WeighIn(time: at(month: 10, 29, 7), kilograms: 80.0),
+        WeighIn(time: at(5, 7), kilograms: 79.04160048119323),
+    ])
+
+    #expect(isClose(view.trendWeight, 79.5))
+    #expect(isClose(view.weeklyRate, -0.5))
+}
+
 @Test func weeklyRateOverMoreThanSevenDaysIsScaledToPerWeek() {
     // 27 Oct to 5 Nov is 9 Days: α = 1 − 0.9^9 = 0.612579511, so the change is −0.612579511 kg,
     // and per week −0.612579511 × 7 / 9 = −4.288056577 / 9 = −0.476450730777…

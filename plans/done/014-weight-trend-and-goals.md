@@ -163,11 +163,15 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
       so an older export of a since-edited goal adds that version, ended.
     - Done when: criteria "export then import gives identical data", "add and skip counts",
       "truncated or wrong-format file imports nothing".
-14. [ ] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
+14. [x] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
     Package.swift` clean, `swift build` clean; every `SerenixCore` success criterion in spec 014
     checked. Carried to the PR checklist (need the PR): the macOS CI build, and the by-hand phone
     checks — Body tab and sheets, the other-branch build keeping every Weigh-in and Weight Goal
-    (ADR 0008), Height and Units changing display only, export and import on a fresh install.
+    (ADR 0008), Height and Units changing display only, export and import on a fresh install,
+    Trend Weight reaching Goal Weight ending the goal with the celebration, Hold at and Undo,
+    and a direction change keeping the ended goal.
+    - Done: 924 tests, lint and build clean; every `SerenixCore` criterion matched to a test
+      (two added here: Weekly Rate −0.5 exactly, and Aggressive and Too fast Paces not refused).
     - Blocked by: 12, 13
 
 ## Done when

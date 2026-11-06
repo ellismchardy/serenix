@@ -1,6 +1,6 @@
 # 014 — Weight trend and goals
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-05
 **Issue:** https://github.com/ellismchardy/serenix/issues/49 (map; decisions #50, #51, #59, #60, #61)
 
@@ -178,61 +178,61 @@ warnings when that Pace is too fast.
 
 ## Success criteria (must be checkable)
 Weigh-ins and Trend Weight
-- [ ] Weigh-ins on consecutive Days of 80.0 then 79.0 kg give Trend Weight 80.0 then 79.9.
-- [ ] Weigh-ins of 80.0 then, 3 Days later, 79.0 kg give Trend Weight 79.729 (α 0.271).
-- [ ] With two Weigh-ins on one Day, only the lower one moves Trend Weight; both are listed.
-- [ ] Days without a Weigh-in have no Trend Weight point.
-- [ ] A Weigh-in 15 Days after the previous one restarts Trend Weight at its own value and marks
+- [x] Weigh-ins on consecutive Days of 80.0 then 79.0 kg give Trend Weight 80.0 then 79.9.
+- [x] Weigh-ins of 80.0 then, 3 Days later, 79.0 kg give Trend Weight 79.729 (α 0.271).
+- [x] With two Weigh-ins on one Day, only the lower one moves Trend Weight; both are listed.
+- [x] Days without a Weigh-in have no Trend Weight point.
+- [x] A Weigh-in 15 Days after the previous one restarts Trend Weight at its own value and marks
       a break; one 14 Days after does not.
-- [ ] A Weigh-in under 20 kg, over 350 kg or in the future is refused with a message.
+- [x] A Weigh-in under 20 kg, over 350 kg or in the future is refused with a message.
 Weekly Rate and badge
-- [ ] Trend Weight falling 0.5 kg over the last 7 Days gives Weekly Rate −0.5 kg a week; with no
+- [x] Trend Weight falling 0.5 kg over the last 7 Days gives Weekly Rate −0.5 kg a week; with no
       counted Weigh-in 7 or more Days before the latest, there is no Weekly Rate.
-- [ ] A Weight Goal 13 Days old shows Settling in, day 13 of 14, and no badge; at 14 Days (with
+- [x] A Weight Goal 13 Days old shows Settling in, day 13 of 14, and no badge; at 14 Days (with
       Weigh-ins spanning 14 Days) it shows a badge.
-- [ ] With a lose Pace of 0.5 kg a week, Weekly Rate −0.45 is On pace, −0.44 is A bit behind,
+- [x] With a lose Pace of 0.5 kg a week, Weekly Rate −0.45 is On pace, −0.44 is A bit behind,
       −0.29 is Off pace, +0.1 is Off pace.
-- [ ] At Trend Weight 80 kg and Pace 0.5 kg a week, Weekly Rate −0.63 is Too fast (over 125% and
+- [x] At Trend Weight 80 kg and Pace 0.5 kg a week, Weekly Rate −0.63 is Too fast (over 125% and
       over 0.4 kg); at Trend Weight 140 kg and Pace 0.5, Weekly Rate −0.65 is On pace (under
       0.5% of 140 kg).
-- [ ] Ease the goal is offered only when the badge was Off pace or Too fast on each of the last 7
+- [x] Ease the goal is offered only when the badge was Off pace or Too fast on each of the last 7
       Days; 6 Days is not enough.
-- [ ] After a Weight Goal is changed (easing included), Ease the goal waits for 7 Days counted
+- [x] After a Weight Goal is changed (easing included), Ease the goal waits for 7 Days counted
       from that change before it's offered again.
 Pace and warnings
-- [ ] At Trend Weight 80 kg, a lose Pace of 0.25 kg is Sustainable, 0.5 kg (0.625%) Aggressive,
+- [x] At Trend Weight 80 kg, a lose Pace of 0.25 kg is Sustainable, 0.5 kg (0.625%) Aggressive,
       1.0 kg (1.25%) Too fast; each rate option reports its share and band.
-- [ ] A gain Pace of 0.5 kg at 80 kg (0.625%) warns; 1.0 kg (1.25%) is Too fast; 0.25 kg is
+- [x] A gain Pace of 0.5 kg at 80 kg (0.625%) warns; 1.0 kg (1.25%) is Too fast; 0.25 kg is
       Sustainable.
-- [ ] A date Pace's earliest allowed date is the one a 1%-a-week Pace reaches Goal Weight by; the
+- [x] A date Pace's earliest allowed date is the one a 1%-a-week Pace reaches Goal Weight by; the
       quick picks are the 0.5% and 0.75% dates.
-- [ ] A Pace in the Aggressive or Too fast band can still be saved.
+- [x] A Pace in the Aggressive or Too fast band can still be saved.
 Progress and goals
-- [ ] Start 88 kg, Goal 78 kg, step 2 kg gives Milestones 86, 84, 82, 80 (78 is the goal); at
+- [x] Start 88 kg, Goal 78 kg, step 2 kg gives Milestones 86, 84, 82, 80 (78 is the goal); at
       Trend Weight 83.9, 86 and 84 are passed.
-- [ ] Start 88, Goal 78, Trend Weight 83 shows 50% of the way, 5.0 kg lost, 5.0 kg to go.
-- [ ] Trend Weight reaching Goal Weight marks the Weight Goal Reached and ended, and offers a
+- [x] Start 88, Goal 78, Trend Weight 83 shows 50% of the way, 5.0 kg lost, 5.0 kg to go.
+- [x] Trend Weight reaching Goal Weight marks the Weight Goal Reached and ended, and offers a
       hold Weight Goal at that weight; a raw Weigh-in below Goal Weight with Trend Weight above it
       does not.
-- [ ] Undo after Reached reopens the Weight Goal; with Trend Weight still past Goal Weight it
+- [x] Undo after Reached reopens the Weight Goal; with Trend Weight still past Goal Weight it
       isn't Reached, and it is Reached again only after Trend Weight has been back on Start
       Weight's side on a Day after the Undo.
-- [ ] At Trend Weight 80 kg, a lose goal to 80 or 82 kg and a gain goal to 80 or 78 kg are
+- [x] At Trend Weight 80 kg, a lose goal to 80 or 82 kg and a gain goal to 80 or 78 kg are
       refused as already reached; a lose goal to 79.9 kg can be saved.
-- [ ] The projected date is hidden during Settling in and when Weekly Rate is zero or away from
+- [x] The projected date is hidden during Settling in and when Weekly Rate is zero or away from
       Goal Weight; at 83 kg, Goal 78, Weekly Rate −0.5 it is 10 weeks after today.
-- [ ] A hold Weight Goal at 78 ± 1 kg shows In band at 78.9, Above band at 79.1, Below band at
+- [x] A hold Weight Goal at 78 ± 1 kg shows In band at 78.9, Above band at 79.1, Below band at
       76.9, and has no badge, projection or Milestones.
-- [ ] Changing direction ends the Weight Goal and starts a new one; the ended one is kept.
+- [x] Changing direction ends the Weight Goal and starts a new one; the ended one is kept.
 Units
-- [ ] 82.4 kg shows as "82.4 kg", "181.7 lb" and "12 st 13.7 lb"; lb-unit Milestone steps are 2,
+- [x] 82.4 kg shows as "82.4 kg", "181.7 lb" and "12 st 13.7 lb"; lb-unit Milestone steps are 2,
       5 and 10 lb.
 Backup and import
-- [ ] Exporting then importing into empty Body data gives back identical Weigh-ins and Weight
+- [x] Exporting then importing into empty Body data gives back identical Weigh-ins and Weight
       Goals.
-- [ ] Importing a file into data that already holds some of it reports the right add and skip
+- [x] Importing a file into data that already holds some of it reports the right add and skip
       counts and adds only the new entries.
-- [ ] A truncated or wrong-format file imports nothing and returns a typed error.
+- [x] A truncated or wrong-format file imports nothing and returns a typed error.
 Shell (checked by hand on the phone, steps in the PR)
 - [ ] The Body tab appears after Sleep; logging, editing and deleting Weigh-ins works; the Weight
       Goal sheet saves both Pace kinds and hold.

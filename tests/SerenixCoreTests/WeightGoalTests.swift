@@ -120,6 +120,15 @@ func loseRateOptionsInPoundsAreHalfPoundStepsStoredAsKilograms(units: WeightUnit
     #expect(gain.direction == .gain)
 }
 
+@Test func aggressiveAndTooFastPacesAreNotRefused() {
+    // At Trend Weight 80 kg, 0.5 kg a week is Aggressive and 1.0 kg Too fast: both still save.
+    for rate in [0.5, 1.0] {
+        let goal = rateGoal(80.0, 70.0, rate: rate)
+        #expect(goal.refusal(units: .kilograms) == nil)
+        #expect(bodyView(goal: goal).goalRefusal(goal) == nil)
+    }
+}
+
 @Test func aTooFastLoseGoalIsStillAGoal() {
     // Aggressive and Too fast Paces can still be saved: nothing refuses them.
     let goal = WeightGoal(
