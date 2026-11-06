@@ -2701,6 +2701,26 @@ private func pointsText(_ name: String, in view: TodayView) -> String? {
     )
 }
 
+@Test func aSmallHRVDipIsNotNamedWhenTimeAsleepCostMost() {
+    // HRV 59.5 (1% below Baseline) −1 and Time Asleep (6 h 50 m) −8 points: Readiness 61,
+    // Steady. Only Time Asleep costs 3 points or more, so HRV's dip isn't named.
+    let view = adviceView(
+        hrv: 59.5,
+        sleepingHR: 52,
+        timeAsleep: 6 * anHour + 50 * 60,
+        loadOn14Nov: 45
+    )
+
+    #expect(view.readinessText == "61")
+    #expect(pointsText("HRV", in: view) == "\u{2212}1 pts")
+    #expect(pointsText("Time Asleep", in: view) == "\u{2212}8 pts")
+    #expect(
+        view.readinessAdvice
+            == "You slept 1h 10m less than your Sleep Need. You're part-way recovered. Train at a "
+            + "moderate pace and keep your Load under 50 today."
+    )
+}
+
 @Test func thereIsNoAdviceWhileReadinessIsCalibrating() {
     // A Night with HRV and Sleeping HR, so only Calibrating keeps it from a Readiness.
     let view = todayView(nights: [Night(day: nov1, sleepingHR: 50, hrv: 60)], showing: nov1)

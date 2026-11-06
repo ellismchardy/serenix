@@ -27,7 +27,7 @@ is deleted. `TodayView` passes `nightReadiness.breakdown`.
      in order. Replace the 54/55 high-Load tests with −3 (named) / −2 (not named) and a tie test.
      The "nothing off" Steady test's Night gets a full Sleep Need.
    - Done when: spec 002's new reasons criteria (all four off; −3 named, −2 not; ties) pass.
-2. [ ] **Slice:** a Steady Night with Time Asleep around −8 and HRV −1 names only Time Asleep
+2. [x] **Slice:** a Steady Night with Time Asleep around −8 and HRV −1 names only Time Asleep
    - Files: `tests/SerenixCoreTests/TodayViewTests.swift`
    - Done when: spec 002's "Time Asleep −8 and HRV −1" criterion passes.
 3. [ ] **Docs:** spec 002 example "1 h 10 m" → "1h 10m"; spec 005's Readiness advice notes that
