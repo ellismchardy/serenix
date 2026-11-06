@@ -17,6 +17,9 @@ public enum SyncFailureCause: Equatable, Sendable {
     case strapUnreachable
     /// The user cancelled it, so there's nothing to warn about.
     case cancelled
+    /// Connected, but subscribing to the Strap failed: it isn't paired with this phone (spec
+    /// 001). The sync pill shows it as any other failure.
+    case strapNotPaired
     case other
 }
 
@@ -53,7 +56,7 @@ public struct SyncPill: Equatable, Sendable {
         case .failed(let reason, .strapUnreachable):
             (kind, text, detail, showsProgress) =
                 (.paused, "Sync paused", "\(reason) \(Self.pausedRetryNote)", false)
-        case .failed(let reason, .other):
+        case .failed(let reason, .other), .failed(let reason, .strapNotPaired):
             (kind, text, detail, showsProgress) = (.failed, "Sync failed", reason, false)
         }
     }

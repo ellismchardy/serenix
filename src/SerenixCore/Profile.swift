@@ -21,9 +21,9 @@ public struct Profile: Equatable, Sendable {
     /// The Max HR the user entered, in bpm; nil when not set or outside `allowedMaxHR` (the
     /// shell's field only offers that range).
     public let maxHR: Int?
-    /// The user's height in cm; nil when not set (spec 014, Units and Profile).
+    /// The user's height in cm; nil when not set (spec 015, Units and Profile).
     public let heightCentimetres: Double?
-    /// How weights are shown; kg when not set. Everything is stored in kg (spec 014).
+    /// How weights are shown; kg when not set. Everything is stored in kg (spec 015).
     public let units: WeightUnits
 
     public init(

@@ -185,6 +185,7 @@ public struct TodayView: Equatable, Sendable {
         readinessAdvice = readinessBand.map { band in
             ReadinessAdvice.text(
                 for: band,
+                breakdown: nightReadiness.breakdown,
                 yesterdayLoad: previousDayLoad,
                 hrv: tiles.first { $0.metric == .hrv },
                 sleepingHR: tiles.first { $0.metric == .sleepingHR }

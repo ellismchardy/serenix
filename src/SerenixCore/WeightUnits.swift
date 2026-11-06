@@ -1,6 +1,6 @@
 import Foundation
 
-/// How the user's weights are shown and entered (spec 014, Units and Profile). Weights are
+/// How the user's weights are shown and entered (spec 015, Units and Profile). Weights are
 /// always stored in kg; the units only change what the user sees and types.
 public enum WeightUnits: String, CaseIterable, Sendable {
     case kilograms
@@ -115,7 +115,7 @@ public struct WeightFields: Equatable, Sendable {
     }
 }
 
-/// The Profile's height as shown and picked (spec 014, Units and Profile): cm with kg, ft and in
+/// The Profile's height as shown and picked (spec 015, Units and Profile): cm with kg, ft and in
 /// with lb or st. Height is always stored in cm.
 public enum Height {
     /// Centimetres in one inch, exactly, by the international yard and pound agreement (1959).

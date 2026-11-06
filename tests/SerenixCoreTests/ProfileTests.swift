@@ -52,7 +52,7 @@ func aBirthYearOutsideThePickersRangeStillGivesAnEstimate(birthYear: Int, year: 
     #expect(abs(estimate - maxHR) < 1e-9)
 }
 
-// Spec 014, "Units and Profile": the Profile gains Height and Units, kg by default.
+// Spec 015, "Units and Profile": the Profile gains Height and Units, kg by default.
 
 @Test func aNewProfileHasNoHeightAndKilogramsAsUnits() {
     let profile = Profile(name: nil)

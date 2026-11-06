@@ -1,13 +1,13 @@
 import SerenixCore
 import SwiftUI
 
-/// The Body tab (spec 014): draws the Body view, and logs Weigh-ins.
+/// The Body tab (spec 015): draws the Body view, and logs Weigh-ins.
 struct BodyScreen: View {
     @ObservedObject var store: BodyStore
     @ObservedObject var profile: ProfileStore
     @State private var showsWeighInSheet = false
     @State private var showsGoalSheet = false
-    /// The Goal Weight just reached, while its celebration shows (spec 014, Reached).
+    /// The Goal Weight just reached, while its celebration shows (spec 015, Reached).
     @State private var reachedWeight: Double?
 
     var body: some View {
@@ -74,7 +74,7 @@ struct BodyScreen: View {
                 .accessibilityLabel("Log a Weigh-in")
             }
             // A goal Trend Weight has reached ends, kept as Reached, and a celebration offers a
-            // hold goal at that weight (spec 014, Reached).
+            // hold goal at that weight (spec 015, Reached).
             .task(id: view.goalCard?.reached) {
                 guard let card = view.goalCard, card.reached else { return }
                 // Celebrate only once the end is saved; a failed save shows its own alert.
@@ -94,7 +94,7 @@ struct BodyScreen: View {
                         )
                     }
                 }
-                // A mistyped Weigh-in can end a goal; Undo reopens it as it was (spec 014).
+                // A mistyped Weigh-in can end a goal; Undo reopens it as it was (spec 015).
                 Button("Undo") {
                     store.reopenReachedGoal(on: Day(containing: Date(), in: .current))
                 }
@@ -128,7 +128,7 @@ struct BodyScreen: View {
             }
         }
     }
-    /// The Rate and Goal cards (spec 014, Screen).
+    /// The Rate and Goal cards (spec 015, Screen).
     private func goalCards(_ card: GoalCard, weeklyRate: Double?) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
@@ -174,7 +174,7 @@ struct BodyScreen: View {
                         .font(.caption)
                     }
                     if let band = card.paceBand { BandLabel(band: band) }
-                    // The planned Day beside the projected one (spec 014, Projected date).
+                    // The planned Day beside the projected one (spec 015, Projected date).
                     if let planned = card.plannedDay {
                         Text("Planned \(Self.shown(planned))").font(.caption)
                     }
@@ -192,7 +192,7 @@ struct BodyScreen: View {
         }
     }
 
-    /// A hold goal's card: where Trend Weight sits against the band (spec 014, Hold).
+    /// A hold goal's card: where Trend Weight sits against the band (spec 015, Hold).
     private func holdCard(_ card: GoalCard, state: HoldState) -> some View {
         let units = profile.units
         let band = card.goal.holdBand ?? 1
@@ -227,7 +227,7 @@ struct BodyScreen: View {
     }
 
     /// The Milestones card: each Milestone, passed ones ticked, and how far along the goal is
-    /// (spec 014, Progress).
+    /// (spec 015, Progress).
     private func milestonesCard(_ card: GoalCard) -> some View {
         let units = profile.units
         return VStack(alignment: .leading, spacing: 8) {
@@ -267,7 +267,7 @@ struct BodyScreen: View {
         .themeCard()
     }
 
-    /// The Ease the goal offer's words (spec 014).
+    /// The Ease the goal offer's words (spec 015).
     private func easeLabel(_ ease: GoalEase) -> String {
         switch ease {
         case .rate(let kilogramsPerWeek):
@@ -302,7 +302,7 @@ struct BodyScreen: View {
 }
 
 /// Logs one Weigh-in, or edits one, in the Profile's units: the last weight filled in, and an
-/// editable date and time (spec 014). Fields are text, parsed on every keystroke, because a
+/// editable date and time (spec 015). Fields are text, parsed on every keystroke, because a
 /// number field only updates when it commits and the decimal pad has no Return key. The weight
 /// is stored in kg. A refused Weigh-in isn't saved; the sheet shows why.
 struct WeighInSheet: View {
@@ -393,7 +393,7 @@ struct WeighInSheet: View {
     }
 }
 
-/// The pace badge in its colour (spec 014, Pace badge).
+/// The pace badge in its colour (spec 015, Pace badge).
 struct PaceBadgeLabel: View {
     let badge: PaceBadge
 

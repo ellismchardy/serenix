@@ -2,7 +2,7 @@ import Foundation
 import SerenixCore
 import Testing
 
-// The Body data file (spec 014, "Backup and import"; Seams → "Body data file"): a lossless,
+// The Body data file (spec 015, "Backup and import"; Seams → "Body data file"): a lossless,
 // versioned JSON backup of every Weigh-in and Weight Goal, and what importing one adds and skips.
 // Expected values are literals built by hand from the spec's duplicate rule: a Weigh-in with the
 // same time and weight, or the same Weight Goal, is skipped.

@@ -259,6 +259,8 @@ private let nightsOct1ToNov1 =
 private let strapNotFound =
     "Couldn't find the Strap. Check it's nearby and charged, then try again."
 private let badFrame = "A Frame from the Strap failed its CRC check."
+private let strapNotPaired =
+    "Couldn't subscribe to the Strap. If it isn't paired yet, put it in pairing mode and try again."
 
 @Test(
     arguments: [
@@ -269,6 +271,10 @@ private let badFrame = "A Frame from the Strap failed its CRC check."
             strapNotFound + " Serenix will try again next time you open it.", false
         ),
         (.failed(reason: badFrame, cause: .other), .failed, "Sync failed", badFrame, false),
+        (
+            .failed(reason: strapNotPaired, cause: .strapNotPaired), .failed, "Sync failed",
+            strapNotPaired, false
+        ),
     ] as [(SyncStatus, SyncPillKind, String, String?, Bool)]
 )
 func syncPillShowsWhereTheHistorySyncHasGot(
@@ -2583,67 +2589,135 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
     )
 }
 
-@Test func steadyAdviceWithNothingOffIsJustTheBandSentence() {
-    // HRV and Sleeping HR at their Baselines, Time Asleep 7 h, 1 h short of Sleep Need 8 h:
-    // Readiness 62.
-    let night = Night(day: nov1, sleepingHR: 52, hrv: 60, timeAsleep: 25_200)
-    let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
+// The advice tests below use spec 012's Readiness popup Nights: four earlier Nights at HRV 60 ms,
+// Sleeping HR 52 bpm and Time Asleep 8 h (Sleep Need 8 h), and four Days before 14 Nov at Load
+// 45 (typical Load 45). The popup's points pin each fixture.
 
+/// 2026-11-15T08:12:00Z, 08:12 local in London (GMT).
+private let nov15Morning = Date(timeIntervalSince1970: 1_794_730_320)
+private let nov14 = Day(year: 2026, month: 11, day: 14)
+private let nov15 = Day(year: 2026, month: 11, day: 15)
+private let anHour: TimeInterval = 3_600
+
+private func adviceView(
+    hrv: Double,
+    sleepingHR: Double,
+    timeAsleep: TimeInterval,
+    loadOn14Nov: Int
+) -> TodayView {
+    let earlierNights = (1...4).map { daysBefore in
+        Night(
+            day: Day(year: 2026, month: 11, day: 15 - daysBefore),
+            sleepingHR: 52,
+            hrv: 60,
+            timeAsleep: 8 * anHour
+        )
+    }
+    let night = Night(day: nov15, sleepingHR: sleepingHR, hrv: hrv, timeAsleep: timeAsleep)
+    let earlierDays = (1...4).map { daysBefore in
+        DayLoad(day: Day(year: 2026, month: 11, day: 14 - daysBefore), load: 45)
+    }
+    return todayView(
+        nights: earlierNights + [night],
+        dayLoads: earlierDays + [DayLoad(day: nov14, load: loadOn14Nov)],
+        showing: nov15,
+        at: nov15Morning
+    )
+}
+
+private func pointsText(_ name: String, in view: TodayView) -> String? {
+    view.readinessPopup?.whyRows.first { $0.name == name }?.pointsText
+}
+
+@Test func steadyAdviceWithNoInputCostingThreePointsIsJustTheBandSentence() {
+    // Time Asleep 7 h 45 m and Load 55 over typical 45 each cost −2 points: Readiness 66. A Night
+    // with nothing off at all is Ready, so Steady needs a little off somewhere.
+    let view = adviceView(hrv: 60, sleepingHR: 52, timeAsleep: 7.75 * anHour, loadOn14Nov: 55)
+
+    #expect(view.readinessText == "66")
+    #expect(pointsText("Time Asleep", in: view) == "\u{2212}2 pts")
+    #expect(pointsText("Yesterday's Load", in: view) == "\u{2212}2 pts")
     #expect(
         view.readinessAdvice
             == "You're part-way recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }
 
-@Test func takeItEasyAdviceSaysWhyFromTheNightsNumbers() {
-    // HRV 14% below and Sleeping HR 4 bpm above their Baselines: Readiness 17.
-    let night = Night(day: nov1, sleepingHR: 56, hrv: 51.6)
-    let view = todayView(
-        nights: exactBaselinesBeforeNov1 + [night],
-        dayLoads: [DayLoad(day: oct31, load: 82)],
-        showing: nov1
-    )
+@Test func takeItEasyAdviceNamesTheInputsByTheirPointsLowestFirst() {
+    // Spec 012's "all four off" Night: Readiness 7; HRV −23, Sleeping HR −19, Time Asleep −14,
+    // Yesterday's Load −7 points.
+    let view = adviceView(hrv: 50, sleepingHR: 57, timeAsleep: 5.5 * anHour, loadOn14Nov: 85)
 
+    #expect(view.readinessText == "7")
     #expect(
         view.readinessAdvice
-            == "Yesterday's Load was high (82), HRV is 14% below your Baseline and "
-            + "Sleeping HR is up 4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep "
-            + "your Load under 33 today."
+            == "HRV is 17% below your Baseline, Sleeping HR is up 5 bpm, you slept 2h 30m less than "
+            + "your Sleep Need and Yesterday's Load was high (85). Your body hasn't recovered yet. "
+            + "Rest, hydrate and get to bed early, and keep your Load under 33 today."
     )
 }
 
-@Test func aLoadBelowTheHighMarkYesterdayIsNotMentioned() {
-    // Take it easy needs HRV or Sleeping HR worse than usual, so the Night gives its reasons
-    // too: Readiness 17.
-    let night = Night(day: nov1, sleepingHR: 56, hrv: 51.6)
-    let view = todayView(
-        nights: exactBaselinesBeforeNov1 + [night],
-        dayLoads: [DayLoad(day: oct31, load: 54)],
-        showing: nov1
-    )
+@Test func anInputAtMinusThreePointsIsNamed() {
+    // HRV −23, Sleeping HR −5 and Time Asleep (7 h 30 m) −3 points: Readiness 39, Steady.
+    let view = adviceView(hrv: 52, sleepingHR: 53, timeAsleep: 7.5 * anHour, loadOn14Nov: 45)
 
+    #expect(view.readinessText == "39")
+    #expect(pointsText("Time Asleep", in: view) == "\u{2212}3 pts")
     #expect(
         view.readinessAdvice
-            == "HRV is 14% below your Baseline and Sleeping HR is up 4 bpm. Your body hasn't "
-            + "recovered yet. Rest, hydrate and get to bed early, and keep your Load under 33 today."
+            == "HRV is 13% below your Baseline, Sleeping HR is up 1 bpm and you slept 30m less than "
+            + "your Sleep Need. You're part-way recovered. Train at a moderate pace and keep your "
+            + "Load under 50 today."
     )
 }
 
-@Test func aLoadAtTheHighMarkYesterdayIsMentioned() {
-    // Take it easy needs HRV or Sleeping HR worse than usual, so the Night gives its reasons
-    // too: Readiness 17.
-    let night = Night(day: nov1, sleepingHR: 56, hrv: 51.6)
-    let view = todayView(
-        nights: exactBaselinesBeforeNov1 + [night],
-        dayLoads: [DayLoad(day: oct31, load: 55)],
-        showing: nov1
-    )
+@Test func anInputAtMinusTwoPointsIsNotNamed() {
+    // HRV −23 and Yesterday's Load (55 over typical 45) −2 points: Readiness 45, Steady.
+    let view = adviceView(hrv: 52, sleepingHR: 52, timeAsleep: 8 * anHour, loadOn14Nov: 55)
 
+    #expect(view.readinessText == "45")
+    #expect(pointsText("Yesterday's Load", in: view) == "\u{2212}2 pts")
     #expect(
         view.readinessAdvice
-            == "Yesterday's Load was high (55), HRV is 14% below your Baseline and Sleeping HR is "
-            + "up 4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and "
-            + "keep your Load under 33 today."
+            == "HRV is 13% below your Baseline. You're part-way recovered. Train at a moderate pace "
+            + "and keep your Load under 50 today."
+    )
+}
+
+@Test func inputsWithEqualPointsAreNamedHRVSleepingHRTimeAsleepThenLoad() {
+    // HRV −28, and Sleeping HR, Time Asleep (7 h 15 m) and Yesterday's Load (65) −5 points
+    // each: Readiness 27, Take it easy.
+    let view = adviceView(hrv: 50, sleepingHR: 53, timeAsleep: 7.25 * anHour, loadOn14Nov: 65)
+
+    #expect(view.readinessText == "27")
+    #expect(pointsText("Sleeping HR", in: view) == "\u{2212}5 pts")
+    #expect(pointsText("Time Asleep", in: view) == "\u{2212}5 pts")
+    #expect(pointsText("Yesterday's Load", in: view) == "\u{2212}5 pts")
+    #expect(
+        view.readinessAdvice
+            == "HRV is 17% below your Baseline, Sleeping HR is up 1 bpm, you slept 45m less than "
+            + "your Sleep Need and Yesterday's Load was high (65). Your body hasn't recovered yet. "
+            + "Rest, hydrate and get to bed early, and keep your Load under 33 today."
+    )
+}
+
+@Test func aSmallHRVDipIsNotNamedWhenTimeAsleepCostMost() {
+    // HRV 59.5 (1% below Baseline) −1 and Time Asleep (6 h 50 m) −8 points: Readiness 61,
+    // Steady. Only Time Asleep costs 3 points or more, so HRV's dip isn't named.
+    let view = adviceView(
+        hrv: 59.5,
+        sleepingHR: 52,
+        timeAsleep: 6 * anHour + 50 * 60,
+        loadOn14Nov: 45
+    )
+
+    #expect(view.readinessText == "61")
+    #expect(pointsText("HRV", in: view) == "\u{2212}1 pts")
+    #expect(pointsText("Time Asleep", in: view) == "\u{2212}8 pts")
+    #expect(
+        view.readinessAdvice
+            == "You slept 1h 10m less than your Sleep Need. You're part-way recovered. Train at a "
+            + "moderate pace and keep your Load under 50 today."
     )
 }
 
@@ -2658,7 +2732,7 @@ func withoutAProfileNameThereIsNoAvatarLetterAndTheMenuAsksForOne(profileName: S
 // Against Baselines of HRV 60 and Sleeping HR 52, with no Time Asleep:
 // - HRV 14% below, but Sleeping HR 8 bpm under lifts it: Readiness 82;
 // - Sleeping HR up 4 bpm, but HRV 20% above lifts it: Readiness 80.
-// Yesterday's high Load isn't given as a reason either.
+// No Load is given as a reason either.
 @Test(arguments: [(51.6, 44.0), (72.0, 56.0)])
 func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff(hrv: Double, sleepingHR: Double) {
     let night = Night(day: nov1, sleepingHR: sleepingHR, hrv: hrv)
@@ -2676,12 +2750,13 @@ func readyAdviceGivesNoReasonsEvenWhenNumbersAreOff(hrv: Double, sleepingHR: Dou
 
 @Test func twoReasonsAreJoinedWithAnd() {
     // HRV 58 against 60 and Sleeping HR 54 against 52, with no Time Asleep: Readiness 50.
+    // Sleeping HR costs more points than HRV here, so it comes first.
     let night = Night(day: nov1, sleepingHR: 54, hrv: 58)
     let view = todayView(nights: exactBaselinesBeforeNov1 + [night], showing: nov1)
 
     #expect(
         view.readinessAdvice
-            == "HRV is 3% below your Baseline and Sleeping HR is up 2 bpm. You're part-way "
+            == "Sleeping HR is up 2 bpm and HRV is 3% below your Baseline. You're part-way "
             + "recovered. Train at a moderate pace and keep your Load under 50 today."
     )
 }

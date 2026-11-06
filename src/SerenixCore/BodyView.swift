@@ -1,6 +1,6 @@
 import Foundation
 
-/// Everything the Body tab's weight screen shows (spec 014), worked out from the stored
+/// Everything the Body tab's weight screen shows (spec 015), worked out from the stored
 /// Weigh-ins each time, never stored (ADR 0008). The shell draws it.
 public struct BodyView: Equatable, Sendable {
     /// One point per Day with a Weigh-in, oldest first.
@@ -8,7 +8,7 @@ public struct BodyView: Equatable, Sendable {
     /// The latest Trend Weight in kg; nil with no Weigh-ins.
     public let trendWeight: Double?
     /// How fast Trend Weight is changing, in kg a week (negative when falling); nil without a
-    /// counted Weigh-in 7 or more Days before the latest, or across a restart (spec 014).
+    /// counted Weigh-in 7 or more Days before the latest, or across a restart (spec 015).
     public let weeklyRate: Double?
     /// The most recent Weigh-in by time.
     public let lastWeighIn: WeighIn?
@@ -55,7 +55,7 @@ public struct BodyView: Equatable, Sendable {
 
     /// The goal's cards as of `today`, from the Trend Weight points up to it. With `withEase`,
     /// easing is offered when the badge was Off pace or Too fast on each of the last
-    /// `GoalEase.offPaceDays` Days, each worked out the same way as of that Day (spec 014).
+    /// `GoalEase.offPaceDays` Days, each worked out the same way as of that Day (spec 015).
     static func goalCard(
         for goal: WeightGoal,
         trend allPoints: [TrendPoint],
@@ -100,7 +100,7 @@ public struct BodyView: Equatable, Sendable {
             }
         }
         // A goal reopened by Undo counts as Reached again only once Trend Weight has been back
-        // on Start Weight's side on a Day after the Undo (spec 014, Reached).
+        // on Start Weight's side on a Day after the Undo (spec 015, Reached).
         let reachable =
             goal.reopenedDay.map { reopened in
                 points.contains { $0.day > reopened && !goal.isReached(by: $0.trendWeight) }
@@ -149,7 +149,7 @@ public struct BodyView: Equatable, Sendable {
     static let weeklyRateDays = 7
 
     /// The latest Trend Weight minus the Trend Weight at the last counted Weigh-in on or before
-    /// `weeklyRateDays` earlier, per week (spec 014, Weekly Rate).
+    /// `weeklyRateDays` earlier, per week (spec 015, Weekly Rate).
     static func weeklyRate(of trend: [TrendPoint]) -> Double? {
         guard let latest = trend.last else { return nil }
         let cutoff = latest.day.adding(days: -weeklyRateDays)
@@ -172,7 +172,7 @@ public struct BodyView: Equatable, Sendable {
     /// old trend would remain, so it says little).
     static let longestGap = 14
 
-    /// Trend Weight over the counted Weigh-ins: the lowest on each Day (spec 014, Weigh-ins).
+    /// Trend Weight over the counted Weigh-ins: the lowest on each Day (spec 015, Weigh-ins).
     static func trend(of weighIns: [WeighIn], in timeZone: TimeZone) -> [TrendPoint] {
         var lowest: [Day: Double] = [:]
         for weighIn in weighIns {
@@ -196,12 +196,12 @@ public struct BodyView: Equatable, Sendable {
         return points
     }
 
-    /// `kilograms` in the view's units, to one decimal (spec 014, Units and Profile).
+    /// `kilograms` in the view's units, to one decimal (spec 015, Units and Profile).
     public func text(_ kilograms: Double) -> String {
         units.text(kilograms)
     }
 
-    /// The chart over `range`, ending today (spec 014, Screen); nil with no Weigh-ins, when the
+    /// The chart over `range`, ending today (spec 015, Screen); nil with no Weigh-ins, when the
     /// screen shows "Log your first Weigh-in" instead.
     /// It marks Goal Weight, and "All" runs on to the projected Day with a projection from the
     /// latest Trend Weight.
@@ -230,7 +230,7 @@ public struct BodyView: Equatable, Sendable {
     }
 }
 
-/// How far back the Body tab's chart reaches (spec 014, Screen).
+/// How far back the Body tab's chart reaches (spec 015, Screen).
 public enum ChartRange: CaseIterable, Sendable {
     case week, month, threeMonths, sixMonths, all
 
@@ -274,7 +274,7 @@ public struct WeightChart: Equatable, Sendable {
 }
 
 /// The chart's dashed projection: from the latest Trend Weight to Goal Weight on the projected
-/// Day (spec 014, Screen).
+/// Day (spec 015, Screen).
 public struct ChartProjection: Equatable, Sendable {
     public let from: Day
     public let fromWeight: Double

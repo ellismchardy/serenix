@@ -1,6 +1,6 @@
 import Foundation
 
-/// Whether a Weight Goal loses, gains or holds weight (spec 014, Weight Goal).
+/// Whether a Weight Goal loses, gains or holds weight (spec 015, Weight Goal).
 public enum GoalDirection: String, Codable, Sendable {
     case lose
     case gain
@@ -13,7 +13,7 @@ public enum GoalPace: Equatable, Codable, Sendable {
     case date(Day)
 }
 
-/// How sensible a Pace is, by its share of Trend Weight a week (spec 014, Pace bands).
+/// How sensible a Pace is, by its share of Trend Weight a week (spec 015, Pace bands).
 public enum PaceBand: String, Codable, Sendable {
     case sustainable
     case aggressive
@@ -46,7 +46,7 @@ public struct RateOption: Equatable, Sendable {
         band = PaceBand(percentOfTrendWeight: percentOfTrendWeight)
     }
 
-    /// The rates offered (spec 014, Weight Goal): in kg, or in lb for lb and st units, stored in
+    /// The rates offered (spec 015, Weight Goal): in kg, or in lb for lb and st units, stored in
     /// kg either way.
     static func rates(for direction: GoalDirection, units: WeightUnits) -> [Double] {
         let inKilograms = units == .kilograms
@@ -76,7 +76,7 @@ public struct WeightGoal: Equatable, Codable, Sendable {
     /// Optional, so older goals decode.
     public let holdBand: Double?
     /// The Day it was reopened by Undo after Reached; nil when never. It is Reached again only
-    /// once Trend Weight has been back on Start Weight's side on a later Day (spec 014). Optional,
+    /// once Trend Weight has been back on Start Weight's side on a later Day (spec 015). Optional,
     /// so older goals decode.
     public private(set) var reopenedDay: Day?
 
@@ -100,7 +100,7 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         self.reopenedDay = reopenedDay
     }
 
-    /// This goal reopened by Undo on `day`, everything else kept (spec 014, Reached).
+    /// This goal reopened by Undo on `day`, everything else kept (spec 015, Reached).
     public func reopened(on day: Day) -> WeightGoal {
         var goal = self
         goal.reopenedDay = day
@@ -119,7 +119,7 @@ public struct WeightGoal: Equatable, Codable, Sendable {
 
     /// This goal as saved over `current` on `day`: marked as changed that Day when it aims
     /// differently (start, Goal Weight or Pace), otherwise keeping `current`'s change Day, so a
-    /// new Milestone step alone doesn't restart Ease the goal's count (spec 014).
+    /// new Milestone step alone doesn't restart Ease the goal's count (spec 015).
     public func saved(over current: WeightGoal, on day: Day) -> WeightGoal {
         let aimsTheSame =
             startWeight == current.startWeight && startDay == current.startDay
@@ -142,7 +142,7 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         holdBand != nil ? .hold : goalWeight < startWeight ? .lose : .gain
     }
 
-    /// A goal that holds `weight`, within `band` kg either side, from `day` (spec 014, Hold).
+    /// A goal that holds `weight`, within `band` kg either side, from `day` (spec 015, Hold).
     public static func hold(at weight: Double, band: Double = 1.0, on day: Day) -> WeightGoal {
         WeightGoal(
             startWeight: weight,
@@ -153,7 +153,7 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         )
     }
 
-    /// The hold bands offered, kg either side of Goal Weight (spec 014: 0.5 to 3 kg by 0.5).
+    /// The hold bands offered, kg either side of Goal Weight (spec 015: 0.5 to 3 kg by 0.5).
     public static let holdBandOptions = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 }
 
@@ -168,7 +168,7 @@ public struct GoalStart: Equatable, Sendable {
     }
 }
 
-/// What the Rate and Goal cards show for the current Weight Goal (spec 014, Screen).
+/// What the Rate and Goal cards show for the current Weight Goal (spec 015, Screen).
 public struct GoalCard: Equatable, Sendable {
     public let goal: WeightGoal
     public let direction: GoalDirection
@@ -179,19 +179,19 @@ public struct GoalCard: Equatable, Sendable {
     public let paceBand: PaceBand?
     /// Settling in, or the pace badge; nil without a Pace.
     public let status: PaceStatus?
-    /// An easier goal to offer, only after 7 Days in a row Off pace or Too fast (spec 014).
+    /// An easier goal to offer, only after 7 Days in a row Off pace or Too fast (spec 015).
     public let ease: GoalEase?
     /// The Milestones from Start Weight toward Goal Weight.
     public let milestones: [Milestone]
     /// How far along the goal is.
     public let progress: GoalProgress
     /// Trend Weight has reached Goal Weight (at or below to lose, at or above to gain); never
-    /// for a hold goal. A Reached goal ends (spec 014, Reached).
+    /// for a hold goal. A Reached goal ends (spec 015, Reached).
     public let reached: Bool
     /// Where Trend Weight sits against a hold goal's band; nil for lose and gain.
     public let holdState: HoldState?
     /// The Day Trend Weight reaches Goal Weight at Weekly Rate; nil while Settling in, with
-    /// Weekly Rate missing, zero or away from Goal Weight, for a hold, or once reached (spec 014).
+    /// Weekly Rate missing, zero or away from Goal Weight, for a hold, or once reached (spec 015).
     public let projectedDay: Day?
     /// The Day the goal plans to reach Goal Weight: a date Pace's date, or the Days left at a
     /// rate Pace; nil for a hold or once reached.
@@ -255,7 +255,7 @@ public struct GoalCard: Equatable, Sendable {
             paceBand = nil
             status = nil
         }
-        // Only after Settling in, with Trend Weight moving toward Goal Weight (spec 014).
+        // Only after Settling in, with Trend Weight moving toward Goal Weight (spec 015).
         if case .badge = status, let weeklyRate, left > 0 {
             let toward = goal.direction == .lose ? -weeklyRate : weeklyRate
             projectedDay = GoalDates.arrival(
@@ -270,7 +270,7 @@ public struct GoalCard: Equatable, Sendable {
 
 }
 
-/// Why a Weight Goal can't be saved (spec 014, Weight Goal).
+/// Why a Weight Goal can't be saved (spec 015, Weight Goal).
 public enum GoalRefusal: Equatable, Sendable {
     case sameAsStart
     case weightOutOfRange
@@ -332,13 +332,13 @@ extension WeightGoal {
     }
 
     /// Whether saving this goal edits `current` in place: true in the same direction, false
-    /// when the direction changes, which ends `current` and starts this one (spec 014).
+    /// when the direction changes, which ends `current` and starts this one (spec 015).
     public func edits(_ current: WeightGoal) -> Bool {
         direction == current.direction
     }
 }
 
-/// The dates a Pace by date can pick from (spec 014, Weight Goal → By date).
+/// The dates a Pace by date can pick from (spec 015, Weight Goal → By date).
 public struct GoalDates: Equatable, Sendable {
     /// The earliest Day allowed: a Pace of 1% of Trend Weight a week reaches Goal Weight by it.
     public let earliest: Day
@@ -386,7 +386,7 @@ public struct GoalDates: Equatable, Sendable {
 
 extension WeightGoal {
     /// The Pace in kg a week: a rate's own, or for a date what reaches Goal Weight from
-    /// `trendWeight` by that Day, worked out each time (spec 014); nil when there's no Pace or
+    /// `trendWeight` by that Day, worked out each time (spec 015); nil when there's no Pace or
     /// the date isn't after today.
     func paceKilogramsPerWeek(trendWeight: Double, today: Day) -> Double? {
         switch pace {
@@ -403,7 +403,7 @@ extension WeightGoal {
     }
 }
 
-/// Settling in while a goal or its Weigh-ins are too new to judge, then the pace badge (spec 014).
+/// Settling in while a goal or its Weigh-ins are too new to judge, then the pace badge (spec 015).
 public enum PaceStatus: Equatable, Sendable {
     case settlingIn(day: Int)
     case badge(PaceBadge)
@@ -413,7 +413,7 @@ public enum PaceStatus: Equatable, Sendable {
     public static let settlingDays = 14
 }
 
-/// How Weekly Rate compares with the Pace (spec 014, Pace badge).
+/// How Weekly Rate compares with the Pace (spec 015, Pace badge).
 public enum PaceBadge: String, Sendable {
     case onPace
     case behind
@@ -456,7 +456,7 @@ public enum PaceBadge: String, Sendable {
     }
 }
 
-/// An easier goal offered after a week off pace (spec 014, Ease the goal).
+/// An easier goal offered after a week off pace (spec 015, Ease the goal).
 public enum GoalEase: Equatable, Sendable {
     case rate(kilogramsPerWeek: Double)
     case date(Day)
@@ -528,7 +528,7 @@ extension WeightGoal {
     }
 }
 
-/// How far apart a goal's Milestones are (spec 014, Progress).
+/// How far apart a goal's Milestones are (spec 015, Progress).
 public enum MilestoneStep: String, Codable, CaseIterable, Sendable {
     case small
     case medium
@@ -583,7 +583,7 @@ public struct Milestone: Equatable, Sendable {
     }
 }
 
-/// How far along a Weight Goal is (spec 014, Progress).
+/// How far along a Weight Goal is (spec 015, Progress).
 public struct GoalProgress: Equatable, Sendable {
     /// The share of the way from Start Weight to Goal Weight, 0–100.
     public let percent: Double
@@ -603,7 +603,7 @@ public struct GoalProgress: Equatable, Sendable {
     }
 }
 
-/// Where Trend Weight sits against a hold goal's band (spec 014, Hold).
+/// Where Trend Weight sits against a hold goal's band (spec 015, Hold).
 public enum HoldState: String, Sendable {
     case inBand
     case aboveBand

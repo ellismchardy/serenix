@@ -97,6 +97,12 @@ final class StrapConnection: NSObject, ObservableObject {
     /// Calls the Live HR link back when the retry it asked for falls due.
     private var liveHRRetry: Timer?
 
+    /// Whether any History Sync has ever completed on this phone, readable before a connection
+    /// exists: an install that has synced skips Onboarding (spec 014).
+    nonisolated static var hasCompletedAHistorySync: Bool {
+        UserDefaults.standard.object(forKey: lastSyncCompletedKey) != nil
+    }
+
     override init() {
         store = Result { try HistoryRecordStore() }
         logArchive = Result { try SyncLogArchive() }
@@ -899,7 +905,7 @@ extension StrapConnection: @preconcurrency CBPeripheralDelegate {
             fail(
                 "Couldn't subscribe to the Strap (\(error.localizedDescription)). If it isn't "
                     + "paired yet, put it in pairing mode and try again.",
-                .other
+                .strapNotPaired
             )
             return
         }

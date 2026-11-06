@@ -105,7 +105,7 @@ public struct ReadinessWhyRow: Equatable, Sendable {
                         input,
                         score: part.score,
                         row: row,
-                        sleepShortfall: breakdown.sleepShortfall,
+                        minutesShort: breakdown.minutesShort,
                         typicalLoad: typicalLoad
                     ),
                     // Maps the clamped score, −limit to +limit, onto 0 to 1.
@@ -114,25 +114,18 @@ public struct ReadinessWhyRow: Equatable, Sendable {
                 points[partIndex]
             )
         }
-        // Lowest points first; dropped last; ties keep the inputs' order (a stable sort).
-        let ordered = counted.enumerated().sorted { lhs, rhs in
-            switch (lhs.element.points, rhs.element.points) {
-            case (let left?, let right?): left != right ? left < right : lhs.offset < rhs.offset
-            case (.some, .none): true
-            case (.none, .some): false
-            case (.none, .none): lhs.offset < rhs.offset
-            }
-        }.map(\.element)
-        let lowest = ordered.first
+        // Lowest points first, as the breakdown ranks them; dropped last, in the inputs' order.
+        let rank = breakdown.inputsByPoints.map(\.input)
+        let ordered =
+            rank.compactMap { input in inputs.firstIndex(of: input).map { counted[$0].row } }
+            + counted.filter { $0.points == nil }.map(\.row)
         let verdict =
-            if let lowest, let lowestPoints = lowest.points,
-                lowestPoints <= -verdictPointsThreshold
-            {
-                "\(lowest.row.name) pulled it down most."
+            if let costliest = breakdown.costliestInputs.first {
+                "\(costliest.name) pulled it down most."
             } else {
                 "Your body looks recovered."
             }
-        return (ordered.map(\.row), verdict)
+        return (ordered, verdict)
     }
 
     /// Why a counted input scored as it did (spec 012, Reasons).
@@ -140,7 +133,7 @@ public struct ReadinessWhyRow: Equatable, Sendable {
         _ input: Readiness.Input,
         score: Double,
         row: ReadinessPopupRow?,
-        sleepShortfall: TimeInterval,
+        minutesShort: Int,
         typicalLoad: TypicalLoad
     ) -> String {
         switch input {
@@ -148,7 +141,6 @@ public struct ReadinessWhyRow: Equatable, Sendable {
             return "\(row?.differenceText ?? missingText) against your usual "
                 + "\(row?.referenceText ?? missingText)."
         case .timeAsleep:
-            let minutesShort = Int((sleepShortfall / 60).rounded())
             guard minutesShort > 0 else { return "Enough for your Sleep Need." }
             return "\(hoursMinutesText(minutesShort)) short of your Sleep Need."
         case .previousDayLoad:
@@ -179,10 +171,6 @@ public struct ReadinessWhyRow: Equatable, Sendable {
         case .hrv, .timeAsleep: missingText
         }
     }
-
-    /// An input that costs this many points or more is named in the verdict (spec 012,
-    /// Verdict), in Readiness points.
-    static let verdictPointsThreshold = 3
 }
 
 /// One input's value and what it's measured against, for the Readiness popup's Why rows (spec 012).

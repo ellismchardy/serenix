@@ -2,7 +2,7 @@ import Foundation
 import SerenixCore
 import Testing
 
-// Spec 014, "Units and Profile" and "Weigh-ins": weights show to one decimal in the user's Units
+// Spec 015, "Units and Profile" and "Weigh-ins": weights show to one decimal in the user's Units
 // and are stored in kg; Height shows in cm or ft and in. Every expected value below is worked by
 // hand from 1 lb = 0.45359237 kg (1959 international pound), 1 st = 14 lb and
 // 1 in = 2.54 cm (1959 international inch).

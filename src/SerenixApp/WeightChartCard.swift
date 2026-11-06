@@ -2,7 +2,7 @@ import Charts
 import SerenixCore
 import SwiftUI
 
-/// The Body tab's chart (spec 014, Screen): counted Weigh-ins as dots and Trend Weight as a line
+/// The Body tab's chart (spec 015, Screen): counted Weigh-ins as dots and Trend Weight as a line
 /// that breaks where Trend Weight restarted, over the range chips below it.
 struct WeightChartCard: View {
     let view: BodyView

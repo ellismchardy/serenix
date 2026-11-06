@@ -111,12 +111,21 @@ have.
 - **Take it easy:** "Your body hasn't recovered yet. Rest, hydrate and get to bed early, and
   keep your Load under 33 today."
 
-For Steady and Take it easy, it starts with why, from the Night's own numbers, naming only what
-applies: "Yesterday's Load was high (82)" when the Day before the Day shown had a Load of 55 or
-more; "HRV is 14% below your Baseline" when HRV moved the bad way; "Sleeping HR is up 4 bpm" when
-Sleeping HR did (the same whole numbers as vs your Baseline). They're joined as "A.", "A and B."
-or "A, B and C." before the band's sentence. The Load caps (50, 33) and the high-Load mark (55)
-are named constants and assumptions, set by the Load spec (005) and to tune with real Days.
+For Steady and Take it easy, it starts with why: the inputs that cost Readiness the most. It
+uses each input's points from the Readiness popup (spec 012), and names only those at −3 points
+or fewer (the popup verdict's mark), lowest points first. Ties keep the order HRV, Sleeping HR,
+Time Asleep, Yesterday's Load. Each reason reads:
+- HRV: "HRV is 14% below your Baseline"
+- Sleeping HR: "Sleeping HR is up 4 bpm"
+- Time Asleep: "You slept 1h 10m less than your Sleep Need" (the popup's Time Asleep
+  difference)
+- Yesterday's Load: "Yesterday's Load was high (82)"
+HRV and Sleeping HR use the same whole numbers as vs your Baseline. An input that cost less than
+3 points, or a dropped one, isn't named, even when it moved the bad way. The reasons are joined
+as "A.", "A and B.", "A, B and C." or "A, B, C and D." before the band's sentence, with the
+message's first letter a capital and "you slept" in lower case mid-sentence (names such as HRV
+and Yesterday's Load keep their capitals). The Load caps (50,
+33) are named constants and assumptions, set by the Load spec (005) and to tune with real Days.
 Closing it hides it for that Night, remembered on the phone across
 relaunches; another Night shows its own. There is no card while Readiness is Calibrating or
 missing.
@@ -186,10 +195,9 @@ one describes the Night shown:
 
 Tapping the Load ring does nothing in this spec (spec 006 now opens the Load popup from it).
 
-**Profile.** The user's name, kept only on the phone (GLOSSARY). On first launch, before the
-Today screen, Serenix asks "What should we call you?" with a name field, Continue and Skip; it
-never asks again, whichever is chosen. The name is trimmed of spaces; a blank name counts as
-none. It can be added or changed from the profile menu. It is never sent anywhere, and never
+**Profile.** The user's name, kept only on the phone (GLOSSARY). On first launch it is asked
+for in Onboarding (spec 014), which replaced this spec's one-question name prompt. The name is
+trimmed of spaces; a blank name counts as none. It can be added or changed from the profile menu. It is never sent anywhere, and never
 appears in the Sync Log, a shared log or any report.
 
 The **avatar** is a circle with the first letter of the name, upper-cased; with no name it
@@ -309,13 +317,18 @@ Automated (`swift test`, on Windows and in CI). Expected values are literals wor
       evening!" at 18:00 and 04:59, on today and on an earlier Day alike; the name under it is
       "Ellis" for "Ellis" and none for no name or a name of only spaces.
 - [x] The Readiness message's advice: Ready gives "You've recovered well. A good day to push: go
-      for a harder session if you feel like it."; Steady with nothing off gives "You're
-      part-way recovered. Train at a moderate pace and keep your Load under 50 today."; Take it
-      easy with yesterday's Load 82, HRV 51.6 against Baseline 60 and Sleeping HR 56 against 52
-      gives "Yesterday's Load was high (82), HRV is 14% below your Baseline and Sleeping HR is up
-      4 bpm. Your body hasn't recovered yet. Rest, hydrate and get to bed early, and keep your
-      Load under 33 today."; a Load of 54 yesterday isn't mentioned; no advice while
-      Calibrating.
+      for a harder session if you feel like it."; Steady with no input costing 3 points or more gives "You're
+      part-way recovered. Train at a moderate pace and keep your Load under 50 today."; no advice
+      while Calibrating.
+- [x] The Readiness message's reasons follow the points: with spec 012's "all four off" Night
+      (points HRV −23, Sleeping HR −19, Time Asleep −14, Yesterday's Load −7) Take it easy gives
+      "HRV is 17% below your Baseline, Sleeping HR is up 5 bpm, you slept 2h 30m less than your
+      Sleep Need and Yesterday's Load was high (85). Your body hasn't recovered yet. Rest,
+      hydrate and get to bed early, and keep your Load under 33 today."
+- [x] A Steady Night where Time Asleep cost −8 points and HRV −1 names only Time Asleep: "You
+      slept … less than your Sleep Need. You're part-way recovered. …"; HRV isn't mentioned.
+- [x] An input at exactly −3 points is named; one at −2 isn't. Equal points keep the order HRV,
+      Sleeping HR, Time Asleep, Yesterday's Load.
 - [x] The avatar letter for "ellis" is "E"; for "  Ellis " it is "E" and the menu name is
       "Ellis"; with no name there is no letter and the menu name is "Add your name".
 
@@ -347,8 +360,8 @@ Manual, on the iPhone with the sideloaded CI build (steps listed in the PR):
       with the Strap out of range, "Sync paused" shows amber with a ⚠; tapping a paused or
       failed pill shows the reason and Retry restarts the sync; with nothing to say, no pill
       shows. Pulling down on the Today screen starts a sync.
-- [ ] On first launch Serenix asks "What should we call you?"; after Continue the Today screen
-      greets by name, after Skip it greets without one, and the prompt never shows again.
+- [ ] After Onboarding (spec 014) the Today screen greets by the name given there, or without a
+      name if it was skipped.
 - [ ] The avatar opens the menu with the name (or "Add your name") under a large letter (or
       person icon); editing the name there updates the greeting's name and the avatar; the Strap
       rows

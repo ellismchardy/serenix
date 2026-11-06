@@ -18,7 +18,7 @@ struct ProfileMenu: View {
     /// The Today view's say on whether a sync is running, so 001's progress shows here.
     let showsSyncProgress: Bool
     @EnvironmentObject private var appearanceStore: AppearanceStore
-    /// The Body data the Export and Import rows back up (spec 014).
+    /// The Body data the Export and Import rows back up (spec 015).
     @EnvironmentObject private var bodyStore: BodyStore
     @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
     @Environment(\.dismiss) private var dismiss
@@ -136,7 +136,7 @@ struct ProfileMenu: View {
                     .pickerStyle(.segmented)
                 }
                 .listRowBackground(Theme.card)
-                // Spec 014, Backup and import: all Body data as one JSON file, and back.
+                // Spec 015, Backup and import: all Body data as one JSON file, and back.
                 Section("Body data") {
                     switch Result(catching: { try bodyStore.allData() }) {
                     case .success(let data):
@@ -240,7 +240,7 @@ struct ProfileMenu: View {
         .presentationDragIndicator(.visible)
     }
 
-    /// "Add N Weigh-ins and M Weight Goals? K already here will be skipped." (spec 014).
+    /// "Add N Weigh-ins and M Weight Goals? K already here will be skipped." (spec 015).
     private var importQuestion: String {
         guard let found = pendingImport else { return "" }
         return "Add \(found.weighInsToAdd.count) Weigh-ins and \(found.goalsToAdd.count) "

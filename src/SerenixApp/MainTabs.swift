@@ -1,7 +1,7 @@
 import SerenixCore
 import SwiftUI
 
-/// The tab bar (specs 012, 014): Today and Sleep, sharing the Day shown, then Body.
+/// The tab bar (specs 012, 015): Today and Sleep, sharing the Day shown, then Body.
 struct MainTabs: View {
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
@@ -34,7 +34,7 @@ struct MainTabs: View {
         }
         // The selected tab in the accent colour (spec 012, Tab bar).
         .tint(Theme.accent)
-        // For the profile menu's Body data export and import (spec 014).
+        // For the profile menu's Body data export and import (spec 015).
         .environmentObject(bodyStore)
         // Serenix opens on today (spec 002), on both tabs, also when iOS kept it suspended
         // overnight.

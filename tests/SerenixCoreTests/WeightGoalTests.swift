@@ -2,7 +2,7 @@ import Foundation
 import SerenixCore
 import Testing
 
-// Weight Goals and their Pace (spec 014, "Weight Goal": Pace by rate and the Pace bands).
+// Weight Goals and their Pace (spec 015, "Weight Goal": Pace by rate and the Pace bands).
 // Expected values are worked by hand from the spec's rules: a Pace's band is its share of the
 // current Trend Weight per week, ≤ 0.5% sustainable, > 0.5% to 1% aggressive, > 1% too fast.
 
@@ -158,7 +158,7 @@ func loseRateOptionsInPoundsAreHalfPoundStepsStoredAsKilograms(units: WeightUnit
     #expect(bodyView(weighIns: []).newGoalStart == nil)
 }
 
-// Saving a Weight Goal (spec 014, "Weight Goal": Goal Weight must differ from Start Weight, weights
+// Saving a Weight Goal (spec 015, "Weight Goal": Goal Weight must differ from Start Weight, weights
 // are 20–350 kg, the Pace is one of the rates offered, and changing direction ends a goal).
 
 @Test func aGoalWeightBelowStartLosesAboveGainsAndEqualHasNoDirection() {
@@ -250,7 +250,7 @@ func aPaceInPoundsOrStonesReadsInPounds(units: WeightUnits) {
     #expect(units.paceText(0.113398093, locale: posix) == "0.25 lb a week")
 }
 
-// A Pace by date (spec 014, "Weight Goal" → "By date"): the Pace is what reaches Goal Weight from
+// A Pace by date (spec 015, "Weight Goal" → "By date"): the Pace is what reaches Goal Weight from
 // the current Trend Weight by that Day, |Trend Weight − Goal Weight| / (Days from today / 7) kg a
 // week. The earliest allowed Day is the one a 1%-of-Trend-Weight-a-week Pace reaches Goal Weight
 // by, rounded up to a whole Day; the quick picks are the same for 0.5% and 0.75% a week. Trend
@@ -311,7 +311,7 @@ private func dateGoal(by day: Day) -> WeightGoal {
     #expect(card?.paceBand == .aggressive)
 }
 
-// A date Pace can't be earlier than the 1%-a-week Day (spec 014, Weight Goal → By date).
+// A date Pace can't be earlier than the 1%-a-week Day (spec 015, Weight Goal → By date).
 
 @Test func aDatePaceBeforeTheEarliestDayIsRefused() {
     // Earliest for 80 → 78 kg is 23 Nov (see above); 22 Nov needs over 1% a week.
@@ -348,7 +348,7 @@ private func dateGoal(by day: Day) -> WeightGoal {
     #expect(view.goalCard?.paceKilogramsPerWeek == nil)
 }
 
-// The Pace badge (spec 014, "Pace badge (lose and gain)"): Weekly Rate in the goal's direction as
+// The Pace badge (spec 015, "Pace badge (lose and gain)"): Weekly Rate in the goal's direction as
 // a share of Pace. On pace at 90% or more; a bit behind from 60% to under 90%; off pace under 60%,
 // at zero, the wrong way or with no Weekly Rate; too fast over 125% of Pace and over 0.5% of Trend
 // Weight a week, checked first.
@@ -409,7 +409,7 @@ func aGainGoalsBadgeCountsWeeklyRateUpward(weeklyRate: Double, badge: PaceBadge)
     )
 }
 
-// Settling in (spec 014): while the Weight Goal is under 14 Days old or the counted Weigh-ins span
+// Settling in (spec 015): while the Weight Goal is under 14 Days old or the counted Weigh-ins span
 // under 14 Days, the cards say "Settling in, day N of 14", N being the younger of the two.
 
 /// A Weigh-in of 80.0 kg at 07:00 UTC on each Day from `first` to 5 Nov 2026.
@@ -488,7 +488,7 @@ private let oct31 = Day(year: 2026, month: 10, day: 31)
     #expect(view.goalCard?.status == .settlingIn(day: 5))
 }
 
-// Ease the goal (spec 014, "Pace badge" → "Ease the goal"): after the badge has been Off pace or
+// Ease the goal (spec 015, "Pace badge" → "Ease the goal"): after the badge has been Off pace or
 // Too fast on each of the last 7 Days, the Rate card offers the next slower rate option (Off
 // pace), the rate option nearest Weekly Rate (Too fast), or for a date Pace the projected Day:
 // today plus the Days Trend Weight needs at Weekly Rate, rounded up.
@@ -658,7 +658,7 @@ func aDateGoalMovingAwayFromGoalWeightOrWithoutWeeklyRateIsOfferedNothing(weekly
     #expect(offer == .date(nov23))
 }
 
-// Ease the goal waits 7 Days after each change (spec 014).
+// Ease the goal waits 7 Days after each change (spec 015).
 
 @Test func easingRecordsTheDayOfTheChange() {
     let eased = loseHalfAKilogramAWeek(from: Day(year: 2026, month: 10, day: 16))
@@ -693,7 +693,7 @@ func aDateGoalMovingAwayFromGoalWeightOrWithoutWeeklyRateIsOfferedNothing(weekly
     #expect(loseHalfAKilogramAWeek(from: nov5).changedDay == nil)
 }
 
-// Milestones and progress (spec 014, Progress). Trend Weight is a single Weigh-in today, so it
+// Milestones and progress (spec 015, Progress). Trend Weight is a single Weigh-in today, so it
 // is exactly that Weigh-in.
 
 /// A goal from `start` to `goal` kg, started today, at a 0.5 kg-a-week rate.
@@ -793,7 +793,7 @@ func milestoneStepsInPoundsAreTwoFiveAndTenPounds(units: WeightUnits) {
 }
 
 // Edits keep the Milestone step, and only a change to what the goal aims for restarts Ease the
-// goal's 7-Day count (spec 014).
+// goal's 7-Day count (spec 015).
 
 private let largeStepGoal = WeightGoal(
     startWeight: 88.0,
@@ -836,7 +836,7 @@ private let largeStepGoal = WeightGoal(
     #expect(edit.saved(over: current, on: nov5).changedDay == nov5)
 }
 
-// Reached and hold Weight Goals (spec 014, Weight Goal → Hold; Progress → Reached). A lose goal
+// Reached and hold Weight Goals (spec 015, Weight Goal → Hold; Progress → Reached). A lose goal
 // is Reached at or below Goal Weight, a gain goal at or above, judged on Trend Weight, never a
 // single Weigh-in. A hold goal shows In band, Above band or Below band within ±its band.
 
@@ -923,7 +923,7 @@ private let largeStepGoal = WeightGoal(
     #expect(!WeightGoal.hold(at: 78, on: nov5).edits(lose))
 }
 
-// Undo after Reached, and refusing an already-reached goal (spec 014, Progress → Reached). A
+// Undo after Reached, and refusing an already-reached goal (spec 015, Progress → Reached). A
 // reopened goal is Reached again only once Trend Weight has been back on Start Weight's side of
 // Goal Weight on a Day after the Undo. A lose goal whose Goal Weight is at or above Trend Weight,
 // or a gain goal whose Goal Weight is at or below it, can't be saved.
@@ -1037,7 +1037,7 @@ private func weighInsOnThirdToFifth(_ kilograms: [Double]) -> [WeighIn] {
     #expect(loseToEighty.reopenedDay == nil)
 }
 
-// Projected and planned dates (spec 014, Progress → Projected date; Screen → chart). The
+// Projected and planned dates (spec 015, Progress → Projected date; Screen → chart). The
 // projected Day is today plus the Days Trend Weight needs at Weekly Rate to reach Goal Weight,
 // rounded up, shown only after Settling in with Weekly Rate non-zero and toward Goal Weight. The
 // planned Day is a date Pace's date, or for a rate Pace today plus the Days left at Pace, rounded
@@ -1183,7 +1183,7 @@ private func isSettlingIn(_ status: PaceStatus?) -> Bool {
     #expect(bodyView(goal: dateGoal(by: dec10)).goalCard?.plannedDay == dec10)
 }
 
-// The chart with a Weight Goal (spec 014, Screen: "a dashed line marks Goal Weight; 'All'
+// The chart with a Weight Goal (spec 015, Screen: "a dashed line marks Goal Weight; 'All'
 // extends to the projected date with a dashed projection").
 
 @Test func everyChartRangeMarksGoalWeight() {

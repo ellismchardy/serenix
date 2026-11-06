@@ -1,6 +1,6 @@
-# Plan: 014 — Weight trend and goals
+# Plan: 015 — Weight trend and goals
 
-**For spec:** specs/014-weight-trend-and-goals.md
+**For spec:** specs/015-weight-trend-and-goals.md
 **Type:** feature
 **Branch:** feat/weight-trend
 
@@ -164,7 +164,7 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
     - Done when: criteria "export then import gives identical data", "add and skip counts",
       "truncated or wrong-format file imports nothing".
 14. [x] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
-    Package.swift` clean, `swift build` clean; every `SerenixCore` success criterion in spec 014
+    Package.swift` clean, `swift build` clean; every `SerenixCore` success criterion in spec 015
     checked. Carried to the PR checklist (need the PR): the macOS CI build, and the by-hand phone
     checks — Body tab and sheets, the other-branch build keeping every Weigh-in and Weight Goal
     (ADR 0008), Height and Units changing display only, export and import on a fresh install,
@@ -175,4 +175,4 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
     - Blocked by: 12, 13
 
 ## Done when
-- All tasks checked, every success criterion in spec 014 met, suite green.
+- All tasks checked, every success criterion in spec 015 met, suite green.

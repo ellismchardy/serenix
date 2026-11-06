@@ -1,7 +1,7 @@
 import SerenixCore
 import SwiftUI
 
-/// Every Weigh-in, newest first, each editable and deletable (spec 014, Weigh-ins). It reads the
+/// Every Weigh-in, newest first, each editable and deletable (spec 015, Weigh-ins). It reads the
 /// store itself, so it's never a stale copy, and edits or deletes by row, so a Weigh-in with the
 /// same time and weight as another is never touched by mistake.
 struct WeighInList: View {

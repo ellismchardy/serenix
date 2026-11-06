@@ -2,7 +2,7 @@ import Foundation
 import SerenixCore
 import SwiftData
 
-/// One stored Weigh-in (spec 014), in kg and UTC.
+/// One stored Weigh-in (spec 015), in kg and UTC.
 @Model
 final class StoredWeighIn {
     var time: Date
@@ -16,7 +16,7 @@ final class StoredWeighIn {
     var weighIn: WeighIn { WeighIn(time: time, kilograms: kilograms) }
 }
 
-/// One stored Weight Goal (spec 014), current or ended. The goal itself is kept as JSON; any
+/// One stored Weight Goal (spec 015), current or ended. The goal itself is kept as JSON; any
 /// field `WeightGoal` gains later must be optional so goals stored before it still decode. It
 /// ends with a time and why.
 @Model
@@ -104,13 +104,13 @@ final class BodyStore: ObservableObject {
     }
 
     /// Saves `goal`. In the same direction as the current Weight Goal it edits that one in place;
-    /// otherwise the current one ends now, kept (ADR 0008), and `goal` starts (spec 014).
+    /// otherwise the current one ends now, kept (ADR 0008), and `goal` starts (spec 015).
     func setGoal(_ goal: WeightGoal) {
         change { context in
             if let current = try Self.currentGoal(in: context),
                 try goal.edits(current.goal())
             {
-                // An edit to what the goal aims for restarts Ease the goal's count (spec 014).
+                // An edit to what the goal aims for restarts Ease the goal's count (spec 015).
                 let edited = try goal.saved(
                     over: current.goal(),
                     on: Day(containing: Date(), in: .current)
@@ -133,7 +133,7 @@ final class BodyStore: ObservableObject {
     }
 
     /// Undo after Reached: reopens the Weight Goal that ended last as Reached, marked reopened on
-    /// `day` so it isn't Reached again at once (spec 014). Refused while another goal is current.
+    /// `day` so it isn't Reached again at once (spec 015). Refused while another goal is current.
     func reopenReachedGoal(on day: Day) {
         change { context in
             guard try Self.currentGoal(in: context) == nil else {
@@ -154,7 +154,7 @@ final class BodyStore: ObservableObject {
         }
     }
 
-    /// All Body data, for the backup file (spec 014, Backup and import). Throws, with a message
+    /// All Body data, for the backup file (spec 015, Backup and import). Throws, with a message
     /// for the user, when it can't be read.
     func allData() throws -> BodyData {
         guard let context else { throw BodyStoreError("Your Body data couldn't be opened.") }

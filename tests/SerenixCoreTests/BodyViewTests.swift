@@ -2,7 +2,7 @@ import Foundation
 import SerenixCore
 import Testing
 
-// The Body tab's view (spec 014). Expected values are spec 014's success criteria under
+// The Body tab's view (spec 015). Expected values are spec 015's success criteria under
 // "Weigh-ins and Trend Weight", worked by hand from its rules.
 
 /// 1–5 Nov 2026 is in GMT here (BST ended on 25 Oct), so local time equals UTC.
@@ -134,7 +134,7 @@ private func isClose(_ actual: Double?, _ expected: Double) -> Bool {
     #expect(WeighIn(time: at(4, 7), kilograms: 350.0).refusal(now: now) == nil)
 }
 
-// The chart (spec 014, Screen: chart ranges, empty and early states). Range first Days are
+// The chart (spec 015, Screen: chart ranges, empty and early states). Range first Days are
 // today (5 Nov 2026) minus 6, 29, 90 and 181 Days, counted by hand on the calendar.
 
 private let oct20 = Day(year: 2026, month: 10, day: 20)
@@ -204,7 +204,7 @@ private let nov5 = Day(year: 2026, month: 11, day: 5)
 }
 
 @Test func aRestartInsideTheRangeBreaksTheChartsLine() {
-    // 20 Oct to 4 Nov is 15 Days, so Trend Weight restarts on 4 Nov (spec 014, Trend Weight).
+    // 20 Oct to 4 Nov is 15 Days, so Trend Weight restarts on 4 Nov (spec 015, Trend Weight).
     let view = bodyView(weighIns: [
         WeighIn(time: at(month: 10, 20, 7), kilograms: 80.0),
         WeighIn(time: at(4, 7), kilograms: 79.0),
@@ -218,7 +218,7 @@ private let nov5 = Day(year: 2026, month: 11, day: 5)
     #expect(ChartRange.allCases.map(\.label) == ["1W", "1M", "3M", "6M", "All"])
 }
 
-// Units (spec 014, Units and Profile): weights show to one decimal in the chosen units, from kg
+// Units (spec 015, Units and Profile): weights show to one decimal in the chosen units, from kg
 // stored. 82.4 kg = 181.66 lb (1 lb = 0.45359237 kg), and 181.7 lb = 12 st 13.7 lb.
 
 @Test(arguments: [
@@ -239,7 +239,7 @@ func aWeightShowsToOneDecimalInTheChosenUnits(units: WeightUnits, text: String) 
     #expect(view.text(88.89) == "14 st 0.0 lb")
 }
 
-// Weekly Rate (spec 014, Weekly Rate): the latest Trend Weight minus the Trend Weight at the last
+// Weekly Rate (spec 015, Weekly Rate): the latest Trend Weight minus the Trend Weight at the last
 // counted Weigh-in on or before 7 Days earlier, per week. Today is 5 Nov, so 7 Days earlier is
 // 29 Oct. 0.9^7 = 0.4782969 and 0.9^9 = 0.387420489 exactly.
 

@@ -14,6 +14,11 @@ The user's name, and optionally their birth year, sex, height, Max HR and prefer
 only on the phone, used to address them and to work out Load and their Usual Need.
 _Avoid_: account, user account, login
 
+**Onboarding**:
+The one-time conversation on first launch in which Serenix sets up the user's Profile and pairs
+their Strap.
+_Avoid_: setup wizard, intro, welcome flow
+
 ## Devices and data
 
 **Strap**:

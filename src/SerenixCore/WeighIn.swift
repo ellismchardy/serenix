@@ -1,6 +1,6 @@
 import Foundation
 
-/// One reading of the user's body weight (GLOSSARY, Weigh-in; spec 014). Kept in kg and UTC;
+/// One reading of the user's body weight (GLOSSARY, Weigh-in; spec 015). Kept in kg and UTC;
 /// its Day is the local date it was taken (ADR 0008).
 public struct WeighIn: Hashable, Codable, Sendable {
     public let time: Date
@@ -12,7 +12,7 @@ public struct WeighIn: Hashable, Codable, Sendable {
     }
 }
 
-/// One Day's point on the Trend Weight line (spec 014, Trend Weight).
+/// One Day's point on the Trend Weight line (spec 015, Trend Weight).
 public struct TrendPoint: Equatable, Sendable {
     public let day: Day
     /// The Weigh-in that counted that Day (the lowest), in kg.
@@ -31,7 +31,7 @@ public struct TrendPoint: Equatable, Sendable {
     }
 }
 
-/// Why a Weigh-in can't be saved (spec 014, Weigh-ins).
+/// Why a Weigh-in can't be saved (spec 015, Weigh-ins).
 public enum WeighInRefusal: Equatable, Sendable {
     case tooLight
     case tooHeavy
@@ -58,7 +58,7 @@ public enum WeighInRefusal: Equatable, Sendable {
 }
 
 extension WeighIn {
-    /// The lightest and heaviest Weigh-in Serenix accepts, in kg (spec 014): wide enough for any
+    /// The lightest and heaviest Weigh-in Serenix accepts, in kg (spec 015): wide enough for any
     /// adult, narrow enough to catch a typo such as 8.24 or 824.
     static let allowedKilograms = 20.0...350.0
 

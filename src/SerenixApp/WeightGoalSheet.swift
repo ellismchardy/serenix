@@ -1,7 +1,7 @@
 import SerenixCore
 import SwiftUI
 
-/// Sets a Weight Goal (spec 014, Weight Goal): Start Weight and start date (today's Trend Weight
+/// Sets a Weight Goal (spec 015, Weight Goal): Start Weight and start date (today's Trend Weight
 /// and today by default), Goal Weight, and a Pace chosen either from the rate options, each
 /// showing its share of Trend Weight and its band, or as a date to reach Goal Weight by, no
 /// earlier than a 1%-a-week Pace allows. Aggressive and Too fast Paces warn but still save.
@@ -270,7 +270,7 @@ struct WeightGoalSheet: View {
     }
 }
 
-/// A Pace band's name in its colour (spec 014, Pace bands).
+/// A Pace band's name in its colour (spec 015, Pace bands).
 struct BandLabel: View {
     let band: PaceBand
 

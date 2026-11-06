@@ -13,7 +13,7 @@ public struct GoalRecord: Equatable, Codable, Sendable {
     }
 }
 
-/// All Body data: every Weigh-in and every Weight Goal, current and ended (spec 014).
+/// All Body data: every Weigh-in and every Weight Goal, current and ended (spec 015).
 public struct BodyData: Equatable, Sendable {
     public let weighIns: [WeighIn]
     public let goals: [GoalRecord]
@@ -24,7 +24,7 @@ public struct BodyData: Equatable, Sendable {
     }
 }
 
-/// Why a Body data file can't be imported; nothing from it is imported (spec 014).
+/// Why a Body data file can't be imported; nothing from it is imported (spec 015).
 public enum BodyDataFileError: Error, Equatable {
     /// Not JSON, cut short, or missing what a Body data file holds.
     case unreadable
@@ -54,7 +54,7 @@ public struct BodyImport: Equatable, Sendable {
     public let skipped: Int
 }
 
-/// The JSON backup of all Body data (spec 014, Backup and import): versioned, and lossless.
+/// The JSON backup of all Body data (spec 015, Backup and import): versioned, and lossless.
 public enum BodyDataFile {
     /// Names a Serenix Body data file, so another JSON file is told apart.
     public static let format = "serenix-body"
