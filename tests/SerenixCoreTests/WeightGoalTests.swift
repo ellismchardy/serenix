@@ -913,3 +913,117 @@ private let largeStepGoal = WeightGoal(
     let lose = milestoneGoal(from: 88, to: 78)
     #expect(!WeightGoal.hold(at: 78, on: nov5).edits(lose))
 }
+
+// Undo after Reached, and refusing an already-reached goal (spec 014, Progress → Reached). A
+// reopened goal is Reached again only once Trend Weight has been back on Start Weight's side of
+// Goal Weight on a Day after the Undo. A lose goal whose Goal Weight is at or above Trend Weight,
+// or a gain goal whose Goal Weight is at or below it, can't be saved.
+
+@Test(arguments: [80.0, 82.0])
+func aLoseGoalToOrAboveTrendWeightIsRefusedAsAlreadyReached(goalWeight: Double) {
+    // Trend Weight is 80.0 kg.
+    let refusal = bodyView().goalRefusal(rateGoal(90.0, goalWeight, rate: 0.5))
+    #expect(refusal == .alreadyReached)
+    #expect(refusal?.message == "Your Trend Weight is already past this Goal Weight.")
+}
+
+@Test(arguments: [80.0, 78.0])
+func aGainGoalToOrBelowTrendWeightIsRefusedAsAlreadyReached(goalWeight: Double) {
+    // Trend Weight is 80.0 kg; 0.25 kg a week is an offered gain rate.
+    #expect(bodyView().goalRefusal(rateGoal(70.0, goalWeight, rate: 0.25)) == .alreadyReached)
+}
+
+@Test func aLoseGoalJustBelowTrendWeightCanBeSaved() {
+    // Trend Weight 80.0, Goal Weight 79.9, an offered 0.5 kg a week.
+    #expect(bodyView().goalRefusal(rateGoal(90.0, 79.9, rate: 0.5)) == nil)
+}
+
+@Test func aHoldGoalAtTrendWeightIsNotRefusedAsAlreadyReached() {
+    #expect(bodyView().goalRefusal(WeightGoal.hold(at: 80, on: nov5)) == nil)
+}
+
+private let nov3 = Day(year: 2026, month: 11, day: 3)
+private let nov4 = Day(year: 2026, month: 11, day: 4)
+
+/// A goal to lose from 90 to 80 kg at 0.5 kg a week, started 3 Nov.
+private let loseToEighty = WeightGoal(
+    startWeight: 90.0,
+    startDay: nov3,
+    goalWeight: 80.0,
+    pace: .rate(kilogramsPerWeek: 0.5)
+)
+
+/// One Weigh-in at 07:00 on each of 3, 4 and 5 Nov, of `kilograms` in that order.
+private func weighInsOnThirdToFifth(_ kilograms: [Double]) -> [WeighIn] {
+    zip([3, 4, 5], kilograms).map { WeighIn(time: at($0, 7), kilograms: $1) }
+}
+
+@Test func aGoalReopenedTodayWithTrendWeightStillPastGoalWeightIsNotReached() {
+    // One Weigh-in of 79.0 today: Trend Weight 79.0, past the 80 Goal Weight. Not reopened it
+    // is Reached; reopened today, with no later Day, it isn't.
+    let weighIns = [WeighIn(time: at(5, 7), kilograms: 79.0)]
+    #expect(bodyView(weighIns: weighIns, goal: loseToEighty).goalCard?.reached == true)
+    let reopened = loseToEighty.reopened(on: nov5)
+    #expect(bodyView(weighIns: weighIns, goal: reopened).goalCard?.reached == false)
+}
+
+@Test func aReopenedGoalIsReachedAgainAfterTrendWeightWentBackAboveGoalWeight() {
+    // Trend Weight: 79.0 on 3 Nov; 79.0 + 0.1 × (95.0 − 79.0) = 80.6 on 4 Nov, above 80; then
+    // 80.6 + 0.1 × (70.0 − 80.6) = 79.54 on 5 Nov, past it again. Reopened on 3 Nov.
+    let view = bodyView(
+        weighIns: weighInsOnThirdToFifth([79.0, 95.0, 70.0]),
+        goal: loseToEighty.reopened(on: nov3)
+    )
+    #expect(view.goalCard?.reached == true)
+}
+
+@Test func aReopenedGoalCountsOnlyDaysAfterTheUndo() {
+    // The same Trend Weights (79.0, 80.6, 79.54), but reopened on 4 Nov: the only later Day,
+    // 5 Nov, is still past Goal Weight, so 4 Nov's 80.6 doesn't count.
+    let view = bodyView(
+        weighIns: weighInsOnThirdToFifth([79.0, 95.0, 70.0]),
+        goal: loseToEighty.reopened(on: nov4)
+    )
+    #expect(view.goalCard?.reached == false)
+}
+
+@Test func aReopenedGoalWhoseTrendWeightStaysPastGoalWeightIsNotReached() {
+    // Trend Weight 79.0 on 3, 4 and 5 Nov, never back above 80. Reopened on 3 Nov.
+    let view = bodyView(
+        weighIns: weighInsOnThirdToFifth([79.0, 79.0, 79.0]),
+        goal: loseToEighty.reopened(on: nov3)
+    )
+    #expect(view.goalCard?.reached == false)
+}
+
+@Test func aReopenedGainGoalIsReachedAgainAfterTrendWeightWentBackBelowGoalWeight() {
+    // Gain 70 → 80. Trend Weight: 81.0 on 3 Nov; 81.0 + 0.1 × (65.0 − 81.0) = 79.4 on 4 Nov,
+    // below 80; then 79.4 + 0.1 × (90.0 − 79.4) = 80.46 on 5 Nov. Reopened on 3 Nov.
+    let gain = WeightGoal(
+        startWeight: 70.0,
+        startDay: nov3,
+        goalWeight: 80.0,
+        pace: .rate(kilogramsPerWeek: 0.25)
+    )
+    let view = bodyView(
+        weighIns: weighInsOnThirdToFifth([81.0, 65.0, 90.0]),
+        goal: gain.reopened(on: nov3)
+    )
+    #expect(view.goalCard?.reached == true)
+}
+
+@Test func reopeningAGoalRecordsTheDayAndKeepsEverythingElse() {
+    let goal = largeStepGoal.changed(on: Day(year: 2026, month: 10, day: 30))
+    let reopened = goal.reopened(on: nov5)
+    #expect(reopened.reopenedDay == nov5)
+    #expect(reopened.startWeight == 88.0 && reopened.goalWeight == 78.0)
+    #expect(reopened.startDay == nov5)
+    #expect(reopened.pace == .rate(kilogramsPerWeek: 0.5))
+    #expect(reopened.changedDay == Day(year: 2026, month: 10, day: 30))
+    #expect(reopened.milestoneStep == .large)
+    #expect(WeightGoal.hold(at: 78, band: 1.5, on: nov5).reopened(on: nov5).holdBand == 1.5)
+}
+
+@Test func aGoalNeverReopenedHasNoReopenedDay() {
+    #expect(loseToEighty.reopenedDay == nil)
+}

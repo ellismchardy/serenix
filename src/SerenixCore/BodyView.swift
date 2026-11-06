@@ -99,6 +99,12 @@ public struct BodyView: Equatable, Sendable {
                 )
             }
         }
+        // A goal reopened by Undo counts as Reached again only once Trend Weight has been back
+        // on Start Weight's side on a Day after the Undo (spec 014, Reached).
+        let reachable =
+            goal.reopenedDay.map { reopened in
+                points.contains { $0.day > reopened && !goal.isReached(by: $0.trendWeight) }
+            } ?? true
         return GoalCard(
             goal: goal,
             trendWeight: latest,
@@ -106,6 +112,7 @@ public struct BodyView: Equatable, Sendable {
             weighInSpan: weighInSpan,
             today: today,
             ease: ease,
+            reachable: reachable,
             units: units
         )
     }
@@ -117,9 +124,11 @@ public struct BodyView: Equatable, Sendable {
     }
 
     /// Why `goal` can't be saved now; nil when it can. Adds to `WeightGoal.refusal(units:)` the
-    /// date rule, which needs Trend Weight: a date Pace can't be earlier than the 1%-a-week Day.
+    /// rules that need Trend Weight: Goal Weight not already reached, and a date Pace no earlier
+    /// than the 1%-a-week Day.
     public func goalRefusal(_ goal: WeightGoal) -> GoalRefusal? {
         if let refusal = goal.refusal(units: units) { return refusal }
+        if let trendWeight, goal.isReached(by: trendWeight) { return .alreadyReached }
         guard case .date(let day) = goal.pace else { return nil }
         guard let dates = goalDates(goalWeight: goal.goalWeight), day >= dates.earliest else {
             return .dateTooEarly

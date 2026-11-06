@@ -66,15 +66,19 @@ public struct WeightGoal: Equatable, Codable, Sendable {
     public let startDay: Day
     public let goalWeight: Double
     /// Nil for a goal that holds weight.
-    public let pace: GoalPace?
+    public private(set) var pace: GoalPace?
     /// The Day it was last edited (easing included); nil when never. Optional, so goals stored
     /// before it existed still decode (ADR 0008).
-    public let changedDay: Day?
+    public private(set) var changedDay: Day?
     /// How far apart its Milestones are; nil is the medium step. Optional, so older goals decode.
     public let milestoneStep: MilestoneStep?
     /// For a goal that holds weight: kg either side of Goal Weight; nil for lose and gain.
     /// Optional, so older goals decode.
     public let holdBand: Double?
+    /// The Day it was reopened by Undo after Reached; nil when never. It is Reached again only
+    /// once Trend Weight has been back on Start Weight's side on a later Day (spec 014). Optional,
+    /// so older goals decode.
+    public private(set) var reopenedDay: Day?
 
     public init(
         startWeight: Double,
@@ -83,7 +87,8 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         pace: GoalPace?,
         changedDay: Day? = nil,
         milestoneStep: MilestoneStep? = nil,
-        holdBand: Double? = nil
+        holdBand: Double? = nil,
+        reopenedDay: Day? = nil
     ) {
         self.startWeight = startWeight
         self.startDay = startDay
@@ -92,6 +97,24 @@ public struct WeightGoal: Equatable, Codable, Sendable {
         self.changedDay = changedDay
         self.milestoneStep = milestoneStep
         self.holdBand = holdBand
+        self.reopenedDay = reopenedDay
+    }
+
+    /// This goal reopened by Undo on `day`, everything else kept (spec 014, Reached).
+    public func reopened(on day: Day) -> WeightGoal {
+        var goal = self
+        goal.reopenedDay = day
+        return goal
+    }
+
+    /// Whether `trendWeight` has reached Goal Weight: at or below to lose, at or above to gain;
+    /// never for a hold.
+    func isReached(by trendWeight: Double) -> Bool {
+        switch direction {
+        case .lose: trendWeight <= goalWeight
+        case .gain: trendWeight >= goalWeight
+        case .hold: false
+        }
     }
 
     /// This goal as saved over `current` on `day`: marked as changed that Day when it aims
@@ -102,28 +125,16 @@ public struct WeightGoal: Equatable, Codable, Sendable {
             startWeight == current.startWeight && startDay == current.startDay
             && goalWeight == current.goalWeight && pace == current.pace
             && holdBand == current.holdBand
-        return WeightGoal(
-            startWeight: startWeight,
-            startDay: startDay,
-            goalWeight: goalWeight,
-            pace: pace,
-            changedDay: aimsTheSame ? current.changedDay : day,
-            milestoneStep: milestoneStep,
-            holdBand: holdBand
-        )
+        var goal = self
+        goal.changedDay = aimsTheSame ? current.changedDay : day
+        return goal
     }
 
     /// This goal marked as edited on `day`.
     public func changed(on day: Day) -> WeightGoal {
-        WeightGoal(
-            startWeight: startWeight,
-            startDay: startDay,
-            goalWeight: goalWeight,
-            pace: pace,
-            changedDay: day,
-            milestoneStep: milestoneStep,
-            holdBand: holdBand
-        )
+        var goal = self
+        goal.changedDay = day
+        return goal
     }
 
     /// Hold with a hold band; otherwise lose when Goal Weight is below Start Weight, else gain.
@@ -180,7 +191,8 @@ public struct GoalCard: Equatable, Sendable {
     /// Where Trend Weight sits against a hold goal's band; nil for lose and gain.
     public let holdState: HoldState?
 
-    /// `weighInSpan` is the Days from the first counted Weigh-in to the latest.
+    /// `weighInSpan` is the Days from the first counted Weigh-in to the latest. `reachable` is
+    /// false for a reopened goal whose Trend Weight hasn't been back on Start Weight's side since.
     init(
         goal: WeightGoal,
         trendWeight: Double,
@@ -188,16 +200,13 @@ public struct GoalCard: Equatable, Sendable {
         weighInSpan: Int,
         today: Day,
         ease: GoalEase? = nil,
+        reachable: Bool = true,
         units: WeightUnits
     ) {
         self.ease = ease
         milestones = Milestone.all(for: goal, trendWeight: trendWeight, units: units)
         progress = GoalProgress(goal: goal, trendWeight: trendWeight)
-        switch goal.direction {
-        case .lose: reached = trendWeight <= goal.goalWeight
-        case .gain: reached = trendWeight >= goal.goalWeight
-        case .hold: reached = false
-        }
+        reached = reachable && goal.isReached(by: trendWeight)
         holdState = goal.holdBand.map { band in
             trendWeight > goal.goalWeight + band
                 ? .aboveBand : trendWeight < goal.goalWeight - band ? .belowBand : .inBand
@@ -239,6 +248,8 @@ public enum GoalRefusal: Equatable, Sendable {
     case rateNotOffered
     case dateTooEarly
     case bandNotOffered
+    /// Trend Weight is already at or past Goal Weight, so the goal would end as Reached at once.
+    case alreadyReached
 
     public var message: String {
         switch self {
@@ -247,6 +258,7 @@ public enum GoalRefusal: Equatable, Sendable {
         case .rateNotOffered: "Pick one of the Paces offered."
         case .dateTooEarly: "Pick a date no earlier than a 1%-a-week Pace allows."
         case .bandNotOffered: "Pick one of the bands offered."
+        case .alreadyReached: "Your Trend Weight is already past this Goal Weight."
         }
     }
 }
@@ -456,20 +468,13 @@ extension WeightGoal {
     /// This goal with the offered easier Pace, marked as changed on `day`; its start and Goal
     /// Weight stay.
     public func eased(by ease: GoalEase, on day: Day) -> WeightGoal {
-        let pace: GoalPace =
+        var goal = changed(on: day)
+        goal.pace =
             switch ease {
             case .rate(let kilogramsPerWeek): .rate(kilogramsPerWeek: kilogramsPerWeek)
             case .date(let day): .date(day)
             }
-        return WeightGoal(
-            startWeight: startWeight,
-            startDay: startDay,
-            goalWeight: goalWeight,
-            pace: pace,
-            changedDay: day,
-            milestoneStep: milestoneStep,
-            holdBand: holdBand
-        )
+        return goal
     }
 }
 

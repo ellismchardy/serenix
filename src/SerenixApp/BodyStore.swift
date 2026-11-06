@@ -132,6 +132,28 @@ final class BodyStore: ObservableObject {
         change { context in try Self.endCurrentGoal(in: context, reason: reason) }
     }
 
+    /// Undo after Reached: reopens the Weight Goal that ended last as Reached, marked reopened on
+    /// `day` so it isn't Reached again at once (spec 014). Refused while another goal is current.
+    func reopenReachedGoal(on day: Day) {
+        change { context in
+            guard try Self.currentGoal(in: context) == nil else {
+                throw BodyStoreError("Another Weight Goal is current, so this one can't reopen.")
+            }
+            let reached = GoalEnd.reached.rawValue
+            var descriptor = FetchDescriptor<StoredWeightGoal>(
+                predicate: #Predicate { $0.endReason == reached },
+                sortBy: [SortDescriptor(\.endedAt, order: .reverse)]
+            )
+            descriptor.fetchLimit = 1
+            guard let stored = try context.fetch(descriptor).first else {
+                throw BodyStoreError("There's no reached Weight Goal to reopen.")
+            }
+            stored.goalJSON = try JSONEncoder().encode(stored.goal().reopened(on: day))
+            stored.endedAt = nil
+            stored.endReason = nil
+        }
+    }
+
     private static func currentGoal(in context: ModelContext) throws -> StoredWeightGoal? {
         try context.fetch(
             FetchDescriptor<StoredWeightGoal>(predicate: #Predicate { $0.endedAt == nil })

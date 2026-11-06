@@ -109,6 +109,13 @@ warnings when that Pace is too fast.
 - **Reached**: when Trend Weight reaches Goal Weight (at or below for lose, at or above for gain),
   the Weight Goal is Reached and ends, a short celebration shows, and one tap starts a hold
   Weight Goal at that weight. A single Weigh-in past Goal Weight isn't enough on its own.
+  - The celebration also offers **Undo**, since a mistyped Weigh-in can pull Trend Weight past
+    Goal Weight. Undo reopens the Weight Goal as it was. A reopened goal is Reached again only
+    once Trend Weight has been back on Start Weight's side of Goal Weight on a Day after the
+    Undo, so it doesn't end again at once before the Weigh-in is fixed.
+  - A lose or gain Weight Goal whose Goal Weight Trend Weight has already reached (at or above
+    Trend Weight to lose, at or below to gain) can't be saved: "Your Trend Weight is already
+    past this Goal Weight."
 - **Projected date**: today plus the weeks Trend Weight needs at Weekly Rate. Shown only after
   Settling in, with Weekly Rate non-zero and toward Goal Weight. The Goal card shows it beside
   the **planned date** (the chosen date, or for a rate Pace, today plus the weeks left at Pace).
@@ -211,6 +218,11 @@ Progress and goals
 - [ ] Trend Weight reaching Goal Weight marks the Weight Goal Reached and ended, and offers a
       hold Weight Goal at that weight; a raw Weigh-in below Goal Weight with Trend Weight above it
       does not.
+- [ ] Undo after Reached reopens the Weight Goal; with Trend Weight still past Goal Weight it
+      isn't Reached, and it is Reached again only after Trend Weight has been back on Start
+      Weight's side on a Day after the Undo.
+- [ ] At Trend Weight 80 kg, a lose goal to 80 or 82 kg and a gain goal to 80 or 78 kg are
+      refused as already reached; a lose goal to 79.9 kg can be saved.
 - [ ] The projected date is hidden during Settling in and when Weekly Rate is zero or away from
       Goal Weight; at 83 kg, Goal 78, Weekly Rate −0.5 it is 10 weeks after today.
 - [ ] A hold Weight Goal at 78 ± 1 kg shows In band at 78.9, Above band at 79.1, Below band at

@@ -94,6 +94,10 @@ struct BodyScreen: View {
                         )
                     }
                 }
+                // A mistyped Weigh-in can end a goal; Undo reopens it as it was (spec 014).
+                Button("Undo") {
+                    store.reopenReachedGoal(on: Day(containing: Date(), in: .current))
+                }
                 Button("Not now", role: .cancel) {}
             } message: {
                 Text("Your Trend Weight reached your Goal Weight.")

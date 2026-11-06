@@ -121,10 +121,21 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
       `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightGoalSheet.swift`, `src/SerenixApp/BodyStore.swift`
     - Tests in `WeightGoalTests.swift`. After review: the celebration shows only once the end is
       saved; a hold starts today and the sheet hides Start in Hold mode.
-    - Open (asked the owner): refuse saving a goal Trend Weight has already reached? Offer Undo
-      in the celebration, since one mistyped Weigh-in can end a goal for good?
+    - Owner's decision (spec updated): refuse an already-reached goal, and offer Undo; done in
+      task 11a.
     - Done when: criteria "Reached on Trend Weight, not a raw Weigh-in", "hold at 78 ± 1",
       "changing direction ends the goal and keeps it".
+11a. [x] **Slice:** Undo Reached, and refuse an already-reached goal. `GoalRefusal.alreadyReached`
+    from `BodyView.goalRefusal`; `WeightGoal.reopenedDay` and `reopened(on:)`, and a reopened
+    goal is Reached again only after Trend Weight is back on Start Weight's side on a later Day.
+    Shell: Undo in the celebration reopens the goal (`BodyStore.reopenReachedGoal`).
+    - Seam: Body view · Files: `WeightGoal.swift`, `BodyView.swift`, `WeightGoalTests.swift`,
+      `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/BodyStore.swift`
+    - After review: `WeightGoal`'s copies are copy-then-modify, so no copy can drop a field;
+      reopening with nothing to reopen tells the user. Open (asked the owner): while a reopened
+      goal's Trend Weight is still past Goal Weight, editing it (Pace only, say) is refused as
+      already reached until the Weigh-in is fixed.
+    - Done when: criteria "Undo reopens …" and "refused as already reached".
 12. [ ] **Slice:** projected and planned dates. Projection from Weekly Rate, hidden during
     Settling in or when Weekly Rate is zero or away; planned date; "All" extends to the
     projection. Shell: the Goal card dates and the dashed projection.
