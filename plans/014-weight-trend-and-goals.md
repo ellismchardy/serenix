@@ -132,15 +132,19 @@ New tests go in `tests/SerenixCoreTests/BodyViewTests.swift` and
     - Seam: Body view · Files: `WeightGoal.swift`, `BodyView.swift`, `WeightGoalTests.swift`,
       `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/BodyStore.swift`
     - After review: `WeightGoal`'s copies are copy-then-modify, so no copy can drop a field;
-      reopening with nothing to reopen tells the user. Open (asked the owner): while a reopened
-      goal's Trend Weight is still past Goal Weight, editing it (Pace only, say) is refused as
+      reopening with nothing to reopen tells the user. Owner's decision: while a reopened goal's
+      Trend Weight is still past Goal Weight, editing it (Pace only, say) stays refused as
       already reached until the Weigh-in is fixed.
     - Done when: criteria "Undo reopens …" and "refused as already reached".
-12. [ ] **Slice:** projected and planned dates. Projection from Weekly Rate, hidden during
+12. [x] **Slice:** projected and planned dates. Projection from Weekly Rate, hidden during
     Settling in or when Weekly Rate is zero or away; planned date; "All" extends to the
     projection. Shell: the Goal card dates and the dashed projection.
     - Seam: Body view · Files: `BodyView.swift`, `BodyViewTests.swift`,
       `src/SerenixApp/BodyScreen.swift`, `src/SerenixApp/WeightChartCard.swift`
+    - Done: `projectedDay` and `plannedDay` on `GoalCard` in `WeightGoal.swift`, tests in
+      `WeightGoalTests.swift` (they need a goal, like tasks 9–11). The chart also gained its
+      dashed Goal Weight line. After review: one `GoalDates.arrival` works out every projected,
+      planned, picked and eased date.
     - Done when: criterion "projection hidden …; 10 weeks at 83 kg, Goal 78, −0.5".
 13. [ ] **Slice:** JSON backup and import. `BodyDataFile` encodes all Body data (versioned) and
     decodes it; an import adds new entries and skips exact duplicates, with counts; an

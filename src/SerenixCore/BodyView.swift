@@ -203,11 +203,30 @@ public struct BodyView: Equatable, Sendable {
 
     /// The chart over `range`, ending today (spec 014, Screen); nil with no Weigh-ins, when the
     /// screen shows "Log your first Weigh-in" instead.
+    /// It marks Goal Weight, and "All" runs on to the projected Day with a projection from the
+    /// latest Trend Weight.
     public func chart(_ range: ChartRange) -> WeightChart? {
         guard let first = trend.first else { return nil }
         let firstDay = range.days.map { today.adding(days: 1 - $0) } ?? first.day
         let points = trend.filter { $0.day >= firstDay && $0.day <= today }
-        return WeightChart(firstDay: firstDay, lastDay: today, points: points)
+        var projection: ChartProjection?
+        if range == .all, let card = goalCard, let projected = card.projectedDay,
+            let latest = points.last
+        {
+            projection = ChartProjection(
+                from: latest.day,
+                fromWeight: latest.trendWeight,
+                to: projected,
+                toWeight: card.goal.goalWeight
+            )
+        }
+        return WeightChart(
+            firstDay: firstDay,
+            lastDay: projection?.to ?? today,
+            points: points,
+            goalWeight: goalCard?.goal.goalWeight,
+            projection: projection
+        )
     }
 }
 
@@ -238,13 +257,27 @@ public enum ChartRange: CaseIterable, Sendable {
     }
 }
 
-/// The Body tab's chart over one range: Trend Weight points from `firstDay` to `lastDay` (today).
+/// The Body tab's chart over one range: Trend Weight points from `firstDay` to `lastDay` (today,
+/// or the projected Day on "All").
 public struct WeightChart: Equatable, Sendable {
     public let firstDay: Day
     public let lastDay: Day
     /// Oldest first.
     public let points: [TrendPoint]
+    /// The current goal's Goal Weight, drawn as a dashed line; nil with no goal.
+    public let goalWeight: Double?
+    /// The dashed projection, on "All" only, when there's a projected Day.
+    public let projection: ChartProjection?
 
     /// One point is a dot with no line; two or more draw Trend Weight's line.
     public var showsLine: Bool { points.count >= 2 }
+}
+
+/// The chart's dashed projection: from the latest Trend Weight to Goal Weight on the projected
+/// Day (spec 014, Screen).
+public struct ChartProjection: Equatable, Sendable {
+    public let from: Day
+    public let fromWeight: Double
+    public let to: Day
+    public let toWeight: Double
 }

@@ -1027,3 +1027,206 @@ private func weighInsOnThirdToFifth(_ kilograms: [Double]) -> [WeighIn] {
 @Test func aGoalNeverReopenedHasNoReopenedDay() {
     #expect(loseToEighty.reopenedDay == nil)
 }
+
+// Projected and planned dates (spec 014, Progress → Projected date; Screen → chart). The
+// projected Day is today plus the Days Trend Weight needs at Weekly Rate to reach Goal Weight,
+// rounded up, shown only after Settling in with Weekly Rate non-zero and toward Goal Weight. The
+// planned Day is a date Pace's date, or for a rate Pace today plus the Days left at Pace, rounded
+// up. Weigh-ins on 22 Oct, 29 Oct and 5 Nov are 7 Days apart, so each moves Trend Weight
+// 1 − 0.9^7 = 1 − 0.4782969 = 0.5217031 of the way to it, and Weekly Rate counts from 29 Oct.
+
+/// A Weigh-in of `kilograms` at 07:00 UTC on `day`.
+private func weighIn(on day: Day, _ kilograms: Double) -> WeighIn {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC")!
+    let time = calendar.date(
+        from: DateComponents(year: day.year, month: day.month, day: day.dayOfMonth, hour: 7)
+    )!
+    return WeighIn(time: time, kilograms: kilograms)
+}
+
+private let oct29 = Day(year: 2026, month: 10, day: 29)
+private let dec3 = Day(year: 2026, month: 12, day: 3)
+private let jan14 = Day(year: 2027, month: 1, day: 14)
+
+/// 83.5 kg on 22 and 29 Oct (Trend Weight stays 83.5), then 82.54 kg today: Trend Weight
+/// 83.5 + 0.5217031 × (82.54 − 83.5) = 83.5 − 0.500834976 = 82.999165024 kg, and Weekly Rate
+/// −0.500834976 kg a week. The Weigh-ins span 14 Days.
+private let nearlyEightyThreeLosingHalfAKilogram = [
+    weighIn(on: oct22, 83.5), weighIn(on: oct29, 83.5), weighIn(on: nov5, 82.54),
+]
+
+/// 70.0 kg on 22 and 29 Oct, 71.0 today: Trend Weight 70.5217031, Weekly Rate +0.5217031.
+private let seventyAndRisingHalfAKilogram = [
+    weighIn(on: oct22, 70.0), weighIn(on: oct29, 70.0), weighIn(on: nov5, 71.0),
+]
+
+/// The criterion's goal: lose from 83.5 to 78 kg at 0.5 kg a week, started 22 Oct (14 Days old).
+private let loseToSeventyEight = WeightGoal(
+    startWeight: 83.5,
+    startDay: oct22,
+    goalWeight: 78.0,
+    pace: .rate(kilogramsPerWeek: 0.5)
+)
+
+@Test func atEightyThreeKilogramsLosingHalfAKilogramAWeekTheProjectedDayIsTenWeeksAway() {
+    // (82.999165024 − 78) / 0.500834976 = 9.98166… weeks × 7 = 69.87 Days → 70 → 14 Jan 2027.
+    let view = bodyView(weighIns: nearlyEightyThreeLosingHalfAKilogram, goal: loseToSeventyEight)
+
+    #expect(view.goalCard?.projectedDay == jan14)
+}
+
+@Test func aGainGoalsProjectedDayCountsWeeklyRateUpward() {
+    // (75 − 70.5217031) / 0.5217031 = 8.5839952 weeks × 7 = 60.09 Days → 61 → 5 Jan 2027.
+    let gain = WeightGoal(
+        startWeight: 70.0,
+        startDay: oct22,
+        goalWeight: 75.0,
+        pace: .rate(kilogramsPerWeek: 0.25)
+    )
+    let view = bodyView(weighIns: seventyAndRisingHalfAKilogram, goal: gain)
+
+    #expect(view.goalCard?.projectedDay == Day(year: 2027, month: 1, day: 5))
+}
+
+@Test func thereIsNoProjectedDayWhileSettlingIn() {
+    // The same Weigh-ins, but the goal started 23 Oct: 13 Days old, so Settling in.
+    let settling = WeightGoal(
+        startWeight: 83.5,
+        startDay: oct23,
+        goalWeight: 78.0,
+        pace: .rate(kilogramsPerWeek: 0.5)
+    )
+    let card = bodyView(weighIns: nearlyEightyThreeLosingHalfAKilogram, goal: settling).goalCard
+
+    #expect(card?.status == .settlingIn(day: 13))
+    #expect(card?.projectedDay == nil)
+}
+
+@Test func thereIsNoProjectedDayWhenWeeklyRateIsZero() {
+    // Flat 80s from 22 Oct with a goal from 22 Oct: settled, Weekly Rate 0.
+    let card = bodyView(
+        weighIns: flatEighties(from: oct22),
+        goal: loseHalfAKilogramAWeek(from: oct22)
+    ).goalCard
+
+    #expect(card?.status == .badge(.offPace))
+    #expect(card?.projectedDay == nil)
+}
+
+@Test func thereIsNoProjectedDayWhenWeeklyRateIsAwayFromGoalWeight() {
+    // Trend Weight 70.5217031 rising, away from a 65 Goal Weight.
+    let lose = WeightGoal(
+        startWeight: 75.0,
+        startDay: oct22,
+        goalWeight: 65.0,
+        pace: .rate(kilogramsPerWeek: 0.5)
+    )
+    let card = bodyView(weighIns: seventyAndRisingHalfAKilogram, goal: lose).goalCard
+
+    #expect(card?.status == .badge(.offPace))
+    #expect(card?.projectedDay == nil)
+}
+
+@Test func aReachedGoalHasNoProjectedDay() {
+    // 77.0 on 22 and 29 Oct, 76.0 today: Trend Weight 77.0 − 0.5217031 = 76.4782969, below the
+    // 78 Goal Weight, so Reached, though Weekly Rate (−0.5217031) still points past it.
+    let card = bodyView(
+        weighIns: [weighIn(on: oct22, 77.0), weighIn(on: oct29, 77.0), weighIn(on: nov5, 76.0)],
+        goal: loseToSeventyEight
+    ).goalCard
+
+    #expect(card?.reached == true)
+    #expect(card?.projectedDay == nil)
+}
+
+@Test func aHoldGoalHasNoProjectedOrPlannedDay() {
+    let holdCard = card(WeightGoal.hold(at: 78, on: nov5), trend: 78.5)
+
+    #expect(holdCard != nil)
+    #expect(holdCard?.projectedDay == nil)
+    #expect(holdCard?.plannedDay == nil)
+}
+
+/// Whether `status` is Settling in, on any Day.
+private func isSettlingIn(_ status: PaceStatus?) -> Bool {
+    guard case .settlingIn = status else { return false }
+    return true
+}
+
+@Test func aRatePacesPlannedDayIsTheDaysLeftAtPaceEvenWhileSettlingIn() {
+    // Trend Weight 80.0, Goal Weight 78, 0.5 kg a week: 2 / 0.5 = 4 weeks = 28 Days → 3 Dec.
+    // The goal started today, so it is Settling in.
+    let rateCard = card(rateGoal(80.0, 78.0, rate: 0.5), trend: 80.0)
+
+    #expect(isSettlingIn(rateCard?.status))
+    #expect(rateCard?.plannedDay == dec3)
+}
+
+@Test func aRatePacesPlannedDayRoundsUpToAWholeDay() {
+    // Trend Weight 80.0, Goal Weight 78, 0.75 kg a week: 2 / 0.75 × 7 = 18.67 Days → 19 → 24 Nov.
+    let rateCard = card(rateGoal(80.0, 78.0, rate: 0.75), trend: 80.0)
+
+    #expect(rateCard?.plannedDay == Day(year: 2026, month: 11, day: 24))
+}
+
+@Test func aDatePacesPlannedDayIsItsDate() {
+    #expect(bodyView(goal: dateGoal(by: dec10)).goalCard?.plannedDay == dec10)
+}
+
+// The chart with a Weight Goal (spec 014, Screen: "a dashed line marks Goal Weight; 'All'
+// extends to the projected date with a dashed projection").
+
+@Test func everyChartRangeMarksGoalWeight() {
+    let view = bodyView(weighIns: nearlyEightyThreeLosingHalfAKilogram, goal: loseToSeventyEight)
+
+    for range in ChartRange.allCases {
+        #expect(view.chart(range)?.goalWeight == 78.0)
+    }
+}
+
+@Test func withNoGoalTheChartMarksNoGoalWeight() {
+    let view = bodyView(weighIns: nearlyEightyThreeLosingHalfAKilogram)
+
+    for range in ChartRange.allCases {
+        #expect(view.chart(range) != nil)
+        #expect(view.chart(range)?.goalWeight == nil)
+    }
+}
+
+@Test func theAllChartRunsOnToTheProjectedDayWithAProjectionFromTodaysTrendWeight() {
+    // Projected Day 14 Jan 2027 (as in the criterion test above).
+    let chart = bodyView(
+        weighIns: nearlyEightyThreeLosingHalfAKilogram,
+        goal: loseToSeventyEight
+    ).chart(.all)
+
+    #expect(chart?.firstDay == oct22)
+    #expect(chart?.lastDay == jan14)
+    #expect(chart?.projection?.from == nov5)
+    #expect(isClose(chart?.projection?.fromWeight, 82.999165024))
+    #expect(chart?.projection?.to == jan14)
+    #expect(chart?.projection?.toWeight == 78.0)
+}
+
+@Test(arguments: [ChartRange.week, .month, .threeMonths, .sixMonths])
+func otherChartRangesEndTodayWithNoProjection(range: ChartRange) {
+    let chart = bodyView(
+        weighIns: nearlyEightyThreeLosingHalfAKilogram,
+        goal: loseToSeventyEight
+    ).chart(range)
+
+    #expect(chart?.lastDay == nov5)
+    #expect(chart?.projection == nil)
+}
+
+@Test func withNoProjectedDayTheAllChartEndsTodayWithNoProjection() {
+    // Flat 80s: Weekly Rate 0, so no projected Day.
+    let chart = bodyView(
+        weighIns: flatEighties(from: oct22),
+        goal: loseHalfAKilogramAWeek(from: oct22)
+    ).chart(.all)
+
+    #expect(chart?.lastDay == nov5)
+    #expect(chart?.projection == nil)
+}

@@ -174,6 +174,15 @@ struct BodyScreen: View {
                         .font(.caption)
                     }
                     if let band = card.paceBand { BandLabel(band: band) }
+                    // The planned Day beside the projected one (spec 014, Projected date).
+                    if let planned = card.plannedDay {
+                        Text("Planned \(Self.shown(planned))").font(.caption)
+                    }
+                    if let projected = card.projectedDay {
+                        Text("Projected \(Self.shown(projected))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()

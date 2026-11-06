@@ -33,8 +33,32 @@ struct WeightChartCard: View {
                             .foregroundStyle(Theme.accentMiddle)
                         }
                     }
+                    // Goal Weight as a dashed line, and on "All" the dashed projection to it.
+                    if let goalWeight = chart.goalWeight {
+                        RuleMark(y: .value("Goal Weight", units.chartValue(goalWeight)))
+                            .foregroundStyle(.secondary)
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    }
+                    if let projection = chart.projection {
+                        ForEach(
+                            [
+                                (projection.from, projection.fromWeight),
+                                (projection.to, projection.toWeight),
+                            ],
+                            id: \.0
+                        ) { day, weight in
+                            LineMark(
+                                x: .value("Day", date(day)),
+                                y: .value("Projection", units.chartValue(weight)),
+                                series: .value("Line", "projection")
+                            )
+                            .foregroundStyle(Theme.accent.opacity(0.6))
+                            .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 4]))
+                        }
+                    }
                 }
-                // From the first Day's start to the end of today, with each dot at its Day's
+                // From the first Day's start to the end of the last (today, or the projected Day
+                // on "All"), with each dot at its Day's
                 // midday, so no dot sits on the edge and one Weigh-in still has room.
                 .chartXScale(
                     domain: date(chart.firstDay, hour: 0)...date(chart.lastDay, hour: 24)

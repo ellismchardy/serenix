@@ -190,6 +190,12 @@ public struct GoalCard: Equatable, Sendable {
     public let reached: Bool
     /// Where Trend Weight sits against a hold goal's band; nil for lose and gain.
     public let holdState: HoldState?
+    /// The Day Trend Weight reaches Goal Weight at Weekly Rate; nil while Settling in, with
+    /// Weekly Rate missing, zero or away from Goal Weight, for a hold, or once reached (spec 014).
+    public let projectedDay: Day?
+    /// The Day the goal plans to reach Goal Weight: a date Pace's date, or the Days left at a
+    /// rate Pace; nil for a hold or once reached.
+    public let plannedDay: Day?
 
     /// `weighInSpan` is the Days from the first counted Weigh-in to the latest. `reachable` is
     /// false for a reopened goal whose Trend Weight hasn't been back on Start Weight's side since.
@@ -207,6 +213,17 @@ public struct GoalCard: Equatable, Sendable {
         milestones = Milestone.all(for: goal, trendWeight: trendWeight, units: units)
         progress = GoalProgress(goal: goal, trendWeight: trendWeight)
         reached = reachable && goal.isReached(by: trendWeight)
+        let left = goal.isReached(by: trendWeight) ? 0 : abs(trendWeight - goal.goalWeight)
+        switch goal.pace {
+        case .date(let day) where left > 0: plannedDay = day
+        case .rate(let kilogramsPerWeek) where left > 0:
+            plannedDay = GoalDates.arrival(
+                from: today,
+                covering: left,
+                atKilogramsPerWeek: kilogramsPerWeek
+            )
+        default: plannedDay = nil
+        }
         holdState = goal.holdBand.map { band in
             trendWeight > goal.goalWeight + band
                 ? .aboveBand : trendWeight < goal.goalWeight - band ? .belowBand : .inBand
@@ -238,7 +255,19 @@ public struct GoalCard: Equatable, Sendable {
             paceBand = nil
             status = nil
         }
+        // Only after Settling in, with Trend Weight moving toward Goal Weight (spec 014).
+        if case .badge = status, let weeklyRate, left > 0 {
+            let toward = goal.direction == .lose ? -weeklyRate : weeklyRate
+            projectedDay = GoalDates.arrival(
+                from: today,
+                covering: left,
+                atKilogramsPerWeek: toward
+            )
+        } else {
+            projectedDay = nil
+        }
     }
+
 }
 
 /// Why a Weight Goal can't be saved (spec 014, Weight Goal).
@@ -328,13 +357,30 @@ public struct GoalDates: Equatable, Sendable {
         let change = abs(trendWeight - goalWeight)
         guard change > 0 else { return nil }
         func day(atPercent percent: Double) -> Day {
-            let weeks = change / (trendWeight * percent / 100)
-            // Less a hair, so float noise (35.0000000001 Days) never adds a whole Day.
-            return today.adding(days: Int((weeks * 7 - Self.dayTolerance).rounded(.up)))
+            // A positive rate always arrives.
+            Self.arrival(
+                from: today,
+                covering: change,
+                atKilogramsPerWeek: trendWeight * percent / 100
+            ) ?? today
         }
         earliest = day(atPercent: PaceBand.aggressivePercent)
         halfPercent = day(atPercent: Self.halfPercentPace)
         threeQuarterPercent = day(atPercent: Self.threeQuarterPercentPace)
+    }
+
+    /// The Day `left` kg is covered from `today` at `kilogramsPerWeek`, rounded up to a whole
+    /// Day; nil unless the rate is positive. Every projected, planned and picked date uses it.
+    static func arrival(
+        from today: Day,
+        covering left: Double,
+        atKilogramsPerWeek kilogramsPerWeek: Double
+    ) -> Day? {
+        guard kilogramsPerWeek > 0 else { return nil }
+        // Less a hair, so float noise (35.0000000001 Days) never adds a whole Day.
+        return today.adding(
+            days: Int((left / kilogramsPerWeek * 7 - dayTolerance).rounded(.up))
+        )
     }
 }
 
@@ -448,9 +494,13 @@ public enum GoalEase: Equatable, Sendable {
             guard let weeklyRate else { return nil }
             let toward = goal.direction == .lose ? -weeklyRate : weeklyRate
             let left = abs(trendWeight - goal.goalWeight)
-            guard toward > 0, left > 0 else { return nil }
-            let days = Int((left / toward * 7 - GoalDates.dayTolerance).rounded(.up))
-            let projected = today.adding(days: days)
+            guard left > 0,
+                let projected = GoalDates.arrival(
+                    from: today,
+                    covering: left,
+                    atKilogramsPerWeek: toward
+                )
+            else { return nil }
             // Never earlier than a 1%-a-week Pace allows, as the goal sheet requires.
             let earliest = GoalDates(
                 trendWeight: trendWeight,
