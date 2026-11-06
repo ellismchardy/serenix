@@ -33,6 +33,22 @@ final class StoredFoodEntry {
     }
 }
 
+/// One Day the user marked complete (spec 016), by its local calendar date.
+@Model
+final class StoredCompleteDay {
+    var year: Int
+    var month: Int
+    var dayOfMonth: Int
+
+    init(_ day: Day) {
+        year = day.year
+        month = day.month
+        dayOfMonth = day.dayOfMonth
+    }
+
+    var day: Day { Day(year: year, month: month, day: dayOfMonth) }
+}
+
 /// One stored Food Entry with the ID of its row, so editing or deleting it touches that row only.
 struct FoodEntryRow: Identifiable, Equatable {
     let id: PersistentIdentifier
@@ -47,6 +63,8 @@ struct FoodEntryRow: Identifiable, Equatable {
 final class FoodStore: ObservableObject {
     /// Every stored Food Entry with its row ID, newest first.
     @Published private(set) var rows: [FoodEntryRow] = []
+    /// The Days marked complete.
+    @Published private(set) var completeDays: Set<Day> = []
     /// Why the last open or save failed, shown to the user; nil when all is well.
     @Published var failure: String?
     private let context: ModelContext?
@@ -60,11 +78,12 @@ final class FoodStore: ObservableObject {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let configuration = ModelConfiguration(
                 "Food",
-                schema: Schema([StoredFoodEntry.self]),
+                schema: Schema([StoredFoodEntry.self, StoredCompleteDay.self]),
                 url: folder.appending(path: "Food.store")
             )
             let container = try ModelContainer(
                 for: StoredFoodEntry.self,
+                StoredCompleteDay.self,
                 configurations: configuration
             )
             context = ModelContext(container)
@@ -94,12 +113,46 @@ final class FoodStore: ObservableObject {
             stored.fat = new.fat
             stored.carbs = new.carbs
             stored.name = new.name
+            try Self.keepCompleteDaysWithEntries(in: context)
         }
     }
 
-    /// Deletes the Food Entry in row `id`.
+    /// Deletes the Food Entry in row `id`. A Complete Day whose last entry this was is no longer
+    /// complete (spec 016).
     func delete(_ id: PersistentIdentifier) {
-        change { context in context.delete(try Self.stored(id, in: context)) }
+        change { context in
+            context.delete(try Self.stored(id, in: context))
+            try Self.keepCompleteDaysWithEntries(in: context)
+        }
+    }
+
+    /// Marks `day` complete, or not. Only a Day with a Food Entry can be marked (spec 016): the
+    /// Food screen offers the toggle only then, and `FoodView.isComplete` needs an entry anyway.
+    func setComplete(_ complete: Bool, on day: Day) {
+        change { context in
+            let marked = try context.fetch(FetchDescriptor<StoredCompleteDay>())
+                .filter { $0.day == day }
+            if complete {
+                if marked.isEmpty { context.insert(StoredCompleteDay(day)) }
+            } else {
+                for day in marked { context.delete(day) }
+            }
+        }
+    }
+
+    /// Unmarks every Complete Day left with no Food Entry, as the Food view decides.
+    private static func keepCompleteDaysWithEntries(in context: ModelContext) throws {
+        // A just-deleted entry can still be fetched until the save, so it's skipped here.
+        let entries = try context.fetch(FetchDescriptor<StoredFoodEntry>())
+            .filter { !$0.isDeleted }
+            .map(\.entry)
+        let stored = try context.fetch(FetchDescriptor<StoredCompleteDay>())
+        let kept = FoodView.completeDays(
+            Set(stored.map(\.day)),
+            keepingThoseWith: entries,
+            in: .current
+        )
+        for marked in stored where !kept.contains(marked.day) { context.delete(marked) }
     }
 
     private static func check(_ entry: FoodEntry) throws {
@@ -138,6 +191,7 @@ final class FoodStore: ObservableObject {
             rows = try context.fetch(
                 FetchDescriptor<StoredFoodEntry>(sortBy: [SortDescriptor(\.time, order: .reverse)])
             ).map { FoodEntryRow(id: $0.persistentModelID, entry: $0.entry) }
+            completeDays = Set(try context.fetch(FetchDescriptor<StoredCompleteDay>()).map(\.day))
         } catch {
             failure = "Your Food Entries couldn't be read: \(error.localizedDescription)"
         }

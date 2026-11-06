@@ -62,11 +62,14 @@ New tests go in `tests/SerenixCoreTests/FoodViewTests.swift` (new) and the exist
      are built from the limit constants.
    - Done when: criterion "over 5,000 kcal, a macro over 500 g, or in the future is refused; 0
      kcal is accepted".
-3. [ ] **Slice:** Complete Days. `FoodView` says whether the shown Day is complete and whether it
+3. [x] **Slice:** Complete Days. `FoodView` says whether the shown Day is complete and whether it
    can be (not with no entries); a Complete Day with no entries left is not complete. Shell: a
    `StoredCompleteDay` model, the Day complete toggle.
    - Seam: Food view · Files: `FoodView.swift`, `FoodViewTests.swift`, `BodyStore.swift`,
      `FoodScreen.swift`
+   - Built: `StoredCompleteDay` in `Food.store`; after an edit or delete the store keeps only the
+     marked Days that still have an entry (`FoodView.completeDays`), so a re-added entry doesn't
+     bring a mark back. Task 7's import must check Complete Days against the same rule.
    - Done when: criterion "no entries can't be marked; deleting the last entry leaves it not
      complete; editing keeps it complete".
 4. [ ] **Slice:** Calorie Target. Its refusal outside 800–6,000; `FoodView` gives "left" or

@@ -16,6 +16,7 @@ struct FoodScreen: View {
         let today = Day(containing: Date(), in: .current)
         let view = FoodView(
             foodEntries: store.entries,
+            completeDays: store.completeDays,
             day: pickedDay ?? today,
             now: Date(),
             timeZone: .current
@@ -48,6 +49,18 @@ struct FoodScreen: View {
             .themeCard()
             if view.entries.isEmpty {
                 Text("Nothing logged on this Day.").foregroundStyle(.secondary)
+            }
+            // Only a Day with a Food Entry can be marked complete (spec 016).
+            if view.canBeMarkedComplete {
+                Toggle(
+                    "Day complete",
+                    isOn: Binding(
+                        get: { view.isComplete },
+                        set: { store.setComplete($0, on: view.day) }
+                    )
+                )
+                .padding()
+                .themeCard()
             }
             // Tap to edit or delete; holding also offers Delete (spec 016: any Food Entry can be
             // edited or deleted).

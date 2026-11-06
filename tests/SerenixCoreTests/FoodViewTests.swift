@@ -28,8 +28,18 @@ private func at(month: Int = 11, _ day: Int, _ hour: Int, _ minute: Int = 0) -> 
 /// 5 Nov 2026 09:00 in London, after every Food Entry here.
 private let now = at(5, 9)
 
-private func foodView(foodEntries: [FoodEntry], day: Day) -> FoodView {
-    FoodView(foodEntries: foodEntries, day: day, now: now, timeZone: london)
+private func foodView(
+    foodEntries: [FoodEntry],
+    completeDays: Set<Day> = [],
+    day: Day
+) -> FoodView {
+    FoodView(
+        foodEntries: foodEntries,
+        completeDays: completeDays,
+        day: day,
+        now: now,
+        timeZone: london
+    )
 }
 
 @Test func intakeAddsUpADaysFoodEntriesCountingABlankMacroAsZero() {
@@ -168,4 +178,62 @@ func aMacroBelowZeroGramsIsRefused(macro: LimitedMacro) {
 
     #expect(refusal == .inTheFuture)
     #expect(refusal?.message == "A Food Entry can't be in the future.")
+}
+
+// Complete Days (spec 016, "Intake and Complete Days").
+
+private let nov3 = Day(year: 2026, month: 11, day: 3)
+
+@Test func aDayWithNoFoodEntriesCantBeMarkedCompleteAndIsNotCompleteEvenIfMarked() {
+    let view = foodView(foodEntries: [], completeDays: [nov2], day: nov2)
+
+    #expect(view.canBeMarkedComplete == false)
+    #expect(view.isComplete == false)
+}
+
+@Test func aDayWithAFoodEntryCanBeMarkedCompleteAndIsCompleteOnlyOnceMarked() {
+    let entries = [FoodEntry(time: at(2, 13), kilocalories: 650)]
+
+    let marked = foodView(foodEntries: entries, completeDays: [nov2], day: nov2)
+    let unmarked = foodView(foodEntries: entries, day: nov2)
+
+    #expect(marked.canBeMarkedComplete == true)
+    #expect(marked.isComplete == true)
+    #expect(unmarked.canBeMarkedComplete == true)
+    #expect(unmarked.isComplete == false)
+}
+
+@Test func deletingACompleteDaysLastFoodEntryLeavesItNotComplete() {
+    // 3 Nov's last entry has been deleted: only 2 Nov still has one.
+    let remaining = [FoodEntry(time: at(2, 13), kilocalories: 650)]
+
+    let kept = FoodView.completeDays([nov2, nov3], keepingThoseWith: remaining, in: london)
+
+    #expect(kept == [nov2])
+
+    // A new entry on 3 Nov afterwards doesn't bring its old mark back.
+    let laterEntry = FoodEntry(time: at(3, 19), kilocalories: 400)
+    let view = foodView(foodEntries: remaining + [laterEntry], completeDays: kept, day: nov3)
+    #expect(!view.isComplete)
+}
+
+@Test func editingACompleteDaysFoodEntryKeepsItComplete() {
+    // The 2 Nov 13:00 entry of 650 kcal, edited to 18:00 and 720 kcal: still on 2 Nov.
+    let edited = [FoodEntry(time: at(2, 18), kilocalories: 720, protein: 35)]
+
+    let kept = FoodView.completeDays([nov2], keepingThoseWith: edited, in: london)
+    let view = foodView(foodEntries: edited, completeDays: kept, day: nov2)
+
+    #expect(kept == [nov2])
+    #expect(view.isComplete == true)
+}
+
+@Test func aFoodEntryAtHalfPastMidnightLocalKeepsTheNextDayCompleteNotTheOneBefore() {
+    // 20 Oct 2026 is in BST (UTC+1): 23:30 UTC on the 20th is 00:30 local on the 21st, so only
+    // local time puts the entry on the 21st.
+    let afterMidnight = [FoodEntry(time: at(month: 10, 20, 23, 30), kilocalories: 200)]
+
+    let kept = FoodView.completeDays([oct20, oct21], keepingThoseWith: afterMidnight, in: london)
+
+    #expect(kept == [oct21])
 }

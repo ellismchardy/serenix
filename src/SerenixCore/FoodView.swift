@@ -9,14 +9,38 @@ public struct FoodView: Equatable, Sendable {
     public let entries: [FoodEntry]
     /// The shown Day's Food Entries added up.
     public let intake: Intake
+    /// The shown Day is marked complete and has at least one Food Entry.
+    public let isComplete: Bool
+    /// The shown Day has a Food Entry, so it may be marked complete (spec 016).
+    public let canBeMarkedComplete: Bool
 
     /// Each Food Entry counts on the local Day of its time in `timeZone`, as Weigh-ins do.
-    public init(foodEntries: [FoodEntry], day: Day, now: Date, timeZone: TimeZone) {
+    /// `completeDays` are the Days the user marked complete.
+    public init(
+        foodEntries: [FoodEntry],
+        completeDays: Set<Day> = [],
+        day: Day,
+        now: Date,
+        timeZone: TimeZone
+    ) {
         self.day = day
         entries =
             foodEntries
             .filter { Day(containing: $0.time, in: timeZone) == day }
             .sorted { $0.time > $1.time }
         intake = Intake(entries)
+        canBeMarkedComplete = !entries.isEmpty
+        isComplete = canBeMarkedComplete && completeDays.contains(day)
+    }
+
+    /// The marked Days that still have a Food Entry: what the store keeps after an entry is
+    /// deleted or edited, so a Day whose last entry goes is no longer complete, even if an entry
+    /// is added later (spec 016).
+    public static func completeDays(
+        _ marked: Set<Day>,
+        keepingThoseWith foodEntries: [FoodEntry],
+        in timeZone: TimeZone
+    ) -> Set<Day> {
+        marked.intersection(foodEntries.map { Day(containing: $0.time, in: timeZone) })
     }
 }
