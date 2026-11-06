@@ -25,6 +25,8 @@ struct ProfileMenu: View {
     @State private var editsName = false
     @State private var draftName = ""
     @State private var picksImportFile = false
+    /// All Body data for Export, read when the menu opens and after an import, not per redraw.
+    @State private var backup: Result<BodyData, Error>?
     /// What a picked file would import, while its confirmation shows.
     @State private var pendingImport: BodyImport?
     /// Why a picked file can't be imported, while that shows.
@@ -138,18 +140,20 @@ struct ProfileMenu: View {
                 .listRowBackground(Theme.card)
                 // Spec 015, Backup and import: all Body data as one JSON file, and back.
                 Section("Body data") {
-                    switch Result(catching: { try bodyStore.allData() }) {
-                    case .success(let data):
+                    switch backup {
+                    case .success(let data)?:
                         ShareLink(
                             item: BodyBackup(data: data),
                             preview: SharePreview("Serenix Body data")
                         ) {
                             Label("Export Body data", systemImage: "square.and.arrow.up")
                         }
-                    case .failure(let error):
+                    case .failure(let error)?:
                         // Shown in place of the row, so a read failure is never hidden.
                         Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.secondary)
+                    case nil:
+                        EmptyView()
                     }
                     Button {
                         picksImportFile = true
@@ -189,6 +193,7 @@ struct ProfileMenu: View {
                     .accessibilityLabel("Close")
                 }
             }
+            .onAppear { readBackup() }
             .fileImporter(isPresented: $picksImportFile, allowedContentTypes: [.json]) {
                 readImport($0)
             }
@@ -200,7 +205,10 @@ struct ProfileMenu: View {
                 ),
                 presenting: pendingImport
             ) { found in
-                Button("Import") { bodyStore.add(found) }
+                Button("Import") {
+                    bodyStore.add(found)
+                    readBackup()
+                }
                 Button("Cancel", role: .cancel) {}
             } message: { _ in
                 Text(importQuestion)
@@ -245,6 +253,10 @@ struct ProfileMenu: View {
         guard let found = pendingImport else { return "" }
         return "Add \(found.weighInsToAdd.count) Weigh-ins and \(found.goalsToAdd.count) "
             + "Weight Goals? \(found.skipped) already here will be skipped."
+    }
+
+    private func readBackup() {
+        backup = Result { try bodyStore.allData() }
     }
 
     /// Reads the picked file and asks before importing; a file that can't be read imports

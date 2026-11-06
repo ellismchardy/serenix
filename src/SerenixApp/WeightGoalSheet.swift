@@ -38,7 +38,7 @@ struct WeightGoalSheet: View {
         let startWeight = existing?.startWeight ?? view.newGoalStart?.weight
         _startText = State(initialValue: startWeight.map { Self.text($0, in: units) } ?? "")
         _startDate = State(
-            initialValue: existing.map { Self.midday($0.startDay) } ?? Date()
+            initialValue: existing.map { $0.startDay.midday(in: .current) } ?? Date()
         )
         if let goal = existing {
             _goalText = State(initialValue: Self.text(goal.goalWeight, in: units))
@@ -52,7 +52,7 @@ struct WeightGoalSheet: View {
                 _rate = State(initialValue: kilogramsPerWeek)
             case .date(let day):
                 _byDate = State(initialValue: true)
-                _targetDate = State(initialValue: Self.midday(day))
+                _targetDate = State(initialValue: day.midday(in: .current))
             case nil:
                 break
             }
@@ -156,15 +156,15 @@ struct WeightGoalSheet: View {
                             DatePicker(
                                 "Reach it by",
                                 selection: $targetDate,
-                                in: Self.midday(dates.earliest)...,
+                                in: dates.earliest.midday(in: .current)...,
                                 displayedComponents: .date
                             )
                             HStack {
                                 Button("0.5% a week") {
-                                    targetDate = Self.midday(dates.halfPercent)
+                                    targetDate = dates.halfPercent.midday(in: .current)
                                 }
                                 Button("0.75% a week") {
-                                    targetDate = Self.midday(dates.threeQuarterPercent)
+                                    targetDate = dates.threeQuarterPercent.midday(in: .current)
                                 }
                             }
                             .buttonStyle(.bordered)
@@ -187,7 +187,7 @@ struct WeightGoalSheet: View {
             .onChange(of: direction) { rate = nil }
             // Date mode opens on the 0.5%-a-week date, never on today, which is too early.
             .onChange(of: byDate) {
-                if byDate, let dates { targetDate = Self.midday(dates.halfPercent) }
+                if byDate, let dates { targetDate = dates.halfPercent.midday(in: .current) }
             }
             .navigationTitle("Weight Goal")
             .toolbar {
@@ -256,15 +256,6 @@ struct WeightGoalSheet: View {
         return "\(Int(size.rounded())) \(inKilograms ? "kg" : "lb")"
     }
 
-    /// Midday on `day` in the phone's time zone, on the Gregorian calendar a Day uses.
-    private static func midday(_ day: Day) -> Date {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        return calendar.date(
-            from: DateComponents(year: day.year, month: day.month, day: day.dayOfMonth, hour: 12)
-        ) ?? Date()
-    }
-
     private static func symbol(_ units: WeightUnits) -> String {
         units == .kilograms ? "kg" : "lb"
     }
@@ -281,11 +272,6 @@ struct BandLabel: View {
             case .aggressive: ("Aggressive", .orange)
             case .tooFast: ("Too fast", .red)
             }
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(colour.opacity(0.18), in: Capsule())
-            .foregroundStyle(colour)
+        CapsuleTag(text: text, colour: colour)
     }
 }

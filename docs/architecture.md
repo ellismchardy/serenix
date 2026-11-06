@@ -30,6 +30,7 @@ The app is split in two (ADR 0002):
 | Live HR link | When Live HR runs and on which connection (in a sync or its own), quiet failures and retries, and the sync pill's phase meanwhile (ADR 0007) | `src/SerenixCore/` |
 | Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records | `src/SerenixCore/` |
 | Metrics & scores | Nightly Metrics, Baseline, Sleep Need, Sleep Score, Readiness, Resting HR, Load | `src/SerenixCore/` |
+| Body | Trend Weight, Weekly Rate, Weight Goals (pace, Milestones, projected dates, hold), and the Body data backup file (spec 015) | `src/SerenixCore/` |
 | BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |
 | Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever); a separate SwiftData store for user-entered Body data (kept forever, ADR 0008) | `src/SerenixApp/` |
 | Health export | Writes Resting HR (Sleeping HR never as resting heart rate), HRV, SpO2, respiratory rate and sleep to Apple Health | `src/SerenixApp/` |
@@ -51,6 +52,9 @@ The app is split in two (ADR 0002):
   Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights exist.
 - **Sleep Need and Sleep Debt**: not stored. Worked out from the Nights of the week before and
   the Profile's birth year each time they're shown (spec 009).
+- **Weigh-in** and **Weight Goal**: typed in by the user, in kg and UTC, in the Body store; kept
+  forever, current and ended goals alike (ADR 0008). Trend Weight, Weekly Rate and everything the
+  weight screen shows are worked out from them each time, never stored (spec 015).
 - **Sync Cursor**: kept by the Strap, not the phone. The phone echoes it to acknowledge each
   Batch, so each sync only gets newer records.
 
@@ -75,7 +79,7 @@ starting a sync in the background, iCloud sync, and the Whoop 4.0 and MG.
 ## Cross-cutting concerns
 - Auth: none. No accounts. The only "auth" is BLE pairing with the Strap, which encrypts the
   link the Whoop service needs. A Profile holds the user's name, and optionally their birth year,
-  sex and Max HR, on the device only; none of it is ever sent anywhere or included in any log
+  sex, Max HR, height and weight units, on the device only; none of it is ever sent anywhere or included in any log
   or report.
 - Errors: `SerenixCore` returns typed errors and never crashes on malformed frames: a bad CRC
   or unknown record type is reported and skipped. The shell shows sync failures to the user.

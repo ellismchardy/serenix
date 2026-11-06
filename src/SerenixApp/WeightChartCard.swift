@@ -90,14 +90,8 @@ struct WeightChartCard: View {
         return lines
     }
 
-    /// `hour` o'clock on `day` in the phone's time zone, on the Gregorian calendar whatever the
-    /// phone's own calendar is, since a Day's year, month and day are Gregorian. Only a Day far
-    /// outside any real date has none; it falls back to the start of time, as `Day` does.
+    /// `hour` o'clock on `day` in the phone's time zone, on the Gregorian calendar a Day uses.
     private func date(_ day: Day, hour: Int = 12) -> Date {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        return calendar.date(
-            from: DateComponents(year: day.year, month: day.month, day: day.dayOfMonth, hour: hour)
-        ) ?? .distantPast
+        day.date(atMinutes: hour * 60, in: .current)
     }
 }

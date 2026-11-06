@@ -212,12 +212,7 @@ struct BodyScreen: View {
                         + (units == .kilograms ? units : .pounds).text(band, locale: .current)
                 )
                 .font(.headline)
-                Text(text)
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(colour.opacity(0.18), in: Capsule())
-                    .foregroundStyle(colour)
+                CapsuleTag(text: text, colour: colour)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
@@ -279,12 +274,7 @@ struct BodyScreen: View {
 
     /// `day` as the phone shows a date, e.g. "14 Jan 2027", on the Gregorian calendar a Day uses.
     private static func shown(_ day: Day) -> String {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        let date = calendar.date(
-            from: DateComponents(year: day.year, month: day.month, day: day.dayOfMonth, hour: 12)
-        )
-        return date?.formatted(date: .abbreviated, time: .omitted) ?? ""
+        day.midday(in: .current).formatted(date: .abbreviated, time: .omitted)
     }
 
     /// In place of the goal cards when there is no Weight Goal.
@@ -405,6 +395,16 @@ struct PaceBadgeLabel: View {
             case .offPace: ("Off pace", .red)
             case .tooFast: ("Too fast", .orange)
             }
+        CapsuleTag(text: text, colour: colour)
+    }
+}
+
+/// A short status in its colour on a tinted capsule: the pace badge, a Pace band, a hold state.
+struct CapsuleTag: View {
+    let text: String
+    let colour: Color
+
+    var body: some View {
         Text(text)
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 8)
