@@ -137,7 +137,7 @@ struct FoodScreen: View {
             )
         }
         .alert(
-            "Body data",
+            "Food data",
             isPresented: Binding(
                 get: { store.failure != nil },
                 set: { if !$0 { store.failure = nil } }

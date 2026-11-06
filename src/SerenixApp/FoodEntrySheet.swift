@@ -44,10 +44,17 @@ struct FoodEntrySheet: View {
 
     private var refusal: FoodEntryRefusal? { draft?.refusal(now: Date()) }
 
-    /// The Food Entry as typed, once calories read.
+    /// A macro field has text that doesn't read as a number, so it isn't dropped silently.
+    private var unreadableMacro: Bool {
+        [proteinText, fatText, carbsText].contains { !$0.isEmpty && Self.number($0) == nil }
+    }
+
+    /// The Food Entry as typed, once calories and any macros typed read as numbers.
     private var draft: FoodEntry? {
-        guard let kilocalories = Self.number(kilocaloriesText) else { return nil }
-        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !unreadableMacro, let kilocalories = Self.number(kilocaloriesText) else {
+            return nil
+        }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return FoodEntry(
             time: time,
             kilocalories: kilocalories,
@@ -71,7 +78,9 @@ struct FoodEntrySheet: View {
                     TextField("Fat (g)", text: $fatText).keyboardType(.decimalPad)
                     TextField("Carbs (g)", text: $carbsText).keyboardType(.decimalPad)
                 }
-                if let refusal {
+                if unreadableMacro {
+                    Text("Protein, fat and carbs must be numbers.").foregroundStyle(.red)
+                } else if let refusal {
                     Text(refusal.message).foregroundStyle(.red)
                 }
             }
