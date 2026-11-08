@@ -101,9 +101,6 @@ final class FoodStore: ObservableObject {
     @Published var failure: String?
     private let context: ModelContext?
 
-    /// Every stored Food Entry.
-    var entries: [FoodEntry] { rows.map(\.entry) }
-
     init() {
         do {
             let folder = URL.applicationSupportDirectory

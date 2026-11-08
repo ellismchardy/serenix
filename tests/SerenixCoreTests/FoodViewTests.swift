@@ -117,6 +117,43 @@ private func foodView(
     #expect(view.entries == [dinner, lunch, breakfast])
 }
 
+// Which input Food Entries the Food view shows, so the shell can find each one's stored row.
+
+@Test func theFoodViewGivesTheInputPositionsOfTheShownDaysEntriesNewestFirst() {
+    let lunch = FoodEntry(time: at(2, 13), kilocalories: 650, name: "Sandwich")
+    let nextDay = FoodEntry(time: at(3, 12), kilocalories: 500, name: "Soup")
+    let dinner = FoodEntry(time: at(2, 19), kilocalories: 800, name: "Pasta")
+    let breakfast = FoodEntry(time: at(2, 8), kilocalories: 400, name: "Porridge")
+    let input = [lunch, nextDay, dinner, breakfast]
+
+    let view = foodView(foodEntries: input, day: nov2)
+
+    // Dinner (2), lunch (0), breakfast (3); the 3 Nov entry (1) isn't shown.
+    #expect(view.entryIndices == [2, 0, 3])
+    #expect(view.entries == [dinner, lunch, breakfast])
+    #expect(view.entryIndices.map { input[$0] } == view.entries)
+}
+
+@Test func identicalFoodEntriesEachKeepTheirOwnInputPosition() {
+    let entry = FoodEntry(time: at(2, 13), kilocalories: 650, protein: 30, name: "Sandwich")
+
+    let view = foodView(foodEntries: [entry, entry], day: nov2)
+
+    #expect(view.entryIndices.count == 2)
+    #expect(Set(view.entryIndices) == [0, 1])
+    // Same time, so input order decides: a fixed order, not one that can swap between draws.
+    #expect(view.entryIndices == [0, 1])
+}
+
+@Test func aDayWithNoFoodEntriesShowsNoInputPositions() {
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(3, 12), kilocalories: 500)],
+        day: nov2
+    )
+
+    #expect(view.entryIndices.isEmpty)
+}
+
 // Food Entry limits (spec 016, "Food Entries" → "Limits").
 
 /// 4 Nov 2026 12:00, before `now`.

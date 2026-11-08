@@ -38,11 +38,14 @@ API and tests it first. The shell can't build on Windows, so CI's macOS job is t
      sheet's three typed values as one `FoodTargets`, and one `FoodTargets.refusal(suggested:)`
      for the store and the backup check.
    - Done when: suite green, lint clean; no three-value targets parameter left.
-2. [ ] **Slice:** the core says which stored entry each shown one is. `FoodView` gains
+2. [x] **Slice:** the core says which stored entry each shown one is. `FoodView` gains
    `entryIndices: [Int]`, the positions in its `foodEntries` input of the shown Day's entries,
    newest first (so identical entries keep their own positions). The Food screen maps them to
    `store.rows` and drops `rows(for:in:)`.
    - Seam: Food view · Files: `FoodView.swift`, `FoodViewTests.swift`, `FoodScreen.swift`
+   - Built: entries at the same time now keep their input order (the old sort didn't promise
+     one), so the list's order is fixed. The screen builds the view and the list from one
+     snapshot of `store.rows`; `FoodStore.entries`, now unused, is gone.
    - Done when: a test shows two identical entries get two different indices, in newest-first
      order; the screen has no value-matching left.
 3. [ ] **Prefactor:** one store helper. A small shell type (`OnDeviceStore`, new file) opens a
