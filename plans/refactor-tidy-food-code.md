@@ -72,7 +72,8 @@ API and tests it first. The shell can't build on Windows, so CI's macOS job is t
 5. [ ] **Prefactor:** nits. `limitText` gets its own file; `MacroTargets`' two
    `overrideRefusal` extensions merge; the food sheets share one number parse and format helper;
    `FoodStore.storedFoodData` wraps read errors in the "couldn't be read" message as
-   `BodyStore.allData` does.
+   `BodyStore.allData` does; the food test files' `foodView` helpers lose unused parameters and
+   `LimitedMacro` becomes private (from task 4's review).
    - Files: `src/SerenixCore/LimitText.swift` (new), `FoodEntry.swift`, `MacroTargets.swift`,
      `src/SerenixApp/NumberField.swift` (new), `FoodEntrySheet.swift`, `FoodTargetsSheet.swift`,
      `FoodStore.swift`
