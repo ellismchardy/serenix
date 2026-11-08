@@ -13,14 +13,62 @@ public struct GoalRecord: Equatable, Codable, Sendable {
     }
 }
 
-/// All Body data: every Weigh-in and every Weight Goal, current and ended (spec 015).
+/// The user's food targets (spec 016): the Calorie Target, and protein and fat set in place of
+/// the suggested Macro Targets. Nil means not set (or, for an override, use the suggestion).
+public struct FoodTargets: Equatable, Codable, Sendable {
+    public let calorieTarget: Double?
+    public let proteinOverride: Double?
+    public let fatOverride: Double?
+
+    public init(
+        calorieTarget: Double? = nil,
+        proteinOverride: Double? = nil,
+        fatOverride: Double? = nil
+    ) {
+        self.calorieTarget = calorieTarget
+        self.proteinOverride = proteinOverride
+        self.fatOverride = fatOverride
+    }
+
+    /// Nothing set.
+    public var isEmpty: Bool {
+        calorieTarget == nil && proteinOverride == nil && fatOverride == nil
+    }
+
+    /// Serenix would refuse these targets if typed in. With no suggestion to fill an unset
+    /// override, only what's set is checked.
+    var isRefused: Bool {
+        if let calorieTarget, CalorieTarget.refusal(calorieTarget) != nil { return true }
+        return MacroTargets.overrideRefusal(
+            proteinOverride: proteinOverride,
+            fatOverride: fatOverride,
+            calorieTarget: calorieTarget,
+            suggested: nil
+        ) != nil
+    }
+}
+
+/// All Body data: every Weigh-in and Weight Goal, current and ended (spec 015), and the food
+/// log: Food Entries, Complete Days and food targets (spec 016).
 public struct BodyData: Equatable, Sendable {
     public let weighIns: [WeighIn]
     public let goals: [GoalRecord]
+    public let foodEntries: [FoodEntry]
+    public let completeDays: Set<Day>
+    public let foodTargets: FoodTargets
 
-    public init(weighIns: [WeighIn], goals: [GoalRecord]) {
+    public init(
+        weighIns: [WeighIn],
+        goals: [GoalRecord],
+        foodEntries: [FoodEntry] = [],
+        completeDays: Set<Day> = [],
+        foodTargets: FoodTargets = FoodTargets()
+    ) {
         self.weighIns = weighIns
         self.goals = goals
+        self.foodEntries = foodEntries
+        self.completeDays = completeDays
+        self.foodTargets = foodTargets
     }
 }
 
@@ -32,14 +80,14 @@ public enum BodyDataFileError: Error, Equatable {
     case wrongFormat
     /// Written by a newer Serenix, in a version this one can't read.
     case newerVersion(Int)
-    /// Holds a Weigh-in or Weight Goal Serenix would refuse if typed in.
+    /// Holds an entry or target Serenix would refuse if typed in.
     case invalidEntry
 
     public var message: String {
         switch self {
         case .unreadable: "This file can't be read as Serenix Body data."
         case .wrongFormat: "This isn't a Serenix Body data file."
-        case .invalidEntry: "This file holds a Weigh-in or Weight Goal Serenix can't accept."
+        case .invalidEntry: "This file holds an entry or target Serenix can't accept."
         case .newerVersion(let version):
             "This file is version \(version), from a newer Serenix. Update the app to import it."
         }
@@ -50,24 +98,34 @@ public enum BodyDataFileError: Error, Equatable {
 public struct BodyImport: Equatable, Sendable {
     public let weighInsToAdd: [WeighIn]
     public let goalsToAdd: [GoalRecord]
-    /// Exact duplicates skipped: already here, or repeated in the file.
+    public let foodEntriesToAdd: [FoodEntry]
+    public let completeDaysToAdd: Set<Day>
+    /// The file's food targets, when it has some and none are set here; nil otherwise.
+    public let foodTargetsToSet: FoodTargets?
+    /// Skipped: exact duplicates already here or repeated in the file, Complete Days with no
+    /// Food Entry, and the file's food targets when some are set here.
     public let skipped: Int
 }
 
-/// The JSON backup of all Body data (spec 015, Backup and import): versioned, and lossless.
+/// The JSON backup of all Body data (spec 015, Backup and import; spec 016, Backup): versioned,
+/// and lossless.
 public enum BodyDataFile {
     /// Names a Serenix Body data file, so another JSON file is told apart.
     public static let format = "serenix-body"
-    /// The version this build writes and the newest it reads.
-    public static let version = 1
+    /// The version this build writes and the newest it reads: 2 adds food data (spec 016);
+    /// version 1 files, with none, still read.
+    public static let version = 2
 
     /// The file's layout. Times and Days use Foundation's default encoding, which keeps every
-    /// fraction of a second.
+    /// fraction of a second. The food keys are optional, so a version 1 file reads.
     private struct File: Codable {
         let format: String
         let version: Int
         let weighIns: [WeighIn]
         let goals: [GoalRecord]
+        let foodEntries: [FoodEntry]?
+        let completeDays: [Day]?
+        let foodTargets: FoodTargets?
     }
 
     /// Just the header, read first so a wrong format or newer version is told apart from a
@@ -81,7 +139,15 @@ public enum BodyDataFile {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try encoder.encode(
-            File(format: format, version: version, weighIns: data.weighIns, goals: data.goals)
+            File(
+                format: format,
+                version: version,
+                weighIns: data.weighIns,
+                goals: data.goals,
+                foodEntries: data.foodEntries,
+                completeDays: data.completeDays.sorted(),
+                foodTargets: data.foodTargets
+            )
         )
     }
 
@@ -95,28 +161,41 @@ public enum BodyDataFile {
         guard let fileVersion = header.version else { throw .unreadable }
         guard fileVersion <= version else { throw .newerVersion(fileVersion) }
         guard let body = try? decoder.decode(File.self, from: file) else { throw .unreadable }
-        return BodyData(weighIns: body.weighIns, goals: body.goals)
+        return BodyData(
+            weighIns: body.weighIns,
+            goals: body.goals,
+            foodEntries: body.foodEntries ?? [],
+            completeDays: Set(body.completeDays ?? []),
+            foodTargets: body.foodTargets ?? FoodTargets()
+        )
     }
 
-    /// Why `file` can't be imported as it stands: a file is untrusted, so any Weigh-in Serenix
-    /// would refuse at `now`, or any Weight Goal that wouldn't save in any units (lb units offer
-    /// other rates), refuses the whole file before anything is offered. Nil when all is fine.
+    /// Why `file` can't be imported as it stands: a file is untrusted, so any Weigh-in or Food
+    /// Entry Serenix would refuse at `now`, any Weight Goal that wouldn't save in any units (lb
+    /// units offer other rates), or food targets Serenix would refuse, refuses the whole file
+    /// before anything is offered. Nil when all is fine.
     public static func refusal(_ file: BodyData, now: Date) -> BodyDataFileError? {
         let badWeighIn = file.weighIns.contains { $0.refusal(now: now) != nil }
         let badGoal = file.goals.contains { record in
             WeightUnits.allCases.allSatisfy { record.goal.refusal(units: $0) != nil }
         }
-        return badWeighIn || badGoal ? .invalidEntry : nil
+        let badFoodEntry = file.foodEntries.contains { $0.refusal(now: now) != nil }
+        return badWeighIn || badGoal || badFoodEntry || file.foodTargets.isRefused
+            ? .invalidEntry : nil
     }
 
     /// What importing `file` into `current` adds: every entry not already here, each once. A
-    /// Weigh-in is a duplicate with the same time and weight; a Weight Goal, when the same goal
-    /// is here in any state. A file's current goal arrives ended as changed at `now` when
-    /// `current` already has a current goal, so there's never two.
+    /// Weigh-in is a duplicate with the same time and weight; a Food Entry, with every field the
+    /// same; a Weight Goal, when the same goal is here in any state. A file's current goal
+    /// arrives ended as changed at `now` when `current` already has a current goal, so there's
+    /// never two. A Complete Day is added only when that Day, in `timeZone`, has a Food Entry
+    /// here or added, as the Food view requires (spec 016); the file's food targets only when
+    /// none are set here.
     public static func importing(
         _ file: BodyData,
         into current: BodyData,
-        now: Date
+        now: Date,
+        timeZone: TimeZone
     ) -> BodyImport {
         var seenWeighIns = Set(current.weighIns)
         let weighInsToAdd = file.weighIns.filter { seenWeighIns.insert($0).inserted }
@@ -132,8 +211,27 @@ public enum BodyDataFile {
                 goalsToAdd.append(record)
             }
         }
+        var seenFoodEntries = Set(current.foodEntries)
+        let foodEntriesToAdd = file.foodEntries.filter { seenFoodEntries.insert($0).inserted }
+        let newCompleteDays = file.completeDays.subtracting(current.completeDays)
+        let completeDaysToAdd = FoodView.completeDays(
+            newCompleteDays,
+            keepingThoseWith: current.foodEntries + foodEntriesToAdd,
+            in: timeZone
+        )
+        let takesTargets = !file.foodTargets.isEmpty && current.foodTargets.isEmpty
+        let skippedTargets = !file.foodTargets.isEmpty && !takesTargets ? 1 : 0
         let skipped =
             file.weighIns.count - weighInsToAdd.count + file.goals.count - goalsToAdd.count
-        return BodyImport(weighInsToAdd: weighInsToAdd, goalsToAdd: goalsToAdd, skipped: skipped)
+            + file.foodEntries.count - foodEntriesToAdd.count
+            + file.completeDays.count - completeDaysToAdd.count + skippedTargets
+        return BodyImport(
+            weighInsToAdd: weighInsToAdd,
+            goalsToAdd: goalsToAdd,
+            foodEntriesToAdd: foodEntriesToAdd,
+            completeDaysToAdd: completeDaysToAdd,
+            foodTargetsToSet: takesTargets ? file.foodTargets : nil,
+            skipped: skipped
+        )
     }
 }
