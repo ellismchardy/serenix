@@ -8,25 +8,23 @@ import SwiftUI
 struct FoodTargetsSheet: View {
     /// The suggested Macro Targets at a Calorie Target, from the core; nil without Trend Weight.
     let suggested: (Double) -> MacroTargets?
-    /// Saves the Calorie Target, protein override and fat override.
-    let save: (Double?, Double?, Double?) -> Void
+    /// Saves the targets as typed.
+    let save: (FoodTargets) -> Void
     @State private var calorieTargetText: String
     @State private var proteinText: String
     @State private var fatText: String
     @Environment(\.dismiss) private var dismiss
 
     init(
-        calorieTarget: Double?,
-        proteinOverride: Double?,
-        fatOverride: Double?,
+        targets: FoodTargets,
         suggested: @escaping (Double) -> MacroTargets?,
-        save: @escaping (Double?, Double?, Double?) -> Void
+        save: @escaping (FoodTargets) -> Void
     ) {
         self.suggested = suggested
         self.save = save
-        _calorieTargetText = State(initialValue: calorieTarget.map(Self.text) ?? "")
-        _proteinText = State(initialValue: proteinOverride.map(Self.text) ?? "")
-        _fatText = State(initialValue: fatOverride.map(Self.text) ?? "")
+        _calorieTargetText = State(initialValue: targets.calorieTarget.map(Self.text) ?? "")
+        _proteinText = State(initialValue: targets.proteinOverride.map(Self.text) ?? "")
+        _fatText = State(initialValue: targets.fatOverride.map(Self.text) ?? "")
     }
 
     private var calorieTarget: Double? { Self.number(calorieTargetText) }
@@ -91,7 +89,13 @@ struct FoodTargetsSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        save(calorieTarget, proteinOverride, fatOverride)
+                        save(
+                            FoodTargets(
+                                calorieTarget: calorieTarget,
+                                proteinOverride: proteinOverride,
+                                fatOverride: fatOverride
+                            )
+                        )
                         dismiss()
                     }
                     .disabled(calorieRefusal != nil || overrideRefusal != nil || unreadable)

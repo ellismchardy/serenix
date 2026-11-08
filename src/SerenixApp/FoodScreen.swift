@@ -22,9 +22,7 @@ struct FoodScreen: View {
         let view = FoodView(
             foodEntries: store.entries,
             completeDays: store.completeDays,
-            calorieTarget: store.calorieTarget,
-            proteinOverride: store.proteinOverride,
-            fatOverride: store.fatOverride,
+            foodTargets: store.targets,
             weighIns: bodyStore.weighIns,
             weightGoal: bodyStore.currentGoal,
             heightCentimetres: profile.heightCentimetres,
@@ -111,16 +109,14 @@ struct FoodScreen: View {
         }
         .sheet(isPresented: $showsTargetsSheet) {
             FoodTargetsSheet(
-                calorieTarget: store.calorieTarget,
-                proteinOverride: store.proteinOverride,
-                fatOverride: store.fatOverride,
+                targets: store.targets,
                 suggested: { suggestedTargets(calorieTarget: $0) },
-                save: { calorieTarget, proteinOverride, fatOverride in
+                save: { targets in
                     store.setTargets(
-                        calorieTarget: calorieTarget,
-                        proteinOverride: proteinOverride,
-                        fatOverride: fatOverride,
-                        suggested: calorieTarget.flatMap { suggestedTargets(calorieTarget: $0) }
+                        targets,
+                        suggested: targets.calorieTarget.flatMap {
+                            suggestedTargets(calorieTarget: $0)
+                        }
                     )
                 }
             )

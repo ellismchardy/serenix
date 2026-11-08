@@ -30,9 +30,7 @@ public struct FoodView: Equatable, Sendable {
     public init(
         foodEntries: [FoodEntry],
         completeDays: Set<Day> = [],
-        calorieTarget: Double? = nil,
-        proteinOverride: Double? = nil,
-        fatOverride: Double? = nil,
+        foodTargets: FoodTargets = FoodTargets(),
         weighIns: [WeighIn] = [],
         weightGoal: WeightGoal? = nil,
         heightCentimetres: Double? = nil,
@@ -48,6 +46,7 @@ public struct FoodView: Equatable, Sendable {
         intake = Intake(entries)
         canBeMarkedComplete = !entries.isEmpty
         isComplete = canBeMarkedComplete && completeDays.contains(day)
+        let calorieTarget = foodTargets.calorieTarget
         self.calorieTarget = calorieTarget
         calorieBalance = calorieTarget.map { [intake] in
             CalorieBalance(intake: intake.kilocalories, target: $0)
@@ -60,8 +59,8 @@ public struct FoodView: Equatable, Sendable {
                 trendWeight: trendWeight,
                 direction: weightGoal?.direction,
                 heightCentimetres: heightCentimetres,
-                proteinOverride: proteinOverride,
-                fatOverride: fatOverride
+                proteinOverride: foodTargets.proteinOverride,
+                fatOverride: foodTargets.fatOverride
             )
             macroTargets = suggested.targets
             macroWarning = suggested.warning

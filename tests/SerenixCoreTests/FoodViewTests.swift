@@ -42,9 +42,11 @@ private func foodView(
     FoodView(
         foodEntries: foodEntries,
         completeDays: completeDays,
-        calorieTarget: calorieTarget,
-        proteinOverride: proteinOverride,
-        fatOverride: fatOverride,
+        foodTargets: FoodTargets(
+            calorieTarget: calorieTarget,
+            proteinOverride: proteinOverride,
+            fatOverride: fatOverride
+        ),
         weighIns: weighIns,
         weightGoal: weightGoal,
         heightCentimetres: heightCentimetres,

@@ -25,7 +25,7 @@ API and tests it first. The shell can't build on Windows, so CI's macOS job is t
 
 ## Tasks (ordered; each green and committed on its own)
 
-1. [ ] **Prefactor:** one `FoodTargets` value. Move `FoodTargets` into
+1. [x] **Prefactor:** one `FoodTargets` value. Move `FoodTargets` into
    `src/SerenixCore/FoodTargets.swift`. `FoodView.init` takes `foodTargets: FoodTargets` in place
    of `calorieTarget`, `proteinOverride` and `fatOverride`; `FoodStore` publishes one
    `targets: FoodTargets` and `setTargets(_:suggested:)` takes one; the targets sheet saves a
@@ -33,6 +33,10 @@ API and tests it first. The shell can't build on Windows, so CI's macOS job is t
    - Files: `FoodTargets.swift` (new), `BodyDataFile.swift`, `FoodView.swift`,
      `FoodViewTests.swift`, `src/SerenixApp/FoodStore.swift`, `FoodScreen.swift`,
      `FoodTargetsSheet.swift`, `ProfileMenu.swift`
+   - Built: `ProfileMenu.swift` needed no change (it reads `storedFoodData()`); the stored row has a
+     computed `targets`, and the store helper is `storedTargets(in:)`. Later, if wanted: the
+     sheet's three typed values as one `FoodTargets`, and one `FoodTargets.refusal(suggested:)`
+     for the store and the backup check.
    - Done when: suite green, lint clean; no three-value targets parameter left.
 2. [ ] **Slice:** the core says which stored entry each shown one is. `FoodView` gains
    `entryIndices: [Int]`, the positions in its `foodEntries` input of the shown Day's entries,
