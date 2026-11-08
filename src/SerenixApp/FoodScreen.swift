@@ -19,12 +19,13 @@ struct FoodScreen: View {
 
     var body: some View {
         let today = Day(containing: Date(), in: .current)
+        // One snapshot of the stored rows: the view gets their entries, and its entry positions
+        // index back into this same array, so the two can't fall out of step.
+        let rows = store.rows
         let view = FoodView(
-            foodEntries: store.entries,
+            foodEntries: rows.map(\.entry),
             completeDays: store.completeDays,
-            calorieTarget: store.calorieTarget,
-            proteinOverride: store.proteinOverride,
-            fatOverride: store.fatOverride,
+            foodTargets: store.targets,
             weighIns: bodyStore.weighIns,
             weightGoal: bodyStore.currentGoal,
             heightCentimetres: profile.heightCentimetres,
@@ -82,7 +83,7 @@ struct FoodScreen: View {
             }
             // Tap to edit or delete; holding also offers Delete (spec 016: any Food Entry can be
             // edited or deleted).
-            ForEach(Self.rows(for: view.entries, in: store.rows)) { row in
+            ForEach(view.entryIndices.map { rows[$0] }) { row in
                 Button {
                     editing = row
                 } label: {
@@ -111,16 +112,14 @@ struct FoodScreen: View {
         }
         .sheet(isPresented: $showsTargetsSheet) {
             FoodTargetsSheet(
-                calorieTarget: store.calorieTarget,
-                proteinOverride: store.proteinOverride,
-                fatOverride: store.fatOverride,
+                targets: store.targets,
                 suggested: { suggestedTargets(calorieTarget: $0) },
-                save: { calorieTarget, proteinOverride, fatOverride in
+                save: { targets in
                     store.setTargets(
-                        calorieTarget: calorieTarget,
-                        proteinOverride: proteinOverride,
-                        fatOverride: fatOverride,
-                        suggested: calorieTarget.flatMap { suggestedTargets(calorieTarget: $0) }
+                        targets,
+                        suggested: targets.calorieTarget.flatMap {
+                            suggestedTargets(calorieTarget: $0)
+                        }
                     )
                 }
             )
@@ -146,17 +145,6 @@ struct FoodScreen: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(store.failure ?? "")
-        }
-    }
-
-    /// The stored rows for `entries`, in their order: each entry paired with a row holding the
-    /// same values, each row used once, so identical entries still get their own rows. Both come
-    /// from `store.rows`, so every entry has a row.
-    private static func rows(for entries: [FoodEntry], in rows: [FoodEntryRow]) -> [FoodEntryRow] {
-        var unused = rows
-        return entries.compactMap { entry in
-            guard let index = unused.firstIndex(where: { $0.entry == entry }) else { return nil }
-            return unused.remove(at: index)
         }
     }
 

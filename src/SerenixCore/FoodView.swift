@@ -7,6 +7,10 @@ public struct FoodView: Equatable, Sendable {
     public let day: Day
     /// The shown Day's Food Entries, newest first.
     public let entries: [FoodEntry]
+    /// The positions in the `foodEntries` input of the shown Day's entries, newest first, in
+    /// step with `entries`. Identical entries keep their own positions, so the shell finds each
+    /// one's stored row by position.
+    public let entryIndices: [Int]
     /// The shown Day's Food Entries added up.
     public let intake: Intake
     /// The shown Day is marked complete and has at least one Food Entry.
@@ -30,9 +34,7 @@ public struct FoodView: Equatable, Sendable {
     public init(
         foodEntries: [FoodEntry],
         completeDays: Set<Day> = [],
-        calorieTarget: Double? = nil,
-        proteinOverride: Double? = nil,
-        fatOverride: Double? = nil,
+        foodTargets: FoodTargets = FoodTargets(),
         weighIns: [WeighIn] = [],
         weightGoal: WeightGoal? = nil,
         heightCentimetres: Double? = nil,
@@ -41,13 +43,19 @@ public struct FoodView: Equatable, Sendable {
         timeZone: TimeZone
     ) {
         self.day = day
-        entries =
-            foodEntries
-            .filter { Day(containing: $0.time, in: timeZone) == day }
-            .sorted { $0.time > $1.time }
+        let shown = foodEntries.indices
+            .filter { Day(containing: foodEntries[$0].time, in: timeZone) == day }
+            // Newest first; equal times keep their input order, so the result is fixed.
+            .sorted {
+                let (first, second) = (foodEntries[$0].time, foodEntries[$1].time)
+                return first != second ? first > second : $0 < $1
+            }
+        entryIndices = shown
+        entries = shown.map { foodEntries[$0] }
         intake = Intake(entries)
         canBeMarkedComplete = !entries.isEmpty
         isComplete = canBeMarkedComplete && completeDays.contains(day)
+        let calorieTarget = foodTargets.calorieTarget
         self.calorieTarget = calorieTarget
         calorieBalance = calorieTarget.map { [intake] in
             CalorieBalance(intake: intake.kilocalories, target: $0)
@@ -60,8 +68,8 @@ public struct FoodView: Equatable, Sendable {
                 trendWeight: trendWeight,
                 direction: weightGoal?.direction,
                 heightCentimetres: heightCentimetres,
-                proteinOverride: proteinOverride,
-                fatOverride: fatOverride
+                proteinOverride: foodTargets.proteinOverride,
+                fatOverride: foodTargets.fatOverride
             )
             macroTargets = suggested.targets
             macroWarning = suggested.warning

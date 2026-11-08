@@ -53,30 +53,20 @@ final class BodyStore: ObservableObject {
     /// Why the last open or save failed, shown to the user; nil when all is well. Typed-in Body
     /// data can't be rebuilt, so a failure is never swallowed (ADR 0008).
     @Published var failure: String?
-    private let context: ModelContext?
+    /// The store file this one's data lives in.
+    private let storage: OnDeviceStore
+    private var context: ModelContext? { storage.context }
 
     /// Every stored Weigh-in.
     var weighIns: [WeighIn] { rows.map(\.weighIn) }
 
     init() {
-        do {
-            let folder = URL.applicationSupportDirectory
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let configuration = ModelConfiguration(
-                "Body",
-                schema: Schema([StoredWeighIn.self, StoredWeightGoal.self]),
-                url: folder.appending(path: "Body.store")
-            )
-            let container = try ModelContainer(
-                for: StoredWeighIn.self,
-                StoredWeightGoal.self,
-                configurations: configuration
-            )
-            context = ModelContext(container)
-        } catch {
-            context = nil
-            failure = "Your Body data couldn't be opened: \(error.localizedDescription)"
-        }
+        storage = OnDeviceStore(
+            name: "Body",
+            models: [StoredWeighIn.self, StoredWeightGoal.self],
+            holds: "Your Body data"
+        )
+        failure = storage.openFailure
         reload()
     }
 
@@ -137,7 +127,9 @@ final class BodyStore: ObservableObject {
     func reopenReachedGoal(on day: Day) {
         change { context in
             guard try Self.currentGoal(in: context) == nil else {
-                throw BodyStoreError("Another Weight Goal is current, so this one can't reopen.")
+                throw OnDeviceStoreError(
+                    "Another Weight Goal is current, so this one can't reopen."
+                )
             }
             let reached = GoalEnd.reached.rawValue
             var descriptor = FetchDescriptor<StoredWeightGoal>(
@@ -146,7 +138,7 @@ final class BodyStore: ObservableObject {
             )
             descriptor.fetchLimit = 1
             guard let stored = try context.fetch(descriptor).first else {
-                throw BodyStoreError("There's no reached Weight Goal to reopen.")
+                throw OnDeviceStoreError("There's no reached Weight Goal to reopen.")
             }
             stored.goalJSON = try JSONEncoder().encode(stored.goal().reopened(on: day))
             stored.endedAt = nil
@@ -157,7 +149,7 @@ final class BodyStore: ObservableObject {
     /// All Body data, for the backup file (spec 015, Backup and import). Throws, with a message
     /// for the user, when it can't be read.
     func allData() throws -> BodyData {
-        guard let context else { throw BodyStoreError("Your Body data couldn't be opened.") }
+        guard let context else { throw OnDeviceStoreError("Your Body data couldn't be opened.") }
         do {
             let goals = try context.fetch(FetchDescriptor<StoredWeightGoal>()).map {
                 stored in
@@ -165,7 +157,7 @@ final class BodyStore: ObservableObject {
                 if let raw = stored.endReason {
                     // An end this build doesn't know is never dropped from the backup.
                     guard let known = GoalEnd(rawValue: raw) else {
-                        throw BodyStoreError("A Weight Goal ended for an unknown reason.")
+                        throw OnDeviceStoreError("A Weight Goal ended for an unknown reason.")
                     }
                     endReason = known
                 }
@@ -180,7 +172,9 @@ final class BodyStore: ObservableObject {
             let weighIns = try context.fetch(FetchDescriptor<StoredWeighIn>()).map(\.weighIn)
             return BodyData(weighIns: weighIns, goals: goals)
         } catch {
-            throw BodyStoreError("Your Body data couldn't be read: \(error.localizedDescription)")
+            throw OnDeviceStoreError(
+                "Your Body data couldn't be read: \(error.localizedDescription)"
+            )
         }
     }
 
@@ -218,24 +212,14 @@ final class BodyStore: ObservableObject {
     /// Returns whether it saved.
     @discardableResult
     private func change(_ edit: (ModelContext) throws -> Void) -> Bool {
-        guard let context else {
-            failure = "Your Body data couldn't be opened, so the change wasn't saved."
-            return false
-        }
         defer { reload() }
-        do {
-            try edit(context)
-            try context.save()
-            return true
-        } catch {
-            context.rollback()
-            failure = "The change wasn't saved: \(error.localizedDescription)"
-            return false
-        }
+        guard let message = storage.change(edit) else { return true }
+        failure = message
+        return false
     }
 
     private static func check(_ weighIn: WeighIn) throws {
-        if let refusal = weighIn.refusal(now: Date()) { throw BodyStoreError(refusal.message) }
+        if let refusal = weighIn.refusal(now: Date()) { throw OnDeviceStoreError(refusal.message) }
     }
 
     private static func stored(
@@ -243,7 +227,7 @@ final class BodyStore: ObservableObject {
         in context: ModelContext
     ) throws -> StoredWeighIn {
         guard let stored = context.model(for: id) as? StoredWeighIn, !stored.isDeleted else {
-            throw BodyStoreError("That Weigh-in is no longer stored.")
+            throw OnDeviceStoreError("That Weigh-in is no longer stored.")
         }
         return stored
     }
@@ -264,10 +248,4 @@ final class BodyStore: ObservableObject {
             failure = "Your Weigh-ins couldn't be read: \(error.localizedDescription)"
         }
     }
-}
-
-/// A Body store failure, with the message shown to the user.
-private struct BodyStoreError: LocalizedError {
-    let errorDescription: String?
-    init(_ message: String) { errorDescription = message }
 }
