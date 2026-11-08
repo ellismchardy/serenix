@@ -99,30 +99,17 @@ final class FoodStore: ObservableObject {
     @Published private(set) var targets = FoodTargets()
     /// Why the last open or save failed, shown to the user; nil when all is well.
     @Published var failure: String?
-    private let context: ModelContext?
+    /// The store file this one's data lives in.
+    private let storage: OnDeviceStore
+    private var context: ModelContext? { storage.context }
 
     init() {
-        do {
-            let folder = URL.applicationSupportDirectory
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let configuration = ModelConfiguration(
-                "Food",
-                schema: Schema([
-                    StoredFoodEntry.self, StoredCompleteDay.self, StoredFoodTargets.self,
-                ]),
-                url: folder.appending(path: "Food.store")
-            )
-            let container = try ModelContainer(
-                for: StoredFoodEntry.self,
-                StoredCompleteDay.self,
-                StoredFoodTargets.self,
-                configurations: configuration
-            )
-            context = ModelContext(container)
-        } catch {
-            context = nil
-            failure = "Your Food Entries couldn't be opened: \(error.localizedDescription)"
-        }
+        storage = OnDeviceStore(
+            name: "Food",
+            models: [StoredFoodEntry.self, StoredCompleteDay.self, StoredFoodTargets.self],
+            holds: "Your Food Entries"
+        )
+        failure = storage.openFailure
         reload()
     }
 
@@ -177,7 +164,7 @@ final class FoodStore: ObservableObject {
     func storedFoodData() throws -> (
         entries: [FoodEntry], completeDays: Set<Day>, targets: FoodTargets
     ) {
-        guard let context else { throw FoodStoreError("Your Food Entries couldn't be opened.") }
+        guard let context else { throw OnDeviceStoreError("Your Food Entries couldn't be opened.") }
         return (
             try context.fetch(FetchDescriptor<StoredFoodEntry>()).map(\.entry),
             Set(try context.fetch(FetchDescriptor<StoredCompleteDay>()).map(\.day)),
@@ -208,7 +195,7 @@ final class FoodStore: ObservableObject {
             if let calorieTarget = targets.calorieTarget,
                 let refused = CalorieTarget.refusal(calorieTarget)
             {
-                throw FoodStoreError(refused.message)
+                throw OnDeviceStoreError(refused.message)
             }
             if let refused = MacroTargets.overrideRefusal(
                 proteinOverride: targets.proteinOverride,
@@ -216,7 +203,7 @@ final class FoodStore: ObservableObject {
                 calorieTarget: targets.calorieTarget,
                 suggested: suggested
             ) {
-                throw FoodStoreError(refused.message)
+                throw OnDeviceStoreError(refused.message)
             }
             try Self.storedTargets(in: context).targets = targets
         }
@@ -248,7 +235,7 @@ final class FoodStore: ObservableObject {
     }
 
     private static func check(_ entry: FoodEntry) throws {
-        if let refusal = entry.refusal(now: Date()) { throw FoodStoreError(refusal.message) }
+        if let refusal = entry.refusal(now: Date()) { throw OnDeviceStoreError(refusal.message) }
     }
 
     private static func stored(
@@ -256,7 +243,7 @@ final class FoodStore: ObservableObject {
         in context: ModelContext
     ) throws -> StoredFoodEntry {
         guard let stored = context.model(for: id) as? StoredFoodEntry, !stored.isDeleted else {
-            throw FoodStoreError("That Food Entry is no longer stored.")
+            throw OnDeviceStoreError("That Food Entry is no longer stored.")
         }
         return stored
     }
@@ -265,20 +252,10 @@ final class FoodStore: ObservableObject {
     /// Returns whether it saved.
     @discardableResult
     private func change(_ edit: (ModelContext) throws -> Void) -> Bool {
-        guard let context else {
-            failure = "Your Food Entries couldn't be opened, so the change wasn't saved."
-            return false
-        }
         defer { reload() }
-        do {
-            try edit(context)
-            try context.save()
-            return true
-        } catch {
-            context.rollback()
-            failure = "The change wasn't saved: \(error.localizedDescription)"
-            return false
-        }
+        guard let message = storage.change(edit) else { return true }
+        failure = message
+        return false
     }
 
     private func reload() {
@@ -295,10 +272,4 @@ final class FoodStore: ObservableObject {
             failure = "Your Food Entries couldn't be read: \(error.localizedDescription)"
         }
     }
-}
-
-/// A food store failure, with the message shown to the user.
-private struct FoodStoreError: LocalizedError {
-    let errorDescription: String?
-    init(_ message: String) { errorDescription = message }
 }

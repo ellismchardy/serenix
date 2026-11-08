@@ -48,10 +48,14 @@ API and tests it first. The shell can't build on Windows, so CI's macOS job is t
      snapshot of `store.rows`; `FoodStore.entries`, now unused, is gone.
    - Done when: a test shows two identical entries get two different indices, in newest-first
      order; the screen has no value-matching left.
-3. [ ] **Prefactor:** one store helper. A small shell type (`OnDeviceStore`, new file) opens a
+3. [x] **Prefactor:** one store helper. A small shell type (`OnDeviceStore`, new file) opens a
    named store file with a schema, runs a change with save-or-rollback, and carries the
    user-facing error type; `BodyStore` and `FoodStore` use it. Messages stay as they are.
    - Files: `src/SerenixApp/OnDeviceStore.swift` (new), `BodyStore.swift`, `FoodStore.swift`
+   - Built: `OnDeviceStore` opens `<name>.store` with its models and makes save-or-rollback
+     changes, with the same messages; the shared error is `OnDeviceStoreError`. Each store keeps
+     a four-line `change` that applies its own `failure` and `reload()`. Only the macOS CI job
+     can confirm it compiles.
    - Done when: suite green, lint clean, the macOS CI job builds; no duplicated container,
      change or error code left in the two stores.
 4. [ ] **Prefactor:** tests mirror `src/`. Move the Food Entry limit tests into
