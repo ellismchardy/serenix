@@ -165,11 +165,18 @@ final class FoodStore: ObservableObject {
         entries: [FoodEntry], completeDays: Set<Day>, targets: FoodTargets
     ) {
         guard let context else { throw OnDeviceStoreError("Your Food Entries couldn't be opened.") }
-        return (
-            try context.fetch(FetchDescriptor<StoredFoodEntry>()).map(\.entry),
-            Set(try context.fetch(FetchDescriptor<StoredCompleteDay>()).map(\.day)),
-            try context.fetch(FetchDescriptor<StoredFoodTargets>()).first?.targets ?? FoodTargets()
-        )
+        do {
+            return (
+                try context.fetch(FetchDescriptor<StoredFoodEntry>()).map(\.entry),
+                Set(try context.fetch(FetchDescriptor<StoredCompleteDay>()).map(\.day)),
+                try context.fetch(FetchDescriptor<StoredFoodTargets>()).first?.targets
+                    ?? FoodTargets()
+            )
+        } catch {
+            throw OnDeviceStoreError(
+                "Your Food Entries couldn't be read: \(error.localizedDescription)"
+            )
+        }
     }
 
     /// Adds the food an import found new, all or nothing: one refused Food Entry or a failed

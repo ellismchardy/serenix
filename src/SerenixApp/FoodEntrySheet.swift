@@ -35,10 +35,10 @@ struct FoodEntrySheet: View {
         )
         if let existing {
             _name = State(initialValue: existing.name ?? "")
-            _kilocaloriesText = State(initialValue: Self.text(existing.kilocalories))
-            _proteinText = State(initialValue: existing.protein.map(Self.text) ?? "")
-            _fatText = State(initialValue: existing.fat.map(Self.text) ?? "")
-            _carbsText = State(initialValue: existing.carbs.map(Self.text) ?? "")
+            _kilocaloriesText = State(initialValue: NumberText.text(existing.kilocalories))
+            _proteinText = State(initialValue: existing.protein.map(NumberText.text) ?? "")
+            _fatText = State(initialValue: existing.fat.map(NumberText.text) ?? "")
+            _carbsText = State(initialValue: existing.carbs.map(NumberText.text) ?? "")
         }
     }
 
@@ -46,21 +46,21 @@ struct FoodEntrySheet: View {
 
     /// A macro field has text that doesn't read as a number, so it isn't dropped silently.
     private var unreadableMacro: Bool {
-        [proteinText, fatText, carbsText].contains { !$0.isEmpty && Self.number($0) == nil }
+        [proteinText, fatText, carbsText].contains { !$0.isEmpty && NumberText.number($0) == nil }
     }
 
     /// The Food Entry as typed, once calories and any macros typed read as numbers.
     private var draft: FoodEntry? {
-        guard !unreadableMacro, let kilocalories = Self.number(kilocaloriesText) else {
+        guard !unreadableMacro, let kilocalories = NumberText.number(kilocaloriesText) else {
             return nil
         }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return FoodEntry(
             time: time,
             kilocalories: kilocalories,
-            protein: Self.number(proteinText),
-            fat: Self.number(fatText),
-            carbs: Self.number(carbsText),
+            protein: NumberText.number(proteinText),
+            fat: NumberText.number(fatText),
+            carbs: NumberText.number(carbsText),
             name: trimmed.isEmpty ? nil : trimmed
         )
     }
@@ -104,15 +104,5 @@ struct FoodEntrySheet: View {
                 }
             }
         }
-    }
-
-    /// A stored value as the field shows it, without a needless ".0".
-    private static func text(_ value: Double) -> String {
-        value.formatted(.number.grouping(.never))
-    }
-
-    /// A typed number in the phone's locale; nil when blank or unreadable.
-    private static func number(_ text: String) -> Double? {
-        try? Double(text, format: .number)
     }
 }

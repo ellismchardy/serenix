@@ -28,7 +28,6 @@ private let now = at(5, 9)
 
 private func foodView(
     foodEntries: [FoodEntry],
-    completeDays: Set<Day> = [],
     calorieTarget: Double? = nil,
     proteinOverride: Double? = nil,
     fatOverride: Double? = nil,
@@ -39,7 +38,6 @@ private func foodView(
 ) -> FoodView {
     FoodView(
         foodEntries: foodEntries,
-        completeDays: completeDays,
         foodTargets: FoodTargets(
             calorieTarget: calorieTarget,
             proteinOverride: proteinOverride,

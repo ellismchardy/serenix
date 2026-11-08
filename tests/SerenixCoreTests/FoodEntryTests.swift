@@ -35,7 +35,7 @@ private let lunchtime = at(4, 12)
 }
 
 /// Which macro a limit test sets.
-enum LimitedMacro: CaseIterable, Sendable {
+private enum LimitedMacro: CaseIterable, Sendable {
     case protein, fat, carbs
 
     func entry(grams: Double) -> FoodEntry {
@@ -48,7 +48,7 @@ enum LimitedMacro: CaseIterable, Sendable {
 }
 
 @Test(arguments: LimitedMacro.allCases)
-func aMacroOf500GIsAcceptedAndOneOf501GIsRefused(macro: LimitedMacro) {
+private func aMacroOf500GIsAcceptedAndOneOf501GIsRefused(macro: LimitedMacro) {
     #expect(macro.entry(grams: 500).refusal(now: now) == nil)
 
     let refusal = macro.entry(grams: 501).refusal(now: now)
@@ -65,7 +65,7 @@ func aMacroOf500GIsAcceptedAndOneOf501GIsRefused(macro: LimitedMacro) {
 }
 
 @Test(arguments: LimitedMacro.allCases)
-func aMacroBelowZeroGramsIsRefused(macro: LimitedMacro) {
+private func aMacroBelowZeroGramsIsRefused(macro: LimitedMacro) {
     let refusal = macro.entry(grams: -1).refusal(now: now)
 
     #expect(refusal == .negative)

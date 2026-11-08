@@ -103,9 +103,7 @@ extension MacroTargets {
         if used > calorieTarget + kilocalorieTolerance { return .noCarbsLeft }
         return nil
     }
-}
 
-extension MacroTargets {
     /// Why protein and fat overrides (nil uses the suggestion) can't be saved; nil when they can.
     /// The 0–500 g limits always apply to a set override, even with no Calorie Target or no
     /// suggestion. The carbs check applies only with a Calorie Target, filling an unset override

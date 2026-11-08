@@ -32,24 +32,12 @@ private func foodView(
     foodEntries: [FoodEntry],
     completeDays: Set<Day> = [],
     calorieTarget: Double? = nil,
-    proteinOverride: Double? = nil,
-    fatOverride: Double? = nil,
-    weighIns: [WeighIn] = [],
-    weightGoal: WeightGoal? = nil,
-    heightCentimetres: Double? = nil,
     day: Day
 ) -> FoodView {
     FoodView(
         foodEntries: foodEntries,
         completeDays: completeDays,
-        foodTargets: FoodTargets(
-            calorieTarget: calorieTarget,
-            proteinOverride: proteinOverride,
-            fatOverride: fatOverride
-        ),
-        weighIns: weighIns,
-        weightGoal: weightGoal,
-        heightCentimetres: heightCentimetres,
+        foodTargets: FoodTargets(calorieTarget: calorieTarget),
         day: day,
         now: now,
         timeZone: london

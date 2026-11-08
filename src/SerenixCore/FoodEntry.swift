@@ -80,11 +80,6 @@ public enum FoodEntryRefusal: Equatable, Sendable {
 
 }
 
-/// A limit as refusal messages write it: whole, with a thousands comma ("5,000").
-func limitText(_ value: Double) -> String {
-    Int(value).formatted(.number.locale(Locale(identifier: "en_GB")))
-}
-
 extension FoodEntry {
     /// The most calories one Food Entry may have, kcal (spec 016): more than a day's food for
     /// almost anyone, so a bigger number is a typo (an extra 0). Issue #54.

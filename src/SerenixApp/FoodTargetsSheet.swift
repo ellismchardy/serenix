@@ -22,14 +22,14 @@ struct FoodTargetsSheet: View {
     ) {
         self.suggested = suggested
         self.save = save
-        _calorieTargetText = State(initialValue: targets.calorieTarget.map(Self.text) ?? "")
-        _proteinText = State(initialValue: targets.proteinOverride.map(Self.text) ?? "")
-        _fatText = State(initialValue: targets.fatOverride.map(Self.text) ?? "")
+        _calorieTargetText = State(initialValue: targets.calorieTarget.map(NumberText.text) ?? "")
+        _proteinText = State(initialValue: targets.proteinOverride.map(NumberText.text) ?? "")
+        _fatText = State(initialValue: targets.fatOverride.map(NumberText.text) ?? "")
     }
 
-    private var calorieTarget: Double? { Self.number(calorieTargetText) }
-    private var proteinOverride: Double? { Self.number(proteinText) }
-    private var fatOverride: Double? { Self.number(fatText) }
+    private var calorieTarget: Double? { NumberText.number(calorieTargetText) }
+    private var proteinOverride: Double? { NumberText.number(proteinText) }
+    private var fatOverride: Double? { NumberText.number(fatText) }
 
     /// A field has text that doesn't read as a number.
     private var unreadable: Bool {
@@ -106,14 +106,6 @@ struct FoodTargetsSheet: View {
 
     /// "Protein (suggested 176 g)", or "Protein (g)" with no suggestion.
     private func placeholder(_ name: String, _ grams: Double?) -> String {
-        grams.map { "\(name) (suggested \(Self.text($0.rounded())) g)" } ?? "\(name) (g)"
-    }
-
-    private static func text(_ value: Double) -> String {
-        value.formatted(.number.grouping(.never))
-    }
-
-    private static func number(_ text: String) -> Double? {
-        try? Double(text, format: .number)
+        grams.map { "\(name) (suggested \(NumberText.text($0.rounded())) g)" } ?? "\(name) (g)"
     }
 }
