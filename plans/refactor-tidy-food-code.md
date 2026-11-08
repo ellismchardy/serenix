@@ -58,12 +58,16 @@ API and tests it first. The shell can't build on Windows, so CI's macOS job is t
      can confirm it compiles.
    - Done when: suite green, lint clean, the macOS CI job builds; no duplicated container,
      change or error code left in the two stores.
-4. [ ] **Prefactor:** tests mirror `src/`. Move the Food Entry limit tests into
+4. [x] **Prefactor:** tests mirror `src/`. Move the Food Entry limit tests into
    `FoodEntryTests.swift` and the Macro Targets, override and override-check tests into
    `MacroTargetsTests.swift`; `FoodViewTests.swift` keeps Intake, Complete Days and left/over.
    Shared private helpers are copied as each file needs them. No test changes beyond moving.
    - Files: `tests/SerenixCoreTests/FoodViewTests.swift`, `FoodEntryTests.swift` (new),
      `MacroTargetsTests.swift` (new)
+   - Built: 53 tests and 106 `#expect` before and after (17/35, 7/17, 29/54); each new file
+     copies only the helpers it uses, with the section comments folded into the file headers.
+     Left for task 5: the `foodView` helpers' unused parameters in each file, and making
+     `LimitedMacro` private.
    - Done when: the same 1,050 tests pass; the moved `#expect` count matches.
 5. [ ] **Prefactor:** nits. `limitText` gets its own file; `MacroTargets`' two
    `overrideRefusal` extensions merge; the food sheets share one number parse and format helper;
