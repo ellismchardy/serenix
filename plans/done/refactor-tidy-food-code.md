@@ -81,10 +81,13 @@ API and tests it first. The shell can't build on Windows, so CI's macOS job is t
      files changed too (helpers trimmed, `LimitedMacro` private). Read errors from
      `storedFoodData` now say "Your Food Entries couldn't be read: …", as `BodyStore` does.
    - Done when: suite green, lint clean.
-6. [ ] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
+6. [x] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
    Package.swift` clean, `swift build` clean. Carried to the PR checklist (need the PR): the
    macOS CI build, and a short by-hand pass on the phone: log, edit and delete a Food Entry, set
    targets and overrides, export and import.
+   - Done: `swift test` 1,053 passing (1,050 plus task 2's three), lint and `swift build` clean.
+     Carried to the PR: the macOS build (tasks 1–3 and 5 change shell code only it can compile)
+     and the phone pass above.
    - Blocked by: 1, 2, 3, 4, 5
 
 ## Done when
