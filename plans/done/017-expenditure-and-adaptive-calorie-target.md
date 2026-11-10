@@ -113,7 +113,7 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
      only them. Light and off still count as unset, so a phone that picked Light takes a
      file's targets: worth a line in the PR.
    - Done when: criterion "round-trip; a file without them imports as Light and off".
-7. [ ] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
+7. [x] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
    Package.swift` clean, `swift build` clean; every `SerenixCore` success criterion in spec 017
    matched to a test and ticked. Carried to the PR checklist (need the PR): the macOS CI build,
    and the by-hand phone checks: the Expenditure line's two wordings, the Activity Level

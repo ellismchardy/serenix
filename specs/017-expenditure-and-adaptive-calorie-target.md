@@ -1,6 +1,6 @@
 # 017 — Expenditure and the adaptive Calorie Target
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-08
 **Issue:** https://github.com/ellismchardy/serenix/issues/49 (Body tab map, spec 3; research #52)
 
@@ -106,32 +106,32 @@ there is enough, and suggest (and optionally follow) a Calorie Target that meets
 
 ## Success criteria (must be checkable)
 Starting estimate
-- [ ] Male, age 30, 180 cm, Trend Weight 80 kg, Light: resting rate 1,780 kcal, Expenditure
+- [x] Male, age 30, 180 cm, Trend Weight 80 kg, Light: resting rate 1,780 kcal, Expenditure
       2,447.5 kcal from the Profile; female 1,614 → 2,219.25; "prefer not to say" 1,697 →
       2,333.375.
-- [ ] Mostly sitting, Moderate and Very active give 1,780 × 1.2, × 1.55 and × 1.725.
-- [ ] With no height, no birth year or no Weigh-in there is no Expenditure, and the reason names
+- [x] Mostly sitting, Moderate and Very active give 1,780 × 1.2, × 1.55 and × 1.725.
+- [x] With no height, no birth year or no Weigh-in there is no Expenditure, and the reason names
       what's missing.
 Expenditure from logged data
-- [ ] A window of Complete Days averaging 2,000 kcal with Trend Weight unchanged gives a figure
+- [x] A window of Complete Days averaging 2,000 kcal with Trend Weight unchanged gives a figure
       of 2,000; Days in the window that aren't complete are left out.
-- [ ] A window averaging 2,000 kcal with Trend Weight 0.7 kg lower on its last Weigh-in Day than
+- [x] A window averaging 2,000 kcal with Trend Weight 0.7 kg lower on its last Weigh-in Day than
       its first, 14 Days apart, gives 2,000 + 0.7 × 7,700 ÷ 14 = 2,385.
-- [ ] A window with 9 Complete Days, or 7 Days with a Weigh-in, or 13 Days between its first and
+- [x] A window with 9 Complete Days, or 7 Days with a Weigh-in, or 13 Days between its first and
       last Weigh-in, doesn't have enough data, so Expenditure stays the starting estimate.
-- [ ] From a starting estimate of 2,447.5 and a window figure of 2,000 on each Day: 2,402.75 on
+- [x] From a starting estimate of 2,447.5 and a window figure of 2,000 on each Day: 2,402.75 on
       the first Day with enough data and 2,362.475 on the next.
 Suggested Calorie Target
-- [ ] Expenditure 2,400: losing at 0.5 kg a week suggests 1,850; gaining at 0.25 kg a week
+- [x] Expenditure 2,400: losing at 0.5 kg a week suggests 1,850; gaining at 0.25 kg a week
       2,675, rounded to 2,680; holding or no Weight Goal 2,400.
-- [ ] Expenditure 1,800 for a female resting rate of 1,614, losing at 1 kg a week (1,800 − 1,100
+- [x] Expenditure 1,800 for a female resting rate of 1,614, losing at 1 kg a week (1,800 − 1,100
       = 700) suggests 1,620 (the floor of 1,614, rounded up) and flags the Pace as not safely
       reachable; with no resting rate the floor is 1,200.
 Adapt
-- [ ] With Adapt on, the Calorie Target that applies (and the Macro Targets') is the suggestion;
+- [x] With Adapt on, the Calorie Target that applies (and the Macro Targets') is the suggestion;
       with it off, the typed one; with it on and no suggestion, the typed one.
 Backup
-- [ ] Food targets with an Activity Level and Adapt on round-trip; a file without them imports
+- [x] Food targets with an Activity Level and Adapt on round-trip; a file without them imports
       as Light and off.
 Shell (checked by hand on the phone, steps in the PR)
 - [ ] The Food view shows Expenditure with "from your Profile" and later "from your last 21
