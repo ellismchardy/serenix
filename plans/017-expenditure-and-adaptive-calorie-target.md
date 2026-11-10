@@ -90,12 +90,16 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
      the targets sheet closes).
    - Done when: criteria "1,850 / 2,680 / 2,400", "1,620 floored, flagged; 1,200 with no
      resting rate".
-5. [ ] **Slice:** Adapt. An optional Adapt switch on `FoodTargets` (nil reads as off); the Food
+5. [x] **Slice:** Adapt. An optional Adapt switch on `FoodTargets` (nil reads as off); the Food
    view's applied Calorie Target is the suggestion when it's on and there is one, else the typed
    one, and the Macro Targets and "left/over" use it. Shell: the switch in the targets sheet and
    the field on `StoredFoodTargets`.
    - Seam: Food view · Files: `FoodTargets.swift`, `FoodView.swift`, `ExpenditureTests.swift`,
      `FoodStore.swift`, `FoodTargetsSheet.swift`
+   - Built: the rule lives in `FoodTargets.appliedCalorieTarget(suggested:)`, so the targets
+     sheet and the store check protein and fat overrides at the Calorie Target that will apply
+     (review: they checked the typed one). Adapt on with no typed target applies the
+     suggestion (tested). `FoodScreen.swift` changed to pass the suggestion to the store.
    - Done when: criterion "Adapt on: the suggestion; off: the typed one; on with no suggestion:
      the typed one".
 6. [ ] **Slice:** backup. `FoodTargets`' Activity Level and Adapt round-trip in the Body data

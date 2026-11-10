@@ -154,9 +154,8 @@ struct FoodScreen: View {
                 save: { targets in
                     store.setTargets(
                         targets,
-                        suggested: targets.calorieTarget.flatMap {
-                            suggestedTargets(calorieTarget: $0)
-                        }
+                        suggestedCalorieTarget: view.suggestedCalorieTarget,
+                        suggested: { suggestedTargets(calorieTarget: $0) }
                     )
                 }
             )

@@ -45,13 +45,19 @@ private func expenditureView(
     birthYear: Int? = 1996,
     sex: Sex? = .male,
     activityLevel: ActivityLevel? = .light,
+    calorieTarget: Double? = nil,
+    adaptsCalorieTarget: Bool? = nil,
     day: Day = nov5,
     now today: Date = now
 ) -> FoodView {
     FoodView(
         foodEntries: foodEntries,
         completeDays: completeDays,
-        foodTargets: FoodTargets(activityLevel: activityLevel),
+        foodTargets: FoodTargets(
+            calorieTarget: calorieTarget,
+            activityLevel: activityLevel,
+            adaptsCalorieTarget: adaptsCalorieTarget
+        ),
         weighIns: weighIns,
         weightGoal: weightGoal,
         heightCentimetres: heightCentimetres,
@@ -513,14 +519,21 @@ private func goal(to goalWeight: Double, at kilogramsPerWeek: Double) -> WeightG
 }
 
 /// The Food view for 24 Nov with Expenditure exactly `expenditure` from logged data, no resting
-/// rate, and `weightGoal`.
-private func suggestionView(expenditure: Double, weightGoal: WeightGoal?) -> FoodView {
+/// rate, and `weightGoal`; optionally a typed Calorie Target and the Adapt switch.
+private func suggestionView(
+    expenditure: Double,
+    weightGoal: WeightGoal?,
+    calorieTarget: Double? = nil,
+    adaptsCalorieTarget: Bool? = nil
+) -> FoodView {
     expenditureView(
         foodEntries: meals(expenditure, on: 10...30),
         completeDays: november(10...30),
         weighIns: weighIns(80.0, on: Array(10...30)),
         weightGoal: weightGoal,
         heightCentimetres: nil,
+        calorieTarget: calorieTarget,
+        adaptsCalorieTarget: adaptsCalorieTarget,
         day: nov24,
         now: lateNov30
     )
@@ -635,4 +648,90 @@ private func suggestionView(expenditure: Double, weightGoal: WeightGoal?) -> Foo
     let view = suggestionView(expenditure: 2400, weightGoal: byDate)
     #expect(isClose(view.suggestedCalorieTarget, 1850))
     #expect(view.paceNotSafelyReachable == false)
+}
+
+// Adapt (spec 017, "Adapt"): with the switch on, the Calorie Target that applies, and so the
+// Macro Targets and what's left or over, is the suggestion; with it off or unset, or with no
+// suggestion, the typed one. The suggestion views below have Expenditure 2,400 and a Weight Goal
+// losing 0.5 kg a week, so the suggestion is 1,850 (as above), and 24 Nov's Intake is 2,400 kcal.
+// The typed Calorie Target is 2,000.
+
+@Test func adaptOnAppliesTheSuggestedCalorieTarget() {
+    let view = suggestionView(
+        expenditure: 2400,
+        weightGoal: goal(to: 75, at: 0.5),
+        calorieTarget: 2000,
+        adaptsCalorieTarget: true
+    )
+    #expect(isClose(view.calorieTarget, 1850))
+    // Intake 2,400 against 1,850: 550 over.
+    #expect(view.calorieBalance == .over(550))
+}
+
+@Test func adaptOnGivesTheMacroTargetsOfTheSuggestedCalorieTarget() {
+    let adapted = suggestionView(
+        expenditure: 2400,
+        weightGoal: goal(to: 75, at: 0.5),
+        calorieTarget: 2000,
+        adaptsCalorieTarget: true
+    )
+    // The same inputs with 1,850 typed in and Adapt off: the Macro Targets of a 1,850 target.
+    let typedAtSuggestion = suggestionView(
+        expenditure: 2400,
+        weightGoal: goal(to: 75, at: 0.5),
+        calorieTarget: 1850,
+        adaptsCalorieTarget: false
+    )
+    #expect(adapted.macroTargets != nil)
+    #expect(adapted.macroTargets == typedAtSuggestion.macroTargets)
+}
+
+@Test func adaptOffAppliesTheTypedCalorieTargetEvenWithASuggestion() {
+    let view = suggestionView(
+        expenditure: 2400,
+        weightGoal: goal(to: 75, at: 0.5),
+        calorieTarget: 2000,
+        adaptsCalorieTarget: false
+    )
+    #expect(isClose(view.suggestedCalorieTarget, 1850))
+    #expect(isClose(view.calorieTarget, 2000))
+    // Intake 2,400 against 2,000: 400 over.
+    #expect(view.calorieBalance == .over(400))
+}
+
+@Test func adaptUnsetReadsAsOffAndAppliesTheTypedCalorieTarget() {
+    let view = suggestionView(
+        expenditure: 2400,
+        weightGoal: goal(to: 75, at: 0.5),
+        calorieTarget: 2000,
+        adaptsCalorieTarget: nil
+    )
+    #expect(isClose(view.suggestedCalorieTarget, 1850))
+    #expect(isClose(view.calorieTarget, 2000))
+    #expect(view.calorieBalance == .over(400))
+}
+
+@Test func adaptOnWithNoTypedCalorieTargetAppliesTheSuggestion() {
+    let view = suggestionView(
+        expenditure: 2400,
+        weightGoal: goal(to: 75, at: 0.5),
+        calorieTarget: nil,
+        adaptsCalorieTarget: true
+    )
+    #expect(isClose(view.calorieTarget, 1850))
+    #expect(view.calorieBalance == .over(550))
+}
+
+@Test func adaptOnWithNoSuggestionAppliesTheTypedCalorieTarget() {
+    // No Weigh-ins and no height: no Expenditure, so no suggestion. No Food Entries on 5 Nov.
+    let view = expenditureView(
+        weighIns: [],
+        weightGoal: goal(to: 75, at: 0.5),
+        heightCentimetres: nil,
+        calorieTarget: 2000,
+        adaptsCalorieTarget: true
+    )
+    #expect(view.suggestedCalorieTarget == nil)
+    #expect(isClose(view.calorieTarget, 2000))
+    #expect(view.calorieBalance == .left(2000))
 }

@@ -17,7 +17,8 @@ public struct FoodView: Equatable, Sendable {
     public let isComplete: Bool
     /// The shown Day has a Food Entry, so it may be marked complete (spec 016).
     public let canBeMarkedComplete: Bool
-    /// The Calorie Target, kcal a Day; nil when not set.
+    /// The Calorie Target that applies, kcal a Day: the suggestion while Adapt is on and there
+    /// is one, else the typed one (spec 017); nil when neither.
     public let calorieTarget: Double?
     /// Intake against the Calorie Target; nil with no Calorie Target.
     public let calorieBalance: CalorieBalance?
@@ -80,30 +81,8 @@ public struct FoodView: Equatable, Sendable {
         intake = Intake(entries)
         canBeMarkedComplete = !entries.isEmpty
         isComplete = canBeMarkedComplete && completeDays.contains(day)
-        let calorieTarget = foodTargets.calorieTarget
-        self.calorieTarget = calorieTarget
-        calorieBalance = calorieTarget.map { [intake] in
-            CalorieBalance(intake: intake.kilocalories, target: $0)
-        }
         // The Body view's own Trend Weight rule, so the two never disagree.
         let trend = BodyView.trend(of: weighIns, in: timeZone)
-        let trendWeight = trend.last?.trendWeight
-        if let calorieTarget, let trendWeight {
-            let suggested = MacroTargets.suggested(
-                calorieTarget: calorieTarget,
-                trendWeight: trendWeight,
-                direction: weightGoal?.direction,
-                heightCentimetres: heightCentimetres,
-                proteinOverride: foodTargets.proteinOverride,
-                fatOverride: foodTargets.fatOverride
-            )
-            macroTargets = suggested.targets
-            macroWarning = suggested.warning
-        } else {
-            macroTargets = nil
-            macroWarning = nil
-        }
-        needsWeighIn = calorieTarget != nil && trendWeight == nil
         // Each Complete Day's Intake: a Day marked complete that has a Food Entry.
         var completeIntake: [Day: Double] = [:]
         for entry in foodEntries {
@@ -170,6 +149,29 @@ public struct FoodView: Equatable, Sendable {
             suggestedCalorieTarget = nil
             paceNotSafelyReachable = false
         }
+        // The Calorie Target that applies (spec 017, Adapt).
+        let calorieTarget = foodTargets.appliedCalorieTarget(suggested: suggestedCalorieTarget)
+        self.calorieTarget = calorieTarget
+        calorieBalance = calorieTarget.map { [intake] in
+            CalorieBalance(intake: intake.kilocalories, target: $0)
+        }
+        let trendWeight = trend.last?.trendWeight
+        if let calorieTarget, let trendWeight {
+            let suggested = MacroTargets.suggested(
+                calorieTarget: calorieTarget,
+                trendWeight: trendWeight,
+                direction: weightGoal?.direction,
+                heightCentimetres: heightCentimetres,
+                proteinOverride: foodTargets.proteinOverride,
+                fatOverride: foodTargets.fatOverride
+            )
+            macroTargets = suggested.targets
+            macroWarning = suggested.warning
+        } else {
+            macroTargets = nil
+            macroWarning = nil
+        }
+        needsWeighIn = calorieTarget != nil && trendWeight == nil
     }
 
     /// The suggested Macro Targets (no overrides) at `calorieTarget`, from today's Trend Weight:

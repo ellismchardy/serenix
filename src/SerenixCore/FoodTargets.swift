@@ -9,17 +9,29 @@ public struct FoodTargets: Equatable, Codable, Sendable {
     /// How active the user's Days usually are (spec 017); nil reads as Light. Optional, so
     /// targets saved before it existed still decode.
     public let activityLevel: ActivityLevel?
+    /// The Adapt switch (spec 017): when on, the suggested Calorie Target applies while there is
+    /// one, and `calorieTarget` is kept for when it's off. Nil reads as off; optional, so
+    /// targets saved before it existed still decode.
+    public let adaptsCalorieTarget: Bool?
 
     public init(
         calorieTarget: Double? = nil,
         proteinOverride: Double? = nil,
         fatOverride: Double? = nil,
-        activityLevel: ActivityLevel? = nil
+        activityLevel: ActivityLevel? = nil,
+        adaptsCalorieTarget: Bool? = nil
     ) {
         self.calorieTarget = calorieTarget
         self.proteinOverride = proteinOverride
         self.fatOverride = fatOverride
         self.activityLevel = activityLevel
+        self.adaptsCalorieTarget = adaptsCalorieTarget
+    }
+
+    /// The Calorie Target that applies (spec 017, Adapt): `suggested` while Adapt is on and there
+    /// is one, else the typed `calorieTarget`, which is kept either way.
+    public func appliedCalorieTarget(suggested: Double?) -> Double? {
+        adaptsCalorieTarget == true ? suggested ?? calorieTarget : calorieTarget
     }
 
     /// Nothing set.

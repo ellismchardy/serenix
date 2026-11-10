@@ -28,6 +28,7 @@ struct FoodTargetsSheet: View {
     @State private var proteinText: String
     @State private var fatText: String
     @State private var activityLevel: ActivityLevel
+    @State private var adaptsCalorieTarget: Bool
     @Environment(\.dismiss) private var dismiss
 
     init(
@@ -55,6 +56,7 @@ struct FoodTargetsSheet: View {
         _proteinText = State(initialValue: targets.proteinOverride.map(NumberText.text) ?? "")
         _fatText = State(initialValue: targets.fatOverride.map(NumberText.text) ?? "")
         _activityLevel = State(initialValue: targets.activityLevel ?? .light)
+        _adaptsCalorieTarget = State(initialValue: targets.adaptsCalorieTarget ?? false)
     }
 
     private var calorieTarget: Double? { NumberText.number(calorieTargetText) }
@@ -68,8 +70,16 @@ struct FoodTargetsSheet: View {
             || (!fatText.isEmpty && fatOverride == nil)
     }
 
-    /// The suggestions at the typed Calorie Target, for the placeholders and the check.
-    private var suggestion: MacroTargets? { calorieTarget.flatMap(suggested) }
+    /// The Calorie Target that would apply as set here (spec 017, Adapt): the suggestion while
+    /// Adapt is on and there is one, else the typed one.
+    private var appliedCalorieTarget: Double? {
+        FoodTargets(calorieTarget: calorieTarget, adaptsCalorieTarget: adaptsCalorieTarget)
+            .appliedCalorieTarget(suggested: suggestedCalorieTarget)
+    }
+
+    /// The suggestions at the Calorie Target that would apply, for the placeholders and the
+    /// check.
+    private var suggestion: MacroTargets? { appliedCalorieTarget.flatMap(suggested) }
 
     private var calorieRefusal: CalorieTargetRefusal? {
         calorieTarget.flatMap(CalorieTarget.refusal)
@@ -80,7 +90,7 @@ struct FoodTargetsSheet: View {
         MacroTargets.overrideRefusal(
             proteinOverride: proteinOverride,
             fatOverride: fatOverride,
-            calorieTarget: calorieTarget,
+            calorieTarget: appliedCalorieTarget,
             suggested: suggestion
         )
     }
@@ -137,6 +147,15 @@ struct FoodTargetsSheet: View {
                     }
                 }
                 // The suggestion, and the floor message when the Pace can't be met (spec 017).
+                // The Adapt switch (spec 017): the typed Calorie Target is kept for when it's off.
+                Section {
+                    Toggle("Adapt my Calorie Target", isOn: $adaptsCalorieTarget)
+                } footer: {
+                    Text(
+                        "Uses the suggested Calorie Target each Day. Your own Calorie Target is kept for when it's off, or while there's no suggestion."
+                    )
+                }
+                // The suggestion, and the floor message when the Pace can't be met (spec 017).
                 if let suggestedCalorieTarget {
                     Section("Suggested Calorie Target") {
                         // How it was worked out (spec 017, Screen): Expenditure, less or plus
@@ -185,7 +204,8 @@ struct FoodTargetsSheet: View {
                                 calorieTarget: calorieTarget,
                                 proteinOverride: proteinOverride,
                                 fatOverride: fatOverride,
-                                activityLevel: activityLevel
+                                activityLevel: activityLevel,
+                                adaptsCalorieTarget: adaptsCalorieTarget
                             )
                         )
                         dismiss()
