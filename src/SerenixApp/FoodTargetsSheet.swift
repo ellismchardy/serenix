@@ -12,6 +12,16 @@ struct FoodTargetsSheet: View {
     let missingForExpenditure: [ExpenditureInput]
     /// What the window of logged data says Expenditure is; nil without enough data.
     let windowFigure: Double?
+    /// The Expenditure the suggestion starts from, kcal a Day; nil without one.
+    let expenditure: Double?
+    /// The Calorie Target that meets the Pace at this Expenditure; nil without Expenditure.
+    let suggestedCalorieTarget: Double?
+    /// The Pace can't be met safely at this Expenditure (spec 017, floor).
+    let paceNotSafelyReachable: Bool
+    /// Spec 015's easier goal, when one is on offer.
+    let easierGoal: FoodScreen.EasierGoal?
+    /// Asks for the Weight Goal sheet once this sheet has closed.
+    let changePace: () -> Void
     /// Saves the targets as typed.
     let save: (FoodTargets) -> Void
     @State private var calorieTargetText: String
@@ -24,12 +34,22 @@ struct FoodTargetsSheet: View {
         targets: FoodTargets,
         missingForExpenditure: [ExpenditureInput],
         windowFigure: Double?,
+        expenditure: Double?,
+        suggestedCalorieTarget: Double?,
+        paceNotSafelyReachable: Bool,
+        easierGoal: FoodScreen.EasierGoal?,
+        changePace: @escaping () -> Void,
         suggested: @escaping (Double) -> MacroTargets?,
         save: @escaping (FoodTargets) -> Void
     ) {
         self.suggested = suggested
         self.missingForExpenditure = missingForExpenditure
         self.windowFigure = windowFigure
+        self.expenditure = expenditure
+        self.suggestedCalorieTarget = suggestedCalorieTarget
+        self.paceNotSafelyReachable = paceNotSafelyReachable
+        self.easierGoal = easierGoal
+        self.changePace = changePace
         self.save = save
         _calorieTargetText = State(initialValue: targets.calorieTarget.map(NumberText.text) ?? "")
         _proteinText = State(initialValue: targets.proteinOverride.map(NumberText.text) ?? "")
@@ -116,6 +136,41 @@ struct FoodTargetsSheet: View {
                         )
                     }
                 }
+                // The suggestion, and the floor message when the Pace can't be met (spec 017).
+                if let suggestedCalorieTarget {
+                    Section("Suggested Calorie Target") {
+                        // How it was worked out (spec 017, Screen): Expenditure, less or plus
+                        // the Pace's energy.
+                        if let expenditure {
+                            LabeledContent(
+                                "Your Expenditure",
+                                value: "~\(Self.whole(expenditure)) kcal a Day"
+                            )
+                        }
+                        LabeledContent(
+                            "For your Pace",
+                            value: "\(Self.whole(suggestedCalorieTarget)) kcal a Day"
+                        )
+                        if paceNotSafelyReachable {
+                            Text(
+                                "Your Pace needs less than is safe at this Expenditure, so this is the lowest Serenix suggests."
+                            )
+                            .font(.footnote)
+                            .foregroundStyle(Color.orange)
+                            if let easierGoal {
+                                Button(easierGoal.label) {
+                                    easierGoal.apply()
+                                    dismiss()
+                                }
+                            } else {
+                                Button("Change my Pace") {
+                                    changePace()
+                                    dismiss()
+                                }
+                            }
+                        }
+                    }
+                }
                 if let message = calorieRefusal?.message ?? overrideRefusal?.message {
                     Text(message).foregroundStyle(.red)
                 }
@@ -151,6 +206,11 @@ struct FoodTargetsSheet: View {
             }
         }
         return ListFormatter.localizedString(byJoining: names)
+    }
+
+    /// A kcal figure as a whole number with a thousands separator ("1,850").
+    private static func whole(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0)))
     }
 
     /// The Activity Level's name in the picker (GLOSSARY, Activity Level).

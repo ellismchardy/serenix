@@ -75,12 +75,19 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
      Follow-up (outside this plan): `FoodView`'s `now` parameter is now unused; dropping it
      touches every call site.
    - Done when: criterion "2,402.75 then 2,362.475".
-4. [ ] **Slice:** the suggested Calorie Target and its floor. Expenditure ∓ Pace × 7,700 ÷ 7,
+4. [x] **Slice:** the suggested Calorie Target and its floor. Expenditure ∓ Pace × 7,700 ÷ 7,
    or Expenditure when holding or with no goal; rounded to 10, a floored one up; never under
    1,200 or the resting rate, with the not-reachable flag. Shell: the suggestion in the targets
    sheet, and the floor message with spec 015's easier goal or "Change my Pace".
    - Seam: Food view · Files: `Expenditure.swift`, `FoodView.swift`, `ExpenditureTests.swift`,
      `FoodTargetsSheet.swift`, `FoodScreen.swift`, `src/SerenixApp/BodyScreen.swift`
+   - Built: no suggestion ever ends below the floor (a near-floor one rounds up too), and the
+     "Pace can't be met safely" flag is raised only for a losing Pace the floor holds up, never
+     with no goal or a hold. The spec's floor example (Expenditure 1,800 with a 1,614 resting
+     rate) can't occur, since Expenditure is the resting rate × at least 1.2; the test uses
+     1,936.8 (raised at verify). The sheet shows Expenditure beside the suggestion, and the floor
+     message offers spec 015's easier goal or "Change my Pace" (opens the Weight Goal sheet once
+     the targets sheet closes).
    - Done when: criteria "1,850 / 2,680 / 2,400", "1,620 floored, flagged; 1,200 with no
      resting rate".
 5. [ ] **Slice:** Adapt. An optional Adapt switch on `FoodTargets` (nil reads as off); the Food

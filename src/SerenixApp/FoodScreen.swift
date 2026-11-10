@@ -9,11 +9,23 @@ struct FoodScreen: View {
     @ObservedObject var bodyStore: BodyStore
     /// For the height the Macro Targets' BMI rule uses.
     @ObservedObject var profile: ProfileStore
+    /// Spec 015's easier goal, when one is on offer; the floor message offers it (spec 017).
+    let easierGoal: EasierGoal?
+    /// Opens the Weight Goal sheet, for the floor message's "Change my Pace".
+    let changePace: () -> Void
+
+    /// An easier Weight Goal offered as one tap: its label and what it does.
+    struct EasierGoal {
+        let label: String
+        let apply: () -> Void
+    }
     /// The Day picked; nil is today, whatever today is when the view draws, so it rolls over at
     /// midnight as the Today and Sleep tabs do.
     @State private var pickedDay: Day?
     @State private var showsEntrySheet = false
     @State private var showsTargetsSheet = false
+    /// "Change my Pace" was tapped; the Weight Goal sheet opens once the targets sheet has gone.
+    @State private var wantsPaceChange = false
     /// The row being edited, while its sheet shows.
     @State private var editing: FoodEntryRow?
 
@@ -120,10 +132,23 @@ struct FoodScreen: View {
             }
             .accessibilityLabel("Targets")
         }
-        .sheet(isPresented: $showsTargetsSheet) {
+        .sheet(
+            isPresented: $showsTargetsSheet,
+            onDismiss: {
+                if wantsPaceChange {
+                    wantsPaceChange = false
+                    changePace()
+                }
+            }
+        ) {
             FoodTargetsSheet(
                 targets: store.targets,
                 missingForExpenditure: view.missingForExpenditure,
+                expenditure: view.expenditure,
+                suggestedCalorieTarget: view.suggestedCalorieTarget,
+                paceNotSafelyReachable: view.paceNotSafelyReachable,
+                easierGoal: easierGoal,
+                changePace: { wantsPaceChange = true },
                 windowFigure: view.windowFigure,
                 suggested: { suggestedTargets(calorieTarget: $0) },
                 save: { targets in

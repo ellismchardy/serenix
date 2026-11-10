@@ -30,7 +30,14 @@ struct BodyScreen: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
                 if section == .food {
-                    FoodScreen(store: foodStore, bodyStore: store, profile: profile).padding()
+                    FoodScreen(
+                        store: foodStore,
+                        bodyStore: store,
+                        profile: profile,
+                        easierGoal: easierGoal(view),
+                        changePace: { showsGoalSheet = true }
+                    )
+                    .padding()
                 } else {
                     weightScreen(view)
                 }
@@ -281,6 +288,15 @@ struct BodyScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .themeCard()
+    }
+
+    /// Spec 015's easier goal, when the Rate card offers one, as a label and an action: what the
+    /// Food view's floor message offers (spec 017).
+    private func easierGoal(_ view: BodyView) -> FoodScreen.EasierGoal? {
+        guard let card = view.goalCard, let ease = card.ease else { return nil }
+        return FoodScreen.EasierGoal(label: easeLabel(ease)) {
+            store.setGoal(card.goal.eased(by: ease, on: Day(containing: Date(), in: .current)))
+        }
     }
 
     /// The Ease the goal offer's words (spec 015).

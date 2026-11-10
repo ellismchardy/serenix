@@ -68,6 +68,37 @@ enum Expenditure {
     /// about 10% a Day, so one odd week can't swing it).
     static let easingStep = 0.1
 
+    /// The lowest Calorie Target Serenix suggests, kcal a Day (spec 017: a common safe minimum
+    /// for an unsupervised diet; the resting rate raises it when higher).
+    static let minimumSuggestedCalorieTarget = 1_200.0
+    /// Days in a week: a Pace in kg a week spreads its energy over these (spec 017).
+    static let daysPerWeek = 7.0
+    /// Suggestions are whole multiples of this many kcal (spec 017).
+    static let suggestionStep = 10.0
+
+    /// The Calorie Target for `expenditure` and a Pace of `kilogramsPerWeek` (negative to lose),
+    /// at 7,700 kcal per kg spread over 7 Days, and whether a losing Pace needs less than the floor (spec
+    /// 017, Suggested Calorie Target). The floor is the higher of 1,200 kcal and `restingRate`;
+    /// a floored suggestion rounds up so it never ends below it. Kept within the Calorie
+    /// Target's allowed range.
+    static func suggestedCalorieTarget(
+        expenditure: Double,
+        kilogramsPerWeek: Double,
+        restingRate: Double?
+    ) -> (kilocalories: Double, paceUnreachable: Bool) {
+        let wanted =
+            expenditure + kilogramsPerWeek * kilocaloriesPerKilogramOfTrendWeight / daysPerWeek
+        let floor = max(minimumSuggestedCalorieTarget, restingRate ?? 0)
+        // The floor, rounded up, so no suggestion (floored or rounded) ever ends below it.
+        let lowest = (floor / suggestionStep).rounded(.up) * suggestionStep
+        let rounded = max((wanted / suggestionStep).rounded() * suggestionStep, lowest)
+        // Only a Pace that loses can need less than the floor; with no Pace (holding, no goal)
+        // or a gaining one, a low Expenditure isn't the Pace's doing.
+        let paceUnreachable = kilogramsPerWeek < 0 && wanted < floor
+        let allowed = CalorieTarget.allowed
+        return (min(max(rounded, allowed.lowerBound), allowed.upperBound), paceUnreachable)
+    }
+
     /// The resting rate, kcal a Day, at `trendWeight` kg, `heightCentimetres` and `age` years.
     static func restingRate(
         trendWeight: Double,

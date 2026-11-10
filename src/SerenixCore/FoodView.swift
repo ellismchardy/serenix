@@ -40,6 +40,13 @@ public struct FoodView: Equatable, Sendable {
     /// How many Days a window of logged data spans (spec 017), for the Food view's wording.
     public static let expenditureWindowDays = Expenditure.windowDays
 
+    /// The Calorie Target that meets the Weight Goal's Pace at this Expenditure (spec 017),
+    /// rounded to 10 kcal and never below the floor; nil with no Expenditure.
+    public let suggestedCalorieTarget: Double?
+    /// The Pace would need a suggestion below the floor, so it can't be met safely at this
+    /// Expenditure.
+    public let paceNotSafelyReachable: Bool
+
     /// The shown Day's window figure (spec 017): what its last 21 Days of Complete Days and
     /// Trend Weight say Expenditure is; nil when the window lacks enough data.
     public let windowFigure: Double?
@@ -139,6 +146,29 @@ public struct FoodView: Equatable, Sendable {
         } else {
             expenditure = nil
             expenditureSource = nil
+        }
+        // The suggested Calorie Target (spec 017): Expenditure less (or plus) the Pace.
+        if let expenditure {
+            let pace =
+                trendWeightOnDay.flatMap {
+                    weightGoal?.paceKilogramsPerWeek(trendWeight: $0, today: day)
+                } ?? 0
+            let signedPace: Double =
+                switch weightGoal?.direction {
+                case .lose: -pace
+                case .gain: pace
+                case .hold, nil: 0
+                }
+            let suggestion = Expenditure.suggestedCalorieTarget(
+                expenditure: expenditure,
+                kilogramsPerWeek: signedPace,
+                restingRate: restingRate
+            )
+            suggestedCalorieTarget = suggestion.kilocalories
+            paceNotSafelyReachable = suggestion.paceUnreachable
+        } else {
+            suggestedCalorieTarget = nil
+            paceNotSafelyReachable = false
         }
     }
 

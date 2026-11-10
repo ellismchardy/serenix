@@ -40,6 +40,7 @@ private func expenditureView(
     foodEntries: [FoodEntry] = [],
     completeDays: Set<Day> = [],
     weighIns: [WeighIn] = weighInToday(80.0),
+    weightGoal: WeightGoal? = nil,
     heightCentimetres: Double? = 180,
     birthYear: Int? = 1996,
     sex: Sex? = .male,
@@ -52,6 +53,7 @@ private func expenditureView(
         completeDays: completeDays,
         foodTargets: FoodTargets(activityLevel: activityLevel),
         weighIns: weighIns,
+        weightGoal: weightGoal,
         heightCentimetres: heightCentimetres,
         birthYear: birthYear,
         sex: sex,
@@ -488,4 +490,149 @@ private func dailyDataView(showing day: Day) -> FoodView {
     #expect(isClose(view.restingRate, 1780))
     #expect(isClose(view.expenditure, 2447.5))
     #expect(view.expenditureSource == .profile)
+}
+
+// The suggested Calorie Target (spec 017, "Suggested Calorie Target"): Expenditure ∓ the Pace ×
+// 7,700 ÷ 7 kcal a Day (Expenditure itself when holding or with no Weight Goal), rounded to the
+// nearest 10 kcal, never below the floor (1,200 kcal or the resting rate, whichever is higher; a
+// floored suggestion rounds up to the next 10). Expected values are spec 017's criteria.
+//
+// With no height there is no starting estimate, so logged data seeds Expenditure from the window
+// figure itself: Complete Days of N kcal and Weigh-ins of 80.0 every Day 10–30 Nov, shown on
+// 24 Nov, give Expenditure exactly N, with no resting rate (so the floor is 1,200).
+
+/// A Weight Goal from 80 kg on 1 Nov to `goalWeight` at `kilogramsPerWeek`: losing when
+/// `goalWeight` is below 80, gaining when above.
+private func goal(to goalWeight: Double, at kilogramsPerWeek: Double) -> WeightGoal {
+    WeightGoal(
+        startWeight: 80,
+        startDay: Day(year: 2026, month: 11, day: 1),
+        goalWeight: goalWeight,
+        pace: .rate(kilogramsPerWeek: kilogramsPerWeek)
+    )
+}
+
+/// The Food view for 24 Nov with Expenditure exactly `expenditure` from logged data, no resting
+/// rate, and `weightGoal`.
+private func suggestionView(expenditure: Double, weightGoal: WeightGoal?) -> FoodView {
+    expenditureView(
+        foodEntries: meals(expenditure, on: 10...30),
+        completeDays: november(10...30),
+        weighIns: weighIns(80.0, on: Array(10...30)),
+        weightGoal: weightGoal,
+        heightCentimetres: nil,
+        day: nov24,
+        now: lateNov30
+    )
+}
+
+@Test func losingHalfAKiloAWeekSuggestsExpenditureLessItsEnergy() {
+    // 2,400 − 0.5 × 7,700 ÷ 7 = 2,400 − 550 = 1,850, above the 1,200 floor.
+    let view = suggestionView(expenditure: 2400, weightGoal: goal(to: 75, at: 0.5))
+    #expect(isClose(view.expenditure, 2400))
+    #expect(isClose(view.suggestedCalorieTarget, 1850))
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func gainingAQuarterKiloAWeekSuggestsExpenditurePlusItsEnergyRoundedToTen() {
+    // 2,400 + 0.25 × 7,700 ÷ 7 = 2,400 + 275 = 2,675, rounded to the nearest 10: 2,680.
+    let view = suggestionView(expenditure: 2400, weightGoal: goal(to: 85, at: 0.25))
+    #expect(isClose(view.suggestedCalorieTarget, 2680))
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func holdingWeightSuggestsExpenditure() {
+    let hold = WeightGoal.hold(at: 80, on: Day(year: 2026, month: 11, day: 1))
+    let view = suggestionView(expenditure: 2400, weightGoal: hold)
+    #expect(isClose(view.suggestedCalorieTarget, 2400))
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func noWeightGoalSuggestsExpenditure() {
+    let view = suggestionView(expenditure: 2400, weightGoal: nil)
+    #expect(isClose(view.suggestedCalorieTarget, 2400))
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func noExpenditureMeansNoSuggestion() {
+    // No Weigh-ins and no height: no starting estimate and no logged data.
+    let view = expenditureView(
+        weighIns: [],
+        weightGoal: goal(to: 75, at: 0.5),
+        heightCentimetres: nil
+    )
+    #expect(view.expenditure == nil)
+    #expect(view.suggestedCalorieTarget == nil)
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func paceBelowTheFloorWithNoRestingRateSuggestsTwelveHundredAndFlagsIt() {
+    // 1,800 − 1 × 7,700 ÷ 7 = 1,800 − 1,100 = 700, below the 1,200 floor (no resting rate).
+    let view = suggestionView(expenditure: 1800, weightGoal: goal(to: 70, at: 1.0))
+    #expect(view.restingRate == nil)
+    #expect(isClose(view.suggestedCalorieTarget, 1200))
+    #expect(view.paceNotSafelyReachable == true)
+}
+
+@Test func paceBelowTheRestingRateSuggestsItRoundedUpAndFlagsIt() {
+    // Spec 017's criterion uses Expenditure 1,800 with a female resting rate of 1,614, but with a
+    // resting rate present Expenditure is the resting rate × an Activity Level factor (at least
+    // 1.2), so 1,800 can't be produced exactly. Same floor rule at the nearest real case: female,
+    // 180 cm, born 1996 (age 30), Trend Weight 80 kg, Mostly sitting: resting rate 1,614,
+    // Expenditure 1,614 × 1.2 = 1,936.8. Losing at 1 kg a week: 1,936.8 − 1,100 = 836.8, below
+    // the floor of 1,614 (higher than 1,200), which rounds up to 1,620.
+    let view = expenditureView(
+        weightGoal: goal(to: 70, at: 1.0),
+        sex: .female,
+        activityLevel: .mostlySitting
+    )
+    #expect(isClose(view.restingRate, 1614))
+    #expect(isClose(view.expenditure, 1936.8))
+    #expect(isClose(view.suggestedCalorieTarget, 1620))
+    #expect(view.paceNotSafelyReachable == true)
+}
+
+@Test func suggestionJustAboveTheRestingRateRoundsUpNotBelowIt() {
+    // Female, 180 cm, born 1996, 80 kg, Mostly sitting: resting rate 1,614, Expenditure 1,936.8.
+    // Losing at 0.293 kg a week: 0.293 × 7,700 ÷ 7 = 322.3, so 1,936.8 − 322.3 = 1,614.5. That's
+    // above the floor of 1,614, so the Pace is met, but the nearest 10 (1,610) is below the
+    // floor: the suggestion rounds up to 1,620 instead, and isn't flagged.
+    let view = expenditureView(
+        weightGoal: goal(to: 70, at: 0.293),
+        sex: .female,
+        activityLevel: .mostlySitting
+    )
+    #expect(isClose(view.restingRate, 1614))
+    #expect(isClose(view.expenditure, 1936.8))
+    #expect(isClose(view.suggestedCalorieTarget, 1620))
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func expenditureBelowTheFloorWithNoWeightGoalSuggestsTheFloorUnflagged() {
+    // Expenditure 1,000, no resting rate: the floor of 1,200. No Pace, so nothing to flag.
+    let view = suggestionView(expenditure: 1000, weightGoal: nil)
+    #expect(isClose(view.expenditure, 1000))
+    #expect(isClose(view.suggestedCalorieTarget, 1200))
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func expenditureBelowTheFloorWhileHoldingSuggestsTheFloorUnflagged() {
+    let hold = WeightGoal.hold(at: 80, on: Day(year: 2026, month: 11, day: 1))
+    let view = suggestionView(expenditure: 1000, weightGoal: hold)
+    #expect(isClose(view.suggestedCalorieTarget, 1200))
+    #expect(view.paceNotSafelyReachable == false)
+}
+
+@Test func losingByDateUsesTheDatesKilogramsAWeek() {
+    // Trend Weight 80.0 on the shown Day, 24 Nov; Goal Weight 78 by 22 Dec, 28 Days on: spec
+    // 015's Pace is 2 kg ÷ 4 weeks = 0.5 kg a week. 2,400 − 0.5 × 7,700 ÷ 7 = 1,850.
+    let byDate = WeightGoal(
+        startWeight: 80,
+        startDay: Day(year: 2026, month: 11, day: 1),
+        goalWeight: 78,
+        pace: .date(Day(year: 2026, month: 12, day: 22))
+    )
+    let view = suggestionView(expenditure: 2400, weightGoal: byDate)
+    #expect(isClose(view.suggestedCalorieTarget, 1850))
+    #expect(view.paceNotSafelyReachable == false)
 }
