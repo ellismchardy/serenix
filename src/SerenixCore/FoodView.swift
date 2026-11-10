@@ -37,6 +37,12 @@ public struct FoodView: Equatable, Sendable {
     /// What the starting estimate lacks, in the order height, birth year, Weigh-in; empty when
     /// there is one.
     public let missingForExpenditure: [ExpenditureInput]
+    /// How many Days a window of logged data spans (spec 017), for the Food view's wording.
+    public static let expenditureWindowDays = Expenditure.windowDays
+
+    /// The shown Day's window figure (spec 017): what its last 21 Days of Complete Days and
+    /// Trend Weight say Expenditure is; nil when the window lacks enough data.
+    public let windowFigure: Double?
 
     /// Each Food Entry counts on the local Day of its time in `timeZone`, as Weigh-ins do.
     /// `completeDays` are the Days the user marked complete. Macro Targets use today's Trend
@@ -73,7 +79,8 @@ public struct FoodView: Equatable, Sendable {
             CalorieBalance(intake: intake.kilocalories, target: $0)
         }
         // The Body view's own Trend Weight rule, so the two never disagree.
-        let trendWeight = BodyView.trend(of: weighIns, in: timeZone).last?.trendWeight
+        let trend = BodyView.trend(of: weighIns, in: timeZone)
+        let trendWeight = trend.last?.trendWeight
         if let calorieTarget, let trendWeight {
             let suggested = MacroTargets.suggested(
                 calorieTarget: calorieTarget,
@@ -90,6 +97,18 @@ public struct FoodView: Equatable, Sendable {
             macroWarning = nil
         }
         needsWeighIn = calorieTarget != nil && trendWeight == nil
+        // Each Complete Day's Intake: a Day marked complete that has a Food Entry.
+        var completeIntake: [Day: Double] = [:]
+        for entry in foodEntries {
+            let entryDay = Day(containing: entry.time, in: timeZone)
+            guard completeDays.contains(entryDay) else { continue }
+            completeIntake[entryDay, default: 0] += entry.kilocalories
+        }
+        windowFigure = Expenditure.windowFigure(
+            ending: day,
+            completeIntake: completeIntake,
+            trend: trend
+        )
         // The starting estimate (spec 017): the resting rate times the Activity Level.
         var missing: [ExpenditureInput] = []
         if heightCentimetres == nil { missing.append(.height) }

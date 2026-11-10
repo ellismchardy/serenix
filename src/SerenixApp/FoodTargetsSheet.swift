@@ -10,6 +10,8 @@ struct FoodTargetsSheet: View {
     let suggested: (Double) -> MacroTargets?
     /// What the starting estimate of Expenditure lacks, from the Food view (spec 017).
     let missingForExpenditure: [ExpenditureInput]
+    /// What the window of logged data says Expenditure is; nil without enough data.
+    let windowFigure: Double?
     /// Saves the targets as typed.
     let save: (FoodTargets) -> Void
     @State private var calorieTargetText: String
@@ -21,11 +23,13 @@ struct FoodTargetsSheet: View {
     init(
         targets: FoodTargets,
         missingForExpenditure: [ExpenditureInput],
+        windowFigure: Double?,
         suggested: @escaping (Double) -> MacroTargets?,
         save: @escaping (FoodTargets) -> Void
     ) {
         self.suggested = suggested
         self.missingForExpenditure = missingForExpenditure
+        self.windowFigure = windowFigure
         self.save = save
         _calorieTargetText = State(initialValue: targets.calorieTarget.map(NumberText.text) ?? "")
         _proteinText = State(initialValue: targets.proteinOverride.map(NumberText.text) ?? "")
@@ -87,6 +91,14 @@ struct FoodTargetsSheet: View {
                     Text("Leave protein or fat blank to use the suggestion. Carbs fill the rest.")
                 }
                 Section {
+                    // How Expenditure was worked out (spec 017): the logged data's figure.
+                    if let windowFigure {
+                        LabeledContent(
+                            "Your last \(FoodView.expenditureWindowDays) Days",
+                            value:
+                                "~\(windowFigure.formatted(.number.precision(.fractionLength(0)))) kcal a Day"
+                        )
+                    }
                     Picker("Activity Level", selection: $activityLevel) {
                         ForEach(ActivityLevel.allCases, id: \.self) { level in
                             Text(Self.label(level)).tag(level)

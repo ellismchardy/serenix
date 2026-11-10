@@ -48,12 +48,16 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
      window's named constant, not a typed 21.
    - Done when: criteria "male/female/prefer not to say at 80 kg, 180 cm, 30", "the other
      three Activity Levels", "no height, birth year or Weigh-in".
-2. [ ] **Slice:** a window's figure and whether it has enough data. The 21 Days ending on a Day;
+2. [x] **Slice:** a window's figure and whether it has enough data. The 21 Days ending on a Day;
    mean Intake of its Complete Days plus Trend Weight's fall × 7,700 ÷ the Days between its
    first and last Weigh-in Days; the 10 / 8 / 14 thresholds. The Food view returns today's
    window figure (shown in the targets sheet as how Expenditure was worked out).
    - Seam: Food view · Files: `Expenditure.swift`, `FoodView.swift`, `ExpenditureTests.swift`,
      `FoodTargetsSheet.swift`
+   - Built: the window ends on the Day shown (the spec's "Days up to the one shown"). Tests also
+     pin the window's edges and the restart rule (spec Open questions). The Food view's "last N
+     Days" wording now comes from `FoodView.expenditureWindowDays` (task 1's note), and Trend
+     Weight is worked out once per Food view.
    - Done when: criteria "2,000 with Trend Weight unchanged; incomplete Days left out",
      "2,385", "9 / 7 / 13 isn't enough".
 3. [ ] **Slice:** easing. Expenditure seeds from the starting estimate on the first Day with

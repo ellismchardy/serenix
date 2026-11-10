@@ -50,6 +50,49 @@ enum Expenditure {
     static let femaleConstant = -161.0
     static let unstatedConstant = -78.0
 
+    /// The Days in a window, the one it ends on included (spec 017; issue #52's 14–21 Days, at
+    /// the long end so one odd week weighs less).
+    static let windowDays = 21
+    /// The fewest Complete Days a window needs (issue #52: about 10 fully logged Days).
+    static let minimumCompleteDays = 10
+    /// The fewest Days with a Weigh-in a window needs (issue #52: about 8 Weigh-ins).
+    static let minimumWeighInDays = 8
+    /// The fewest Days between a window's first and last Weigh-in Days (issue #52: at least
+    /// 14 Days of span).
+    static let minimumWeighInSpanDays = 14
+    /// kcal in one kg of Trend Weight (issue #52: 7,700 kcal/kg, the usual converter for
+    /// moderate change; `docs/research/adaptive-calorie-expenditure.md`).
+    static let kilocaloriesPerKilogramOfTrendWeight = 7_700.0
+
+    /// The figure for the window ending on `day`: the mean Intake of its Complete Days, plus the
+    /// energy of Trend Weight's fall from its first Weigh-in Day to its last, per Day between
+    /// them. Nil when the window lacks enough data. `completeIntake` holds each Complete Day's
+    /// kcal; `trend` is the Body view's Trend Weight points, oldest first.
+    static func windowFigure(
+        ending day: Day,
+        completeIntake: [Day: Double],
+        trend: [TrendPoint]
+    ) -> Double? {
+        let first = day.adding(days: 1 - windowDays)
+        let intakes = completeIntake.filter { $0.key >= first && $0.key <= day }.map(\.value)
+        guard intakes.count >= minimumCompleteDays else { return nil }
+        var points = trend.filter { $0.day >= first && $0.day <= day }
+        // After a restart inside the window only its own line counts (spec 017, Open
+        // questions): the Trend Weight before a long gap isn't comparable with the one after.
+        if let restart = points.lastIndex(where: \.startsNewLine) {
+            points = Array(points[restart...])
+        }
+        guard points.count >= minimumWeighInDays,
+            let firstPoint = points.first, let lastPoint = points.last
+        else { return nil }
+        let span = firstPoint.day.days(until: lastPoint.day)
+        guard span >= minimumWeighInSpanDays else { return nil }
+        let meanIntake = intakes.reduce(0, +) / Double(intakes.count)
+        return meanIntake
+            + (firstPoint.trendWeight - lastPoint.trendWeight)
+            * kilocaloriesPerKilogramOfTrendWeight / Double(span)
+    }
+
     /// The resting rate, kcal a Day, at `trendWeight` kg, `heightCentimetres` and `age` years.
     static func restingRate(
         trendWeight: Double,

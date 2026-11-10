@@ -124,6 +124,7 @@ struct FoodScreen: View {
             FoodTargetsSheet(
                 targets: store.targets,
                 missingForExpenditure: view.missingForExpenditure,
+                windowFigure: view.windowFigure,
                 suggested: { suggestedTargets(calorieTarget: $0) },
                 save: { targets in
                     store.setTargets(
@@ -249,7 +250,7 @@ struct FoodScreen: View {
     private static func sourceText(_ source: ExpenditureSource) -> String {
         switch source {
         case .profile: "from your Profile"
-        case .loggedData: "from your last 21 Days"
+        case .loggedData: "from your last \(FoodView.expenditureWindowDays) Days"
         }
     }
 
