@@ -59,6 +59,9 @@ final class StoredFoodTargets {
     var proteinOverride: Double?
     /// Fat the user set in place of the suggestion, g a Day; nil uses the suggestion.
     var fatOverride: Double?
+    /// An `ActivityLevel` raw value (spec 017); nil reads as Light. Optional, so rows stored
+    /// before it still load.
+    var activityLevel: String?
 
     init() {}
 
@@ -68,13 +71,15 @@ final class StoredFoodTargets {
             FoodTargets(
                 calorieTarget: calorieTarget,
                 proteinOverride: proteinOverride,
-                fatOverride: fatOverride
+                fatOverride: fatOverride,
+                activityLevel: activityLevel.flatMap(ActivityLevel.init(rawValue:))
             )
         }
         set {
             calorieTarget = newValue.calorieTarget
             proteinOverride = newValue.proteinOverride
             fatOverride = newValue.fatOverride
+            activityLevel = newValue.activityLevel?.rawValue
         }
     }
 }

@@ -6,15 +6,20 @@ public struct FoodTargets: Equatable, Codable, Sendable {
     public let calorieTarget: Double?
     public let proteinOverride: Double?
     public let fatOverride: Double?
+    /// How active the user's Days usually are (spec 017); nil reads as Light. Optional, so
+    /// targets saved before it existed still decode.
+    public let activityLevel: ActivityLevel?
 
     public init(
         calorieTarget: Double? = nil,
         proteinOverride: Double? = nil,
-        fatOverride: Double? = nil
+        fatOverride: Double? = nil,
+        activityLevel: ActivityLevel? = nil
     ) {
         self.calorieTarget = calorieTarget
         self.proteinOverride = proteinOverride
         self.fatOverride = fatOverride
+        self.activityLevel = activityLevel
     }
 
     /// Nothing set.

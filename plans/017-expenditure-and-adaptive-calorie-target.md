@@ -33,7 +33,7 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice (tracer bullet):** the starting estimate. `ActivityLevel` (four cases and
+1. [x] **Slice (tracer bullet):** the starting estimate. `ActivityLevel` (four cases and
    factors) and an optional Activity Level on `FoodTargets` (nil reads as Light); the Food view
    takes birth year and sex and returns Expenditure with source "from your Profile", the resting
    rate, and why there's none. Shell: the Activity Level picker in the targets sheet, the field
@@ -42,6 +42,10 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
      `src/SerenixCore/FoodTargets.swift`, `src/SerenixCore/FoodView.swift`,
      `tests/SerenixCoreTests/ExpenditureTests.swift` (new), `src/SerenixApp/FoodStore.swift`,
      `src/SerenixApp/FoodScreen.swift`, `src/SerenixApp/FoodTargetsSheet.swift`
+   - Built: a Profile with no sex reads as "prefer not to say" (the spec doesn't cover nil;
+     tested). The targets sheet's footer names what the starting estimate lacks. The Food view
+     already words the "from your last 21 Days" source; task 3 must build that from the
+     window's named constant, not a typed 21.
    - Done when: criteria "male/female/prefer not to say at 80 kg, 180 cm, 30", "the other
      three Activity Levels", "no height, birth year or Weigh-in".
 2. [ ] **Slice:** a window's figure and whether it has enough data. The 21 Days ending on a Day;

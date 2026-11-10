@@ -27,6 +27,16 @@ public struct FoodView: Equatable, Sendable {
     public let macroWarning: MacroWarning?
     /// A Calorie Target is set but there's no Trend Weight yet, so a Weigh-in is needed.
     public let needsWeighIn: Bool
+    /// The user's Expenditure, kcal a Day; nil when there's no starting estimate (spec 017).
+    public let expenditure: Double?
+    /// Where Expenditure comes from; nil with no Expenditure.
+    public let expenditureSource: ExpenditureSource?
+    /// The Mifflin-St Jeor resting rate, kcal a Day; nil without height, birth year or Trend
+    /// Weight.
+    public let restingRate: Double?
+    /// What the starting estimate lacks, in the order height, birth year, Weigh-in; empty when
+    /// there is one.
+    public let missingForExpenditure: [ExpenditureInput]
 
     /// Each Food Entry counts on the local Day of its time in `timeZone`, as Weigh-ins do.
     /// `completeDays` are the Days the user marked complete. Macro Targets use today's Trend
@@ -38,6 +48,8 @@ public struct FoodView: Equatable, Sendable {
         weighIns: [WeighIn] = [],
         weightGoal: WeightGoal? = nil,
         heightCentimetres: Double? = nil,
+        birthYear: Int? = nil,
+        sex: Sex? = nil,
         day: Day,
         now: Date,
         timeZone: TimeZone
@@ -78,6 +90,29 @@ public struct FoodView: Equatable, Sendable {
             macroWarning = nil
         }
         needsWeighIn = calorieTarget != nil && trendWeight == nil
+        // The starting estimate (spec 017): the resting rate times the Activity Level.
+        var missing: [ExpenditureInput] = []
+        if heightCentimetres == nil { missing.append(.height) }
+        if birthYear == nil { missing.append(.birthYear) }
+        if trendWeight == nil { missing.append(.weighIn) }
+        missingForExpenditure = missing
+        if let heightCentimetres, let birthYear, let trendWeight {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = timeZone
+            let resting = Expenditure.restingRate(
+                trendWeight: trendWeight,
+                heightCentimetres: heightCentimetres,
+                age: calendar.component(.year, from: now) - birthYear,
+                sex: sex
+            )
+            restingRate = resting
+            expenditure = resting * (foodTargets.activityLevel ?? .light).factor
+            expenditureSource = .profile
+        } else {
+            restingRate = nil
+            expenditure = nil
+            expenditureSource = nil
+        }
     }
 
     /// The suggested Macro Targets (no overrides) at `calorieTarget`, from today's Trend Weight:

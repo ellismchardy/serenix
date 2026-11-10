@@ -29,6 +29,8 @@ struct FoodScreen: View {
             weighIns: bodyStore.weighIns,
             weightGoal: bodyStore.currentGoal,
             heightCentimetres: profile.heightCentimetres,
+            birthYear: profile.birthYear,
+            sex: profile.sex,
             day: pickedDay ?? today,
             now: Date(),
             timeZone: .current
@@ -55,6 +57,14 @@ struct FoodScreen: View {
                     Text("of \(Self.whole(target)) kcal · \(Self.balanceText(balance))")
                         .font(.headline)
                         .foregroundStyle(Self.isOver(balance) ? Color.orange : Color.secondary)
+                }
+                // Expenditure and where it came from (spec 017, Screen).
+                if let expenditure = view.expenditure, let source = view.expenditureSource {
+                    Text(
+                        "Expenditure ~\(Self.whole(expenditure)) kcal · \(Self.sourceText(source))"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 }
                 Text(
                     "Protein \(Self.whole(view.intake.protein)) g · Fat \(Self.whole(view.intake.fat)) g · Carbs \(Self.whole(view.intake.carbs)) g"
@@ -113,6 +123,7 @@ struct FoodScreen: View {
         .sheet(isPresented: $showsTargetsSheet) {
             FoodTargetsSheet(
                 targets: store.targets,
+                missingForExpenditure: view.missingForExpenditure,
                 suggested: { suggestedTargets(calorieTarget: $0) },
                 save: { targets in
                     store.setTargets(
@@ -231,6 +242,14 @@ struct FoodScreen: View {
             }
             ProgressView(value: min(eaten, target), total: max(target, 1))
                 .tint(Theme.accent)
+        }
+    }
+
+    /// "from your Profile" or "from your last 21 Days" (spec 017, Screen).
+    private static func sourceText(_ source: ExpenditureSource) -> String {
+        switch source {
+        case .profile: "from your Profile"
+        case .loggedData: "from your last 21 Days"
         }
     }
 
