@@ -112,7 +112,7 @@ struct FoodTargetsSheet: View {
                     } else {
                         // The spec: the targets sheet says which is missing.
                         Text(
-                            "To estimate your Expenditure, Serenix needs \(Self.missingText(missingForExpenditure))."
+                            "To estimate your Expenditure from your Profile, Serenix needs \(Self.missingText(missingForExpenditure))."
                         )
                     }
                 }

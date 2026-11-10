@@ -60,12 +60,20 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
      Weight is worked out once per Food view.
    - Done when: criteria "2,000 with Trend Weight unchanged; incomplete Days left out",
      "2,385", "9 / 7 / 13 isn't enough".
-3. [ ] **Slice:** easing. Expenditure seeds from the starting estimate on the first Day with
+3. [x] **Slice:** easing. Expenditure seeds from the starting estimate on the first Day with
    enough data and moves 10% a Day toward each Day's figure; a Day without enough data holds it.
    The source turns to "from your last 21 Days". Shell: the Food view line's wording follows the
    source.
    - Seam: Food view · Files: `Expenditure.swift`, `FoodView.swift`, `ExpenditureTests.swift`,
      `FoodScreen.swift`
+   - Built: decided where the spec is silent: with no starting estimate (no height or birth
+     year), the first window figure seeds Expenditure, so logged data still gives one; the
+     sheet's footer now says the *Profile* estimate needs what's missing. The starting estimate
+     is as of the shown Day (its Trend Weight and year), for past Days too. Logged data is
+     sorted once (`LoggedData`) and each window found by binary search, so easing is linear in
+     Days. Spec could say the no-height case in a line; raised at verify.
+     Follow-up (outside this plan): `FoodView`'s `now` parameter is now unused; dropping it
+     touches every call site.
    - Done when: criterion "2,402.75 then 2,362.475".
 4. [ ] **Slice:** the suggested Calorie Target and its floor. Expenditure ∓ Pace × 7,700 ÷ 7,
    or Expenditure when holding or with no goal; rounded to 10, a floored one up; never under

@@ -239,6 +239,9 @@ private func windowView(
         weighIns: weighIns(80.0, on: Array(10...30))
     )
     #expect(view.windowFigure == nil)
+    // No earlier window has enough data either, so Expenditure stays the starting estimate.
+    #expect(isClose(view.expenditure, 2447.5))
+    #expect(view.expenditureSource == .profile)
 }
 
 @Test func windowWithTenCompleteDaysHasAFigure() {
@@ -260,6 +263,9 @@ private func windowView(
         weighIns: weighIns(80.0, on: [10, 12, 14, 16, 18, 20, 24])
     )
     #expect(view.windowFigure == nil)
+    // No earlier window has enough data either, so Expenditure stays the starting estimate.
+    #expect(isClose(view.expenditure, 2447.5))
+    #expect(view.expenditureSource == .profile)
 }
 
 @Test func windowWithEightWeighInDaysHasAFigure() {
@@ -281,6 +287,9 @@ private func windowView(
         weighIns: weighIns(80.0, on: Array(10...23))
     )
     #expect(view.windowFigure == nil)
+    // No earlier window has enough data either, so Expenditure stays the starting estimate.
+    #expect(isClose(view.expenditure, 2447.5))
+    #expect(view.expenditureSource == .profile)
 }
 
 @Test func windowWithFirstAndLastWeighInFourteenDaysApartHasAFigure() {
@@ -338,4 +347,145 @@ private func december1(_ hour: Int) -> Date {
         now: december1(21)
     )
     #expect(isClose(view.windowFigure, 2000))
+}
+
+// Easing (spec 017, "Expenditure from logged data"): on the first Day whose window has enough
+// data, Expenditure moves 10% of the way from the starting estimate to that Day's window figure;
+// each later Day, 10% from the previous Day's Expenditure to that Day's figure; a Day without
+// enough data leaves it where it was. Days after the shown Day don't count.
+//
+// Complete Days of 2,000 kcal and Weigh-ins of 80.0 every Day 10–30 Nov: the window first has
+// enough data on 24 Nov (10 → 24 Nov is the first 14-Day Weigh-in span), with a figure of 2,000
+// on every Day from then. The starting estimate is 2,447.5 throughout (Trend Weight 80.0).
+
+private let nov23 = Day(year: 2026, month: 11, day: 23)
+private let nov24 = Day(year: 2026, month: 11, day: 24)
+private let nov25 = Day(year: 2026, month: 11, day: 25)
+private let nov26 = Day(year: 2026, month: 11, day: 26)
+
+/// The Food view for `day` with Complete Days of 2,000 kcal and Weigh-ins of 80.0 every Day
+/// 10–30 Nov, seen late on 30 Nov.
+private func dailyDataView(showing day: Day) -> FoodView {
+    expenditureView(
+        foodEntries: meals(2000, on: 10...30),
+        completeDays: november(10...30),
+        weighIns: weighIns(80.0, on: Array(10...30)),
+        day: day,
+        now: lateNov30
+    )
+}
+
+@Test func dayBeforeEnoughDataKeepsTheStartingEstimate() {
+    // 23 Nov: Weigh-ins 10 → 23 Nov are only 13 Days apart.
+    let view = dailyDataView(showing: nov23)
+    #expect(isClose(view.expenditure, 2447.5))
+    #expect(view.expenditureSource == .profile)
+}
+
+@Test func firstDayWithEnoughDataMovesATenthOfTheWayToItsFigure() {
+    // 2,447.5 + 0.1 × (2,000 − 2,447.5) = 2,447.5 − 44.75 = 2,402.75. Data after 24 Nov
+    // doesn't count.
+    let view = dailyDataView(showing: nov24)
+    #expect(isClose(view.expenditure, 2402.75))
+    #expect(view.expenditureSource == .loggedData)
+}
+
+@Test func nextDayMovesATenthOfTheWayFromThePreviousDaysExpenditure() {
+    // 2,402.75 + 0.1 × (2,000 − 2,402.75) = 2,402.75 − 40.275 = 2,362.475.
+    let view = dailyDataView(showing: nov25)
+    #expect(isClose(view.expenditure, 2362.475))
+    #expect(view.expenditureSource == .loggedData)
+}
+
+@Test func dayWithoutEnoughDataLeavesExpenditureWhereItWas() {
+    // Complete Days of 2,000 kcal on 5 Nov and 16–24 Nov (10), Weigh-ins of 80.0 every Day
+    // 10–30 Nov. 23 Nov's window (3–23 Nov) has 9 Complete Days; 24 Nov's (4–24) and 25 Nov's
+    // (5–25) have 10, with Weigh-ins 14 Days apart, so 2,402.75 then 2,362.475 as above.
+    // 26 Nov's window (6–26) loses 5 Nov: 9 Complete Days, so Expenditure holds at 2,362.475.
+    let view = expenditureView(
+        foodEntries: meals(2000, on: 5...5) + meals(2000, on: 16...24),
+        completeDays: november(5...5).union(november(16...24)),
+        weighIns: weighIns(80.0, on: Array(10...30)),
+        day: nov26,
+        now: lateNov30
+    )
+    #expect(view.windowFigure == nil)
+    #expect(isClose(view.expenditure, 2362.475))
+    #expect(view.expenditureSource == .loggedData)
+}
+
+@Test func easingIsSeededFromTheStartingEstimateOnTheFirstDayWithEnoughData() {
+    // Complete Days of 2,000 kcal every Day 10–30 Nov; Weigh-ins of 80.0 on 10–28 Nov, then
+    // 70.0 on 29–30 Nov, so Trend Weight is 80.0 through 28 Nov and falls after. Today's (30 Nov)
+    // Trend Weight is lower, but 24 Nov's starting estimate is at 80.0: 2,447.5.
+    let foodEntries = meals(2000, on: 10...30)
+    let completeDays = november(10...30)
+    let weighIns = weighIns(80.0, on: Array(10...28)) + weighIns(70.0, on: [29, 30])
+    let nov24View = expenditureView(
+        foodEntries: foodEntries,
+        completeDays: completeDays,
+        weighIns: weighIns,
+        day: nov24,
+        now: lateNov30
+    )
+    // 2,447.5 + 0.1 × (2,000 − 2,447.5) = 2,402.75.
+    #expect(isClose(nov24View.expenditure, 2402.75))
+    #expect(nov24View.expenditureSource == .loggedData)
+
+    // 25–28 Nov: figure 2,000 (Trend Weight flat), so 2,362.475, 2,326.2275, 2,293.60475,
+    // 2,264.244275. 29 Nov: a Weigh-in of 70.0 moves Trend Weight 10% of the way, to 79.0. The
+    // window (9–29 Nov) runs from 10 Nov (80.0) to 29 Nov (79.0), 19 Days, so its figure is
+    // 2,000 + 1.0 × 7,700 ÷ 19 = 2,405.263157894737, and Expenditure is
+    // 2,264.244275 + 0.1 × (2,405.263157894737 − 2,264.244275) = 2,278.3461632894737.
+    // (Seeded from a starting estimate at 79.0 kg, 2,433.75, it would differ.)
+    let nov29View = expenditureView(
+        foodEntries: foodEntries,
+        completeDays: completeDays,
+        weighIns: weighIns,
+        day: Day(year: 2026, month: 11, day: 29),
+        now: lateNov30
+    )
+    #expect(isClose(nov29View.windowFigure, 2405.263157894737))
+    #expect(isClose(nov29View.expenditure, 2278.3461632894737))
+    #expect(nov29View.expenditureSource == .loggedData)
+}
+
+@Test func withNoStartingEstimateEasingIsSeededFromTheFirstFigure() {
+    // No height, so no starting estimate. Daily 2,000 kcal and 80.0 kg data: 24 Nov's figure
+    // 2,000 seeds Expenditure, moved 10% toward itself: 2,000. 23 Nov lacks enough data: none.
+    let nov24View = expenditureView(
+        foodEntries: meals(2000, on: 10...30),
+        completeDays: november(10...30),
+        weighIns: weighIns(80.0, on: Array(10...30)),
+        heightCentimetres: nil,
+        day: nov24,
+        now: lateNov30
+    )
+    #expect(isClose(nov24View.expenditure, 2000))
+    #expect(nov24View.expenditureSource == .loggedData)
+
+    let nov23View = expenditureView(
+        foodEntries: meals(2000, on: 10...30),
+        completeDays: november(10...30),
+        weighIns: weighIns(80.0, on: Array(10...30)),
+        heightCentimetres: nil,
+        day: nov23,
+        now: lateNov30
+    )
+    #expect(nov23View.expenditure == nil)
+    #expect(nov23View.expenditureSource == nil)
+}
+
+@Test func pastDayBeforeEnoughDataUsesThatDaysStartingEstimate() {
+    // Weigh-ins of 80.0 on 10–23 Nov and 70.0 from 24 Nov on, no Complete Days. On 23 Nov
+    // Trend Weight is 80.0, so its starting estimate is the 80 kg one even seen on 30 Nov:
+    // resting rate 1,780, Expenditure 2,447.5.
+    let view = expenditureView(
+        weighIns: weighIns(80.0, on: Array(10...23)) + weighIns(70.0, on: Array(24...30)),
+        day: nov23,
+        now: lateNov30
+    )
+    #expect(isClose(view.restingRate, 1780))
+    #expect(isClose(view.expenditure, 2447.5))
+    #expect(view.expenditureSource == .profile)
 }

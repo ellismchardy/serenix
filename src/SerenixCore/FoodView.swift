@@ -104,31 +104,39 @@ public struct FoodView: Equatable, Sendable {
             guard completeDays.contains(entryDay) else { continue }
             completeIntake[entryDay, default: 0] += entry.kilocalories
         }
-        windowFigure = Expenditure.windowFigure(
-            ending: day,
-            completeIntake: completeIntake,
-            trend: trend
-        )
-        // The starting estimate (spec 017): the resting rate times the Activity Level.
+        let logged = LoggedData(completeIntake: completeIntake, trend: trend)
+        windowFigure = logged.figure(ending: day)
+        // The starting estimate (spec 017), as of the shown Day: the resting rate at that Day's
+        // Trend Weight and age, times the Activity Level.
+        let trendWeightOnDay = trend.last(where: { $0.day <= day })?.trendWeight
         var missing: [ExpenditureInput] = []
         if heightCentimetres == nil { missing.append(.height) }
         if birthYear == nil { missing.append(.birthYear) }
-        if trendWeight == nil { missing.append(.weighIn) }
+        if trendWeightOnDay == nil { missing.append(.weighIn) }
         missingForExpenditure = missing
-        if let heightCentimetres, let birthYear, let trendWeight {
-            var calendar = Calendar(identifier: .gregorian)
-            calendar.timeZone = timeZone
-            let resting = Expenditure.restingRate(
+        let factor = (foodTargets.activityLevel ?? .light).factor
+        // The resting rate in `year` at `trendWeight` kg; nil without height or birth year.
+        let resting: (Int, Double) -> Double? = { year, trendWeight in
+            guard let heightCentimetres, let birthYear else { return nil }
+            return Expenditure.restingRate(
                 trendWeight: trendWeight,
                 heightCentimetres: heightCentimetres,
-                age: calendar.component(.year, from: now) - birthYear,
+                age: year - birthYear,
                 sex: sex
             )
-            restingRate = resting
-            expenditure = resting * (foodTargets.activityLevel ?? .light).factor
+        }
+        restingRate = trendWeightOnDay.flatMap { resting(day.year, $0) }
+        // From logged data once a window has enough, eased from the starting estimate.
+        let fromLoggedData = logged.eased(through: day) { seedDay, seedTrendWeight in
+            resting(seedDay.year, seedTrendWeight).map { $0 * factor }
+        }
+        if let fromLoggedData {
+            expenditure = fromLoggedData
+            expenditureSource = .loggedData
+        } else if let restingRate {
+            expenditure = restingRate * factor
             expenditureSource = .profile
         } else {
-            restingRate = nil
             expenditure = nil
             expenditureSource = nil
         }

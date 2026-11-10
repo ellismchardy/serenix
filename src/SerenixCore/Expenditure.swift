@@ -64,34 +64,9 @@ enum Expenditure {
     /// moderate change; `docs/research/adaptive-calorie-expenditure.md`).
     static let kilocaloriesPerKilogramOfTrendWeight = 7_700.0
 
-    /// The figure for the window ending on `day`: the mean Intake of its Complete Days, plus the
-    /// energy of Trend Weight's fall from its first Weigh-in Day to its last, per Day between
-    /// them. Nil when the window lacks enough data. `completeIntake` holds each Complete Day's
-    /// kcal; `trend` is the Body view's Trend Weight points, oldest first.
-    static func windowFigure(
-        ending day: Day,
-        completeIntake: [Day: Double],
-        trend: [TrendPoint]
-    ) -> Double? {
-        let first = day.adding(days: 1 - windowDays)
-        let intakes = completeIntake.filter { $0.key >= first && $0.key <= day }.map(\.value)
-        guard intakes.count >= minimumCompleteDays else { return nil }
-        var points = trend.filter { $0.day >= first && $0.day <= day }
-        // After a restart inside the window only its own line counts (spec 017, Open
-        // questions): the Trend Weight before a long gap isn't comparable with the one after.
-        if let restart = points.lastIndex(where: \.startsNewLine) {
-            points = Array(points[restart...])
-        }
-        guard points.count >= minimumWeighInDays,
-            let firstPoint = points.first, let lastPoint = points.last
-        else { return nil }
-        let span = firstPoint.day.days(until: lastPoint.day)
-        guard span >= minimumWeighInSpanDays else { return nil }
-        let meanIntake = intakes.reduce(0, +) / Double(intakes.count)
-        return meanIntake
-            + (firstPoint.trendWeight - lastPoint.trendWeight)
-            * kilocaloriesPerKilogramOfTrendWeight / Double(span)
-    }
+    /// How far Expenditure moves toward each Day's window figure (issue #52: damp the estimate
+    /// about 10% a Day, so one odd week can't swing it).
+    static let easingStep = 0.1
 
     /// The resting rate, kcal a Day, at `trendWeight` kg, `heightCentimetres` and `age` years.
     static func restingRate(
@@ -108,5 +83,94 @@ enum Expenditure {
             }
         return kilocaloriesPerKilogram * trendWeight + kilocaloriesPerCentimetre * heightCentimetres
             - kilocaloriesPerYear * Double(age) + constant
+    }
+}
+
+/// The user's logged data for Expenditure, sorted once so each Day's window is found by binary
+/// search rather than by filtering everything again (spec 017).
+struct LoggedData {
+    /// The Complete Days, oldest first, and their Intake in kcal.
+    private let intakeDays: [Day]
+    private let intakes: [Double]
+    /// The Body view's Trend Weight points, oldest first, and their Days.
+    private let trend: [TrendPoint]
+    private let trendDays: [Day]
+
+    /// `completeIntake` holds each Complete Day's kcal; `trend` is the Body view's Trend Weight
+    /// points, oldest first.
+    init(completeIntake: [Day: Double], trend: [TrendPoint]) {
+        let sorted = completeIntake.sorted { $0.key < $1.key }
+        intakeDays = sorted.map(\.key)
+        intakes = sorted.map(\.value)
+        self.trend = trend
+        trendDays = trend.map(\.day)
+    }
+
+    /// The figure for the window ending on `day`: the mean Intake of its Complete Days, plus the
+    /// energy of Trend Weight's fall from its first Weigh-in Day to its last, per Day between
+    /// them. Nil when the window lacks enough data.
+    func figure(ending day: Day) -> Double? {
+        let first = day.adding(days: 1 - Expenditure.windowDays)
+        let intakeRange = Self.range(of: intakeDays, from: first, through: day)
+        guard intakeRange.count >= Expenditure.minimumCompleteDays else { return nil }
+        var points = trend[Self.range(of: trendDays, from: first, through: day)]
+        // After a restart inside the window only its own line counts (spec 017, Open
+        // questions): the Trend Weight before a long gap isn't comparable with the one after.
+        if let restart = points.lastIndex(where: \.startsNewLine) {
+            points = points[restart...]
+        }
+        guard points.count >= Expenditure.minimumWeighInDays,
+            let firstPoint = points.first, let lastPoint = points.last
+        else { return nil }
+        let span = firstPoint.day.days(until: lastPoint.day)
+        guard span >= Expenditure.minimumWeighInSpanDays else { return nil }
+        let meanIntake = intakes[intakeRange].reduce(0, +) / Double(intakeRange.count)
+        return meanIntake
+            + (firstPoint.trendWeight - lastPoint.trendWeight)
+            * Expenditure.kilocaloriesPerKilogramOfTrendWeight / Double(span)
+    }
+
+    /// Expenditure from logged data as of `day`, eased Day by Day (spec 017): on the first Day
+    /// whose window has enough data it moves `easingStep` of the way from that Day's starting
+    /// estimate to the window's figure, and on each later Day from the previous Day's
+    /// Expenditure; a Day without enough data leaves it where it was. Nil until a window has
+    /// enough data. `startingEstimate` gives the starting estimate on a Day at a Trend Weight;
+    /// with none (no height or birth year), the first figure seeds it instead.
+    func eased(through day: Day, startingEstimate: (Day, Double) -> Double?) -> Double? {
+        // No window ends with enough data before its Weigh-ins can span the minimum.
+        guard let firstWeighInDay = trendDays.first else { return nil }
+        var current = firstWeighInDay.adding(days: Expenditure.minimumWeighInSpanDays)
+        var expenditure: Double?
+        while current <= day {
+            if let figure = figure(ending: current) {
+                let previous =
+                    expenditure
+                    ?? trend[Self.range(of: trendDays, from: firstWeighInDay, through: current)]
+                    .last.flatMap { startingEstimate(current, $0.trendWeight) }
+                    ?? figure
+                expenditure = previous + Expenditure.easingStep * (figure - previous)
+            }
+            current = current.adding(days: 1)
+        }
+        return expenditure
+    }
+
+    /// The indices of `days` (sorted) from `first` through `last`, both included.
+    private static func range(of days: [Day], from first: Day, through last: Day) -> Range<Int> {
+        let lower = firstIndex(in: days) { $0 >= first }
+        let upper = firstIndex(in: days) { $0 > last }
+        return lower..<max(lower, upper)
+    }
+
+    /// The first index of sorted `days` meeting `isPast`, which turns true once and stays so;
+    /// `days.count` when none does.
+    private static func firstIndex(in days: [Day], where isPast: (Day) -> Bool) -> Int {
+        var low = 0
+        var high = days.count
+        while low < high {
+            let middle = (low + high) / 2
+            if isPast(days[middle]) { high = middle } else { low = middle + 1 }
+        }
+        return low
     }
 }
