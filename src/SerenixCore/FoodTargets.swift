@@ -1,7 +1,8 @@
 import Foundation
 
 /// The user's food targets (spec 016): the Calorie Target, and protein and fat set in place of
-/// the suggested Macro Targets. Nil means not set (or, for an override, use the suggestion).
+/// the suggested Macro Targets; and, from spec 017, the Activity Level and the Adapt switch. Nil
+/// means not set (or, for an override, use the suggestion).
 public struct FoodTargets: Equatable, Codable, Sendable {
     public let calorieTarget: Double?
     public let proteinOverride: Double?
@@ -34,9 +35,11 @@ public struct FoodTargets: Equatable, Codable, Sendable {
         adaptsCalorieTarget == true ? suggested ?? calorieTarget : calorieTarget
     }
 
-    /// Nothing set.
+    /// Nothing set: every field reads as it does when unset. An Activity Level of Light and
+    /// Adapt off count as unset, since nil reads as Light and off (spec 017, Backup).
     public var isEmpty: Bool {
         calorieTarget == nil && proteinOverride == nil && fatOverride == nil
+            && (activityLevel ?? .light) == .light && adaptsCalorieTarget != true
     }
 
     /// Serenix would refuse these targets if typed in. With no suggestion to fill an unset

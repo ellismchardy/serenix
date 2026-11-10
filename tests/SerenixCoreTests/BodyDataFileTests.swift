@@ -492,6 +492,116 @@ private let entryC = FoodEntry(time: at(5, 19), kilocalories: 700, fat: 30)
     #expect(result.skipped == 0)
 }
 
+// MARK: - Version 2: Activity Level and Adapt (spec 017, Backup)
+
+/// Food targets with a Calorie Target, Moderate activity and Adapt on.
+private let adaptingTargets = FoodTargets(
+    calorieTarget: 2200,
+    proteinOverride: 140,
+    activityLevel: .moderate,
+    adaptsCalorieTarget: true
+)
+
+@Test func foodTargetsWithAnActivityLevelAndAdaptOnRoundTrip() throws {
+    let data = BodyData(weighIns: [], goals: [], foodTargets: adaptingTargets)
+    let file = try BodyDataFile.encode(data)
+
+    #expect(try BodyDataFile.decode(file).foodTargets == adaptingTargets)
+    let top = try #require(try JSONSerialization.jsonObject(with: file) as? [String: Any])
+    #expect(top["version"] as? Int == 2)
+}
+
+@Test func aVersionTwoFileWithoutActivityLevelOrAdaptImportsAsLightAndOff() throws {
+    // As spec 016's Serenix wrote it: food targets with no activityLevel or adaptsCalorieTarget.
+    let file = json([
+        "format": "serenix-body",
+        "version": 2,
+        "weighIns": [],
+        "goals": [],
+        "foodEntries": [],
+        "completeDays": [],
+        "foodTargets": ["calorieTarget": 2000, "proteinOverride": 150, "fatOverride": 70],
+    ])
+
+    let targets = try BodyDataFile.decode(file).foodTargets
+
+    #expect(targets == FoodTargets(calorieTarget: 2000, proteinOverride: 150, fatOverride: 70))
+    #expect(targets.activityLevel == nil)  // reads as Light
+    #expect(targets.adaptsCalorieTarget == nil)  // reads as off
+}
+
+@Test func importingTargetsWithAnActivityLevelAndAdaptSetsThemWhenNoneAreHere() {
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodTargets: adaptingTargets),
+        into: empty,
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodTargetsToSet == adaptingTargets)
+    #expect(result.foodTargetsToSet?.activityLevel == .moderate)
+    #expect(result.foodTargetsToSet?.adaptsCalorieTarget == true)
+    #expect(result.skipped == 0)
+}
+
+// Targets count as set when anything differs from what an unset field reads as: a Calorie
+// Target or override, an Activity Level other than Light, or Adapt on.
+
+@Test func importingTargetsHoldingOnlyAnActivityLevelSetsThemWhenNoneAreHere() {
+    let onlyVeryActive = FoodTargets(activityLevel: .veryActive)
+
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodTargets: onlyVeryActive),
+        into: empty,
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodTargetsToSet == onlyVeryActive)
+    #expect(result.skipped == 0)
+}
+
+@Test func importingTargetsHoldingOnlyAdaptOnSetsThemWhenNoneAreHere() {
+    let onlyAdapt = FoodTargets(adaptsCalorieTarget: true)
+
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodTargets: onlyAdapt),
+        into: empty,
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodTargetsToSet == onlyAdapt)
+    #expect(result.skipped == 0)
+}
+
+@Test func targetsHoldingOnlyLightAndAdaptOffImportLikeNoTargets() {
+    // Light and off read the same as unset, so these targets are nothing set.
+    let lightAndOff = FoodTargets(activityLevel: .light, adaptsCalorieTarget: false)
+
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodTargets: lightAndOff),
+        into: empty,
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodTargetsToSet == nil)
+    #expect(result.skipped == 0)
+}
+
+@Test func aFilesTargetsAreNotUsedWhenOnlyAnActivityLevelIsSetHere() {
+    let result = BodyDataFile.importing(
+        BodyData(weighIns: [], goals: [], foodTargets: FoodTargets(calorieTarget: 2000)),
+        into: BodyData(weighIns: [], goals: [], foodTargets: FoodTargets(activityLevel: .moderate)),
+        now: now,
+        timeZone: utc
+    )
+
+    #expect(result.foodTargetsToSet == nil)
+    #expect(result.skipped == 1)
+}
+
 // MARK: - Version 2: food Serenix would refuse
 
 @Test func aFileOfFoodSerenixWouldSaveIsNotRefused() {

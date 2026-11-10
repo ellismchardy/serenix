@@ -102,10 +102,16 @@ the existing `BodyDataFileTests.swift`. Expected values are the spec's literals.
      suggestion (tested). `FoodScreen.swift` changed to pass the suggestion to the store.
    - Done when: criterion "Adapt on: the suggestion; off: the typed one; on with no suggestion:
      the typed one".
-6. [ ] **Slice:** backup. `FoodTargets`' Activity Level and Adapt round-trip in the Body data
+6. [x] **Slice:** backup. `FoodTargets`' Activity Level and Adapt round-trip in the Body data
    file; a file without them imports as Light and off.
    - Seam: Body data file · Files: `tests/SerenixCoreTests/BodyDataFileTests.swift`,
      `src/SerenixCore/BodyDataFile.swift` (only if the round trip needs it)
+   - Built: the round trip needed no change to `BodyDataFile.swift`. Off-plan:
+     `FoodTargets.isEmpty` (`src/SerenixCore/FoodTargets.swift`) now counts an Activity Level
+     other than Light, or Adapt on, as set. Without it, spec 016's import rule ("used only
+     when none is set here") dropped a file holding only those and overwrote a phone holding
+     only them. Light and off still count as unset, so a phone that picked Light takes a
+     file's targets: worth a line in the PR.
    - Done when: criterion "round-trip; a file without them imports as Light and off".
 7. [ ] **Verify:** `swift test` green, `swift format lint --strict --recursive src tests
    Package.swift` clean, `swift build` clean; every `SerenixCore` success criterion in spec 017
