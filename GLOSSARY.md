@@ -267,8 +267,14 @@ _Avoid_: active energy, TDEE
 
 **Expenditure**:
 Serenix's estimate of the energy the user spends in a Day, worked out from their Intake on
-Complete Days and the change in their Trend Weight rather than from heart rate.
+Complete Days and the change in their Trend Weight rather than from heart rate; until there is
+enough of those, estimated from their Profile and Activity Level.
 _Avoid_: TDEE, maintenance, metabolism
+
+**Activity Level**:
+How active the user says their Days usually are, from Mostly sitting to Very active, used only
+to estimate their Expenditure before there is enough logged data.
+_Avoid_: lifestyle, activity factor (in prose)
 
 **Calorie Target**:
 The Intake the user aims for each Day.
