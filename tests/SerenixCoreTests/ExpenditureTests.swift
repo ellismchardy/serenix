@@ -588,12 +588,10 @@ private func suggestionView(
 }
 
 @Test func paceBelowTheRestingRateSuggestsItRoundedUpAndFlagsIt() {
-    // Spec 017's criterion uses Expenditure 1,800 with a female resting rate of 1,614, but with a
-    // resting rate present Expenditure is the resting rate × an Activity Level factor (at least
-    // 1.2), so 1,800 can't be produced exactly. Same floor rule at the nearest real case: female,
-    // 180 cm, born 1996 (age 30), Trend Weight 80 kg, Mostly sitting: resting rate 1,614,
-    // Expenditure 1,614 × 1.2 = 1,936.8. Losing at 1 kg a week: 1,936.8 − 1,100 = 836.8, below
-    // the floor of 1,614 (higher than 1,200), which rounds up to 1,620.
+    // Spec 017's criterion: female, 180 cm, born 1996 (age 30), Trend Weight 80 kg, Mostly
+    // sitting: resting rate 1,614, Expenditure 1,614 × 1.2 = 1,936.8. Losing at 1 kg a week:
+    // 1,936.8 − 1,100 = 836.8, below the floor of 1,614 (higher than 1,200), which rounds up to
+    // 1,620.
     let view = expenditureView(
         weightGoal: goal(to: 70, at: 1.0),
         sex: .female,

@@ -49,6 +49,8 @@ there is enough, and suggest (and optionally follow) a Calorie Target that meets
   10% of the way from the starting estimate (as of that Day) to the window's figure; on each Day
   after, 10% of the way from the previous Day's Expenditure to that Day's figure. A Day whose
   window lacks enough data leaves Expenditure where it was.
+- With no starting estimate on that first Day (no height or birth year), Expenditure starts at
+  the window's figure itself, and eases from there.
 - Nothing is stored: Expenditure is worked out again each time from Intake, Complete Days and
   Weigh-ins (ADR 0008).
 
@@ -124,9 +126,9 @@ Expenditure from logged data
 Suggested Calorie Target
 - [x] Expenditure 2,400: losing at 0.5 kg a week suggests 1,850; gaining at 0.25 kg a week
       2,675, rounded to 2,680; holding or no Weight Goal 2,400.
-- [x] Expenditure 1,800 for a female resting rate of 1,614, losing at 1 kg a week (1,800 − 1,100
-      = 700) suggests 1,620 (the floor of 1,614, rounded up) and flags the Pace as not safely
-      reachable; with no resting rate the floor is 1,200.
+- [x] Expenditure 1,936.8 (a female resting rate of 1,614 at Mostly sitting), losing at 1 kg a
+      week (1,936.8 − 1,100 = 836.8) suggests 1,620 (the floor of 1,614, rounded up) and flags
+      the Pace as not safely reachable; with no resting rate the floor is 1,200.
 Adapt
 - [x] With Adapt on, the Calorie Target that applies (and the Macro Targets') is the suggestion;
       with it off, the typed one; with it on and no suggestion, the typed one.
