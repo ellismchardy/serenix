@@ -143,7 +143,7 @@ public struct FoodView: Equatable, Sendable {
                 restingRate: restingRate
             )
             suggestedCalorieTarget = suggestion.kilocalories
-            paceNotSafelyReachable = suggestion.paceUnreachable
+            paceNotSafelyReachable = suggestion.paceNotSafelyReachable
         } else {
             suggestedCalorieTarget = nil
             paceNotSafelyReachable = false
@@ -154,6 +154,8 @@ public struct FoodView: Equatable, Sendable {
         calorieBalance = calorieTarget.map { [intake] in
             CalorieBalance(intake: intake.kilocalories, target: $0)
         }
+        // Macro Targets use today's Trend Weight on any Day shown (spec 016), unlike Expenditure,
+        // which uses the shown Day's.
         let trendWeight = trend.last?.trendWeight
         if let calorieTarget, let trendWeight {
             let suggested = MacroTargets.suggested(

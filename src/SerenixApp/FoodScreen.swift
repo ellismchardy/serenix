@@ -34,18 +34,7 @@ struct FoodScreen: View {
         // One snapshot of the stored rows: the view gets their entries, and its entry positions
         // index back into this same array, so the two can't fall out of step.
         let rows = store.rows
-        let view = FoodView(
-            foodEntries: rows.map(\.entry),
-            completeDays: store.completeDays,
-            foodTargets: store.targets,
-            weighIns: bodyStore.weighIns,
-            weightGoal: bodyStore.currentGoal,
-            heightCentimetres: profile.heightCentimetres,
-            birthYear: profile.birthYear,
-            sex: profile.sex,
-            day: pickedDay ?? today,
-            timeZone: .current
-        )
+        let view = foodView(rows, day: pickedDay ?? today, targets: store.targets)
         VStack(alignment: .leading, spacing: 12) {
             DatePicker(
                 "Day",
@@ -142,18 +131,28 @@ struct FoodScreen: View {
         ) {
             FoodTargetsSheet(
                 targets: store.targets,
-                missingForExpenditure: view.missingForExpenditure,
-                expenditure: view.expenditure,
-                suggestedCalorieTarget: view.suggestedCalorieTarget,
-                paceNotSafelyReachable: view.paceNotSafelyReachable,
+                // The same Day, at the Activity Level the sheet's picker shows.
+                foodView: { level in
+                    let targets = store.targets
+                    return foodView(
+                        rows,
+                        day: view.day,
+                        targets: FoodTargets(
+                            calorieTarget: targets.calorieTarget,
+                            proteinOverride: targets.proteinOverride,
+                            fatOverride: targets.fatOverride,
+                            activityLevel: level,
+                            adaptsCalorieTarget: targets.adaptsCalorieTarget
+                        )
+                    )
+                },
                 easierGoal: easierGoal,
                 changePace: { wantsPaceChange = true },
-                windowFigure: view.windowFigure,
                 suggested: { suggestedTargets(calorieTarget: $0) },
-                save: { targets in
+                save: { targets, suggestedCalorieTarget in
                     store.setTargets(
                         targets,
-                        suggestedCalorieTarget: view.suggestedCalorieTarget,
+                        suggestedCalorieTarget: suggestedCalorieTarget,
                         suggested: { suggestedTargets(calorieTarget: $0) }
                     )
                 }
@@ -206,6 +205,22 @@ struct FoodScreen: View {
         }
         .padding()
         .themeCard()
+    }
+
+    /// The Food view for `day` with `targets`, from the stored rows, Weigh-ins and Profile.
+    private func foodView(_ rows: [FoodEntryRow], day: Day, targets: FoodTargets) -> FoodView {
+        FoodView(
+            foodEntries: rows.map(\.entry),
+            completeDays: store.completeDays,
+            foodTargets: targets,
+            weighIns: bodyStore.weighIns,
+            weightGoal: bodyStore.currentGoal,
+            heightCentimetres: profile.heightCentimetres,
+            birthYear: profile.birthYear,
+            sex: profile.sex,
+            day: day,
+            timeZone: .current
+        )
     }
 
     /// The suggested Macro Targets at `calorieTarget`, from the core; nil without Trend Weight.

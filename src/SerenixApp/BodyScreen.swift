@@ -139,7 +139,7 @@ struct BodyScreen: View {
                 if let state = card.holdState {
                     holdCard(card, state: state)
                 } else {
-                    goalCards(card, weeklyRate: view.weeklyRate)
+                    goalCards(card, weeklyRate: view.weeklyRate, easierGoal: easierGoal(view))
                     milestonesCard(card)
                 }
             } else if view.trendWeight != nil {
@@ -156,8 +156,12 @@ struct BodyScreen: View {
         .padding()
     }
 
-    /// The Rate and Goal cards (spec 015, Screen).
-    private func goalCards(_ card: GoalCard, weeklyRate: Double?) -> some View {
+    /// The Rate and Goal cards (spec 015, Screen), with the Ease the goal offer when there is one.
+    private func goalCards(
+        _ card: GoalCard,
+        weeklyRate: Double?,
+        easierGoal: FoodScreen.EasierGoal?
+    ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("RATE").font(.caption).foregroundStyle(.secondary)
@@ -174,15 +178,11 @@ struct BodyScreen: View {
                 case nil:
                     EmptyView()
                 }
-                if let ease = card.ease {
-                    Button(easeLabel(ease)) {
-                        store.setGoal(
-                            card.goal.eased(by: ease, on: Day(containing: Date(), in: .current))
-                        )
-                    }
-                    .font(.caption.weight(.semibold))
-                    .buttonStyle(.bordered)
-                    .tint(Theme.accent)
+                if let easierGoal {
+                    Button(easierGoal.label, action: easierGoal.apply)
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .tint(Theme.accent)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

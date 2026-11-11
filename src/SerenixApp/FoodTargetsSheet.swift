@@ -8,22 +8,15 @@ import SwiftUI
 struct FoodTargetsSheet: View {
     /// The suggested Macro Targets at a Calorie Target, from the core; nil without Trend Weight.
     let suggested: (Double) -> MacroTargets?
-    /// What the starting estimate of Expenditure lacks, from the Food view (spec 017).
-    let missingForExpenditure: [ExpenditureInput]
-    /// What the window of logged data says Expenditure is; nil without enough data.
-    let windowFigure: Double?
-    /// The Expenditure the suggestion starts from, kcal a Day; nil without one.
-    let expenditure: Double?
-    /// The Calorie Target that meets the Pace at this Expenditure; nil without Expenditure.
-    let suggestedCalorieTarget: Double?
-    /// The Pace can't be met safely at this Expenditure (spec 017, floor).
-    let paceNotSafelyReachable: Bool
+    /// The Food view at an Activity Level, from the core: its Expenditure, the suggestion and
+    /// what the starting estimate lacks follow the picker before Save (spec 017).
+    let foodView: (ActivityLevel) -> FoodView
     /// Spec 015's easier goal, when one is on offer.
     let easierGoal: FoodScreen.EasierGoal?
     /// Asks for the Weight Goal sheet once this sheet has closed.
     let changePace: () -> Void
-    /// Saves the targets as typed.
-    let save: (FoodTargets) -> Void
+    /// Saves the targets as typed, with the suggested Calorie Target at their Activity Level.
+    let save: (FoodTargets, Double?) -> Void
     @State private var calorieTargetText: String
     @State private var proteinText: String
     @State private var fatText: String
@@ -33,22 +26,14 @@ struct FoodTargetsSheet: View {
 
     init(
         targets: FoodTargets,
-        missingForExpenditure: [ExpenditureInput],
-        windowFigure: Double?,
-        expenditure: Double?,
-        suggestedCalorieTarget: Double?,
-        paceNotSafelyReachable: Bool,
+        foodView: @escaping (ActivityLevel) -> FoodView,
         easierGoal: FoodScreen.EasierGoal?,
         changePace: @escaping () -> Void,
         suggested: @escaping (Double) -> MacroTargets?,
-        save: @escaping (FoodTargets) -> Void
+        save: @escaping (FoodTargets, Double?) -> Void
     ) {
         self.suggested = suggested
-        self.missingForExpenditure = missingForExpenditure
-        self.windowFigure = windowFigure
-        self.expenditure = expenditure
-        self.suggestedCalorieTarget = suggestedCalorieTarget
-        self.paceNotSafelyReachable = paceNotSafelyReachable
+        self.foodView = foodView
         self.easierGoal = easierGoal
         self.changePace = changePace
         self.save = save
@@ -62,6 +47,9 @@ struct FoodTargetsSheet: View {
     private var calorieTarget: Double? { NumberText.number(calorieTargetText) }
     private var proteinOverride: Double? { NumberText.number(proteinText) }
     private var fatOverride: Double? { NumberText.number(fatText) }
+    /// The Food view at the Activity Level picked here.
+    private var figures: FoodView { foodView(activityLevel) }
+    private var suggestedCalorieTarget: Double? { figures.suggestedCalorieTarget }
 
     /// A field has text that doesn't read as a number.
     private var unreadable: Bool {
@@ -96,6 +84,8 @@ struct FoodTargetsSheet: View {
     }
 
     var body: some View {
+        // Worked out once a draw: the picked Activity Level's figures.
+        let figures = self.figures
         NavigationStack {
             Form {
                 Section {
@@ -122,11 +112,10 @@ struct FoodTargetsSheet: View {
                 }
                 Section {
                     // How Expenditure was worked out (spec 017): the logged data's figure.
-                    if let windowFigure {
+                    if let windowFigure = figures.windowFigure {
                         LabeledContent(
                             "Your last \(FoodView.expenditureWindowDays) Days",
-                            value:
-                                "~\(windowFigure.formatted(.number.precision(.fractionLength(0)))) kcal a Day"
+                            value: "~\(Self.whole(windowFigure)) kcal a Day"
                         )
                     }
                     Picker("Activity Level", selection: $activityLevel) {
@@ -137,16 +126,15 @@ struct FoodTargetsSheet: View {
                 } header: {
                     Text("Expenditure")
                 } footer: {
-                    if missingForExpenditure.isEmpty {
+                    if figures.missingForExpenditure.isEmpty {
                         Text("Used to estimate your Expenditure until you've logged enough Days.")
                     } else {
                         // The spec: the targets sheet says which is missing.
                         Text(
-                            "To estimate your Expenditure from your Profile, Serenix needs \(Self.missingText(missingForExpenditure))."
+                            "To estimate your Expenditure from your Profile, Serenix needs \(Self.missingText(figures.missingForExpenditure))."
                         )
                     }
                 }
-                // The suggestion, and the floor message when the Pace can't be met (spec 017).
                 // The Adapt switch (spec 017): the typed Calorie Target is kept for when it's off.
                 Section {
                     Toggle("Adapt my Calorie Target", isOn: $adaptsCalorieTarget)
@@ -156,11 +144,11 @@ struct FoodTargetsSheet: View {
                     )
                 }
                 // The suggestion, and the floor message when the Pace can't be met (spec 017).
-                if let suggestedCalorieTarget {
+                if let suggestedCalorieTarget = figures.suggestedCalorieTarget {
                     Section("Suggested Calorie Target") {
                         // How it was worked out (spec 017, Screen): Expenditure, less or plus
                         // the Pace's energy.
-                        if let expenditure {
+                        if let expenditure = figures.expenditure {
                             LabeledContent(
                                 "Your Expenditure",
                                 value: "~\(Self.whole(expenditure)) kcal a Day"
@@ -170,7 +158,7 @@ struct FoodTargetsSheet: View {
                             "For your Pace",
                             value: "\(Self.whole(suggestedCalorieTarget)) kcal a Day"
                         )
-                        if paceNotSafelyReachable {
+                        if figures.paceNotSafelyReachable {
                             Text(
                                 "Your Pace needs less than is safe at this Expenditure, so this is the lowest Serenix suggests."
                             )
@@ -206,7 +194,8 @@ struct FoodTargetsSheet: View {
                                 fatOverride: fatOverride,
                                 activityLevel: activityLevel,
                                 adaptsCalorieTarget: adaptsCalorieTarget
-                            )
+                            ),
+                            suggestedCalorieTarget
                         )
                         dismiss()
                     }

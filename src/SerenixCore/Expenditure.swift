@@ -42,9 +42,9 @@ public enum ExpenditureInput: Equatable, Sendable {
 enum Expenditure {
     /// Mifflin-St Jeor's coefficients, kcal a Day (Mifflin et al. 1990, simplified form;
     /// `docs/research/calories-burned-from-heart-rate.md`): per kg, per cm, per year of age.
-    static let kilocaloriesPerKilogram = 10.0
-    static let kilocaloriesPerCentimetre = 6.25
-    static let kilocaloriesPerYear = 5.0
+    static let restingKilocaloriesPerKilogram = 10.0
+    static let restingKilocaloriesPerCentimetre = 6.25
+    static let restingKilocaloriesPerYear = 5.0
     /// Mifflin-St Jeor's sex constants, kcal a Day; "prefer not to say" takes their midpoint.
     static let maleConstant = 5.0
     static let femaleConstant = -161.0
@@ -85,7 +85,7 @@ enum Expenditure {
         expenditure: Double,
         kilogramsPerWeek: Double,
         restingRate: Double?
-    ) -> (kilocalories: Double, paceUnreachable: Bool) {
+    ) -> (kilocalories: Double, paceNotSafelyReachable: Bool) {
         let wanted =
             expenditure + kilogramsPerWeek * kilocaloriesPerKilogramOfTrendWeight / daysPerWeek
         let floor = max(minimumSuggestedCalorieTarget, restingRate ?? 0)
@@ -94,9 +94,9 @@ enum Expenditure {
         let rounded = max((wanted / suggestionStep).rounded() * suggestionStep, lowest)
         // Only a Pace that loses can need less than the floor; with no Pace (holding, no goal)
         // or a gaining one, a low Expenditure isn't the Pace's doing.
-        let paceUnreachable = kilogramsPerWeek < 0 && wanted < floor
+        let paceNotSafelyReachable = kilogramsPerWeek < 0 && wanted < floor
         let allowed = CalorieTarget.allowed
-        return (min(max(rounded, allowed.lowerBound), allowed.upperBound), paceUnreachable)
+        return (min(max(rounded, allowed.lowerBound), allowed.upperBound), paceNotSafelyReachable)
     }
 
     /// The resting rate, kcal a Day, at `trendWeight` kg, `heightCentimetres` and `age` years.
@@ -112,8 +112,9 @@ enum Expenditure {
             case .female: femaleConstant
             case .preferNotToSay, nil: unstatedConstant
             }
-        return kilocaloriesPerKilogram * trendWeight + kilocaloriesPerCentimetre * heightCentimetres
-            - kilocaloriesPerYear * Double(age) + constant
+        return restingKilocaloriesPerKilogram * trendWeight + restingKilocaloriesPerCentimetre
+            * heightCentimetres
+            - restingKilocaloriesPerYear * Double(age) + constant
     }
 }
 
