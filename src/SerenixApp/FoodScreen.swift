@@ -44,7 +44,6 @@ struct FoodScreen: View {
             birthYear: profile.birthYear,
             sex: profile.sex,
             day: pickedDay ?? today,
-            now: Date(),
             timeZone: .current
         )
         VStack(alignment: .leading, spacing: 12) {

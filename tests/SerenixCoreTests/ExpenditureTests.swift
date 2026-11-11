@@ -20,9 +20,6 @@ private func at(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
     )!
 }
 
-/// 5 Nov 2026 09:00 in London: today, for Trend Weight and age.
-private let now = at(5, 9)
-
 /// One Weigh-in this morning, so today's Trend Weight is exactly `kilograms`.
 private func weighInToday(_ kilograms: Double) -> [WeighIn] {
     [WeighIn(time: at(5, 7), kilograms: kilograms)]
@@ -47,8 +44,7 @@ private func expenditureView(
     activityLevel: ActivityLevel? = .light,
     calorieTarget: Double? = nil,
     adaptsCalorieTarget: Bool? = nil,
-    day: Day = nov5,
-    now today: Date = now
+    day: Day = nov5
 ) -> FoodView {
     FoodView(
         foodEntries: foodEntries,
@@ -64,7 +60,6 @@ private func expenditureView(
         birthYear: birthYear,
         sex: sex,
         day: day,
-        now: today,
         timeZone: london
     )
 }
@@ -154,9 +149,6 @@ func activityLevelScalesTheRestingRate(level: ActivityLevel, expected: Double) {
 
 private let nov30 = Day(year: 2026, month: 11, day: 30)
 
-/// 30 Nov 2026 21:00 in London, after every entry and Weigh-in below.
-private let lateNov30 = at(30, 21)
-
 /// One Food Entry of `kilocalories` at 12:00 on each of `days` of November 2026.
 private func meals(_ kilocalories: Double, on days: ClosedRange<Int>) -> [FoodEntry] {
     days.map { FoodEntry(time: at($0, 12), kilocalories: kilocalories) }
@@ -182,8 +174,7 @@ private func windowView(
         foodEntries: foodEntries,
         completeDays: completeDays,
         weighIns: weighIns,
-        day: nov30,
-        now: lateNov30
+        day: nov30
     )
 }
 
@@ -351,8 +342,7 @@ private func december1(_ hour: Int) -> Date {
         completeDays: november(9...30).union([Day(year: 2026, month: 12, day: 1)]),
         weighIns: weighIns(80.0, on: Array(9...30))
             + [WeighIn(time: december1(7), kilograms: 80.0)],
-        day: nov30,
-        now: december1(21)
+        day: nov30
     )
     #expect(isClose(view.windowFigure, 2000))
 }
@@ -378,8 +368,7 @@ private func dailyDataView(showing day: Day) -> FoodView {
         foodEntries: meals(2000, on: 10...30),
         completeDays: november(10...30),
         weighIns: weighIns(80.0, on: Array(10...30)),
-        day: day,
-        now: lateNov30
+        day: day
     )
 }
 
@@ -414,8 +403,7 @@ private func dailyDataView(showing day: Day) -> FoodView {
         foodEntries: meals(2000, on: 5...5) + meals(2000, on: 16...24),
         completeDays: november(5...5).union(november(16...24)),
         weighIns: weighIns(80.0, on: Array(10...30)),
-        day: nov26,
-        now: lateNov30
+        day: nov26
     )
     #expect(view.windowFigure == nil)
     #expect(isClose(view.expenditure, 2362.475))
@@ -433,8 +421,7 @@ private func dailyDataView(showing day: Day) -> FoodView {
         foodEntries: foodEntries,
         completeDays: completeDays,
         weighIns: weighIns,
-        day: nov24,
-        now: lateNov30
+        day: nov24
     )
     // 2,447.5 + 0.1 × (2,000 − 2,447.5) = 2,402.75.
     #expect(isClose(nov24View.expenditure, 2402.75))
@@ -450,8 +437,7 @@ private func dailyDataView(showing day: Day) -> FoodView {
         foodEntries: foodEntries,
         completeDays: completeDays,
         weighIns: weighIns,
-        day: Day(year: 2026, month: 11, day: 29),
-        now: lateNov30
+        day: Day(year: 2026, month: 11, day: 29)
     )
     #expect(isClose(nov29View.windowFigure, 2405.263157894737))
     #expect(isClose(nov29View.expenditure, 2278.3461632894737))
@@ -466,8 +452,7 @@ private func dailyDataView(showing day: Day) -> FoodView {
         completeDays: november(10...30),
         weighIns: weighIns(80.0, on: Array(10...30)),
         heightCentimetres: nil,
-        day: nov24,
-        now: lateNov30
+        day: nov24
     )
     #expect(isClose(nov24View.expenditure, 2000))
     #expect(nov24View.expenditureSource == .loggedData)
@@ -477,8 +462,7 @@ private func dailyDataView(showing day: Day) -> FoodView {
         completeDays: november(10...30),
         weighIns: weighIns(80.0, on: Array(10...30)),
         heightCentimetres: nil,
-        day: nov23,
-        now: lateNov30
+        day: nov23
     )
     #expect(nov23View.expenditure == nil)
     #expect(nov23View.expenditureSource == nil)
@@ -490,8 +474,7 @@ private func dailyDataView(showing day: Day) -> FoodView {
     // resting rate 1,780, Expenditure 2,447.5.
     let view = expenditureView(
         weighIns: weighIns(80.0, on: Array(10...23)) + weighIns(70.0, on: Array(24...30)),
-        day: nov23,
-        now: lateNov30
+        day: nov23
     )
     #expect(isClose(view.restingRate, 1780))
     #expect(isClose(view.expenditure, 2447.5))
@@ -534,8 +517,7 @@ private func suggestionView(
         heightCentimetres: nil,
         calorieTarget: calorieTarget,
         adaptsCalorieTarget: adaptsCalorieTarget,
-        day: nov24,
-        now: lateNov30
+        day: nov24
     )
 }
 

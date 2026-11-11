@@ -25,9 +25,6 @@ private func at(month: Int = 11, _ day: Int, _ hour: Int, _ minute: Int = 0) -> 
     )!
 }
 
-/// 5 Nov 2026 09:00 in London, after every Food Entry here.
-private let now = at(5, 9)
-
 private func foodView(
     foodEntries: [FoodEntry],
     completeDays: Set<Day> = [],
@@ -39,7 +36,6 @@ private func foodView(
         completeDays: completeDays,
         foodTargets: FoodTargets(calorieTarget: calorieTarget),
         day: day,
-        now: now,
         timeZone: london
     )
 }

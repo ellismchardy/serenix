@@ -65,7 +65,6 @@ public struct FoodView: Equatable, Sendable {
         birthYear: Int? = nil,
         sex: Sex? = nil,
         day: Day,
-        now: Date,
         timeZone: TimeZone
     ) {
         self.day = day
