@@ -59,6 +59,12 @@ final class StoredFoodTargets {
     var proteinOverride: Double?
     /// Fat the user set in place of the suggestion, g a Day; nil uses the suggestion.
     var fatOverride: Double?
+    /// An `ActivityLevel` raw value (spec 017); nil reads as Light. Optional, so rows stored
+    /// before it still load.
+    var activityLevel: String?
+    /// The Adapt switch (spec 017); nil reads as off. Optional, so rows stored before it still
+    /// load.
+    var adaptsCalorieTarget: Bool?
 
     init() {}
 
@@ -68,13 +74,17 @@ final class StoredFoodTargets {
             FoodTargets(
                 calorieTarget: calorieTarget,
                 proteinOverride: proteinOverride,
-                fatOverride: fatOverride
+                fatOverride: fatOverride,
+                activityLevel: activityLevel.flatMap(ActivityLevel.init(rawValue:)),
+                adaptsCalorieTarget: adaptsCalorieTarget
             )
         }
         set {
             calorieTarget = newValue.calorieTarget
             proteinOverride = newValue.proteinOverride
             fatOverride = newValue.fatOverride
+            activityLevel = newValue.activityLevel?.rawValue
+            adaptsCalorieTarget = newValue.adaptsCalorieTarget
         }
     }
 }
@@ -195,20 +205,27 @@ final class FoodStore: ObservableObject {
         }
     }
 
-    /// Saves `targets` (a nil field clears it), checked by the core against `suggested`, the
-    /// suggestions at that Calorie Target. A refused save keeps nothing and tells the user.
-    func setTargets(_ targets: FoodTargets, suggested: MacroTargets?) {
+    /// Saves `targets` (a nil field clears it), checked by the core. The overrides are checked at
+    /// the Calorie Target that will apply (spec 017, Adapt: `suggestedCalorieTarget` while Adapt
+    /// is on), against `suggested`, the suggested Macro Targets at a Calorie Target. A refused
+    /// save keeps nothing and tells the user.
+    func setTargets(
+        _ targets: FoodTargets,
+        suggestedCalorieTarget: Double?,
+        suggested: (Double) -> MacroTargets?
+    ) {
         change { context in
             if let calorieTarget = targets.calorieTarget,
                 let refused = CalorieTarget.refusal(calorieTarget)
             {
                 throw OnDeviceStoreError(refused.message)
             }
+            let applied = targets.appliedCalorieTarget(suggested: suggestedCalorieTarget)
             if let refused = MacroTargets.overrideRefusal(
                 proteinOverride: targets.proteinOverride,
                 fatOverride: targets.fatOverride,
-                calorieTarget: targets.calorieTarget,
-                suggested: suggested
+                calorieTarget: applied,
+                suggested: applied.flatMap(suggested)
             ) {
                 throw OnDeviceStoreError(refused.message)
             }

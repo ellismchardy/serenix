@@ -23,9 +23,6 @@ private func at(month: Int = 11, _ day: Int, _ hour: Int, _ minute: Int = 0) -> 
     )!
 }
 
-/// 5 Nov 2026 09:00 in London: today, for Trend Weight.
-private let now = at(5, 9)
-
 private func foodView(
     foodEntries: [FoodEntry],
     calorieTarget: Double? = nil,
@@ -47,7 +44,6 @@ private func foodView(
         weightGoal: weightGoal,
         heightCentimetres: heightCentimetres,
         day: day,
-        now: now,
         timeZone: london
     )
 }

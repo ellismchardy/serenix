@@ -9,11 +9,23 @@ struct FoodScreen: View {
     @ObservedObject var bodyStore: BodyStore
     /// For the height the Macro Targets' BMI rule uses.
     @ObservedObject var profile: ProfileStore
+    /// Spec 015's easier goal, when one is on offer; the floor message offers it (spec 017).
+    let easierGoal: EasierGoal?
+    /// Opens the Weight Goal sheet, for the floor message's "Change my Pace".
+    let changePace: () -> Void
+
+    /// An easier Weight Goal offered as one tap: its label and what it does.
+    struct EasierGoal {
+        let label: String
+        let apply: () -> Void
+    }
     /// The Day picked; nil is today, whatever today is when the view draws, so it rolls over at
     /// midnight as the Today and Sleep tabs do.
     @State private var pickedDay: Day?
     @State private var showsEntrySheet = false
     @State private var showsTargetsSheet = false
+    /// "Change my Pace" was tapped; the Weight Goal sheet opens once the targets sheet has gone.
+    @State private var wantsPaceChange = false
     /// The row being edited, while its sheet shows.
     @State private var editing: FoodEntryRow?
 
@@ -22,17 +34,7 @@ struct FoodScreen: View {
         // One snapshot of the stored rows: the view gets their entries, and its entry positions
         // index back into this same array, so the two can't fall out of step.
         let rows = store.rows
-        let view = FoodView(
-            foodEntries: rows.map(\.entry),
-            completeDays: store.completeDays,
-            foodTargets: store.targets,
-            weighIns: bodyStore.weighIns,
-            weightGoal: bodyStore.currentGoal,
-            heightCentimetres: profile.heightCentimetres,
-            day: pickedDay ?? today,
-            now: Date(),
-            timeZone: .current
-        )
+        let view = foodView(rows, day: pickedDay ?? today, targets: store.targets)
         VStack(alignment: .leading, spacing: 12) {
             DatePicker(
                 "Day",
@@ -55,6 +57,14 @@ struct FoodScreen: View {
                     Text("of \(Self.whole(target)) kcal · \(Self.balanceText(balance))")
                         .font(.headline)
                         .foregroundStyle(Self.isOver(balance) ? Color.orange : Color.secondary)
+                }
+                // Expenditure and where it came from (spec 017, Screen).
+                if let expenditure = view.expenditure, let source = view.expenditureSource {
+                    Text(
+                        "Expenditure ~\(Self.whole(expenditure)) kcal · \(Self.sourceText(source))"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 }
                 Text(
                     "Protein \(Self.whole(view.intake.protein)) g · Fat \(Self.whole(view.intake.fat)) g · Carbs \(Self.whole(view.intake.carbs)) g"
@@ -110,16 +120,40 @@ struct FoodScreen: View {
             }
             .accessibilityLabel("Targets")
         }
-        .sheet(isPresented: $showsTargetsSheet) {
+        .sheet(
+            isPresented: $showsTargetsSheet,
+            onDismiss: {
+                if wantsPaceChange {
+                    wantsPaceChange = false
+                    changePace()
+                }
+            }
+        ) {
             FoodTargetsSheet(
                 targets: store.targets,
+                // The same Day, at the Activity Level the sheet's picker shows.
+                foodView: { level in
+                    let targets = store.targets
+                    return foodView(
+                        rows,
+                        day: view.day,
+                        targets: FoodTargets(
+                            calorieTarget: targets.calorieTarget,
+                            proteinOverride: targets.proteinOverride,
+                            fatOverride: targets.fatOverride,
+                            activityLevel: level,
+                            adaptsCalorieTarget: targets.adaptsCalorieTarget
+                        )
+                    )
+                },
+                easierGoal: easierGoal,
+                changePace: { wantsPaceChange = true },
                 suggested: { suggestedTargets(calorieTarget: $0) },
-                save: { targets in
+                save: { targets, suggestedCalorieTarget in
                     store.setTargets(
                         targets,
-                        suggested: targets.calorieTarget.flatMap {
-                            suggestedTargets(calorieTarget: $0)
-                        }
+                        suggestedCalorieTarget: suggestedCalorieTarget,
+                        suggested: { suggestedTargets(calorieTarget: $0) }
                     )
                 }
             )
@@ -171,6 +205,22 @@ struct FoodScreen: View {
         }
         .padding()
         .themeCard()
+    }
+
+    /// The Food view for `day` with `targets`, from the stored rows, Weigh-ins and Profile.
+    private func foodView(_ rows: [FoodEntryRow], day: Day, targets: FoodTargets) -> FoodView {
+        FoodView(
+            foodEntries: rows.map(\.entry),
+            completeDays: store.completeDays,
+            foodTargets: targets,
+            weighIns: bodyStore.weighIns,
+            weightGoal: bodyStore.currentGoal,
+            heightCentimetres: profile.heightCentimetres,
+            birthYear: profile.birthYear,
+            sex: profile.sex,
+            day: day,
+            timeZone: .current
+        )
     }
 
     /// The suggested Macro Targets at `calorieTarget`, from the core; nil without Trend Weight.
@@ -231,6 +281,14 @@ struct FoodScreen: View {
             }
             ProgressView(value: min(eaten, target), total: max(target, 1))
                 .tint(Theme.accent)
+        }
+    }
+
+    /// "from your Profile" or "from your last 21 Days" (spec 017, Screen).
+    private static func sourceText(_ source: ExpenditureSource) -> String {
+        switch source {
+        case .profile: "from your Profile"
+        case .loggedData: "from your last \(FoodView.expenditureWindowDays) Days"
         }
     }
 

@@ -17,7 +17,8 @@ public struct FoodView: Equatable, Sendable {
     public let isComplete: Bool
     /// The shown Day has a Food Entry, so it may be marked complete (spec 016).
     public let canBeMarkedComplete: Bool
-    /// The Calorie Target, kcal a Day; nil when not set.
+    /// The Calorie Target that applies, kcal a Day: the suggestion while Adapt is on and there
+    /// is one, else the typed one (spec 017); nil when neither.
     public let calorieTarget: Double?
     /// Intake against the Calorie Target; nil with no Calorie Target.
     public let calorieBalance: CalorieBalance?
@@ -27,6 +28,29 @@ public struct FoodView: Equatable, Sendable {
     public let macroWarning: MacroWarning?
     /// A Calorie Target is set but there's no Trend Weight yet, so a Weigh-in is needed.
     public let needsWeighIn: Bool
+    /// The user's Expenditure, kcal a Day; nil when there's no starting estimate (spec 017).
+    public let expenditure: Double?
+    /// Where Expenditure comes from; nil with no Expenditure.
+    public let expenditureSource: ExpenditureSource?
+    /// The Mifflin-St Jeor resting rate, kcal a Day; nil without height, birth year or Trend
+    /// Weight.
+    public let restingRate: Double?
+    /// What the starting estimate lacks, in the order height, birth year, Weigh-in; empty when
+    /// there is one.
+    public let missingForExpenditure: [ExpenditureInput]
+    /// How many Days a window of logged data spans (spec 017), for the Food view's wording.
+    public static let expenditureWindowDays = Expenditure.windowDays
+
+    /// The Calorie Target that meets the Weight Goal's Pace at this Expenditure (spec 017),
+    /// rounded to 10 kcal and never below the floor; nil with no Expenditure.
+    public let suggestedCalorieTarget: Double?
+    /// The Pace would need a suggestion below the floor, so it can't be met safely at this
+    /// Expenditure.
+    public let paceNotSafelyReachable: Bool
+
+    /// The shown Day's window figure (spec 017): what its last 21 Days of Complete Days and
+    /// Trend Weight say Expenditure is; nil when the window lacks enough data.
+    public let windowFigure: Double?
 
     /// Each Food Entry counts on the local Day of its time in `timeZone`, as Weigh-ins do.
     /// `completeDays` are the Days the user marked complete. Macro Targets use today's Trend
@@ -38,8 +62,9 @@ public struct FoodView: Equatable, Sendable {
         weighIns: [WeighIn] = [],
         weightGoal: WeightGoal? = nil,
         heightCentimetres: Double? = nil,
+        birthYear: Int? = nil,
+        sex: Sex? = nil,
         day: Day,
-        now: Date,
         timeZone: TimeZone
     ) {
         self.day = day
@@ -55,13 +80,83 @@ public struct FoodView: Equatable, Sendable {
         intake = Intake(entries)
         canBeMarkedComplete = !entries.isEmpty
         isComplete = canBeMarkedComplete && completeDays.contains(day)
-        let calorieTarget = foodTargets.calorieTarget
+        // The Body view's own Trend Weight rule, so the two never disagree.
+        let trend = BodyView.trend(of: weighIns, in: timeZone)
+        // Each Complete Day's Intake: a Day marked complete that has a Food Entry.
+        var completeIntake: [Day: Double] = [:]
+        for entry in foodEntries {
+            let entryDay = Day(containing: entry.time, in: timeZone)
+            guard completeDays.contains(entryDay) else { continue }
+            completeIntake[entryDay, default: 0] += entry.kilocalories
+        }
+        let logged = LoggedData(completeIntake: completeIntake, trend: trend)
+        windowFigure = logged.figure(ending: day)
+        // The starting estimate (spec 017), as of the shown Day: the resting rate at that Day's
+        // Trend Weight and age, times the Activity Level.
+        let trendWeightOnDay = trend.last(where: { $0.day <= day })?.trendWeight
+        var missing: [ExpenditureInput] = []
+        if heightCentimetres == nil { missing.append(.height) }
+        if birthYear == nil { missing.append(.birthYear) }
+        if trendWeightOnDay == nil { missing.append(.weighIn) }
+        missingForExpenditure = missing
+        let factor = (foodTargets.activityLevel ?? .light).factor
+        // The resting rate in `year` at `trendWeight` kg; nil without height or birth year.
+        let resting: (Int, Double) -> Double? = { year, trendWeight in
+            guard let heightCentimetres, let birthYear else { return nil }
+            return Expenditure.restingRate(
+                trendWeight: trendWeight,
+                heightCentimetres: heightCentimetres,
+                age: year - birthYear,
+                sex: sex
+            )
+        }
+        restingRate = trendWeightOnDay.flatMap { resting(day.year, $0) }
+        // From logged data once a window has enough, eased from the starting estimate.
+        let fromLoggedData = logged.eased(through: day) { seedDay, seedTrendWeight in
+            resting(seedDay.year, seedTrendWeight).map { $0 * factor }
+        }
+        if let fromLoggedData {
+            expenditure = fromLoggedData
+            expenditureSource = .loggedData
+        } else if let restingRate {
+            expenditure = restingRate * factor
+            expenditureSource = .profile
+        } else {
+            expenditure = nil
+            expenditureSource = nil
+        }
+        // The suggested Calorie Target (spec 017): Expenditure less (or plus) the Pace.
+        if let expenditure {
+            let pace =
+                trendWeightOnDay.flatMap {
+                    weightGoal?.paceKilogramsPerWeek(trendWeight: $0, today: day)
+                } ?? 0
+            let signedPace: Double =
+                switch weightGoal?.direction {
+                case .lose: -pace
+                case .gain: pace
+                case .hold, nil: 0
+                }
+            let suggestion = Expenditure.suggestedCalorieTarget(
+                expenditure: expenditure,
+                kilogramsPerWeek: signedPace,
+                restingRate: restingRate
+            )
+            suggestedCalorieTarget = suggestion.kilocalories
+            paceNotSafelyReachable = suggestion.paceNotSafelyReachable
+        } else {
+            suggestedCalorieTarget = nil
+            paceNotSafelyReachable = false
+        }
+        // The Calorie Target that applies (spec 017, Adapt).
+        let calorieTarget = foodTargets.appliedCalorieTarget(suggested: suggestedCalorieTarget)
         self.calorieTarget = calorieTarget
         calorieBalance = calorieTarget.map { [intake] in
             CalorieBalance(intake: intake.kilocalories, target: $0)
         }
-        // The Body view's own Trend Weight rule, so the two never disagree.
-        let trendWeight = BodyView.trend(of: weighIns, in: timeZone).last?.trendWeight
+        // Macro Targets use today's Trend Weight on any Day shown (spec 016), unlike Expenditure,
+        // which uses the shown Day's.
+        let trendWeight = trend.last?.trendWeight
         if let calorieTarget, let trendWeight {
             let suggested = MacroTargets.suggested(
                 calorieTarget: calorieTarget,
