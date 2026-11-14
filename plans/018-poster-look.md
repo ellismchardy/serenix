@@ -198,13 +198,18 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
       `learningLoadText` is unused (task 13). HR Zones are grey, blue, green, amber, red
       (prototype M). PR checklist: VoiceOver can still close a popup with the system drag
       indicator hidden.
-11. [ ] **Slice:** Nightly Metric verdict and the Metric and Resting HR popups:
+11. [x] **Slice:** Nightly Metric verdict and the Metric and Resting HR popups:
     `MetricPopup.verdict` (ABOUT USUAL. / UNUSUAL. / WAY OFF.; SpO2 HEALTHY. / A BIT LOW. /
     LOW.; N TO GO. against 3 earlier Nights; NO DATA.); Zone scale flat segments with marker and
     Baseline tick, Last 14 Nights blocks, three fact columns. Resting HR: no verdict.
     - Seam: verdict mapping (MetricPopup) · Files: `Popups.swift`, `TodayViewTests.swift`,
       `TodayPopups.swift`
     - Done when: criterion "A Nightly Metric popup's verdict …".
+    - Built: a private `Reading` in `MetricPopup` decides once for spec 011's sentence and the
+      verdict (no Zone against a formed Baseline gives none, tested). The sentence is the
+      headline's caption with its last words in the Zone colour, the status word a tag under
+      it; the Zone section shows only with a scale. Resting HR: headline with its sentence, no
+      verdict. Blocks, facts, What it is, Your Zones and What moves it are ruled sections.
 12. [ ] **Slice:** Readiness and Sleep Score popups in the Poster look: band scale flat
     segments with marker and "usual 70" tick, Why rows with tags and thin gauges, Your week flat
     bars; Sleep Score parts as rows with big number and thin bar (no nested rings), Time Asleep

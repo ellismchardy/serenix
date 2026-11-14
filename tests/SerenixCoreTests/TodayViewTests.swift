@@ -1863,6 +1863,82 @@ func spo2PopupVerdictSaysItsLevelInWords(spo2: Double, status: String, verdict: 
     #expect(sleepingHR != nil && sleepingHR?.zone == nil)
 }
 
+// MARK: Nightly Metric popup verdict (spec 018)
+
+/// HRV against a formed Baseline of 0 has no Zone (spec 011), so no verdict rather than a wrong
+/// one (spec 018, user story 5).
+@Test func anHRVPopupWithNoZoneAgainstAFormedBaselineHasNoVerdict() {
+    let shown = Night(day: nov1, hrv: 62)
+    let view = todayView(nights: nightsBeforeNov1(hrv: [0, 0, 0]) + [shown], showing: nov1)
+
+    #expect(view.metricPopup(.hrv)?.valueText == "62 ms")
+    #expect(view.metricPopup(.hrv)?.verdict == nil)
+}
+
+// HRV against a Baseline of 60 with a typical Spread (0.15), as in
+// `hrvZoneAgainstABaselineOf60`: 48 is In range (z = −1.49), 45 is Watch (z = −1.92), and 40 is
+// Out of range (z = ln(40 / 60) / 0.15 = −2.70).
+@Test(
+    arguments: [
+        (48, "ABOUT USUAL."),
+        (45, "UNUSUAL."),
+        (40, "WAY OFF."),
+    ] as [(Double, String)]
+)
+func eachNightlyMetricZoneGivesItsStateVerdict(hrv: Double, text: String) {
+    let popup = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: hrv)],
+        showing: nov1
+    ).metricPopup(.hrv)
+
+    #expect(popup?.verdict == Verdict(text: text, kind: .state))
+}
+
+// SpO2's fixed levels (spec 004): In range from 95%, Watch from 92%, Out of range below. SpO2 has
+// no Baseline, so a first Night already has a Zone and a verdict.
+@Test(
+    arguments: [
+        (97, "HEALTHY."),
+        (93, "A BIT LOW."),
+        (90, "LOW."),
+    ] as [(Double, String)]
+)
+func eachSpO2ZoneGivesItsStateVerdict(spo2: Double, text: String) {
+    let popup = todayView(nights: [Night(day: nov1, spo2: spo2)], showing: nov1)
+        .metricPopup(.spo2)
+
+    #expect(popup?.verdict == Verdict(text: text, kind: .state))
+}
+
+// A Baseline needs 3 earlier Nights with the metric (spec 004), so N is 3 less those so far.
+@Test(
+    arguments: [
+        ([], "3 TO GO."),
+        ([60], "2 TO GO."),
+        ([60, 60], "1 TO GO."),
+    ] as [([Double?], String)]
+)
+func aCalibratingMetricPopupGivesAWaitingVerdictWithTheNightsStillNeeded(
+    earlierHRV: [Double?],
+    text: String
+) {
+    let nights = nightsBeforeNov1(hrv: earlierHRV) + [Night(day: nov1, hrv: 60)]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(popup?.verdict == Verdict(text: text, kind: .waiting))
+}
+
+@Test func aMetricPopupMissingItsValueGivesTheWaitingVerdictNoData() {
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [Night(day: nov1)], showing: nov1)
+
+    #expect(view.metricPopup(.hrv)?.verdict == Verdict(text: "NO DATA.", kind: .waiting))
+    #expect(view.metricPopup(.spo2)?.verdict == Verdict(text: "NO DATA.", kind: .waiting))
+
+    // Missing comes before Calibrating: no earlier Nights either.
+    let firstNight = todayView(nights: [Night(day: nov1, spo2: 97)], showing: nov1)
+    #expect(firstNight.metricPopup(.hrv)?.verdict == Verdict(text: "NO DATA.", kind: .waiting))
+}
+
 // Spec 011: the Zone scale. Positions are quoted to 4 dp in the spec, so they're compared within
 // 0.00005.
 

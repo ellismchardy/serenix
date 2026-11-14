@@ -423,6 +423,9 @@ public struct MetricPopup: Equatable, Sendable {
     /// What the value means for the user, e.g. "−20% against your Baseline: about usual for
     /// you." (spec 011, Verdict). Its last words take `zone`'s colour.
     public let verdictText: String
+    /// The value headline's verdict (spec 018): "ABOUT USUAL." / "UNUSUAL." / "WAY OFF.", SpO2's
+    /// "HEALTHY." / "A BIT LOW." / "LOW.", or waiting "N TO GO." / "NO DATA.".
+    public let verdict: Verdict?
     /// Where the value sits among the Zones (spec 011, Zone scale); nil with no Zone.
     public let scale: MetricPopupScale?
     /// "Your Zones · Baseline 60 ms", or "Zones" for SpO2 (spec 011, Your Zones); nil with no
@@ -455,7 +458,9 @@ public struct MetricPopup: Equatable, Sendable {
         zone = tile.zone
         nightText = "Night of \(night.day.nightSpanText)"
         statusText = tile.statusText
-        verdictText = Self.verdict(tile, value: night.value(of: tile.metric))
+        let reading = Reading(tile, value: night.value(of: tile.metric))
+        verdictText = reading.sentence(tile)
+        verdict = reading.verdict
         scale = MetricPopupScale(tile, value: night.value(of: tile.metric))
         zoneRows = MetricPopupZoneRow.rows(tile)
         // SpO2 has fixed levels, so no Baseline to name.
@@ -494,34 +499,77 @@ public struct MetricPopup: Equatable, Sendable {
         whatMovesItTexts = MetricTexts.whatMovesIt(tile.metric)
     }
 
-    /// The verdict sentence (spec 011): the difference and the Zone in words against a
-    /// Baseline, SpO2's level, how many earlier Nights a Calibrating Baseline has, or that the
-    /// value is missing.
-    private static func verdict(_ tile: MetricTile, value: Double?) -> String {
-        let name = tile.metric.name
-        guard value != nil else { return "No \(name) for this Night." }
-        if tile.metric == .spo2 {
-            return switch tile.zone {
-            case .inRange: "A healthy level."
-            case .watch: "A little low."
-            case .outOfRange: "Low."
-            case nil: missingText
+    /// What the Night's value says, decided once for the sentence and the verdict (spec 011's
+    /// order): missing, SpO2's level, a Calibrating Baseline with its earlier Nights so far, or
+    /// the Zone against a formed Baseline (none for HRV against a Baseline of 0 or less).
+    private enum Reading {
+        case missing
+        case spo2(Zone?)
+        case calibrating(soFar: Int)
+        case zone(Zone?)
+
+        init(_ tile: MetricTile, value: Double?) {
+            if value == nil {
+                self = .missing
+            } else if tile.metric == .spo2 {
+                self = .spo2(tile.zone)
+            } else if let baseline = tile.comparedBaseline, !baseline.isCalibrating {
+                self = .zone(tile.zone)
+            } else {
+                self = .calibrating(soFar: tile.comparedBaseline?.earlierNights ?? 0)
             }
         }
-        guard let baseline = tile.comparedBaseline, !baseline.isCalibrating else {
-            let soFar = tile.comparedBaseline?.earlierNights ?? 0
-            return "Calibrating: Serenix needs \(Baseline.minEarlierNights) earlier Nights with "
-                + "\(name) to know what's usual for you (\(soFar) so far)."
-        }
-        // HRV against a Baseline of 0 or less has no Zone, and so nothing to say.
-        guard let zone = tile.zone else { return missingText }
-        let meaning =
-            switch zone {
-            case .inRange: "about usual for you."
-            case .watch: "unusual for you."
-            case .outOfRange: "well outside your usual."
+
+        /// The verdict sentence (spec 011): the difference and the Zone in words against a
+        /// Baseline, SpO2's level, how many earlier Nights a Calibrating Baseline has, or that
+        /// the value is missing.
+        func sentence(_ tile: MetricTile) -> String {
+            let name = tile.metric.name
+            switch self {
+            case .missing:
+                return "No \(name) for this Night."
+            case .spo2(let zone):
+                return switch zone {
+                case .inRange: "A healthy level."
+                case .watch: "A little low."
+                case .outOfRange: "Low."
+                case nil: missingText
+                }
+            case .calibrating(let soFar):
+                return "Calibrating: Serenix needs \(Baseline.minEarlierNights) earlier Nights "
+                    + "with \(name) to know what's usual for you (\(soFar) so far)."
+            case .zone(nil):
+                // No Zone, and so nothing to say.
+                return missingText
+            case .zone(let zone?):
+                let meaning =
+                    switch zone {
+                    case .inRange: "about usual for you."
+                    case .watch: "unusual for you."
+                    case .outOfRange: "well outside your usual."
+                    }
+                return "\(tile.differenceText) against your Baseline: \(meaning)"
             }
-        return "\(tile.differenceText) against your Baseline: \(meaning)"
+        }
+
+        /// The headline's verdict (spec 018): waiting "NO DATA." or "N TO GO." with the earlier
+        /// Nights a Calibrating Baseline still needs (spec 011's count), SpO2's level, or the
+        /// Zone; none without a Zone.
+        var verdict: Verdict? {
+            switch self {
+            case .missing:
+                Verdict(text: "NO DATA.", kind: .waiting)
+            case .calibrating(let soFar):
+                Verdict(text: "\(Baseline.minEarlierNights - soFar) TO GO.", kind: .waiting)
+            case .spo2(.inRange): Verdict(text: "HEALTHY.", kind: .state)
+            case .spo2(.watch): Verdict(text: "A BIT LOW.", kind: .state)
+            case .spo2(.outOfRange): Verdict(text: "LOW.", kind: .state)
+            case .zone(.inRange): Verdict(text: "ABOUT USUAL.", kind: .state)
+            case .zone(.watch): Verdict(text: "UNUSUAL.", kind: .state)
+            case .zone(.outOfRange): Verdict(text: "WAY OFF.", kind: .state)
+            case .spo2(nil), .zone(nil): nil
+            }
+        }
     }
 }
 
