@@ -11,10 +11,6 @@ public struct TodayView: Equatable, Sendable {
     /// date picker.
     public let pickerDates: ClosedRange<Date>
     public let shownDate: Date
-    /// e.g. "Good morning!", by the time now, on every Day shown.
-    public let greeting: String
-    /// The Profile name under the greeting; nil with no name.
-    public let greetingName: String?
     /// The first letter of the Profile name, upper-cased; nil with no name.
     public let avatarLetter: String?
     /// The profile menu header's name: the Profile name, or "Add your name".
@@ -38,13 +34,8 @@ public struct TodayView: Equatable, Sendable {
     /// Add your age).
     public let loadLabel: String
     public let loadText: String
-    /// Whether tapping the Load ring opens the profile menu: only while it asks for the age.
+    /// Whether tapping Load opens the profile menu: only while it asks for the age.
     public let loadOpensProfileMenu: Bool
-    /// How far each ring fills, 0 to 1: its 0–100 score out of 100 (ADR 0005), or 0 when the
-    /// score is missing.
-    public let readinessFill: Double
-    public let sleepScoreFill: Double
-    public let loadFill: Double
     /// Nil when there is nothing to say.
     public let syncPill: SyncPill?
     /// Whether the profile menu's Sync now reads Retry sync: after a paused or failed sync.
@@ -55,7 +46,7 @@ public struct TodayView: Equatable, Sendable {
     public let readinessPopup: ReadinessPopup?
     /// Nil on a Day without a Night.
     public let sleepPopup: SleepPopup?
-    /// The Load popup (spec 006); nil when the Load ring opens the profile menu instead.
+    /// The Load popup (spec 006); nil when Load opens the profile menu instead.
     public let loadPopup: LoadPopup?
     private let metricPopups: [MetricPopup]
     /// "Last night" on today, else the Day's date.
@@ -100,8 +91,6 @@ public struct TodayView: Equatable, Sendable {
             nights: Set(nights.map(\.day))
         )
         let profile = Profile(name: profileName)
-        greeting = profile.greeting(at: now, in: timeZone)
-        greetingName = profile.name
         avatarLetter = profile.avatarLetter
         menuName = profile.menuName
 
@@ -124,12 +113,10 @@ public struct TodayView: Equatable, Sendable {
         if let calibratingNightsSoFar {
             readinessText = "\(calibratingNightsSoFar)/\(nightsForBaseline)"
             readinessBand = nil
-            readinessFill = 0
         } else {
             let readiness = nightReadiness.score
             readinessText = scoreText(readiness)
             readinessBand = readiness.map(ReadinessBand.init)
-            readinessFill = ringFill(readiness)
         }
         // Readiness is missing when the Night has no HRV, an HRV of 0 counting as none (spec 008).
         let hasHRV = (night?.value(of: .hrv)).map { $0 > 0 } ?? false
@@ -144,13 +131,11 @@ public struct TodayView: Equatable, Sendable {
             SleepScore(of: $0, among: nights, sleepNeed: sleepNeed.sleepNeed, timeZone: timeZone)
         }
         sleepScoreText = scoreText(sleepScore?.score)
-        sleepScoreFill = ringFill(sleepScore?.score)
 
         let dayLoad = dayLoads.first { $0.day == day }
         loadOpensProfileMenu = dayLoad?.missingReason == .noMaxHR
         loadLabel = loadOpensProfileMenu ? "Add your age" : "Load"
         loadText = scoreText(dayLoad?.load)
-        loadFill = ringFill(dayLoad?.load)
         loadPopup =
             loadOpensProfileMenu
             ? nil
@@ -267,9 +252,9 @@ public struct TodayView: Equatable, Sendable {
         let missingHRVVerdict = hasHRV ? nil : "No HRV for this Night, so there's no Readiness."
         // The band scale's marker and "usual 70" tick: only with a Readiness, none while
         // Calibrating or missing (spec 012).
-        let readinessScaleMarker = nightReadiness.score.map(ringFill)
+        let readinessScaleMarker = nightReadiness.score.map(scoreFill)
         let readinessUsualTick =
-            nightReadiness.score == nil ? nil : ringFill(Readiness.usualScore)
+            nightReadiness.score == nil ? nil : scoreFill(Readiness.usualScore)
         // The band scale's segments, the same on every Night (spec 012).
         let readinessScale = ReadinessBand.lowestFirst.map { band in
             ReadinessScaleSegment(band: band, from: band.stretch.from, to: band.stretch.to)
@@ -291,7 +276,7 @@ public struct TodayView: Equatable, Sendable {
                 weekdayText: weekDay.weekdayName,
                 readinessText: scoreText(score),
                 band: score.map(ReadinessBand.init),
-                fill: ringFill(score),
+                fill: scoreFill(score),
                 isDayShown: offset == 0
             )
         }
@@ -370,7 +355,7 @@ func scoreText(_ score: Int?) -> String {
     score.map(String.init) ?? missingText
 }
 
-/// A 0–100 score as a ring's fill, 0 to 1; an empty ring when it's missing.
-func ringFill(_ score: Int?) -> Double {
+/// A 0–100 score as a share of 100, 0 to 1, for a bar or marker; 0 when it's missing.
+func scoreFill(_ score: Int?) -> Double {
     score.map { Double($0) / 100 } ?? 0
 }

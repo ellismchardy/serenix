@@ -223,7 +223,7 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
       sentence, with the band word as a solid tag; the Day shown without a Readiness is
       outlined in Your week. `popupCard` and `PopupSectionTitle` are already deleted here.
       Ring doc comments in the core reworded.
-13. [ ] **Contract:** delete `Theme`'s purple tokens, `themeCard`, `popupCard`, `ScoreRing` /
+13. [x] **Contract:** delete `Theme`'s purple tokens, `themeCard`, `popupCard`, `ScoreRing` /
     `RingArc` if unused; point Onboarding, ProfileMenu, DebugView and SyncPillView's remaining
     Theme uses at the Poster palette; app-wide tint to ink. `grep` finds no `Theme.accent`.
     Remove the greeting the masthead replaced (user, 2026-11-14): `TodayView.greeting` /
@@ -236,6 +236,14 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
     - Blocked by: 3, 4, 6, 9, 12 · Files: `Theme.swift`, `SerenixApp.swift`,
       `OnboardingScreen.swift`, `ProfileMenu.swift`, `SyncPillView.swift`, `ScoreRing.swift`
     - Done when: phone criterion "no rounded cards or shadows, and no purple anywhere".
+    - Built: `Theme.swift` and `ScoreRing.swift` deleted; `ReadinessBand.colour` in
+      `MetricLook.swift` (Poster colours); Avatar, Onboarding, ProfileMenu (now `.grouped`),
+      SyncPillView and the app tint on the Poster palette. Removed from the core with only their
+      tests: the greeting, the ring fills and `learningLoadText`; spec 006's "the popup always
+      shows the Day's Load" is still tested through `loadText`. `ringFill` renamed `scoreFill`.
+      Carried over (tied to specs 002/004 wording, raised as a follow-up): the tiles' `gauge`,
+      `VsBaseline.comparisons`, renaming `gridTiles`. PR checklist: Onboarding's Send button and
+      chips stay rounded (Non-goal).
 14. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
     `swift build` green; every core success criterion checked; each verdict asserted as state
     or waiting.

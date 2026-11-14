@@ -12,7 +12,7 @@ struct ScreenChrome<Content: View>: View {
     @ObservedObject var profile: ProfileStore
     /// The Day shown, shared by both tabs; nil is today.
     @Binding var pickedDay: Day?
-    /// Owned by the tab, since its content can open the profile menu too (the Load ring).
+    /// Owned by the tab, since its content can open the profile menu too (Load, while it asks for the age).
     @Binding var showsProfileMenu: Bool
     /// The pill the user swiped away, or "Sync successful" once its 3 seconds are up; it shows
     /// again as soon as the Today view gives a different pill. Shared by both tabs, so there is

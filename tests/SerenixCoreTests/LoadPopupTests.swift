@@ -522,6 +522,32 @@ func theVerdictNamesTheDaysLoadBandAgainstTypicalLoad(load: Int, verdict: String
     #expect(view.loadPopup?.verdict == Verdict(text: "NO LOAD.", kind: .waiting))
 }
 
+// MARK: The Day's Load while typical Load is learned
+
+// Spec 006: the popup always shows the Day's Load; with no bar while typical Load is learned,
+// the headline's number carries it (spec 018).
+
+@Test func withFewerThan4DaysThePopupStillShowsTheDaysLoadWithNoBar() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 40, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.loadText == "40")
+    #expect(view.loadPopup?.loadBarFill == nil)
+}
+
+@Test func withFewerThan4DaysAMissingLoadShowsADash() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.loadText == "\u{2014}")
+}
+
 // MARK: The Load bar
 
 @Test(
@@ -603,37 +629,4 @@ func theLoadBarAgainstTypicalLoadZero(load: Int, fill: Double) {
     #expect(popup.comparisonText == "About your usual Day")
     #expect(popup.typicalText == "Typical: 50 · today −10")
     #expect(popup.loadBarFill == 0.4)
-}
-
-// MARK: The Day's Load while typical Load is learned
-
-@Test func withFewerThan4DaysTheDaysLoadShowsAsANumber() {
-    let view = todayView(
-        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
-            DayLoad(day: nov1, load: 40, heartRate: heartRate())
-        ]
-    )
-
-    #expect(view.loadPopup?.learningLoadText == "Load 40")
-}
-
-@Test func withFewerThan4DaysAMissingLoadShowsADash() {
-    let view = todayView(
-        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
-            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
-        ]
-    )
-
-    #expect(view.loadPopup?.learningLoadText == "Load —")
-}
-
-@Test func withATypicalLoadTheDaysLoadDoesNotShowAsANumber() throws {
-    let view = todayView(
-        dayLoads: typicalLoadBeforeNov1(50) + [
-            DayLoad(day: nov1, load: 40, heartRate: heartRate())
-        ]
-    )
-    let popup = try #require(view.loadPopup)
-
-    #expect(popup.learningLoadText == nil)
 }

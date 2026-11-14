@@ -22,8 +22,9 @@ struct SerenixApp: App {
                     connection.redoLoadAfterProfileChange()
                 }
             }
-            // The Look's accent everywhere, and the Appearance setting (spec 002, Look).
-            .tint(Theme.accent)
+            // Controls in ink everywhere (spec 018: one accent, red, kept for verdicts and bars),
+            // and the Appearance setting (spec 002, Look).
+            .tint(Poster.ink)
             .environmentObject(appearance)
             // A History Sync runs each time Serenix comes to the foreground (spec 001).
             .onChange(of: scenePhase, initial: true) { oldPhase, newPhase in

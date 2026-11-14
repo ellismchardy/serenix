@@ -3,7 +3,7 @@ import Foundation
 /// The Readiness popup (spec 012): Readiness with its band and verdict, each input's effect on it,
 /// the last 7 Days, and Sleep Score.
 public struct ReadinessPopup: Equatable, Sendable {
-    /// As on the ring: the number, "n/4" while Calibrating, or "—" when missing.
+    /// As on the Today headline: the number, "n/4" while Calibrating, or "—" when missing.
     public let readinessText: String
     public let band: ReadinessBand?
     /// The Night's Sleep Score, shown whether or not Readiness is Calibrating.
@@ -39,7 +39,7 @@ public struct ReadinessWeekBar: Equatable, Sendable {
     public let readinessText: String
     /// Nil with no Readiness.
     public let band: ReadinessBand?
-    /// The bar's height, 0 to 1: Readiness out of 100, as the ring's fill; 0 with no Readiness.
+    /// The bar's height, 0 to 1: Readiness out of 100; 0 with no Readiness.
     public let fill: Double
     /// Outlined: the Day the popup is for.
     public let isDayShown: Bool
@@ -261,7 +261,7 @@ public struct SleepScorePart: Equatable, Sendable {
         self.name = name
         let rounded = score.map(halvesUp)
         scoreText = SerenixCore.scoreText(rounded)
-        fill = ringFill(rounded)
+        fill = scoreFill(rounded)
         self.detailText = detailText
     }
 
@@ -706,7 +706,7 @@ public struct MetricPopupZoneRow: Equatable, Sendable {
 public struct LoadPopup: Equatable, Sendable {
     /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
     public let dateText: String
-    /// As on the ring.
+    /// As on Today's Load section.
     public let loadText: String
     /// "As of your last sync at 08:12" on today; nil on an earlier Day or before any sync.
     public let lastSyncText: String?
@@ -721,9 +721,6 @@ public struct LoadPopup: Equatable, Sendable {
     /// marker at the middle (spec 006). 0 with the Day's Load missing; nil, no bar, with no
     /// typical Load yet.
     public let loadBarFill: Double?
-    /// The Day's Load in the Load bar's place while typical Load is learned, e.g. "Load 40" or
-    /// "Load —"; nil once there's a typical Load (spec 006).
-    public let learningLoadText: String?
     /// Today only.
     public let showsLiveHR: Bool
     /// Why there are no HR Zones, Highest HR or Max HR used; nil when they're there.
@@ -762,8 +759,6 @@ public struct LoadPopup: Equatable, Sendable {
         comparisonText = comparison.text
         verdict = comparison.verdict
         loadBarFill = Self.loadBarFill(typical, load: load)
-        learningLoadText =
-            if case .calibrating = typical { "Load \(loadText)" } else { nil }
         showsLiveHR = isToday
         let heartRate = dayLoad?.heartRate
         note =

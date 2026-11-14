@@ -375,42 +375,6 @@ func readinessShowsItsNumberAndBand(
     #expect(view.readinessBand == nil)
 }
 
-/// 2026-10-31T21:16:00Z.
-private let onsetOct31At2116 = Date(timeIntervalSince1970: 1_793_481_360)
-/// 2026-11-01T07:00:00Z.
-private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
-
-@Test func eachRingFillsToItsScoreOutOf100() {
-    let view = todayView(
-        // HRV 59 against 60 with Time Asleep 8 h, its Sleep Need: Readiness 67. Sleep Score
-        // (spec 010): Sleep Sufficiency 100; 8 h asleep in a 9 h 44 m Sleep Period (21:16 to
-        // 07:00) is 82.19%, so Sleep Efficiency 35.96; 0.75 × 100 + 0.25 × 35.96 = 83.99, so 84.
-        nights: calibratedNightsBeforeNov1 + [
-            Night(
-                day: nov1,
-                sleepingHR: 50,
-                hrv: 59,
-                sleepOnset: onsetOct31At2116,
-                finalWake: finalWakeNov1At0700,
-                timeAsleep: 28_800
-            )
-        ],
-        showing: nov1
-    )
-
-    #expect(view.sleepScoreFill == 0.84)
-    #expect(view.readinessFill == 0.67)
-    #expect(view.loadFill == 0.05)
-}
-
-@Test func aRingWithAMissingScoreIsEmpty() {
-    let view = todayView(nights: [Night(day: nov1)], dayLoads: [], showing: nov1)
-
-    #expect(view.sleepScoreFill == 0)
-    #expect(view.readinessFill == 0)
-    #expect(view.loadFill == 0)
-}
-
 // MARK: Readiness Calibrating
 
 @Test func readinessIsCalibratingUntilThreeEarlierNightsFormBothBaselines() {
@@ -423,7 +387,6 @@ private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
     )
     #expect(twoEarlier.readinessText == "3/4")
     #expect(twoEarlier.readinessBand == nil)
-    #expect(twoEarlier.readinessFill == 0)
 
     let threeEarlier = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
     #expect(threeEarlier.readinessText == "80")
@@ -438,7 +401,6 @@ private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
 
     #expect(view.readinessText == "1/4")
     #expect(view.readinessBand == nil)
-    #expect(view.readinessFill == 0)
 }
 
 @Test func calibratingCountsNightsByTheMetricWithFewestEarlierValues() {
@@ -2593,53 +2555,7 @@ private let restingHRDayLoadsOct5ToNov1: [DayLoad] =
     #expect(view.pickerRange == nov1...nov1)
 }
 
-// MARK: Greeting and Profile
-
-/// A time on 1 Nov 2026, London, where local time equals UTC.
-private func onNov1(_ hour: Int, _ minute: Int) -> Date {
-    // 2026-11-01T00:00:00Z.
-    Date(timeIntervalSince1970: 1_793_491_200 + Double(hour * 3600 + minute * 60))
-}
-
-@Test(arguments: [
-    (5, 0, "Good morning!"),
-    (8, 12, "Good morning!"),
-    (11, 59, "Good morning!"),
-    (12, 0, "Good afternoon!"),
-    (17, 59, "Good afternoon!"),
-    (18, 0, "Good evening!"),
-    (4, 59, "Good evening!"),
-])
-func theGreetingFitsTheLocalTimeOfDayWithTheProfileNameUnderIt(
-    hour: Int,
-    minute: Int,
-    greeting: String
-) {
-    let view = todayView(
-        nights: [],
-        showing: nov1,
-        at: onNov1(hour, minute),
-        profileName: "Ellis"
-    )
-
-    #expect(view.greeting == greeting)
-    #expect(view.greetingName == "Ellis")
-}
-
-@Test func anEarlierDayHasTheSameGreetingAndName() {
-    let view = todayView(nights: [], showing: oct31, at: onNov1(8, 12), profileName: "Ellis")
-
-    #expect(view.greeting == "Good morning!")
-    #expect(view.greetingName == "Ellis")
-}
-
-@Test(arguments: [nil, "   "] as [String?])
-func withoutAProfileNameTheGreetingStandsAlone(profileName: String?) {
-    let view = todayView(nights: [], showing: nov1, at: onNov1(8, 12), profileName: profileName)
-
-    #expect(view.greeting == "Good morning!")
-    #expect(view.greetingName == nil)
-}
+// MARK: Profile
 
 @Test func theAvatarLetterIsTheProfileNamesFirstLetterUpperCased() {
     let view = todayView(nights: [], showing: nov1, profileName: "ellis")

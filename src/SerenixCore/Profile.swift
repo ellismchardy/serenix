@@ -67,30 +67,10 @@ public struct Profile: Equatable, Sendable {
     /// The profile menu header's name.
     var menuName: String { name ?? "Add your name" }
 
-    /// "Good morning!", "Good afternoon!" or "Good evening!" by the local time of day; the name
-    /// shows under it, not in it (spec 002, Greeting).
-    func greeting(at time: Date, in timeZone: TimeZone) -> String {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let hour = calendar.component(.hour, from: time)
-        let partOfDay =
-            switch hour {
-            case Self.morningFrom..<Self.afternoonFrom: "morning"
-            case Self.afternoonFrom..<Self.eveningFrom: "afternoon"
-            default: "evening"
-            }
-        return "Good \(partOfDay)!"
-    }
-
     /// Ages in years the birth year picker spans (spec 005, Profile).
     private static let oldestAge = 100
     private static let youngestAge = 13
     /// Tanaka, Monahan & Seals 2001: bpm, and bpm per year of age.
     private static let tanakaIntercept = 208.0
     private static let tanakaSlope = 0.7
-
-    /// Local hours the parts of the day start at (spec 002, Greeting); evening runs to 04:59.
-    private static let morningFrom = 5
-    private static let afternoonFrom = 12
-    private static let eveningFrom = 18
 }
