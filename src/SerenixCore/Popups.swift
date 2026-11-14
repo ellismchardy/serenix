@@ -11,6 +11,8 @@ public struct ReadinessPopup: Equatable, Sendable {
     /// The sentence under the headline (spec 012, Verdict), or why there's no Readiness: spec
     /// 002's Calibrating explanation, or no HRV.
     public let verdictText: String?
+    /// The headline's short verdict, as on the Today headline (spec 018, Verdicts).
+    public let verdict: Verdict?
     /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
     /// none without a Readiness.
     public let whyRows: [ReadinessWhyRow]

@@ -289,6 +289,7 @@ public struct TodayView: Equatable, Sendable {
                         // Spec 012: Sleep Score shows while Calibrating too.
                         sleepScoreText: sleepScoreText,
                         verdictText: calibratingExplanation,
+                        verdict: readinessVerdict,
                         whyRows: [],
                         week: readinessWeek,
                         scaleSegments: readinessScale,
@@ -301,6 +302,7 @@ public struct TodayView: Equatable, Sendable {
                         band: readinessBand,
                         sleepScoreText: sleepScoreText,
                         verdictText: why?.verdict ?? missingHRVVerdict,
+                        verdict: readinessVerdict,
                         whyRows: why?.rows ?? [],
                         week: readinessWeek,
                         scaleSegments: readinessScale,

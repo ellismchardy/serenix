@@ -36,7 +36,7 @@ struct TodayPopupView: View {
                 switch popup {
                 case .readiness:
                     if let readiness = today.readinessPopup {
-                        ReadinessPopupView(popup: readiness, verdict: today.readinessVerdict)
+                        ReadinessPopupView(popup: readiness)
                     }
                 case .sleep:
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
@@ -87,13 +87,11 @@ struct TodayPopupView: View {
 /// colour; the band scale as flat segments; why, biggest effect first; Your week; and Sleep Score.
 private struct ReadinessPopupView: View {
     let popup: ReadinessPopup
-    /// The Today headline's verdict, the same in the popup (spec 018).
-    let verdict: Verdict?
 
     var body: some View {
         PosterHeadline(
             number: popup.readinessText,
-            verdict: verdict,
+            verdict: popup.verdict,
             caption: popup.verdictText,
             size: Poster.bodyHeadlineSize
         )
