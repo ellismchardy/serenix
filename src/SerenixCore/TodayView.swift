@@ -26,6 +26,10 @@ public struct TodayView: Equatable, Sendable {
     public let readinessText: String
     /// Nil whenever Readiness is missing.
     public let readinessBand: ReadinessBand?
+    /// The Readiness headline's verdict (spec 018): the band's, or a waiting one with no Night,
+    /// while Calibrating, or with no HRV; none in the rare case Readiness is missing for another
+    /// reason, rather than a wrong one.
+    public let readinessVerdict: Verdict?
     /// The advice on the Readiness message card; nil while Calibrating or missing.
     public let readinessAdvice: String?
     /// The Night's Sleep Score, or "—".
@@ -127,6 +131,14 @@ public struct TodayView: Equatable, Sendable {
             readinessBand = readiness.map(ReadinessBand.init)
             readinessFill = ringFill(readiness)
         }
+        // Readiness is missing when the Night has no HRV, an HRV of 0 counting as none (spec 008).
+        let hasHRV = (night?.value(of: .hrv)).map { $0 > 0 } ?? false
+        readinessVerdict = .readiness(
+            hasNight: night != nil,
+            calibratingNightsStillNeeded: calibratingNightsSoFar.map { nightsForBaseline - $0 },
+            band: readinessBand,
+            hasHRV: hasHRV
+        )
         // Worked out each time, never stored, so it follows the Nights (spec 010).
         let sleepScore = night.flatMap {
             SleepScore(of: $0, among: nights, sleepNeed: sleepNeed.sleepNeed, timeZone: timeZone)
@@ -252,8 +264,6 @@ public struct TodayView: Equatable, Sendable {
             "Readiness needs \(nightsForBaseline) Nights to form your Baseline. "
                 + "You have \($0) so far."
         }
-        // Readiness is missing when the Night has no HRV, an HRV of 0 counting as none (spec 008).
-        let hasHRV = (night?.value(of: .hrv)).map { $0 > 0 } ?? false
         let missingHRVVerdict = hasHRV ? nil : "No HRV for this Night, so there's no Readiness."
         // The band scale's marker and "usual 70" tick: only with a Readiness, none while
         // Calibrating or missing (spec 012).

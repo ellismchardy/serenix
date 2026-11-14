@@ -68,7 +68,7 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
 
 ## Tasks (ordered; each one red→green cycle, committed on its own)
 
-1. [ ] **Slice (tracer bullet):** `Verdict` and the Readiness verdict; the Poster pieces; the
+1. [x] **Slice (tracer bullet):** `Verdict` and the Readiness verdict; the Poster pieces; the
    Today headline. Core: `Verdict`, `TodayView.readinessVerdict`. Shell: `Poster.swift`; the
    ScreenChrome top bar becomes the masthead ("Serenix · Today", Day on the right; the avatar,
    calendar and bell kept as small ink icons in it); Today draws `PosterHeadline` (n/4 while
@@ -79,6 +79,11 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      `src/SerenixApp/TodayScreen.swift`
    - Done when: criterion "Ready, Steady, Take it easy … 2 TO GO., NO HRV., NO NIGHT." and the
      state/waiting marking for these.
+   - Built: no Night is checked before Calibrating; "NO HRV." uses the Night's HRV (0 counts as
+     none), and Readiness missing with HRV present gives no verdict. The button style is
+     `BlockButtonStyle`. Until task 2, Rings shows Readiness twice (headline and ring). The
+     masthead dropped spec 002's greeting; `TodayView.greeting` / `greetingName` are unused
+     pending the user's call (keep it or remove in task 13).
 2. [ ] **Slice:** Today's Rings layout as concept M: Load section (`PosterBar` 0 to 2× typical
    Load, tick at typical, spec 006 sentence as note; number alone while typical Load is
    learned), Sleep Score and Time Asleep side by side, Nightly Metrics and Resting HR as rows

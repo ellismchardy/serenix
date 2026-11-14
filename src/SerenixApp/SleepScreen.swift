@@ -37,6 +37,7 @@ struct SleepScreen: View {
         )
         let openLane = chosenLane ?? sleep.week.firstOpenLane
         ScreenChrome(
+            tabName: "Sleep",
             connection: connection,
             profile: profile,
             pickedDay: $pickedDay,

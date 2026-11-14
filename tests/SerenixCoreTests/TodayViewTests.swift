@@ -451,6 +451,64 @@ private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
     #expect(view.readinessBand == nil)
 }
 
+// MARK: Readiness verdict (spec 018)
+
+/// HRV, Sleeping HR and Time Asleep (seconds) against Baselines of 60 ms and 50 bpm and Sleep
+/// Need 8 h, giving Readiness 67 (Ready), 66 (Steady) and 33 (Take it easy) as in
+/// `readinessShowsItsNumberAndBand` (spec 008).
+@Test(
+    arguments: [
+        (59, 50, 28_800, ReadinessBand.ready, "GO HARD."),
+        (60, 50, 27_000, .steady, "HOLD STEADY."),
+        (51, 50, 25_200, .takeItEasy, "EASE OFF."),
+    ] as [(Double, Double, TimeInterval, ReadinessBand, String)]
+)
+func eachReadinessBandGivesItsStateVerdict(
+    hrv: Double,
+    sleepingHR: Double,
+    timeAsleep: TimeInterval,
+    band: ReadinessBand,
+    text: String
+) {
+    let shown = Night(day: nov1, sleepingHR: sleepingHR, hrv: hrv, timeAsleep: timeAsleep)
+    let view = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
+
+    #expect(view.readinessBand == band)
+    #expect(view.readinessVerdict == Verdict(text: text, kind: .state))
+}
+
+@Test func calibratingReadinessGivesAWaitingVerdictWithTheNightsStillNeeded() {
+    // One earlier Sleeping HR: 2 of 4 Nights so far, so 2 to go.
+    let nights =
+        nightsBeforeNov1(hrv: [60, 60, 60], sleepingHR: [50])
+        + [Night(day: nov1, sleepingHR: 50, hrv: 60)]
+    let view = todayView(nights: nights, showing: nov1)
+
+    #expect(view.readinessText == "2/4")
+    #expect(view.readinessVerdict == Verdict(text: "2 TO GO.", kind: .waiting))
+}
+
+@Test(arguments: [nil, 0] as [Double?])
+func aNightWithoutHRVGivesTheWaitingVerdictNoHRV(hrv: Double?) {
+    let shown = Night(day: nov1, sleepingHR: 50, hrv: hrv, timeAsleep: 28_800)
+    let view = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
+
+    #expect(view.readinessVerdict == Verdict(text: "NO HRV.", kind: .waiting))
+}
+
+@Test func todayWithoutANightGivesTheWaitingVerdictNoNight() {
+    // Three earlier Nights, so Readiness on 1 Nov is past Calibrating; only the Night is absent.
+    let view = todayView(nights: calibratedNightsBeforeNov1, showing: nov1)
+
+    #expect(view.readinessVerdict == Verdict(text: "NO NIGHT.", kind: .waiting))
+}
+
+@Test func anEarlierDayWithoutANightGivesTheWaitingVerdictNoNight() {
+    let view = todayView(nights: nightsOct30AndNov1, showing: oct31)
+
+    #expect(view.readinessVerdict == Verdict(text: "NO NIGHT.", kind: .waiting))
+}
+
 // MARK: Baseline (through the HRV tile)
 
 @Test func hrvBaselineIsTheMedianOfEarlierNights() {

@@ -30,6 +30,7 @@ struct TodayScreen: View {
             now: now
         )
         ScreenChrome(
+            tabName: "Today",
             connection: connection,
             profile: profile,
             pickedDay: $pickedDay,
@@ -38,6 +39,18 @@ struct TodayScreen: View {
             today: today
         ) {
             WeekStripView(strip: today.weekStrip) { pickedDay = shownSelection($0) }
+            // Readiness as the headline with its verdict, over either layout (spec 018, Today).
+            Button {
+                open(.readiness, in: today)
+            } label: {
+                PosterHeadline(
+                    number: today.readinessText,
+                    verdict: today.readinessVerdict,
+                    caption: "Readiness"
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
             switch todayLayout {
             case .rings:
                 if let message = today.noNightMessage {
