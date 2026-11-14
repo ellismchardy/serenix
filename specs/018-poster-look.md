@@ -37,12 +37,14 @@ hand-drawn imitation" and its Non-goal "A custom tab bar" no longer apply).
   (2 pt) with the section's name in small bold type on the left and an optional note on the
   right; rows inside a section by hairline rules.
 - **Masthead:** a 6 pt rule across the top with "Serenix · <tab>" on the left and the Day
-  (weekday and date) on the right.
+  (weekday and date) on the right. It replaces spec 002's top bar and greeting (no "Good
+  morning!" and no name under it); the avatar, calendar and bell stay as small ink icons in it.
 - **Headline:** the tab's headline number in very large, tight, bold type, with its verdict
   beside it in condensed bold italic capitals in the accent colour, and a one-line caption under
   it.
 - **Colour:** one accent, signal red. Band and Zone colours stay green, amber and red, shown as
-  solid tags (white text on the colour) at the right of a row. Nothing else is coloured.
+  solid tags (white text on the colour) at the right of a row. HR Zones need five colours, so
+  they run grey, blue, green, amber, red (HR Zone 1 to 5). Nothing else is coloured.
 - **Tab bar:** Today, Sleep, Body as three equal cells under a heavy rule; the current tab is a
   solid block in the type colour with the paper colour as text.
 - **Dark:** the same layout, paper and type swapped; red, green and amber unchanged.
@@ -92,8 +94,8 @@ warning, the floor message, "N over"); refusals stay red.
   Weigh-in N". With no Weigh-in, the headline is "—" with waiting "NO WEIGH-IN." and the caption
   "Log your first Weigh-in".
 - **Chart:** Trend Weight line in red (broken where Trend Weight restarted), counted Weigh-ins as
-  grey dots, the next Milestone as a dashed green line, the range chips as a segmented bar under
-  it.
+  grey dots, Goal Weight as a dashed green line (as spec 015 marks it), the range chips as a
+  segmented bar under it.
 - **Rate and Goal**, two columns in one ruled section:
   - *Rate:* Weekly Rate as a large number with "Weekly Rate" under it, then the pace badge as a
     solid tag ("Settling in, day N of 14" as secondary text instead), then, when spec 015
@@ -157,9 +159,10 @@ drawing changes:
   nested rings); Time Asleep as a red bar with a marker at Sleep Need; the Sleep Period
   timeline with Time in Bed in grey and usual times as dashed green lines.
 - **Load** (spec 006): the Day's Load headline with a Load verdict (below), caption spec 006's
-  sentence and the last-sync line; the bar against typical Load; How hard as one split bar and
-  HR Zone rows; When as hourly stacked bars; Highest HR and Max HR used under a heavy rule.
-  Live HR keeps its place.
+  sentence and the last-sync line; the bar against typical Load (while typical Load is learned
+  there is no bar, and the headline's number replaces spec 006's "Load 40"); How hard as one
+  split bar and HR Zone rows; When as hourly stacked bars; Highest HR and Max HR used under a
+  heavy rule. Live HR keeps its place.
 - **Nightly Metric and Resting HR** (spec 011): the value headline with a metric verdict
   (below), caption spec 011's verdict sentence; the Zone scale as flat segments with a marker
   and a Baseline tick; Last 14 Nights as flat blocks (the Night shown outlined); Baseline,
@@ -167,7 +170,8 @@ drawing changes:
 - **Sheets** (Weigh-in, Weight Goal, Food Entry, Targets): fields as ruled rows, segmented
   pickers (Lose or gain | Hold, By rate | By date) as segmented bars, the rate options' Pace
   bands as solid tags, the primary button a solid block in the type colour, a destructive one
-  (Remove goal, Delete Food Entry) in red.
+  (Remove goal, Delete Food Entry) in red. Sheets keep their title bar with Cancel; the grab bar
+  and masthead are for popups only.
 
 Popup verdicts: **Load** under 0.8 × typical "EASIER DAY.", 0.8 to under 1.2 "USUAL DAY.", 1.2
 to under 1.5 "HARDER DAY.", 1.5 and over "MUCH HARDER." (spec 006's bands); waiting: no typical
