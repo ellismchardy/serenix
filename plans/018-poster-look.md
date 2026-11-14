@@ -82,8 +82,8 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
    - Built: no Night is checked before Calibrating; "NO HRV." uses the Night's HRV (0 counts as
      none), and Readiness missing with HRV present gives no verdict. The button style is
      `BlockButtonStyle`. Until task 2, Rings shows Readiness twice (headline and ring). The
-     masthead dropped spec 002's greeting; `TodayView.greeting` / `greetingName` are unused
-     pending the user's call (keep it or remove in task 13).
+     masthead dropped spec 002's greeting; the user chose to drop it for good (2026-11-14), so
+     task 13 removes the unused greeting code.
 2. [ ] **Slice:** Today's Rings layout as concept M: Load section (`PosterBar` 0 to 2× typical
    Load, tick at typical, spec 006 sentence as note; number alone while typical Load is
    learned), Sleep Score and Time Asleep side by side, Nightly Metrics and Resting HR as rows
@@ -162,6 +162,9 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
 13. [ ] **Contract:** delete `Theme`'s purple tokens, `themeCard`, `popupCard`, `ScoreRing` /
     `RingArc` if unused; point Onboarding, ProfileMenu, DebugView and SyncPillView's remaining
     Theme uses at the Poster palette; app-wide tint to ink. `grep` finds no `Theme.accent`.
+    Remove the greeting the masthead replaced (user, 2026-11-14): `TodayView.greeting` /
+    `greetingName`, `Profile.greeting(at:in:)` and their tests (`ProfileTests.swift`,
+    `TodayViewTests.swift`), as the spec no longer shows it.
     - Blocked by: 3, 4, 6, 9, 12 · Files: `Theme.swift`, `SerenixApp.swift`,
       `OnboardingScreen.swift`, `ProfileMenu.swift`, `SyncPillView.swift`, `ScoreRing.swift`
     - Done when: phone criterion "no rounded cards or shadows, and no purple anywhere".
