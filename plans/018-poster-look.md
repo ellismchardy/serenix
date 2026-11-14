@@ -108,11 +108,17 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      Sleep Score ring became a 40 pt number labelled "SLEEP SCORE". No change to
      `TodayScreen.swift` was needed. `ScoreRing` now has no callers (task 13); This morning's
      dot uses `ReadinessBand.colour`, still system colours until task 13.
-4. [ ] **Slice:** the block tab bar: Today, Sleep, Body as three equal cells under a heavy
+4. [x] **Slice:** the block tab bar: Today, Sleep, Body as three equal cells under a heavy
    rule, the current one solid ink with paper text (custom bar over the tab content, replacing
    `TabView`'s `.tabItem`).
    - Blocked by: 1 · Files: `MainTabs.swift`, `Poster.swift`
    - Done when: phone criterion "block tab bar" on all three tabs.
+   - Built: `TabView(selection:)` kept with its bar hidden on each tab, the Poster bar under
+     it, so each tab keeps its state. Re-tapping the current tab no longer pops Body back from
+     All Weigh-ins (spec 012 never asked for it). PR checklist: the system bar stays hidden
+     after pushing All Weigh-ins and on tab switches; no content cut off above the bar. Spec
+     012's Tab bar paragraph ("never a hand-drawn imitation", Non-goal "A custom tab bar")
+     now contradicts spec 018; raised with the user.
 5. [ ] **Slice:** Sleep Score verdict and the Sleep headline: `SleepView` gains the Sleep Score
    and `sleepScoreVerdict` (TONIGHT. today without a Night); the tab draws the headline (caption
    spec 012's Summary sentence) and Time Asleep, Sleep Need, Sleep Debt in three columns (Debt
