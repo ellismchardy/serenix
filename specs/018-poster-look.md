@@ -1,6 +1,6 @@
 # 018 — Poster look
 
-**Status:** approved 2026-11-10; Body section revised 2026-11-14 for the shipped Body tab, awaiting approval
+**Status:** approved (2026-11-10; Body section revised and approved 2026-11-14)
 **Last updated:** 2026-11-14
 
 ## Problem
