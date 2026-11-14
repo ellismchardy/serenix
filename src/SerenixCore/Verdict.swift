@@ -19,6 +19,27 @@ public struct Verdict: Equatable, Sendable {
 }
 
 extension Verdict {
+    /// The lowest Sleep Score that reads "STRONG NIGHT." (spec 018: borrows Readiness's Ready
+    /// edge, `ReadinessBand.readyFrom`, as Sleep Score has no bands of its own).
+    static let strongNightFrom = 67
+    /// The lowest Sleep Score that reads "FAIR NIGHT." (spec 018: borrows Readiness's Steady
+    /// edge, `ReadinessBand.steadyFrom`).
+    static let fairNightFrom = 34
+
+    /// A Sleep Score's verdict (spec 018): 67–100 "STRONG NIGHT.", 34–66 "FAIR NIGHT.", 0–33
+    /// "ROUGH NIGHT.".
+    public static func sleepScore(_ score: Int) -> Verdict {
+        let text =
+            if score >= strongNightFrom {
+                "STRONG NIGHT."
+            } else if score >= fairNightFrom {
+                "FAIR NIGHT."
+            } else {
+                "ROUGH NIGHT."
+            }
+        return Verdict(text: text, kind: .state)
+    }
+
     /// Readiness's verdict (spec 018): no Night first, then Calibrating with the Nights still
     /// needed, then the band, then "NO HRV." for a Night without HRV (spec 008); none if
     /// Readiness is missing with HRV present.

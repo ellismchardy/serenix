@@ -1072,3 +1072,106 @@ private func bedtimeStandout(sleepOnset: Date) -> SleepStandout? {
     #expect(first?.text == "Didn't wake")
     #expect(first?.detail == "")
 }
+
+// MARK: Sleep Score verdict
+
+// Spec 018, Verdicts: Sleep Score's verdict for the Day shown. Waiting "TONIGHT." for today
+// before it's slept, waiting "NO NIGHT." for an earlier Day with no Night, else the Night's Sleep
+// Score's band (67–100 "STRONG NIGHT.", 34–66 "FAIR NIGHT.", 0–33 "ROUGH NIGHT.").
+
+@Test func todayWithNoNightGivesTheWaitingVerdictTonight() {
+    let view = sleepView(nights: [nightOn1Nov])
+
+    #expect(view.sleepScoreVerdict == Verdict(text: "TONIGHT.", kind: .waiting))
+}
+
+@Test func anEarlierDayWithNoNightGivesTheWaitingVerdictNoNight() {
+    let view = sleepView(nights: [nightOn1Nov], showing: Day(year: 2026, month: 11, day: 2))
+
+    #expect(view.sleepScoreVerdict == Verdict(text: "NO NIGHT.", kind: .waiting))
+}
+
+/// `summaryNights`: Sleep Need 8 h (no Sleep Debt), the 3 Nov Night 23:00 to 07:00 exactly as the
+/// week before, so Sleep Consistency is 100 (spec 010). Worked by hand: 7 h 45 m is Sleep
+/// Sufficiency 96.875 and Sleep Efficiency 100 (96.9% asleep), Sleep Score
+/// 0.6 × 96.875 + 0.2 × 100 + 0.2 × 100 = 98.1, 98; 3 h is 37.5 and 0 (37.5% asleep),
+/// 22.5 + 0 + 20 = 42.5, 43; 1 h is 12.5 and 0, 7.5 + 0 + 20 = 27.5, 28.
+@Test(arguments: [
+    (7 * oneHour + 45 * oneMinute, "STRONG NIGHT."),
+    (3 * oneHour, "FAIR NIGHT."),
+    (1 * oneHour, "ROUGH NIGHT."),
+])
+func aNightWithASleepScoreGivesItsStateVerdict(timeAsleep: TimeInterval, text: String) {
+    let view = sleepView(nights: summaryNights(timeAsleep: timeAsleep))
+
+    #expect(view.sleepScoreVerdict == Verdict(text: text, kind: .state))
+}
+
+/// The headline's number is the same Sleep Score its verdict comes from (worked above).
+@Test(arguments: [
+    (7 * oneHour + 45 * oneMinute, "98"),
+    (3 * oneHour, "43"),
+    (1 * oneHour, "28"),
+])
+func theHeadlineShowsTheNightsSleepScore(timeAsleep: TimeInterval, text: String) {
+    let view = sleepView(nights: summaryNights(timeAsleep: timeAsleep))
+
+    #expect(view.sleepScoreText == text)
+}
+
+/// With no Time Asleep there's no Sleep Score (spec 010), so no verdict and "—".
+@Test func aNightWithNoSleepScoreGivesNoVerdict() {
+    let view = sleepView(nights: summaryNights(timeAsleep: nil))
+
+    #expect(view.sleepScoreVerdict == nil)
+    #expect(view.sleepScoreText == "—")
+}
+
+/// A Day without a Night shows "—" in the headline.
+@Test func aDayWithoutANightShowsADashForSleepScore() {
+    let view = sleepView(nights: [nightOn1Nov], showing: Day(year: 2026, month: 11, day: 2))
+
+    #expect(view.sleepScoreText == "—")
+}
+
+// MARK: Sleep Debt
+
+// Spec 009: the Sleep Debt of the Night dated the Day shown is the shortfall of Time Asleep
+// against Usual Need (8 h, no birth year) over the Nights dated D − 7 to D − 1, long Nights
+// paying short ones back.
+
+@Test func aWeekOfEightHourNightsLeavesNoSleepDebt() {
+    let view = sleepView(nights: summaryNights(timeAsleep: 7 * oneHour + 45 * oneMinute))
+
+    #expect(view.hasSleepDebt == false)
+}
+
+/// 27 Oct to 2 Nov at 7 h each: 7 h of Sleep Debt.
+@Test func aWeekOfShortNightsCarriesSleepDebt() {
+    let nights =
+        (27...31).map { tonightNight(month: 10, $0, timeAsleep: 7 * oneHour) }
+        + (1...2).map { tonightNight(month: 11, $0, timeAsleep: 7 * oneHour) }
+        + [nightOn3Nov()]
+
+    #expect(sleepView(nights: nights).hasSleepDebt == true)
+}
+
+/// One Night of 7 h 59 m among 8 h ones: exactly a minute of Sleep Debt, enough to count.
+@Test func aMinuteOfShortfallIsSleepDebt() {
+    let nights =
+        [tonightNight(month: 10, 27, timeAsleep: 7 * oneHour + 59 * oneMinute)]
+        + (28...31).map { tonightNight(month: 10, $0, timeAsleep: 8 * oneHour) }
+        + (1...2).map { tonightNight(month: 11, $0, timeAsleep: 8 * oneHour) }
+        + [nightOn3Nov()]
+
+    #expect(sleepView(nights: nights).hasSleepDebt == true)
+}
+
+/// A short week, but the Day shown has no Night, so there's no Sleep Debt to show.
+@Test func aDayWithNoNightHasNoSleepDebt() {
+    let nights =
+        (27...31).map { tonightNight(month: 10, $0, timeAsleep: 7 * oneHour) }
+        + (1...2).map { tonightNight(month: 11, $0, timeAsleep: 7 * oneHour) }
+
+    #expect(sleepView(nights: nights).hasSleepDebt == false)
+}

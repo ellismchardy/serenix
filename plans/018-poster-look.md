@@ -119,13 +119,18 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      after pushing All Weigh-ins and on tab switches; no content cut off above the bar. Spec
      012's Tab bar paragraph ("never a hand-drawn imitation", Non-goal "A custom tab bar")
      now contradicts spec 018; raised with the user.
-5. [ ] **Slice:** Sleep Score verdict and the Sleep headline: `SleepView` gains the Sleep Score
+5. [x] **Slice:** Sleep Score verdict and the Sleep headline: `SleepView` gains the Sleep Score
    and `sleepScoreVerdict` (TONIGHT. today without a Night); the tab draws the headline (caption
    spec 012's Summary sentence) and Time Asleep, Sleep Need, Sleep Debt in three columns (Debt
    red over zero).
    - Blocked by: 1 · Seam: verdict mapping (SleepView) · Files: `src/SerenixCore/SleepView.swift`,
      `tests/SerenixCoreTests/SleepViewTests.swift`, `src/SerenixApp/SleepScreen.swift`
    - Done when: criterion "Sleep Score 67, 34, 33 … NO NIGHT., TONIGHT.".
+   - Built: `Verdict.sleepScore(_:)` is public so `VerdictTests.swift` (new) can test the band
+     edges; `SleepView` gains `sleepScoreVerdict`, `sleepScoreText` (one source for number and
+     verdict) and `hasSleepDebt`. The Summary card became the headline, captioned
+     "<label>: <sentence>", then the three columns and Sleep Onset – Final Wake; the columns
+     show only with a Night (PR checklist). The column texts still come from the Sleep popup.
 6. [ ] **Slice:** Sleep sections in the Poster look and the spec's order: the shown Night's chart
    as its own section (Heart Rate Trace red, Wake Bouts amber columns, dotted Sleeping HR), Your
    week (solid bars, short Time Asleep amber), What stood out (rows with tags), Tonight (solid

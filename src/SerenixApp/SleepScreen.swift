@@ -46,13 +46,7 @@ struct SleepScreen: View {
             today: today
         ) {
             WeekStripView(strip: sleep.weekStrip) { pickedDay = shownSelection($0) }
-            if let summary = sleep.summary {
-                summaryCard(summary) { sleepPopupDay = shownDay }
-            } else if let message = sleep.noNightMessage {
-                Text(message)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
+            sleepHeadline(sleep, today: today) { sleepPopupDay = shownDay }
             SleepWeekView(
                 week: sleep.week,
                 tonightLane: sleep.tonight?.lane,
@@ -137,28 +131,62 @@ struct SleepScreen: View {
         .themeCard()
     }
 
-    /// The Summary (spec 012): the Night in one sentence, then the Sleep Score button and Sleep
-    /// Onset to Final Wake.
-    private func summaryCard(_ summary: SleepSummary, showSleepScore: @escaping () -> Void)
-        -> some View
-    {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(summary.label).font(.footnote).foregroundStyle(.secondary)
-            Text(summary.sentence)
-                .font(.title3.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-            HStack {
-                SleepScoreButton(action: showSleepScore)
-                Spacer()
-                if let onsetWake = summary.onsetWakeText {
-                    Text(onsetWake).font(.footnote).foregroundStyle(.secondary)
+    /// The Sleep Score headline with its verdict, captioned by spec 012's Summary sentence (or the
+    /// no-Night message), opening the Sleep popup; then Time Asleep, Sleep Need and Sleep Debt in
+    /// three columns, Sleep Debt in red when over zero, and Sleep Onset to Final Wake (spec 018,
+    /// Sleep).
+    private func sleepHeadline(
+        _ sleep: SleepView,
+        today: TodayView,
+        showSleepScore: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Button(action: showSleepScore) {
+                PosterHeadline(
+                    number: sleep.sleepScoreText,
+                    verdict: sleep.sleepScoreVerdict,
+                    caption: sleep.summary.map { "\($0.label): \($0.sentence)" }
+                        ?? sleep.noNightMessage
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(sleep.summary == nil)
+            .accessibilityHint(sleep.summary == nil ? "" : "Shows your Sleep Score")
+            if let popup = today.sleepPopup {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 12) {
+                        sleepColumn("Time Asleep", popup.timeAsleepText, colour: Poster.ink)
+                        sleepColumn("Sleep Need", popup.sleepNeedText, colour: Poster.ink)
+                        sleepColumn(
+                            "Sleep Debt",
+                            popup.sleepDebtText,
+                            colour: sleep.hasSleepDebt ? Poster.red : Poster.ink
+                        )
+                    }
+                    if let onsetWake = sleep.summary?.onsetWakeText {
+                        Text(onsetWake).font(.footnote).foregroundStyle(Poster.secondary)
+                    }
                 }
             }
-            .padding(.top, 6)
+        }
+    }
+
+    /// One of the three columns under a heavy rule: its name, then its value.
+    private func sleepColumn(_ name: String, _ value: String, colour: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            PosterRule()
+            Text(name.uppercased()).font(Poster.labelFont).foregroundStyle(Poster.ink)
+            Text(value)
+                .font(Poster.headlineFont(size: 26))
+                // -0.04 em, as the prototype's three columns.
+                .tracking(-1)
+                .foregroundStyle(colour)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .themeCard()
+        .accessibilityElement(children: .combine)
     }
 }
 
