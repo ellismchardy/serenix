@@ -1,7 +1,7 @@
-# 017 — Poster look
+# 018 — Poster look
 
-**Status:** approved
-**Last updated:** 2026-11-10
+**Status:** approved 2026-11-10; Body section revised 2026-11-14 for the shipped Body tab, awaiting approval
+**Last updated:** 2026-11-14
 
 ## Problem
 Serenix's look (spec 002, Look: light grey, white rounded cards, soft shadows, a purple accent)
