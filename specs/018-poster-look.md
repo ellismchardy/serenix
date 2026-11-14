@@ -150,10 +150,10 @@ order:
 the masthead (popup name left, the Night or Day right), a headline with verdict, then its
 existing sections as ruled sections. Contents and order are those of their specs; only the
 drawing changes:
-- **Readiness** (spec 012): Readiness headline and band verdict, caption the band's advice; the
-  band scale as three flat segments (the Night's at full colour) with a marker and a "usual 70"
-  tick; Why as rows (name, value, points as a tag, a thin gauge under each); Your week as flat
-  bars, the Day shown in the type colour.
+- **Readiness** (spec 012): Readiness headline and band verdict, caption spec 012's verdict
+  sentence (e.g. "HRV pulled it down most."); the band scale as three flat segments (the Night's at
+  full colour) with a marker and a "usual 70" tick; Why as rows (name, value, points as a tag, a
+  thin gauge under each); Your week as flat bars, the Day shown in the type colour.
 - **Sleep Score** (spec 010): Sleep Score headline and verdict; Sleep Sufficiency, Sleep
   Efficiency and Sleep Consistency as rows with a big number and a thin bar each (in place of
   nested rings); Time Asleep as a red bar with a marker at Sleep Need; the Sleep Period

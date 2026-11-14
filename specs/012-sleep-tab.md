@@ -37,7 +37,9 @@ For the Day shown, D (spec 002: today, or the Day picked). Clock times are local
 view's time zone. Durations are written as the Time Asleep tile writes them ("7h 45m"), except the
 Summary's gap (below).
 
-**Tab bar.** Two tabs, **Today** (the `sun.max` symbol) and **Sleep** (`moon.zzz`). Today is the
+**Tab bar.** (Superseded by spec 018: the Poster look's own block tab bar replaces the
+system tab bar, so "never a hand-drawn imitation" no longer applies.) Two tabs, **Today** (the
+`sun.max` symbol) and **Sleep** (`moon.zzz`). Today is the
 default, and the selected tab is drawn in the accent colour. On iOS 26 and later it is the
 system's floating tab bar: a translucent glass capsule inset above the bottom edge, the selected
 tab on a lighter pill inside it, with the screen's content scrolling under it and nothing cut off
@@ -82,7 +84,9 @@ lines and labels every 2 hours ("22", "00", "02" …) under the last lane:
   Wake, each Wake Bout as an amber notch standing a little above and below the block, and its
   Time Asleep at the right, in amber when 15 min or more short of its own Sleep Need.
 - **Opening a lane.** Tapping a Night's lane opens its chart under it and closes any other;
-  tapping the open lane closes it. D's lane is open when the tab is shown (when D has a Night).
+  tapping the open lane closes it. D's lane is open when the tab is shown (when D has a Night)
+  (superseded by spec 018: the Night dated D has its chart as its own section, so no lane
+  opens by itself).
 - **The chart**, from the start to the end of Time in Bed (or Sleep Onset to Final Wake when
   Time in Bed is missing), one picture with no separate band:
   - Sleep Onset to Final Wake shaded behind everything in the lighter accent colour, labelled
@@ -327,8 +331,9 @@ Build and phone:
 - More than three What stood out rows, or ranking them by how unusual they are.
 - A minimum Wake Bout length, or merging short ones (tuning).
 - Reminders or notifications for the bedtime.
-- A custom tab bar, more tabs, a search tab, or an accessory above the tab bar (like the
-  "Capture" button in iOS 26 apps); minimising the tab bar on scroll.
+- A custom tab bar (superseded by spec 018, which draws its own), more tabs, a search tab, or an
+  accessory above the tab bar (like the "Capture" button in iOS 26 apps); minimising the tab bar on
+  scroll.
 - Redesigning other screens for iOS 26 beyond what the new SDK changes on its own.
 - Changing the Sleep popup (being redesigned separately) or the Today tab.
 - Pruning History Records after 30 days (never built; see Notes).
