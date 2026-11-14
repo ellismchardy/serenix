@@ -1022,20 +1022,6 @@ private struct LoadPopupView: View {
     }
 }
 
-extension HRZone {
-    /// Cool to hot, HR Zone 1 to 5, in the Poster look's colours (spec 018): grey, blue, green,
-    /// amber, red.
-    var colour: Color {
-        switch self {
-        case .one: Poster.hrZoneOne
-        case .two: Poster.hrZoneTwo
-        case .three: Poster.green
-        case .four: Poster.amber
-        case .five: Poster.red
-        }
-    }
-}
-
 /// The Live HR pill (spec 006): a heart and the bpm, "…" while connecting, a grey "—" when
 /// there's nothing to show. Live HR runs while it's on screen; it's worked out again every
 /// second, so a reading going stale shows.

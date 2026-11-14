@@ -263,7 +263,7 @@ struct TodayScreen: View {
     }
 
     /// A tap in the Story opens the popup the Rings layout's would; Load opens the profile menu
-    /// while it asks for the age, as the Load ring does.
+    /// while it asks for the age, as the Load section does.
     /// Named apart from `open(_:in:)`: StoryTap and TodayPopup share case names, so one
     /// overloaded name makes `.sleep` ambiguous.
     private func openStoryTap(_ tap: StoryTap, in today: TodayView) {
@@ -276,7 +276,7 @@ struct TodayScreen: View {
     }
 
     /// The profile menu while Load asks for the age (spec 005, Add your age), else the Load
-    /// popup (spec 006); for the Load ring and the Story's Load step alike.
+    /// popup (spec 006); for the Load section and the Story's Load step alike.
     private func openLoad(_ today: TodayView) {
         if today.loadOpensProfileMenu {
             showsProfileMenu = true

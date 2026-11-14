@@ -21,10 +21,10 @@ public struct Verdict: Equatable, Sendable {
 extension Verdict {
     /// The lowest Sleep Score that reads "STRONG NIGHT." (spec 018: borrows Readiness's Ready
     /// edge, `ReadinessBand.readyFrom`, as Sleep Score has no bands of its own).
-    static let strongNightFrom = 67
+    static let strongNightFrom = ReadinessBand.readyFrom
     /// The lowest Sleep Score that reads "FAIR NIGHT." (spec 018: borrows Readiness's Steady
     /// edge, `ReadinessBand.steadyFrom`).
-    static let fairNightFrom = 34
+    static let fairNightFrom = ReadinessBand.steadyFrom
 
     /// A Sleep Score's verdict (spec 018): 67–100 "STRONG NIGHT.", 34–66 "FAIR NIGHT.", 0–33
     /// "ROUGH NIGHT.".

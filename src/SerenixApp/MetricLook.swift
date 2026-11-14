@@ -23,3 +23,17 @@ extension Zone {
         }
     }
 }
+
+extension HRZone {
+    /// Cool to hot, HR Zone 1 to 5, in the Poster look's colours (spec 018): grey, blue, green,
+    /// amber, red.
+    var colour: Color {
+        switch self {
+        case .one: Poster.hrZoneOne
+        case .two: Poster.hrZoneTwo
+        case .three: Poster.green
+        case .four: Poster.amber
+        case .five: Poster.red
+        }
+    }
+}
