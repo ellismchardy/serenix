@@ -57,10 +57,11 @@ secondary type colour, so it never reads as a warning:
   "OFF PACE.", Too fast "TOO FAST."; hold goal In band "IN BAND.", Above band "ABOVE BAND.",
   Below band "BELOW BAND.". Waiting: Settling in "SETTLING IN.", no Weight Goal "NO GOAL.", no
   Weigh-in "NO WEIGH-IN.".
-- **Intake** (Food): under Calorie Target "ON TARGET." (within 10% of it) or "UNDER." / "OVER."
-  beyond 10% either side, only on a Complete Day or a past Day; today before it's complete
-  "LOGGING."; nothing logged "NOTHING LOGGED.". With no Calorie Target, "LOGGED." when anything
-  is.
+- **Intake** (Food): against the Calorie Target that applies to the Day (the suggested one while
+  Adapt is on and there is a suggestion, else the typed one; spec 017), "ON TARGET." within 10%
+  of it, or "UNDER." / "OVER." beyond 10% either side, only on a Complete Day or a past Day;
+  today before it's complete "LOGGING."; nothing logged "NOTHING LOGGED.". With no Calorie
+  Target, "LOGGED." when anything is.
 
 **Today.** Masthead and week strip, then: Readiness headline (Calibrating shows "n/4" in place
 of the number). Then a **Load** section: the Day's Load as a large red number beside a bar from
@@ -77,12 +78,67 @@ Wake Bouts as amber columns, dotted Sleeping HR line), Your week (each Night a s
 Time Asleep in amber), What stood out (rows with tags), Tonight (a solid block in the type
 colour).
 
-**Body.** Weight | Food switch as a two-cell segmented bar under a heavy border. Weight: Trend
-Weight headline with unit and pace verdict; chart (Trend Weight line in red, Weigh-ins as grey
-dots, next Milestone dashed in green); Weekly Rate and Goal side by side; Milestones as a
-segmented progress bar and rows; Weigh-ins. Food: Intake headline, a red bar toward Calorie
-Target, Macro Targets as rows with thin bars and "N to go" tags, Food Entries, Mark Complete
-Day and a red + button.
+**Body.** Weight | Food switch as a two-cell segmented bar under a heavy border, the picked half
+a solid block like the tab bar. The toolbar buttons stay (Weight: the Weight Goal gear and + for
+a Weigh-in; Food: the targets gear). Warnings that are amber today stay amber text (the carbs
+warning, the floor message, "N over"); refusals stay red.
+
+*Weight* (spec 015):
+- **Headline:** Trend Weight with its unit and the Weight verdict; caption "Trend Weight · last
+  Weigh-in N". With no Weigh-in, the headline is "—" with waiting "NO WEIGH-IN." and the caption
+  "Log your first Weigh-in".
+- **Chart:** Trend Weight line in red (broken where Trend Weight restarted), counted Weigh-ins as
+  grey dots, the next Milestone as a dashed green line, the range chips as a segmented bar under
+  it.
+- **Rate and Goal**, two columns in one ruled section:
+  - *Rate:* Weekly Rate as a large number with "Weekly Rate" under it, then the pace badge as a
+    solid tag ("Settling in, day N of 14" as secondary text instead), then, when spec 015
+    offers it, the Ease the goal button ("Ease to N a week" or "Move the date to <date>") as an
+    outlined block in the type colour.
+  - *Goal* (tap opens the Weight Goal sheet): Goal Weight as a large number, "Pace N a week",
+    the Pace band as a solid tag, then "Planned <date>" and "Projected <date>" (secondary).
+- **Hold** (a hold goal, in place of Rate, Goal and Milestones; tap opens the Weight Goal
+  sheet): "Goal Weight ± band" as a large number with the hold state as a solid tag (In band
+  green; Above band and Below band amber).
+- **Milestones:** each Milestone one cell of a segmented progress bar (passed cells solid red
+  with a ✓, the rest outlined), with "N% of the way · N lost (or gained) · N to go" as the
+  section's note.
+- **No Weight Goal** (with a Trend Weight): a ruled section "No Weight Goal yet" with "Set a goal"
+  as a solid block button.
+- **Weigh-ins:** "All Weigh-ins" as a ruled row with a chevron, opening the same list.
+- The "Goal reached!" celebration stays a system alert, unchanged.
+
+*Food* (specs 016 and 017):
+- **Day:** the Day picker as a ruled row under the switch.
+- **Headline:** the Day's Intake in kcal with the Intake verdict. Caption lines, each its own
+  row: "of N kcal · N left" (or "N over", in amber) when there is a Calorie Target; "Expenditure
+  ~N kcal · from your Profile" (or "· from your last 21 Days") in secondary type when there is
+  an Expenditure; "Protein N g · Fat N g · Carbs N g" in secondary type.
+- **Calorie bar:** a red bar from 0 to the Calorie Target (full at or over it), only when there
+  is a Calorie Target.
+- **Macro Targets:** a ruled section with protein, fat and carbs as rows (name, "N / N g", a thin
+  red bar under each), the carbs warning in amber as its last row; without Trend Weight, "Log a
+  Weigh-in to get your Macro Targets." in secondary type in its place.
+- **Day complete:** a ruled row with its switch, only on a Day with a Food Entry.
+- **Food Entries:** a ruled section, one hairline row per Food Entry (name or "Food Entry" and
+  time on the left, kcal and "P · F · C" grams on the right); tap edits, hold offers Delete.
+  With none, "Nothing logged on this Day." in secondary type.
+- **Log a Food Entry:** a red block button with + across the width, under Food Entries.
+
+*Targets sheet* (specs 016 and 017), drawn as a sheet (below), with these ruled sections in
+order:
+- **Calorie Target:** the kcal field; footer "Leave it blank for no Calorie Target."
+- **Macro Targets:** protein and fat fields with their suggestions as placeholders, "Use
+  suggested" as a text button; footer about carbs filling the rest.
+- **Expenditure:** "Your last 21 Days ~N kcal a Day" as a row when there is one; the Activity
+  Level picker (Mostly sitting, Light, Moderate, Very active) as a four-cell segmented bar; its
+  footer, or which Profile values are missing.
+- **Adapt:** the "Adapt my Calorie Target" switch as a ruled row with its footer.
+- **Suggested Calorie Target**, when there is one: "Your Expenditure ~N kcal a Day" as a row,
+  then the suggestion as a large number captioned "kcal a Day · for your Pace". When the Pace
+  can't be met safely, the floor message in amber, then the Ease the goal button, or "Change my
+  Pace" when there is no easier goal, as an outlined block.
+- Refusals in red as the last row.
 
 **Popups.** Each popup is a sheet of paper over the dimmed screen, with a short heavy grab bar,
 the masthead (popup name left, the Night or Day right), a headline with verdict, then its
@@ -104,8 +160,10 @@ drawing changes:
   (below), caption spec 011's verdict sentence; the Zone scale as flat segments with a marker
   and a Baseline tick; Last 14 Nights as flat blocks (the Night shown outlined); Baseline,
   Lowest, Highest in three columns; the metric's text.
-- **Sheets** (Weigh-in, Weight Goal, Food Entry, Macro Targets): fields as ruled rows, the
-  primary button a solid block in the type colour, a destructive one in red.
+- **Sheets** (Weigh-in, Weight Goal, Food Entry, Targets): fields as ruled rows, segmented
+  pickers (Lose or gain | Hold, By rate | By date) as segmented bars, the rate options' Pace
+  bands as solid tags, the primary button a solid block in the type colour, a destructive one
+  (Remove goal, Delete Food Entry) in red.
 
 Popup verdicts: **Load** under 0.8 × typical "EASIER DAY.", 0.8 to under 1.2 "USUAL DAY.", 1.2
 to under 1.5 "HARDER DAY.", 1.5 and over "MUCH HARDER." (spec 006's bands); waiting: no typical
@@ -114,8 +172,9 @@ Load "LEARNING.", no Load "NO LOAD.". **Nightly Metric** In range "ABOUT USUAL."
 Calibrating "N TO GO.", missing "NO DATA.". **Resting HR** has no Zone, so no verdict.
 
 ## Design decisions
-- **Verdicts in `SerenixCore`.** One pure mapping from Readiness band, Sleep Score and pace
-  badge to the verdict text (or none). The shell only draws it. No new stored data.
+- **Verdicts in `SerenixCore`.** One pure mapping from Readiness band, Sleep Score, pace
+  badge or hold state, and Intake to the verdict text (or none). The shell only draws it. No new
+  stored data.
 - **Theme in the shell.** The app's Theme is replaced by the Poster palette and type scale
   (paper, ink, accent red, rule widths, headline/verdict/label fonts), adaptive for light and
   dark. Shared shell pieces: masthead, ruled section header, tag, headline-with-verdict, tab
@@ -124,8 +183,9 @@ Calibrating "N TO GO.", missing "NO DATA.". **Resting HR** has no Zone, so no ve
 - Score names and scales unchanged (ADR 0005).
 
 ## Seams under test
-- **Verdict mapping in `SerenixCore`** (input: band / score / pace badge state; output: text or
-  none) — catches every threshold, wording and none-case; misses how it is drawn.
+- **Verdict mapping in `SerenixCore`** (input: band / score / pace badge or hold state /
+  Intake against the applied Calorie Target; output: text or none) — catches every threshold,
+  wording and none-case; misses how it is drawn.
 - **Hand check on the phone** (ADR 0002) for the shell, with the steps in the PR — catches the
   look in light and dark on all three tabs; misses nothing automatable.
 
@@ -146,6 +206,9 @@ Calibrating "N TO GO.", missing "NO DATA.". **Resting HR** has no Zone, so no ve
 - [ ] Intake at 90%, 110%, 89% and 111% of Calorie Target on a Complete Day gives "ON TARGET.",
       "ON TARGET.", "UNDER.", "OVER."; today not complete gives waiting "LOGGING."; no Food
       Entries gives waiting "NOTHING LOGGED."; no Calorie Target with entries gives "LOGGED.".
+- [ ] With Adapt on, a typed Calorie Target of 2,500 kcal and a suggested one of 2,000 kcal,
+      Intake of 1,800 kcal on a Complete Day gives "ON TARGET." (against 2,000); with Adapt off
+      it gives "UNDER." (against 2,500).
 - [ ] Every verdict is marked either a state verdict or a waiting verdict, and every waiting
       verdict above is marked waiting.
 - [ ] `swift test` and `swift format lint --strict` pass; the macOS CI job builds the app.
@@ -154,7 +217,19 @@ Calibrating "N TO GO.", missing "NO DATA.". **Resting HR** has no Zone, so no ve
       with no rounded cards or shadows, and no purple anywhere.
 - [ ] On the phone, Today's Load section shows the Day's Load against a tick at typical Load, and
       the number alone while typical Load is learned.
-- [ ] On the phone, every tap that opened a popup or sheet before still opens the same one.
+- [ ] On the phone, Body Weight shows the Rate and Goal columns (pace badge tag, Ease the goal
+      button when offered, Pace band tag, Planned and Projected dates), a hold goal's Hold
+      section with its state tag, and Milestones as a segmented bar with the "% of the way"
+      note.
+- [ ] On the phone, Body Food shows the "of N kcal · N left" line, the Expenditure line with
+      "from your Profile" (and "from your last 21 Days" once there is enough logged data), the
+      calorie bar, the macro rows with bars, the Day complete row and the Food Entry rows.
+- [ ] On the phone, the targets sheet shows Calorie Target, Macro Targets, Expenditure with the
+      Activity Level as a segmented bar, the Adapt switch and the suggested Calorie Target as
+      ruled sections, and for a Pace that can't be met safely the amber floor message with Ease
+      the goal (or Change my Pace).
+- [ ] On the phone, every tap that opened a popup or sheet before still opens the same one, and
+      Ease the goal, Change my Pace and Day complete do what they did before.
 
 ## Non-goals (explicitly out of scope)
 - A Load target or suggested Load range (prototype concept M showed one; it needs its own spec).
@@ -173,5 +248,5 @@ Calibrating "N TO GO.", missing "NO DATA.". **Resting HR** has no Zone, so no ve
   `src/SerenixApp/Prototype/performance-home-prototype.html`, variants M (Today), MW (Today,
   waiting verdict), MS (Sleep), MB (Body Weight), MF (Body Food), PR / PS / PL / PM (Readiness,
   Sleep Score, Load and HRV popups). Not merged.
-- Changes the Look of spec 002; restyles specs 012, 013, 015, 016 without changing their
+- Changes the Look of spec 002; restyles specs 012, 013, 015, 016, 017 without changing their
   behaviour.
