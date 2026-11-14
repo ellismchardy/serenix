@@ -34,6 +34,8 @@ enum Poster {
 
     /// A tab's headline number size, points (prototype concept M's popup and Body headline).
     static let headlineSize: CGFloat = 120
+    /// The Body tab's headline number size, points: smaller, so "82.4 kg" and "1,840 kcal" fit.
+    static let bodyHeadlineSize: CGFloat = 88
 
     /// A tab's headline number: very large, tight and bold.
     static func headlineFont(size: CGFloat = headlineSize) -> Font {

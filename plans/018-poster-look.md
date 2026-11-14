@@ -155,7 +155,7 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      Goal Weight (now green): spec 018's "next Milestone dashed in green" contradicts its own
      "nothing a tab shows changes"; wording fix raised with the user. `BandLabel` (the Goal
      column's Pace band tag) moves to `PosterTag` in task 9 with `WeightGoalSheet.swift`.
-8. [ ] **Slice:** Intake verdict and the Food view: `FoodView` takes `today`, gains
+8. [x] **Slice:** Intake verdict and the Food view: `FoodView` takes `today`, gains
    `intakeVerdict`; the spec's *Food* list (Day row, headline and caption lines incl. the
    Expenditure line, calorie bar, macro rows, Day complete row, Food Entry rows, red Log button).
    - Seam: verdict mapping (FoodView) · Files: `src/SerenixCore/FoodView.swift`,
@@ -163,6 +163,11 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      `FoodScreen.swift`
    - Done when: criteria "Intake at 90%, 110%, 89%, 111% …" and "With Adapt on … 2,000 …
      ON TARGET. … Adapt off UNDER.", and phone criterion for Body Food.
+   - Built: `today` is optional on `FoodView` (nil treats the Day shown as past), so
+     `ExpenditureTests` / `MacroTargetsTests` stay untouched; the shell passes the one today it
+     reads. "LOGGED." (no Calorie Target) is a state verdict, as the criteria mark only LOGGING.
+     and NOTHING LOGGED. waiting; it wins over LOGGING. (tested). Body headlines share
+     `Poster.bodyHeadlineSize`.
 9. [ ] **Slice:** the sheets in the Poster look: Targets (spec's *Targets sheet* list, Activity
    Level as a four-cell `SegmentedBar`, floor message amber with Ease the goal / Change my
    Pace), Weigh-in, Weight Goal (segmented pickers, Pace band tags), Food Entry; primary button

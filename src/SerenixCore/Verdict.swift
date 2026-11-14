@@ -60,6 +60,34 @@ extension Verdict {
         }
     }
 
+    /// How far either side of the Calorie Target Intake still reads "ON TARGET.", as a share of
+    /// it (spec 018: within 10%).
+    static let onTargetShare = 0.1
+
+    /// Intake's verdict (spec 018): "NOTHING LOGGED." with no Food Entries, "LOGGED." with no
+    /// Calorie Target, "LOGGING." while today is still being logged, else Intake against the
+    /// Calorie Target: within 10% "ON TARGET.", beyond it "UNDER." or "OVER.".
+    static func intake(
+        _ kilocalories: Double,
+        hasEntries: Bool,
+        calorieTarget: Double?,
+        isStillLogging: Bool
+    ) -> Verdict {
+        guard hasEntries else { return Verdict(text: "NOTHING LOGGED.", kind: .waiting) }
+        guard let calorieTarget else { return Verdict(text: "LOGGED.", kind: .state) }
+        if isStillLogging { return Verdict(text: "LOGGING.", kind: .waiting) }
+        let share = kilocalories / calorieTarget
+        let text =
+            if share < 1 - onTargetShare {
+                "UNDER."
+            } else if share > 1 + onTargetShare {
+                "OVER."
+            } else {
+                "ON TARGET."
+            }
+        return Verdict(text: text, kind: .state)
+    }
+
     /// Readiness's verdict (spec 018): no Night first, then Calibrating with the Nights still
     /// needed, then the band, then "NO HRV." for a Night without HRV (spec 008); none if
     /// Readiness is missing with HRV present.

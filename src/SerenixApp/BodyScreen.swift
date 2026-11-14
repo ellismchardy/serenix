@@ -137,7 +137,7 @@ struct BodyScreen: View {
                 caption: view.lastWeighIn.map {
                     "Trend Weight · last Weigh-in \(units.text($0.kilograms, locale: .current))"
                 } ?? "Log your first Weigh-in",
-                size: weightHeadlineSize
+                size: Poster.bodyHeadlineSize
             )
             WeightChartCard(view: view, units: units)
             if let card = view.goalCard {
@@ -350,10 +350,6 @@ struct BodyScreen: View {
         }
     }
 }
-
-/// The weight headline's number size, points: smaller than Today's, so "82.4 kg" fits (prototype
-/// concept M's Body headline).
-private let weightHeadlineSize: CGFloat = 88
 
 /// A Milestone cell's width when the cells scroll, points.
 private let milestoneCellWidth: CGFloat = 72

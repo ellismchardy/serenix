@@ -29,13 +29,15 @@ private func foodView(
     foodEntries: [FoodEntry],
     completeDays: Set<Day> = [],
     calorieTarget: Double? = nil,
-    day: Day
+    day: Day,
+    today: Day? = nil
 ) -> FoodView {
     FoodView(
         foodEntries: foodEntries,
         completeDays: completeDays,
         foodTargets: FoodTargets(calorieTarget: calorieTarget),
         day: day,
+        today: today,
         timeZone: london
     )
 }
@@ -243,4 +245,148 @@ private let nov3 = Day(year: 2026, month: 11, day: 3)
 
     #expect(view.calorieTarget == nil)
     #expect(view.calorieBalance == nil)
+}
+
+// The Intake verdict (spec 018, Verdicts): Intake against the Calorie Target that applies,
+// "ON TARGET." within 10% of it either side, "UNDER." or "OVER." beyond, judged only on a
+// Complete Day or a past Day.
+
+@Test(
+    "On a Complete Day, Intake within 10% of the Calorie Target is on target, beyond it under or over",
+    arguments: [
+        (1800.0, "ON TARGET."),  // 90% of 2,000
+        (2200.0, "ON TARGET."),  // 110%
+        (1780.0, "UNDER."),  // 89%
+        (2220.0, "OVER."),  // 111%
+    ]
+)
+func intakeVerdictOnACompleteDay(kilocalories: Double, verdict: String) {
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 13), kilocalories: kilocalories)],
+        completeDays: [nov2],
+        calorieTarget: 2000,
+        day: nov2,
+        today: nov2
+    )
+
+    #expect(view.intakeVerdict == Verdict(text: verdict, kind: .state))
+}
+
+@Test func aPastDayNotMarkedCompleteIsStillJudged() {
+    // 2 Nov seen on 3 Nov, never marked complete: 1,800 of 2,000 is 90%.
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 13), kilocalories: 1800)],
+        calorieTarget: 2000,
+        day: nov2,
+        today: nov3
+    )
+
+    #expect(view.intakeVerdict == Verdict(text: "ON TARGET.", kind: .state))
+}
+
+@Test func withNoTodayTheDayShownCountsAsAPastDayAndIsJudged() {
+    // 1,780 of 2,000 is 89%.
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 13), kilocalories: 1780)],
+        calorieTarget: 2000,
+        day: nov2
+    )
+
+    #expect(view.intakeVerdict == Verdict(text: "UNDER.", kind: .state))
+}
+
+@Test func todayBeforeItsCompleteIsStillLogging() {
+    // 1,000 of 2,000 would be under, but today isn't complete yet.
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 8), kilocalories: 1000)],
+        calorieTarget: 2000,
+        day: nov2,
+        today: nov2
+    )
+
+    #expect(view.intakeVerdict == Verdict(text: "LOGGING.", kind: .waiting))
+}
+
+/// With no Calorie Target there's nothing to judge against, so "LOGGED." even today before the
+/// Day is complete (spec 018: "LOGGED." when anything is).
+@Test func withNoCalorieTargetTodayStillLoggingReadsLogged() {
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 8), kilocalories: 1000)],
+        day: nov2,
+        today: nov2
+    )
+
+    #expect(view.intakeVerdict == Verdict(text: "LOGGED.", kind: .state))
+}
+
+@Test func todayOnceMarkedCompleteIsJudged() {
+    // 2,220 of 2,000 is 111%.
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 19), kilocalories: 2220)],
+        completeDays: [nov2],
+        calorieTarget: 2000,
+        day: nov2,
+        today: nov2
+    )
+
+    #expect(view.intakeVerdict == Verdict(text: "OVER.", kind: .state))
+}
+
+@Test func aDayWithNoFoodEntriesHasNothingLogged() {
+    let today = foodView(foodEntries: [], calorieTarget: 2000, day: nov2, today: nov2)
+    let past = foodView(foodEntries: [], calorieTarget: 2000, day: nov2, today: nov3)
+
+    #expect(today.intakeVerdict == Verdict(text: "NOTHING LOGGED.", kind: .waiting))
+    #expect(past.intakeVerdict == Verdict(text: "NOTHING LOGGED.", kind: .waiting))
+}
+
+@Test func withNoCalorieTargetAnyFoodEntryReadsLogged() {
+    let view = foodView(
+        foodEntries: [FoodEntry(time: at(2, 13), kilocalories: 1450)],
+        completeDays: [nov2],
+        day: nov2,
+        today: nov2
+    )
+
+    #expect(view.intakeVerdict == Verdict(text: "LOGGED.", kind: .state))
+}
+
+/// 2 Nov's Food view, marked complete with an Intake of 1,800 kcal, a typed Calorie Target of
+/// 2,500 and a suggested one of 2,000: male, 180 cm, born 1996 (age 30), Trend Weight 68.5 kg
+/// from one Weigh-in that morning, Mostly sitting, no Weight Goal. Resting rate 10 × 68.5 +
+/// 6.25 × 180 − 5 × 30 + 5 = 1,665; Expenditure 1,665 × 1.2 = 1,998; with no Pace the
+/// suggestion is that, to the nearest 10: 2,000.
+private func adaptView(adaptsCalorieTarget: Bool) -> FoodView {
+    FoodView(
+        foodEntries: [FoodEntry(time: at(2, 13), kilocalories: 1800)],
+        completeDays: [nov2],
+        foodTargets: FoodTargets(
+            calorieTarget: 2500,
+            activityLevel: .mostlySitting,
+            adaptsCalorieTarget: adaptsCalorieTarget
+        ),
+        weighIns: [WeighIn(time: at(2, 7), kilograms: 68.5)],
+        heightCentimetres: 180,
+        birthYear: 1996,
+        sex: .male,
+        day: nov2,
+        today: nov2,
+        timeZone: london
+    )
+}
+
+@Test func withAdaptOnIntakeIsJudgedAgainstTheSuggestedCalorieTarget() {
+    let view = adaptView(adaptsCalorieTarget: true)
+
+    #expect(view.suggestedCalorieTarget == 2000)
+    // 1,800 of 2,000 is 90%.
+    #expect(view.intakeVerdict == Verdict(text: "ON TARGET.", kind: .state))
+}
+
+@Test func withAdaptOffIntakeIsJudgedAgainstTheTypedCalorieTarget() {
+    let view = adaptView(adaptsCalorieTarget: false)
+
+    #expect(view.suggestedCalorieTarget == 2000)
+    // 1,800 of 2,500 is 72%.
+    #expect(view.intakeVerdict == Verdict(text: "UNDER.", kind: .state))
 }
