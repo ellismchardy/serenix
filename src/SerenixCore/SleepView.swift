@@ -291,7 +291,8 @@ public struct SleepWeek: Equatable, Sendable {
     public let axisEndHour: Int
     /// The axis' labels, on the even clock hours inside it: "22", "00" … "08".
     public let axisLabels: [SleepAxisLabel]
-    /// The lane open when the tab is shown: the Day shown when it has a Night, else none.
+    /// The Day shown when it has a Night, else none: the Night whose chart has its own section on
+    /// the Sleep tab (spec 018; spec 012 opened its lane instead).
     public let firstOpenLane: Day?
     /// The time zone the axis was worked out in, so times are placed on it the same way.
     let timeZone: TimeZone

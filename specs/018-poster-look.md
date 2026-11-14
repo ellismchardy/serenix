@@ -27,7 +27,9 @@ tab's headline number carries a short verdict telling the user where they stand.
 ## Behavior
 **Replaces spec 002's Look.** The Look becomes the Poster look everywhere in the three tabs,
 their popups and sheets. Nothing a tab shows, computes, or does on tap changes; only how it is
-drawn. Rings and Story (spec 013) both remain, drawn in the Poster look.
+drawn. Rings and Story (spec 013) both remain, drawn in the Poster look. The tab bar becomes
+the Poster look's own block tab bar, replacing spec 012's system tab bar (its "never a
+hand-drawn imitation" and its Non-goal "A custom tab bar" no longer apply).
 
 **The Poster look.**
 - **Paper:** off-white background (light) or near-black (dark), with type in the opposite colour.
@@ -73,10 +75,12 @@ ruled section.
 
 **Sleep.** Sleep Score headline, caption from spec 012's Summary sentence. Then Time Asleep,
 Sleep Need, Sleep Debt in three columns (Sleep Debt in red when over zero). Then spec 012's
-sections in its order, each as a ruled section: the Night's chart (Heart Rate Trace in red,
+sections in this order, each as a ruled section: the Night's chart (Heart Rate Trace in red,
 Wake Bouts as amber columns, dotted Sleeping HR line), Your week (each Night a solid bar, short
-Time Asleep in amber), What stood out (rows with tags), Tonight (a solid block in the type
-colour).
+Time Asleep in amber), What stood out (hairline rows, each its line and detail), Tonight (a
+solid block in the type colour). The Night dated the Day shown has its chart as its own section,
+so no lane in Your week opens by itself (replacing spec 012's first open lane); tapping a lane
+still opens its chart under it.
 
 **Body.** Weight | Food switch as a two-cell segmented bar under a heavy border, the picked half
 a solid block like the tab bar. The toolbar buttons stay (Weight: the Weight Goal gear and + for

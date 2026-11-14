@@ -131,12 +131,17 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      verdict) and `hasSleepDebt`. The Summary card became the headline, captioned
      "<label>: <sentence>", then the three columns and Sleep Onset – Final Wake; the columns
      show only with a Night (PR checklist). The column texts still come from the Sleep popup.
-6. [ ] **Slice:** Sleep sections in the Poster look and the spec's order: the shown Night's chart
+6. [x] **Slice:** Sleep sections in the Poster look and the spec's order: the shown Night's chart
    as its own section (Heart Rate Trace red, Wake Bouts amber columns, dotted Sleeping HR), Your
    week (solid bars, short Time Asleep amber), What stood out (rows with tags), Tonight (solid
    ink block).
    - Files: `SleepScreen.swift`
    - Done when: phone criterion for Sleep in Light and Dark; lane taps still open.
+   - Built: the shown Night's chart section uses `SleepWeek.firstOpenLane` (doc reworded), so no
+     lane opens by itself; tapping the shown Night's lane still repeats its chart under it.
+     What stood out has no tags: the user dropped them from spec 018 (2026-11-14), and also
+     had spec 018 say it replaces spec 012's tab bar and first open lane, and state the section
+     order as built.
 7. [ ] **Slice:** Weight verdict and Body Weight screen: `BodyView.weightVerdict`; Weight | Food
    segmented bar, masthead "Serenix · Body", headline, chart, Rate and Goal columns, Hold,
    Milestones bar, No Weight Goal section, All Weigh-ins row (spec's *Weight* list).
