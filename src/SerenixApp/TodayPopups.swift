@@ -36,7 +36,7 @@ struct TodayPopupView: View {
                 switch popup {
                 case .readiness:
                     if let readiness = today.readinessPopup {
-                        ReadinessPopupView(popup: readiness)
+                        ReadinessPopupView(popup: readiness, verdict: today.readinessVerdict)
                     }
                 case .sleep:
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
@@ -82,61 +82,56 @@ struct TodayPopupView: View {
     private var shownDayText: String { Poster.dayText(today.shownDate) }
 }
 
-/// The Readiness popup (spec 012), the layout of prototype variant E (branch
-/// `prototype/readiness-popup-ui`): the ring with its band and verdict, why, biggest effect first,
-/// Your week, and Sleep Score.
+/// The Readiness popup (spec 012) in the Poster look (spec 018): the Readiness headline with its
+/// band verdict, captioned by spec 012's verdict sentence, and the band word as a solid tag in its
+/// colour; the band scale as flat segments; why, biggest effect first; Your week; and Sleep Score.
 private struct ReadinessPopupView: View {
     let popup: ReadinessPopup
+    /// The Today headline's verdict, the same in the popup (spec 018).
+    let verdict: Verdict?
 
     var body: some View {
-        bandScaleCard
-        if !popup.whyRows.isEmpty {
-            PopupSectionTitle("Why, biggest effect first")
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(popup.whyRows.enumerated()), id: \.offset) { index, row in
-                    if index > 0 { Divider() }
-                    ReadinessWhyRowView(row: row)
-                }
-            }
-            .popupCard()
+        PosterHeadline(
+            number: popup.readinessText,
+            verdict: verdict,
+            caption: popup.verdictText,
+            size: Poster.bodyHeadlineSize
+        )
+        // The band word beside the number (spec 012), as a solid tag.
+        if let band = popup.band {
+            PosterTag(text: band.word, colour: band.colour)
         }
-        PopupSectionTitle("Your week")
-        ReadinessWeekView(bars: popup.week)
-        if let sleepScore = popup.sleepScoreText {
-            LabeledContent("Sleep Score", value: sleepScore).popupCard()
-        }
-    }
-
-    /// The number large in its band's colour with the band word, the verdict, and the band scale
-    /// (spec 012, header prototype variant B). Greyed with no marker while Calibrating or missing.
-    private var bandScaleCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(popup.readinessText)
-                    .font(.system(size: 56, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(popup.band?.colour ?? .secondary)
-                if let band = popup.band {
-                    Text(band.word).font(.title3.bold())
-                }
-            }
-            if let verdict = popup.verdictText {
-                Text(verdict).font(.subheadline.weight(.semibold))
-            }
+        RuledSection(name: "Band") {
             ReadinessBandScaleView(
                 segments: popup.scaleSegments,
                 band: popup.band,
                 marker: popup.scaleMarker,
                 usualTick: popup.usualTick
             )
-            .padding(.top, 8)
         }
-        .popupCard()
+        if !popup.whyRows.isEmpty {
+            RuledSection(name: "Why, biggest effect first") {
+                ForEach(Array(popup.whyRows.enumerated()), id: \.offset) { _, row in
+                    RuledRow { ReadinessWhyRowView(row: row) }
+                }
+            }
+        }
+        RuledSection(name: "Your week") {
+            ReadinessWeekView(bars: popup.week)
+        }
+        if let sleepScore = popup.sleepScoreText {
+            RuledRow {
+                LabeledContent("Sleep Score", value: sleepScore)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Poster.ink)
+            }
+        }
     }
 }
 
-/// The Readiness popup's band scale: the three bands from 0 to 100, the Night's at full colour,
-/// a marker at its Readiness and a "usual 70" tick, with each band's word under its segment.
+/// The Readiness popup's band scale: the three bands from 0 to 100 as flat segments, the Night's
+/// at full colour, an ink marker at its Readiness and a "usual 70" tick, with each band's word
+/// under its segment.
 private struct ReadinessBandScaleView: View {
     let segments: [ReadinessScaleSegment]
     /// Nil while Calibrating or missing: every segment is faded.
@@ -146,7 +141,7 @@ private struct ReadinessBandScaleView: View {
     /// How much a band other than the Night's is faded, 0 to 1.
     private let fadedOpacity = 0.25
     /// The bar's height, in points.
-    private let barHeight: CGFloat = 12
+    private let barHeight: CGFloat = 14
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -162,36 +157,35 @@ private struct ReadinessBandScaleView: View {
                         }
                     }
                     .frame(height: barHeight)
-                    .clipShape(Capsule())
                     if let usualTick {
                         Rectangle()
-                            .fill(.secondary)
+                            .fill(Poster.ink)
                             .frame(width: 1, height: barHeight + 8)
                             .offset(x: usualTick * width - 0.5)
                     }
                     if let marker {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(.primary)
-                            .frame(width: 4, height: barHeight + 10)
-                            .offset(x: max(0, min(marker * width - 2, width - 4)))
+                        Rectangle()
+                            .fill(Poster.ink)
+                            .frame(width: 3, height: barHeight + 12)
+                            .offset(x: max(0, min(marker * width - 1.5, width - 3)))
                     }
                 }
-                .frame(height: barHeight + 10)
+                .frame(height: barHeight + 12)
                 if let usualTick {
                     Text("usual \(Int((usualTick * 100).rounded()))")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Poster.secondary)
                         .fixedSize()
-                        .position(x: usualTick * width, y: barHeight + 18)
+                        .position(x: usualTick * width, y: barHeight + 20)
                 }
             }
-            .frame(height: barHeight + 26)
+            .frame(height: barHeight + 28)
             GeometryReader { geometry in
                 HStack(spacing: 0) {
                     ForEach(segments, id: \.from) { segment in
-                        Text(segment.band.word)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                        Text(segment.band.word.uppercased())
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(Poster.secondary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                             .frame(width: (segment.to - segment.from) * geometry.size.width)
@@ -205,7 +199,8 @@ private struct ReadinessBandScaleView: View {
     }
 }
 
-/// One input in the Readiness popup's Why list: name, weight, value, points, reason and gauge.
+/// One input in the Readiness popup's Why list: name, weight, value, points as a tag, reason and
+/// a thin gauge.
 private struct ReadinessWhyRowView: View {
     let row: ReadinessWhyRow
 
@@ -213,53 +208,54 @@ private struct ReadinessWhyRowView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(row.name).bold()
-                Text(row.weightText).font(.caption).foregroundStyle(.secondary)
+                Text(row.weightText).font(.caption).foregroundStyle(Poster.secondary)
                 Spacer()
                 Text(row.valueText).bold().monospacedDigit()
                 if let points = row.pointsText {
-                    Text(points).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    PosterTag(text: points, colour: Poster.ink)
                 }
             }
-            Text(row.reasonText).font(.footnote).foregroundStyle(.secondary)
+            .foregroundStyle(Poster.ink)
+            Text(row.reasonText).font(.footnote).foregroundStyle(Poster.secondary)
             if let position = row.gaugePosition { gauge(at: position) }
         }
-        .padding(.vertical, 10)
     }
 
-    /// Worse on the left, usual in the middle, better on the right.
+    /// Worse on the left, usual in the middle, better on the right: a thin flat bar, an ink tick
+    /// at usual and an ink marker at the input.
     private func gauge(at position: Double) -> some View {
         VStack(spacing: 3) {
             GeometryReader { geometry in
                 let width = geometry.size.width
                 ZStack(alignment: .leading) {
-                    Capsule()
+                    Rectangle()
                         .fill(
                             LinearGradient(
                                 stops: [
-                                    .init(color: .red, location: 0),
-                                    .init(color: .orange, location: 0.3),
-                                    .init(color: Theme.accentSoft, location: 0.45),
-                                    .init(color: Theme.accentSoft, location: 0.55),
-                                    .init(color: .green, location: 0.7),
-                                    .init(color: .green, location: 1),
+                                    .init(color: Poster.red, location: 0),
+                                    .init(color: Poster.amber, location: 0.3),
+                                    .init(color: Poster.track, location: 0.45),
+                                    .init(color: Poster.track, location: 0.55),
+                                    .init(color: Poster.green, location: 0.7),
+                                    .init(color: Poster.green, location: 1),
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .frame(height: 8)
+                        .frame(height: 4)
                     Rectangle()
-                        .fill(.secondary)
-                        .frame(width: 1, height: 12)
+                        .fill(Poster.ink)
+                        .frame(width: 1, height: 10)
                         .offset(x: width / 2)
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(.primary)
-                        .frame(width: 4, height: 16)
-                        .offset(x: max(0, min(position * width - 2, width - 4)))
+                    Rectangle()
+                        .fill(Poster.ink)
+                        .frame(width: 3, height: 14)
+                        .offset(x: max(0, min(position * width - 1.5, width - 3)))
                 }
-                .frame(height: 16)
+                .frame(height: 14)
             }
-            .frame(height: 16)
+            .frame(height: 14)
             HStack {
                 Text("worse")
                 Spacer()
@@ -268,14 +264,15 @@ private struct ReadinessWhyRowView: View {
                 Text("better")
             }
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Poster.secondary)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(row.reasonText)
     }
 }
 
-/// The Readiness popup's Your week: a bar per Day, oldest first, its height the Day's Readiness.
+/// The Readiness popup's Your week: a flat bar per Day, oldest first, its height the Day's
+/// Readiness; the Day shown in the type colour.
 private struct ReadinessWeekView: View {
     let bars: [ReadinessWeekBar]
     /// The height of a bar at Readiness 100, in points.
@@ -287,33 +284,37 @@ private struct ReadinessWeekView: View {
         HStack(alignment: .bottom, spacing: 6) {
             ForEach(Array(bars.enumerated()), id: \.offset) { _, bar in
                 VStack(spacing: 3) {
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(bar.band?.colour ?? .clear)
+                    Rectangle()
+                        .fill(fill(of: bar))
                         .overlay {
                             if bar.band == nil {
-                                Hatch()
-                                    .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
-                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                Hatch().stroke(Poster.hairline, lineWidth: 1).clipped()
                             }
                         }
+                        // With no Readiness the Day shown is still marked (spec 012: outlined).
                         .overlay {
-                            if bar.isDayShown {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .strokeBorder(Color.primary, lineWidth: 2)
+                            if bar.band == nil, bar.isDayShown {
+                                Rectangle().strokeBorder(Poster.ink, lineWidth: 2)
                             }
                         }
                         .frame(height: height(of: bar))
-                    Text(bar.weekdayText).font(.caption2).foregroundStyle(.secondary)
+                    Text(bar.weekdayText).font(.caption2).foregroundStyle(Poster.secondary)
                     Text(bar.readinessText).font(.caption2).monospacedDigit()
+                        .foregroundStyle(Poster.ink)
                 }
                 .frame(maxWidth: .infinity)
             }
         }
-        .popupCard()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             bars.map { "\($0.weekdayText) \($0.readinessText)" }.joined(separator: ", ")
         )
+    }
+
+    /// The Day shown in ink, every other Day in its band's colour; none without a Readiness.
+    private func fill(of bar: ReadinessWeekBar) -> Color {
+        guard let band = bar.band else { return .clear }
+        return bar.isDayShown ? Poster.ink : band.colour
     }
 
     private func height(of bar: ReadinessWeekBar) -> CGFloat {
@@ -322,114 +323,79 @@ private struct ReadinessWeekView: View {
     }
 }
 
+/// The Sleep Score popup (spec 010) in the Poster look (spec 018): the Sleep Score headline and
+/// verdict; its parts as rows with a big number and a thin bar; When you slept; How much you
+/// slept.
 private struct SleepPopupView: View {
     let popup: SleepPopup
 
     var body: some View {
-        Text("Sleep").font(.headline)
-        // Three cards (spec 010, Sleep popup): Sleep Score, When you slept, How much you slept.
-        sleepScore.popupCard()
-        whenYouSlept.popupCard()
-        howMuchYouSlept.popupCard()
-    }
-
-    /// The Sleep Score as a big number with a key of its parts, and the parts as nested rings:
-    /// Sleep Sufficiency outside, Sleep Efficiency in the middle, Sleep Consistency inside.
-    private var sleepScore: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Sleep Score").font(.footnote).foregroundStyle(.secondary)
-                Text(popup.sleepScoreText)
-                    .font(.system(size: 52, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                ForEach(Array(zip(popup.parts, Self.partShades)), id: \.0.name) { part, shade in
-                    HStack(spacing: 6) {
-                        Circle().fill(shade).frame(width: 10, height: 10)
-                        Text(part.name).font(.caption)
-                        Text(part.scoreText).font(.caption.bold()).monospacedDigit()
+        PosterHeadline(
+            number: popup.sleepScoreText,
+            verdict: popup.verdict,
+            size: Poster.bodyHeadlineSize
+        )
+        RuledSection(name: "Sleep Score") {
+            ForEach(popup.parts, id: \.name) { part in
+                RuledRow {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(part.name).font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Text(part.scoreText)
+                                .font(Poster.headlineFont(size: 28))
+                                .monospacedDigit()
+                        }
+                        .foregroundStyle(Poster.ink)
+                        PosterBar(fill: part.fill, colour: Poster.ink, height: 5)
                     }
+                    .accessibilityElement(children: .combine)
                 }
             }
-            Spacer(minLength: 0)
-            ZStack {
-                ForEach(Array(zip(popup.parts, Self.partShades).enumerated()), id: \.element.0.name)
-                { index, pair in
-                    RingArc(fill: pair.0.fill, colour: pair.1, lineWidth: Self.ringLineWidth)
-                        .frame(width: ringDiameter(index), height: ringDiameter(index))
-                }
-            }
-            // The outer stroke reaches half a line past its circle.
-            .frame(width: ringDiameter(0), height: ringDiameter(0))
-            .padding(Self.ringLineWidth / 2)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(
-                popup.parts.map { "\($0.name) \($0.scoreText)" }.joined(separator: ", ")
-            )
         }
+        whenYouSlept
+        howMuchYouSlept
     }
 
-    /// Each part's shade, in the parts' order: the accent outside, lighter inwards.
-    private static let partShades = [Theme.accent, Theme.accentMiddle, Theme.accentInner]
-    /// The nested rings' stroke, points.
-    private static let ringLineWidth: CGFloat = 11
-    /// The outer ring's diameter, points.
-    private static let outerRingDiameter: CGFloat = 131
-    /// The gap between nested rings, points.
-    private static let ringGap: CGFloat = 3
-
-    /// The nested ring at `index`'s diameter, outermost first, each a stroke and a gap inside
-    /// the last on either side.
-    private func ringDiameter(_ index: Int) -> CGFloat {
-        Self.outerRingDiameter - CGFloat(index) * 2 * (Self.ringLineWidth + Self.ringGap)
-    }
-
-    /// Time Asleep as a bar with a marker at Sleep Need, then Sleep Debt (spec 010).
+    /// Time Asleep as a red bar with a marker at Sleep Need, then Sleep Debt (spec 010).
     private var howMuchYouSlept: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("How much you slept").font(.subheadline.bold())
-            SleepNeedBarView(bar: popup.sleepNeedBar).frame(height: 22)
+        RuledSection(name: "How much you slept") {
+            SleepNeedBarView(bar: popup.sleepNeedBar).frame(height: 16)
             HStack {
                 Text(popup.sleepNeedBar.asleepText).monospacedDigit()
+                    .foregroundStyle(Poster.ink)
                 Spacer()
-                Text(popup.sleepNeedBar.neededText).monospacedDigit().foregroundStyle(.secondary)
+                Text(popup.sleepNeedBar.neededText).monospacedDigit()
+                    .foregroundStyle(Poster.secondary)
             }
             .font(.subheadline)
             // The amount level with its label, and which Nights it's from under the amount.
-            HStack(alignment: .firstTextBaseline) {
-                Text("Sleep Debt")
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(popup.sleepDebtText).bold().monospacedDigit()
-                    Text(popup.sleepDebtCaption).font(.footnote).foregroundStyle(.secondary)
+            RuledRow {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Sleep Debt")
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(popup.sleepDebtText).bold().monospacedDigit()
+                        Text(popup.sleepDebtCaption).font(.footnote)
+                            .foregroundStyle(Poster.secondary)
+                    }
                 }
+                .foregroundStyle(Poster.ink)
             }
-            .padding(.top, 4)
         }
     }
 
-    /// The Night's Sleep Period on its timeline, with how far off the usual times it was beside
-    /// the heading, a key, and Time in Bed, minutes awake and Sleep Efficiency's detail under it.
+    /// The Night's Sleep Period on its timeline, with how far off the usual times it was as the
+    /// section's note, a key, and Time in Bed, minutes awake and Sleep Efficiency's detail under it.
     private var whenYouSlept: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("When you slept").font(.subheadline.bold())
-                Spacer()
-                if let note = popup.whenYouSleptNote {
-                    Text(note)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.accent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Theme.accentSoft, in: Capsule())
-                }
-            }
+        RuledSection(name: "When you slept", note: popup.whenYouSleptNote) {
             if let timeline = popup.timeline {
                 SleepTimelineView(timeline: timeline).frame(height: 104)
                 timelineKey(timeline)
             } else {
-                Text("No Sleep Period for this Night").foregroundStyle(.secondary)
+                Text("No Sleep Period for this Night").foregroundStyle(Poster.secondary)
             }
-            Divider()
+            PosterRule(width: Poster.rowRule, colour: Poster.hairline)
             HStack(alignment: .top) {
                 stat(
                     "Time in Bed",
@@ -446,9 +412,9 @@ private struct SleepPopupView: View {
     /// they're drawn.
     private func timelineKey(_ timeline: SleepTimeline) -> some View {
         HStack(spacing: 12) {
-            keyItem("Asleep") { RoundedRectangle(cornerRadius: 3).fill(Theme.accent) }
+            keyItem("Asleep") { Rectangle().fill(Poster.ink) }
             if timeline.timeInBed != nil {
-                keyItem("In bed") { RoundedRectangle(cornerRadius: 3).fill(Theme.accentSoft) }
+                keyItem("In bed") { Rectangle().fill(Poster.track) }
             }
             if timeline.usualSleepOnset != nil || timeline.usualFinalWake != nil {
                 keyItem("Usual") {
@@ -456,12 +422,12 @@ private struct SleepPopupView: View {
                         path.move(to: CGPoint(x: 6, y: 0))
                         path.addLine(to: CGPoint(x: 6, y: 12))
                     }
-                    .stroke(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2]))
+                    .stroke(Poster.green, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2]))
                 }
             }
         }
         .font(.caption2)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Poster.secondary)
         .accessibilityHidden(true)
     }
 
@@ -478,10 +444,12 @@ private struct SleepPopupView: View {
     /// One fact under the timeline: a small label over its value, and an optional detail.
     private func stat(_ label: String, _ value: String, detail: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label.uppercased()).font(.caption2.weight(.bold))
+                .foregroundStyle(Poster.secondary)
             Text(value).font(.footnote.weight(.semibold)).monospacedDigit()
+                .foregroundStyle(Poster.ink)
             if let detail {
-                Text(detail).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                Text(detail).font(.caption2).foregroundStyle(Poster.secondary).monospacedDigit()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -489,8 +457,9 @@ private struct SleepPopupView: View {
     }
 }
 
-/// The Sleep popup's timeline (spec 010): the Sleep Period as an accent bar between its labelled
-/// ends, over faint hour lines and their labels. Every position comes from `SleepTimeline`.
+/// The Sleep popup's timeline (spec 010): the Sleep Period as an ink bar between its labelled
+/// ends, Time in Bed in grey behind it, the usual times as dashed green lines, over hairline hour
+/// lines and their labels. Every position comes from `SleepTimeline`.
 private struct SleepTimelineView: View {
     let timeline: SleepTimeline
 
@@ -523,13 +492,13 @@ private struct SleepTimelineView: View {
                 }
                 // Time in Bed as a light band behind the Sleep Period.
                 if let bed = timeline.timeInBed {
-                    RoundedRectangle(cornerRadius: 9)
-                        .fill(Theme.accentSoft)
+                    Rectangle()
+                        .fill(Poster.track)
                         .frame(width: (bed.end - bed.start) * width, height: Self.bandHeight)
                         .offset(x: bed.start * width, y: Self.bandTop)
                 }
-                Capsule()
-                    .fill(Theme.accent)
+                Rectangle()
+                    .fill(Poster.ink)
                     .frame(width: max(periodWidth, 2), height: Self.barHeight)
                     .offset(x: timeline.sleepOnset.position * width, y: Self.barTop)
                 if let usual = timeline.usualSleepOnset { usualLine(usual, width: width) }
@@ -549,7 +518,7 @@ private struct SleepTimelineView: View {
                 ForEach(timeline.hours, id: \.position) { hour in
                     Text(hour.text)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Poster.secondary)
                         .monospacedDigit()
                         .fixedSize()
                         .position(x: hour.position * width, y: Self.hourLabelY)
@@ -575,7 +544,7 @@ private struct SleepTimelineView: View {
             path.move(to: CGPoint(x: x, y: Self.linesTop))
             path.addLine(to: CGPoint(x: x, y: Self.hourLineBottom))
         }
-        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        .stroke(Poster.hairline, lineWidth: 1)
     }
 
     /// A usual Sleep Onset or Final Wake: a dashed line across the band and bar, labelled
@@ -587,9 +556,9 @@ private struct SleepTimelineView: View {
                 path.move(to: CGPoint(x: x, y: Self.linesTop))
                 path.addLine(to: CGPoint(x: x, y: Self.usualLineBottom))
             }
-            .stroke(Color.primary.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+            .stroke(Poster.green, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
             inwardLabel(
-                Text("usual \(mark.text)").font(.caption2).foregroundStyle(.secondary),
+                Text("usual \(mark.text)").font(.caption2).foregroundStyle(Poster.secondary),
                 at: x,
                 y: Self.usualLabelY,
                 width: width
@@ -620,35 +589,28 @@ private struct SleepTimelineView: View {
     }
 }
 
-/// The Sleep Need bar (spec 010): Time Asleep filled in the accent colour, with a marker at Sleep
-/// Need. Fill and marker come from `SleepNeedBar`.
+/// The Sleep Need bar (spec 010): Time Asleep as a flat red bar, with an ink marker at Sleep Need.
+/// Fill and marker come from `SleepNeedBar`.
 private struct SleepNeedBarView: View {
     let bar: SleepNeedBar
 
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            let markerX: CGFloat = max(0, min(bar.marker * width, width - 2))
+            let markerX: CGFloat = max(0, min(bar.marker * width - 1.5, width - 3))
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 6).fill(Theme.accentSoft)
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Theme.accent)
+                Rectangle().fill(Poster.track)
+                Rectangle()
+                    .fill(Poster.red)
                     .frame(width: bar.fill * width)
                 Rectangle()
-                    .fill(.primary)
-                    .frame(width: 2, height: geometry.size.height + 8)
+                    .fill(Poster.ink)
+                    .frame(width: 3, height: geometry.size.height + 10)
                     .offset(x: markerX)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(bar.asleepText), \(bar.neededText)")
-    }
-}
-
-extension View {
-    /// One card of a popup, the same inset on every popup.
-    fileprivate func popupCard() -> some View {
-        padding(16).frame(maxWidth: .infinity, alignment: .leading).themeCard()
     }
 }
 
@@ -828,17 +790,6 @@ private struct ZoneScaleView: View {
             }
         }
         .accessibilityHidden(true)
-    }
-}
-
-/// A small grey heading over a popup's card.
-private struct PopupSectionTitle: View {
-    let title: String
-
-    init(_ title: String) { self.title = title }
-
-    var body: some View {
-        Text(title.uppercased()).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
     }
 }
 

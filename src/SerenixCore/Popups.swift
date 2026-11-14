@@ -8,8 +8,8 @@ public struct ReadinessPopup: Equatable, Sendable {
     public let band: ReadinessBand?
     /// The Night's Sleep Score, shown whether or not Readiness is Calibrating.
     public let sleepScoreText: String?
-    /// The sentence beside the ring (spec 012, Verdict), or why there's no Readiness: spec 002's
-    /// Calibrating explanation, or no HRV.
+    /// The sentence under the headline (spec 012, Verdict), or why there's no Readiness: spec
+    /// 002's Calibrating explanation, or no HRV.
     public let verdictText: String?
     /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
     /// none without a Readiness.
@@ -243,14 +243,15 @@ func signedText(_ difference: Int, magnitude: String? = nil) -> String {
     }
 }
 
-/// One part of Sleep Score in the Sleep popup, drawn as a small ring (spec 010, Sleep popup).
+/// One part of Sleep Score in the Sleep popup, drawn as a row with a thin bar (spec 010, Sleep
+/// popup; spec 018).
 public struct SleepScorePart: Equatable, Sendable {
     /// "Sleep Sufficiency", "Sleep Efficiency" or "Sleep Consistency".
     public let name: String
     /// The part as a whole number, halves up, as the Sleep Score key shows it; "—" when it's left
     /// out or Sleep Score is missing.
     public let scoreText: String
-    /// The ring's fill, 0 to 1; an empty ring when it's left out.
+    /// The bar's fill, 0 to 1; an empty bar when it's left out.
     public let fill: Double
     /// What it came from, e.g. "6h 0m of 8h 0m", "89% asleep", "35m off your usual", "Needs 3
     /// Nights"; "—" when there's nothing to show.
@@ -308,8 +309,11 @@ func halvesUp(_ value: Double) -> Int {
 /// The Sleep popup (spec 002, Popups).
 public struct SleepPopup: Equatable, Sendable {
     public let sleepScoreText: String
-    /// Sleep Score's parts as three nested rings, outermost first: Sleep Sufficiency, Sleep
-    /// Efficiency, Sleep Consistency (spec 010).
+    /// The Sleep Score headline's verdict (spec 018), as on the Sleep tab; nil without a Sleep
+    /// Score.
+    public let verdict: Verdict?
+    /// Sleep Score's parts as three rows, in order: Sleep Sufficiency, Sleep Efficiency, Sleep
+    /// Consistency (spec 010).
     public let parts: [SleepScorePart]
     /// Beside the "When you slept" heading (spec 010): Sleep Consistency's detail ("35m off your
     /// usual"), or "Usual times need 3 Nights" while it's left out; nil when Sleep Score is
@@ -352,6 +356,7 @@ public struct SleepPopup: Equatable, Sendable {
         timeZone: TimeZone
     ) {
         sleepScoreText = scoreText(sleepScore?.score)
+        verdict = sleepScore.map { Verdict.sleepScore($0.score) }
         parts = SleepScorePart.parts(of: sleepScore)
         sleepNeedText = durationText(sleepNeed.sleepNeed)
         sleepDebtText = durationText(sleepNeed.sleepDebt)

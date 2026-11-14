@@ -210,13 +210,19 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
       headline's caption with its last words in the Zone colour, the status word a tag under
       it; the Zone section shows only with a scale. Resting HR: headline with its sentence, no
       verdict. Blocks, facts, What it is, Your Zones and What moves it are ruled sections.
-12. [ ] **Slice:** Readiness and Sleep Score popups in the Poster look: band scale flat
+12. [x] **Slice:** Readiness and Sleep Score popups in the Poster look: band scale flat
     segments with marker and "usual 70" tick, Why rows with tags and thin gauges, Your week flat
     bars; Sleep Score parts as rows with big number and thin bar (no nested rings), Time Asleep
     red bar with Sleep Need marker, Sleep Period timeline (Time in Bed grey, usual times dashed
     green). Headlines reuse tasks 1 and 5's verdicts.
     - Blocked by: 5, 11 · Files: `TodayPopups.swift`
     - Done when: phone check of both popups in Light and Dark.
+    - Built: the popup only gets a `SleepPopup`, so `SleepPopup.verdict` was added to the core
+      (`Popups.swift`, tested in `SleepScoreTests.swift`, outside this task's file list). The
+      Readiness headline uses `TodayView.readinessVerdict`, captioned by spec 012's verdict
+      sentence, with the band word as a solid tag; the Day shown without a Readiness is
+      outlined in Your week. `popupCard` and `PopupSectionTitle` are already deleted here.
+      Ring doc comments in the core reworded.
 13. [ ] **Contract:** delete `Theme`'s purple tokens, `themeCard`, `popupCard`, `ScoreRing` /
     `RingArc` if unused; point Onboarding, ProfileMenu, DebugView and SyncPillView's remaining
     Theme uses at the Poster palette; app-wide tint to ink. `grep` finds no `Theme.accent`.

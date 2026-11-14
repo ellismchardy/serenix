@@ -476,6 +476,26 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
     #expect(popup?.whenYouSleptNote == nil)
 }
 
+// MARK: Sleep popup verdict (spec 018, Popups and Verdicts)
+
+@Test func sixHoursAsleepReading81GivesTheSleepPopupTheVerdictStrongNight() {
+    let popup = todayView(
+        nights: [nightOn15Nov(finalWake: at(15, 5, 18), timeAsleep: 6 * oneHour)]
+    )
+    .sleepPopup
+
+    #expect(popup?.sleepScoreText == "81")
+    #expect(popup?.verdict == Verdict(text: "STRONG NIGHT.", kind: .state))
+}
+
+@Test func withNoTimeAsleepTheSleepPopupHasNoVerdict() {
+    let popup = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup
+
+    #expect(popup != nil)
+    #expect(popup?.sleepScoreText == "\u{2014}")
+    #expect(popup?.verdict == nil)
+}
+
 /// `share` of the axis to 3 decimal places, as spec 010 states timeline positions.
 private func threePlaces(_ share: Double) -> Double {
     (share * 1000).rounded() / 1000
