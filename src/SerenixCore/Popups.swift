@@ -661,6 +661,9 @@ public struct LoadPopup: Equatable, Sendable {
     public let typicalText: String
     /// e.g. "A harder Day than usual": the Day's Load against typical Load (spec 006).
     public let comparisonText: String
+    /// The headline's verdict, from the same bands as the sentence (spec 018): "EASIER DAY."
+    /// to "MUCH HARDER.", or waiting "LEARNING." / "NO LOAD.".
+    public let verdict: Verdict
     /// How full the Load bar is, 0 to 1: the Day's Load on a bar from 0 to twice typical Load, its
     /// marker at the middle (spec 006). 0 with the Day's Load missing; nil, no bar, with no
     /// typical Load yet.
@@ -702,7 +705,9 @@ public struct LoadPopup: Equatable, Sendable {
             ? lastSyncEnded.map { "As of your last sync at \(clockText($0, in: timeZone))" } : nil
         let typical = typicalLoad(for: day, among: dayLoads)
         typicalText = Self.typicalText(typical, load: load, dayWord: isToday ? "today" : "that Day")
-        comparisonText = Self.comparisonText(typical, load: load)
+        let comparison = Comparison(typical, load: load)
+        comparisonText = comparison.text
+        verdict = comparison.verdict
         loadBarFill = Self.loadBarFill(typical, load: load)
         learningLoadText =
             if case .calibrating = typical { "Load \(loadText)" } else { nil }
@@ -762,26 +767,64 @@ public struct LoadPopup: Equatable, Sendable {
     /// Load ÷ typical Load from which a Day is much harder than usual (spec 006).
     static let muchHarderFrom = 1.5
 
-    /// The sentence: the Day's Load against typical Load, in four bands of Load ÷ typical Load.
-    /// With a typical Load of 0, a Load of 0 is usual and any other much harder (spec 006's named
-    /// assumption). With no typical Load yet it says so, even when the Day's Load is missing too.
-    private static func comparisonText(_ typical: TypicalLoad, load: Int?) -> String {
-        guard case .value(let typical) = typical else { return "Learning your typical Load" }
-        guard let load else { return "No Load this Day" }
-        let ratio =
-            typical > 0
-            ? Double(load) / Double(typical) : (load == 0 ? 1 : .infinity)
-        return switch ratio {
-        case ..<easierBelow: "An easier Day than usual"
-        case ..<harderFrom: "About your usual Day"
-        case ..<muchHarderFrom: "A harder Day than usual"
-        default: "A much harder Day than usual"
+    /// Where the Day's Load sits against typical Load, in four bands of Load ÷ typical Load, or
+    /// why it can't be placed. With a typical Load of 0, a Load of 0 is usual and any other much
+    /// harder (spec 006's named assumption). No typical Load yet wins, even when the Day's Load is
+    /// missing too.
+    private enum Comparison {
+        case learning, noLoad, easier, usual, harder, muchHarder
+
+        init(_ typical: TypicalLoad, load: Int?) {
+            guard case .value(let typical) = typical else {
+                self = .learning
+                return
+            }
+            guard let load else {
+                self = .noLoad
+                return
+            }
+            let ratio =
+                typical > 0
+                ? Double(load) / Double(typical) : (load == 0 ? 1 : .infinity)
+            self =
+                switch ratio {
+                case ..<LoadPopup.easierBelow: .easier
+                case ..<LoadPopup.harderFrom: .usual
+                case ..<LoadPopup.muchHarderFrom: .harder
+                default: .muchHarder
+                }
+        }
+
+        /// The sentence (spec 006).
+        var text: String {
+            switch self {
+            case .learning: "Learning your typical Load"
+            case .noLoad: "No Load this Day"
+            case .easier: "An easier Day than usual"
+            case .usual: "About your usual Day"
+            case .harder: "A harder Day than usual"
+            case .muchHarder: "A much harder Day than usual"
+            }
+        }
+
+        /// The headline's verdict (spec 018): the sentence's band, or waiting.
+        var verdict: Verdict {
+            switch self {
+            case .learning: Verdict(text: "LEARNING.", kind: .waiting)
+            case .noLoad: Verdict(text: "NO LOAD.", kind: .waiting)
+            case .easier: Verdict(text: "EASIER DAY.", kind: .state)
+            case .usual: Verdict(text: "USUAL DAY.", kind: .state)
+            case .harder: Verdict(text: "HARDER DAY.", kind: .state)
+            case .muchHarder: Verdict(text: "MUCH HARDER.", kind: .state)
+            }
         }
     }
 
     /// The Load bar runs from 0 to this many times typical Load, so typical sits at its middle
     /// (spec 006).
     static let loadBarSpan = 2
+    /// Where typical Load sits along the Load bar, 0 to 1: its middle (spec 006).
+    public static let typicalLoadTick = 1 / Double(loadBarSpan)
 
     /// The Load bar's fill: the Day's Load over twice typical Load, full at that or more. With a
     /// typical Load of 0, empty for a Load of 0 and full for any other.

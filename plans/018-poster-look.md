@@ -183,13 +183,21 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      system menu picker. PR checklist: 0.5% and 0.75% each set their own date. Open: whether
      the four sheets also get the popups' grab bar and masthead (spec 018 lists Sheets under
      Popups) — raised with the user; task 10 can add them.
-10. [ ] **Slice:** Load popup verdict and the popup chrome: `LoadPopup.verdict`; every popup
+10. [x] **Slice:** Load popup verdict and the popup chrome: `LoadPopup.verdict`; every popup
     gets Poster paper, grab bar and masthead (popup name left, Night or Day right); the Load
     popup's sections ruled (bar vs typical, How hard split bar and HR Zone rows, When hourly
     bars, Highest HR / Max HR used); Live HR keeps its place.
     - Blocked by: 1 · Seam: verdict mapping (LoadPopup) · Files: `src/SerenixCore/Popups.swift`,
       `tests/SerenixCoreTests/LoadPopupTests.swift`, `TodayPopups.swift`
     - Done when: criterion "Load popup's verdict … EASIER DAY. … LEARNING. … NO LOAD.".
+    - Built: a private `Comparison` in `LoadPopup` gives the sentence and the verdict one set of
+      bands; `LoadPopup.typicalLoadTick` is public and used by Today and the popup. The
+      masthead's right side is each popup's own wording ("Today" on today's Load popup, the
+      metric's Night text, Resting HR's Day) or the Day shown; the old popup headings are gone.
+      While typical Load is learned the popup shows no bar (the headline has the Load), so
+      `learningLoadText` is unused (task 13). HR Zones are grey, blue, green, amber, red
+      (prototype M). PR checklist: VoiceOver can still close a popup with the system drag
+      indicator hidden.
 11. [ ] **Slice:** Nightly Metric verdict and the Metric and Resting HR popups:
     `MetricPopup.verdict` (ABOUT USUAL. / UNUSUAL. / WAY OFF.; SpO2 HEALTHY. / A BIT LOW. /
     LOW.; N TO GO. against 3 earlier Nights; NO DATA.); Zone scale flat segments with marker and

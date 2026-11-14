@@ -28,7 +28,7 @@ struct BodyScreen: View {
                 VStack(spacing: 16) {
                     Masthead(
                         title: "Serenix · Body",
-                        detail: Date().formatted(.dateTime.weekday(.abbreviated).day().month())
+                        detail: Poster.dayText(Date())
                     )
                     SegmentedBar(
                         options: [

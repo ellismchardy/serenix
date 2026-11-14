@@ -14,7 +14,8 @@ enum TodayPopup: Identifiable, Hashable {
 }
 
 /// The open popup's content, drawn from the Today view. Each slides up and closes on a tap
-/// outside or a swipe down.
+/// outside or a swipe down: a sheet of paper with a short heavy grab bar and the masthead, the
+/// popup's name on the left and the Day on the right (spec 018, Popups).
 struct TodayPopupView: View {
     let popup: TodayPopup
     let today: TodayView
@@ -25,10 +26,17 @@ struct TodayPopupView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                // The short heavy grab bar, in place of the system's.
+                Rectangle()
+                    .fill(Poster.ink)
+                    .frame(width: 40, height: 4)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+                Masthead(title: name, detail: detail)
                 switch popup {
                 case .readiness:
                     if let readiness = today.readinessPopup {
-                        ReadinessPopupView(popup: readiness, date: today.shownDate)
+                        ReadinessPopupView(popup: readiness)
                     }
                 case .sleep:
                     if let sleep = today.sleepPopup { SleepPopupView(popup: sleep) }
@@ -45,9 +53,33 @@ struct TodayPopupView: View {
             .padding()
         }
         .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Theme.popupBackground)
+        .presentationDragIndicator(.hidden)
+        .presentationBackground(Poster.paper)
     }
+
+    /// The popup's name in its masthead.
+    private var name: String {
+        switch popup {
+        case .readiness: "Readiness"
+        case .sleep: "Sleep Score"
+        case .metric(let metric): metric.name
+        case .restingHR: "Resting HR"
+        case .load: "Load"
+        }
+    }
+
+    /// The Night or Day on the masthead's right, as each popup's spec words it ("Today" on
+    /// today's Load popup, spec 006); the Day shown where a popup has no wording of its own.
+    private var detail: String {
+        switch popup {
+        case .metric(let metric): today.metricPopup(metric)?.nightText ?? shownDayText
+        case .restingHR: today.restingHRPopup?.dateText ?? shownDayText
+        case .load: today.loadPopup?.dateText ?? shownDayText
+        case .readiness, .sleep: shownDayText
+        }
+    }
+
+    private var shownDayText: String { Poster.dayText(today.shownDate) }
 }
 
 /// The Readiness popup (spec 012), the layout of prototype variant E (branch
@@ -55,16 +87,8 @@ struct TodayPopupView: View {
 /// Your week, and Sleep Score.
 private struct ReadinessPopupView: View {
     let popup: ReadinessPopup
-    let date: Date
 
     var body: some View {
-        HStack {
-            Text("Readiness").font(.headline)
-            Spacer()
-            Text(date, format: .dateTime.weekday(.abbreviated).day().month())
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
         bandScaleCard
         if !popup.whyRows.isEmpty {
             PopupSectionTitle("Why, biggest effect first")
@@ -635,7 +659,6 @@ private struct MetricPopupView: View {
     let popup: MetricPopup
 
     var body: some View {
-        PopupHeading(icon: popup.metric.icon, name: popup.metric.name, detail: popup.nightText)
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
@@ -727,11 +750,6 @@ private struct RestingHRPopupView: View {
     let popup: RestingHRPopup
 
     var body: some View {
-        PopupHeading(
-            icon: NightlyMetric.sleepingHR.icon,
-            name: "Resting HR",
-            detail: popup.dateText
-        )
         VStack(alignment: .leading, spacing: 12) {
             Text(popup.valueText).font(.largeTitle.bold()).monospacedDigit()
             if let sentence = popup.sentenceText { Text(sentence) }
@@ -803,26 +821,6 @@ private struct ZoneScaleView: View {
             }
         }
         .accessibilityHidden(true)
-    }
-}
-
-/// A popup's heading: the icon and name, and the Night or Day on the right.
-private struct PopupHeading: View {
-    let icon: String
-    let name: String
-    let detail: String
-
-    var body: some View {
-        HStack {
-            Label {
-                Text(name)
-            } icon: {
-                Image(systemName: icon).foregroundStyle(Theme.accent)
-            }
-            .font(.headline)
-            Spacer()
-            Text(detail).font(.footnote).foregroundStyle(.secondary)
-        }
     }
 }
 
@@ -960,51 +958,53 @@ private struct LoadPopupView: View {
     let connection: StrapConnection
 
     var body: some View {
-        HStack {
-            if popup.showsLiveHR { LiveHRPillView(connection: connection) }
-            Spacer()
-            Text(popup.dateText).font(.footnote).foregroundStyle(.secondary)
-        }
-        againstTypicalCard
+        if popup.showsLiveHR { LiveHRPillView(connection: connection) }
+        // The Day's Load with its verdict, captioned by spec 006's sentence and the last sync
+        // (spec 018, Popups).
+        PosterHeadline(
+            number: popup.loadText,
+            verdict: popup.verdict,
+            caption: [popup.comparisonText, popup.lastSyncText].compactMap { $0 }
+                .joined(separator: "\n"),
+            size: Poster.bodyHeadlineSize
+        )
+        againstTypicalSection
         if let note = popup.note {
-            Text(note).foregroundStyle(.secondary).popupCard()
+            Text(note).foregroundStyle(Poster.secondary)
         } else {
-            PopupSectionTitle("How hard")
-            howHardCard
-            PopupSectionTitle("When")
-            hourlyBars.frame(height: 160).popupCard()
+            howHardSection
+            RuledSection(name: "When") {
+                hourlyBars.frame(height: 160)
+            }
             VStack(alignment: .leading, spacing: 4) {
-                if let highest = popup.highestHRText { Text(highest) }
+                PosterRule()
+                if let highest = popup.highestHRText {
+                    Text(highest).font(.subheadline.weight(.bold)).foregroundStyle(Poster.ink)
+                }
                 if let maxHR = popup.maxHRText {
-                    Text(maxHR).font(.footnote).foregroundStyle(.secondary)
+                    Text(maxHR).font(.footnote).foregroundStyle(Poster.secondary)
                 }
             }
-            .popupCard()
         }
     }
 
-    /// The sentence, the typical line, the Load bar (or, while typical Load is learned, the Day's
-    /// Load in its place) and, on today, when the last sync ended.
-    private var againstTypicalCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(popup.comparisonText).font(.title3.bold())
-            Text(popup.typicalText).font(.subheadline).foregroundStyle(.secondary)
+    /// The bar from 0 to twice typical Load with a tick at typical Load, the typical line as its
+    /// note (spec 006). While typical Load is learned there's no bar; the headline already shows
+    /// the Day's Load.
+    private var againstTypicalSection: some View {
+        RuledSection(name: "Against typical", note: popup.typicalText) {
             if let fill = popup.loadBarFill {
-                LoadBarView(fill: fill, loadText: popup.loadText).padding(.vertical, 10)
-            } else if let learningLoad = popup.learningLoadText {
-                Text(learningLoad).font(.largeTitle.bold()).monospacedDigit()
-                    .padding(.vertical, 4)
-            }
-            if let lastSync = popup.lastSyncText {
-                Text(lastSync).font(.footnote).foregroundStyle(.secondary)
+                PosterBar(fill: fill, tick: LoadPopup.typicalLoadTick)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Load \(popup.loadText)")
             }
         }
-        .popupCard()
     }
 
-    /// The HR Zone mix as one bar split by HR Zone, then each HR Zone's time, hardest first.
-    private var howHardCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+    /// The HR Zone mix as one flat bar split by HR Zone, then each HR Zone's time as hairline
+    /// rows, hardest first.
+    private var howHardSection: some View {
+        RuledSection(name: "How hard") {
             if !popup.zoneMix.isEmpty {
                 GeometryReader { geometry in
                     let gaps = CGFloat(popup.zoneMix.count - 1) * 2
@@ -1016,23 +1016,21 @@ private struct LoadPopupView: View {
                         }
                     }
                 }
-                .frame(height: 24)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .padding(.bottom, 8)
+                .frame(height: 16)
                 .accessibilityHidden(true)
             }
-            ForEach(Array(popup.zoneRows.enumerated()), id: \.offset) { index, row in
-                if index > 0 { Divider() }
-                HStack {
-                    Circle().fill(row.zone.colour).frame(width: 9, height: 9)
-                    Text(row.label)
-                    Spacer()
-                    Text(row.timeText).monospacedDigit()
+            ForEach(popup.zoneRows, id: \.zone) { row in
+                RuledRow {
+                    HStack {
+                        Rectangle().fill(row.zone.colour).frame(width: 10, height: 10)
+                        Text(row.label).foregroundStyle(Poster.ink)
+                        Spacer()
+                        Text(row.timeText).monospacedDigit().foregroundStyle(Poster.ink)
+                    }
+                    .font(.subheadline)
                 }
-                .padding(.vertical, 8)
             }
         }
-        .popupCard()
     }
 
     /// Minutes in each HR Zone, hour by hour from local midnight, stacked HR Zone 1 at the
@@ -1059,55 +1057,16 @@ private struct LoadPopupView: View {
     }
 }
 
-/// The Load popup's bar from 0 to twice typical Load (spec 006): filled to the Day's Load with the
-/// Load written at its end, and a "typical" marker at its middle.
-private struct LoadBarView: View {
-    /// 0 to 1.
-    let fill: Double
-    let loadText: String
-
-    /// The narrowest a filled bar draws, so the Load written inside it still fits.
-    private static let minimumFillWidth: CGFloat = 44
-
-    var body: some View {
-        VStack(spacing: 4) {
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 10).fill(Theme.accentSoft)
-                    if fill > 0 {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Theme.accent)
-                            .frame(width: max(Self.minimumFillWidth, geometry.size.width * fill))
-                            .overlay(alignment: .trailing) {
-                                Text(loadText).font(.subheadline.bold()).monospacedDigit()
-                                    .foregroundStyle(.white).padding(.trailing, 10)
-                            }
-                    } else {
-                        // An empty bar (a Load of 0, or none) still says its Load, at the start.
-                        Text(loadText).font(.subheadline.bold()).monospacedDigit()
-                            .foregroundStyle(.secondary).padding(.leading, 10)
-                    }
-                }
-            }
-            .frame(height: 34)
-            // The typical marker at the middle, standing a little proud of the bar.
-            .overlay { Capsule().fill(.primary).frame(width: 3, height: 46) }
-            Text("typical").font(.caption2).foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Load \(loadText)")
-    }
-}
-
 extension HRZone {
-    /// Cool to hot, HR Zone 1 to 5; no yellow, which is hard to see on the light background.
+    /// Cool to hot, HR Zone 1 to 5, in the Poster look's colours (spec 018): grey, blue, green,
+    /// amber, red.
     var colour: Color {
         switch self {
-        case .one: .blue
-        case .two: .teal
-        case .three: .green
-        case .four: .orange
-        case .five: .red
+        case .one: Poster.hrZoneOne
+        case .two: Poster.hrZoneTwo
+        case .three: Poster.green
+        case .four: Poster.amber
+        case .five: Poster.red
         }
     }
 }
@@ -1123,14 +1082,15 @@ private struct LiveHRPillView: View {
             let pill = connection.liveHRPill(at: context.date)
             HStack(spacing: 4) {
                 Image(systemName: "heart.fill")
-                    .foregroundStyle(pill == .unavailable ? Color.secondary : Color.red)
+                    .foregroundStyle(pill == .unavailable ? Poster.secondary : Poster.red)
                     .symbolEffect(.pulse, isActive: pill == .connecting)
                 Text(pill.text).monospacedDigit()
             }
             .font(.subheadline.bold())
+            .foregroundStyle(Poster.ink)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .themeCard(Capsule())
+            .overlay(Rectangle().stroke(Poster.ink, lineWidth: Poster.sectionRule))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Live heart rate \(pill.text)")
         }

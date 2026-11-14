@@ -16,6 +16,10 @@ enum Poster {
     static let green = fixed(0x138A4B)
     /// Watch, short Time Asleep, warnings.
     static let amber = fixed(0xC27C0E)
+    /// HR Zone 1, the coolest: a cool grey (prototype concept M's Load popup).
+    static let hrZoneOne = fixed(0x9AA4B2)
+    /// HR Zone 2: blue (prototype concept M's Load popup).
+    static let hrZoneTwo = fixed(0x4C6EF5)
     /// Rules between rows.
     static let hairline = adaptive(light: 0xC9C6BD, dark: 0x2A2A2A)
     /// The empty part of a bar.
@@ -49,6 +53,11 @@ enum Poster {
 
     /// A section's name and a masthead's words: small and bold.
     static let labelFont = Font.footnote.weight(.semibold)
+
+    /// A Day as a masthead writes it, e.g. "Sat 14 Nov".
+    static func dayText(_ date: Date) -> String {
+        date.formatted(.dateTime.weekday(.abbreviated).day().month())
+    }
 
     /// The verdict's colour: red for the user's state, grey while waiting for data.
     static func colour(of verdict: Verdict) -> Color {

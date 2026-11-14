@@ -94,7 +94,7 @@ struct ScreenChrome<Content: View>: View {
     private var masthead: some View {
         Masthead(
             title: "Serenix · \(tabName)",
-            detail: today.shownDate.formatted(.dateTime.weekday(.abbreviated).day().month())
+            detail: Poster.dayText(today.shownDate)
         ) {
             iconButton("calendar", label: "Pick a Day") { showsDatePicker = true }
             iconButton("bell", label: "Notifications") { showsNotifications = true }

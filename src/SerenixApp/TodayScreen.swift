@@ -135,7 +135,7 @@ struct TodayScreen: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                     if let fill = popup?.loadBarFill {
-                        PosterBar(fill: fill, tick: typicalLoadTick)
+                        PosterBar(fill: fill, tick: LoadPopup.typicalLoadTick)
                     }
                 }
             }
@@ -299,6 +299,3 @@ struct TodayScreen: View {
         if hasContent { openPopup = popup }
     }
 }
-
-/// Where typical Load sits on the Load bar, which runs from 0 to twice typical Load (spec 006).
-private let typicalLoadTick = 0.5
