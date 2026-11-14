@@ -2,8 +2,9 @@ import Charts
 import SerenixCore
 import SwiftUI
 
-/// The Body tab's chart (spec 015, Screen): counted Weigh-ins as dots and Trend Weight as a line
-/// that breaks where Trend Weight restarted, over the range chips below it.
+/// The Body tab's chart (spec 015, Screen; drawn in the Poster look, spec 018): counted Weigh-ins
+/// as grey dots and Trend Weight as a red line that breaks where Trend Weight restarted, Goal
+/// Weight dashed in green, over the range chips as a segmented bar.
 struct WeightChartCard: View {
     let view: BodyView
     /// Weights plot in kg, or in total pounds for lb and st.
@@ -22,7 +23,7 @@ struct WeightChartCard: View {
                                     y: .value("Trend Weight", units.chartValue(point.trendWeight)),
                                     series: .value("Line", "line \(index)")
                                 )
-                                .foregroundStyle(Theme.accent)
+                                .foregroundStyle(Poster.red)
                                 .lineStyle(StrokeStyle(lineWidth: 2.5))
                             }
                             PointMark(
@@ -30,14 +31,14 @@ struct WeightChartCard: View {
                                 y: .value("Weigh-in", units.chartValue(point.weighIn))
                             )
                             .symbolSize(18)
-                            .foregroundStyle(Theme.accentMiddle)
+                            .foregroundStyle(Poster.waiting)
                         }
                     }
                     // Goal Weight as a dashed line, and on "All" the dashed projection to it.
                     if let goalWeight = chart.goalWeight {
                         RuleMark(y: .value("Goal Weight", units.chartValue(goalWeight)))
-                            .foregroundStyle(.secondary)
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                            .foregroundStyle(Poster.green)
+                            .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
                     }
                     if let projection = chart.projection {
                         ForEach(
@@ -52,7 +53,7 @@ struct WeightChartCard: View {
                                 y: .value("Projection", units.chartValue(weight)),
                                 series: .value("Line", "projection")
                             )
-                            .foregroundStyle(Theme.accent.opacity(0.6))
+                            .foregroundStyle(Poster.red.opacity(0.6))
                             .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 4]))
                         }
                     }
@@ -65,18 +66,11 @@ struct WeightChartCard: View {
                 )
                 .chartYScale(domain: .automatic(includesZero: false))
                 .frame(height: 220)
-                HStack(spacing: 6) {
-                    ForEach(ChartRange.allCases, id: \.self) { option in
-                        Button(option.label) { range = option }
-                            .buttonStyle(.bordered)
-                            .tint(option == range ? Theme.accent : .secondary)
-                            .controlSize(.small)
-                            .accessibilityAddTraits(option == range ? .isSelected : [])
-                    }
-                }
+                SegmentedBar(
+                    options: ChartRange.allCases.map { (value: $0, label: $0.label) },
+                    selection: $range
+                )
             }
-            .padding()
-            .themeCard()
         }
     }
 

@@ -142,13 +142,19 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      What stood out has no tags: the user dropped them from spec 018 (2026-11-14), and also
      had spec 018 say it replaces spec 012's tab bar and first open lane, and state the section
      order as built.
-7. [ ] **Slice:** Weight verdict and Body Weight screen: `BodyView.weightVerdict`; Weight | Food
+7. [x] **Slice:** Weight verdict and Body Weight screen: `BodyView.weightVerdict`; Weight | Food
    segmented bar, masthead "Serenix · Body", headline, chart, Rate and Goal columns, Hold,
    Milestones bar, No Weight Goal section, All Weigh-ins row (spec's *Weight* list).
    - Blocked by: 1 · Seam: verdict mapping (BodyView) · Files: `src/SerenixCore/BodyView.swift`,
      `tests/SerenixCoreTests/BodyViewTests.swift`, `BodyScreen.swift`, `WeightChartCard.swift`
    - Done when: criterion "Each pace badge and hold state … SETTLING IN., NO GOAL., NO WEIGH-IN."
      and phone criterion for Body Weight's columns, Hold and Milestones.
+   - Built: `Verdict.pace(_:)` / `hold(_:)` are public, tested in `VerdictTests.swift`;
+     `BodyView.weightVerdict` is tested for each waiting case, Settling in, On pace, In band and
+     the no-verdict case. Milestone cells scroll when they don't fit. The chart still dashes
+     Goal Weight (now green): spec 018's "next Milestone dashed in green" contradicts its own
+     "nothing a tab shows changes"; wording fix raised with the user. `BandLabel` (the Goal
+     column's Pace band tag) moves to `PosterTag` in task 9 with `WeightGoalSheet.swift`.
 8. [ ] **Slice:** Intake verdict and the Food view: `FoodView` takes `today`, gains
    `intakeVerdict`; the spec's *Food* list (Day row, headline and caption lines incl. the
    Expenditure line, calorie bar, macro rows, Day complete row, Food Entry rows, red Log button).

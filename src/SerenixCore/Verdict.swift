@@ -40,6 +40,26 @@ extension Verdict {
         return Verdict(text: text, kind: .state)
     }
 
+    /// A Weight Goal's pace verdict (spec 018): the pace badge's, or waiting "SETTLING IN.".
+    public static func pace(_ status: PaceStatus) -> Verdict {
+        switch status {
+        case .settlingIn: Verdict(text: "SETTLING IN.", kind: .waiting)
+        case .badge(.onPace): Verdict(text: "ON PACE.", kind: .state)
+        case .badge(.behind): Verdict(text: "A BIT BEHIND.", kind: .state)
+        case .badge(.offPace): Verdict(text: "OFF PACE.", kind: .state)
+        case .badge(.tooFast): Verdict(text: "TOO FAST.", kind: .state)
+        }
+    }
+
+    /// A hold goal's verdict (spec 018): where Trend Weight sits against the band.
+    public static func hold(_ state: HoldState) -> Verdict {
+        switch state {
+        case .inBand: Verdict(text: "IN BAND.", kind: .state)
+        case .aboveBand: Verdict(text: "ABOVE BAND.", kind: .state)
+        case .belowBand: Verdict(text: "BELOW BAND.", kind: .state)
+        }
+    }
+
     /// Readiness's verdict (spec 018): no Night first, then Calibrating with the Nights still
     /// needed, then the band, then "NO HRV." for a Night without HRV (spec 008); none if
     /// Readiness is missing with HRV present.
