@@ -1,6 +1,6 @@
 # 018 — Poster look
 
-**Status:** approved (2026-11-10; Body section revised and approved 2026-11-14)
+**Status:** built (approved 2026-11-10, Body section 2026-11-14; built 2026-11-14 on `feat/poster-look`)
 **Last updated:** 2026-11-14
 
 ## Problem
@@ -198,26 +198,26 @@ Calibrating "N TO GO.", missing "NO DATA.". **Resting HR** has no Zone, so no ve
   look in light and dark on all three tabs; misses nothing automatable.
 
 ## Success criteria (must be checkable)
-- [ ] Readiness Ready, Steady, Take it easy give "GO HARD.", "HOLD STEADY.", "EASE OFF.";
+- [x] Readiness Ready, Steady, Take it easy give "GO HARD.", "HOLD STEADY.", "EASE OFF.";
       Calibrating with 2 of 4 Nights, missing and no Night give the waiting verdicts
       "2 TO GO.", "NO HRV.", "NO NIGHT.".
-- [ ] The Load popup's verdict follows spec 006's sentence bands: under 0.8 "EASIER DAY.",
+- [x] The Load popup's verdict follows spec 006's sentence bands: under 0.8 "EASIER DAY.",
       0.8–1.2 "USUAL DAY.", 1.2–1.5 "HARDER DAY.", 1.5 and over "MUCH HARDER."; no typical Load
       gives waiting "LEARNING."; no Load gives waiting "NO LOAD.".
-- [ ] A Nightly Metric popup's verdict is "ABOUT USUAL." (In range), "UNUSUAL." (Watch), "WAY
+- [x] A Nightly Metric popup's verdict is "ABOUT USUAL." (In range), "UNUSUAL." (Watch), "WAY
       OFF." (Out of range); for SpO2 "HEALTHY.", "A BIT LOW.", "LOW."; Calibrating gives
       waiting "N TO GO." and a missing value waiting "NO DATA.".
-- [ ] Sleep Score 67, 34 and 33 give "STRONG NIGHT.", "FAIR NIGHT.", "ROUGH NIGHT."; no Night
+- [x] Sleep Score 67, 34 and 33 give "STRONG NIGHT.", "FAIR NIGHT.", "ROUGH NIGHT."; no Night
       gives waiting "NO NIGHT.", tonight gives waiting "TONIGHT.".
-- [ ] Each pace badge and hold state gives its verdict; Settling in, no Weight Goal and no
+- [x] Each pace badge and hold state gives its verdict; Settling in, no Weight Goal and no
       Weigh-in give waiting "SETTLING IN.", "NO GOAL.", "NO WEIGH-IN.".
-- [ ] Intake at 90%, 110%, 89% and 111% of Calorie Target on a Complete Day gives "ON TARGET.",
+- [x] Intake at 90%, 110%, 89% and 111% of Calorie Target on a Complete Day gives "ON TARGET.",
       "ON TARGET.", "UNDER.", "OVER."; today not complete gives waiting "LOGGING."; no Food
       Entries gives waiting "NOTHING LOGGED."; no Calorie Target with entries gives "LOGGED.".
-- [ ] With Adapt on, a typed Calorie Target of 2,500 kcal and a suggested one of 2,000 kcal,
+- [x] With Adapt on, a typed Calorie Target of 2,500 kcal and a suggested one of 2,000 kcal,
       Intake of 1,800 kcal on a Complete Day gives "ON TARGET." (against 2,000); with Adapt off
       it gives "UNDER." (against 2,500).
-- [ ] Every verdict is marked either a state verdict or a waiting verdict, and every waiting
+- [x] Every verdict is marked either a state verdict or a waiting verdict, and every waiting
       verdict above is marked waiting.
 - [ ] `swift test` and `swift format lint --strict` pass; the macOS CI job builds the app.
 - [ ] On the phone, in Light and in Dark: Today (Rings and Story), Sleep, Body Weight and Body

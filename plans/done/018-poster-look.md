@@ -244,13 +244,20 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
       Carried over (tied to specs 002/004 wording, raised as a follow-up): the tiles' `gauge`,
       `VsBaseline.comparisons`, renaming `gridTiles`. PR checklist: Onboarding's Send button and
       chips stay rounded (Non-goal).
-14. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+14. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
     `swift build` green; every core success criterion checked; each verdict asserted as state
     or waiting.
     - Blocked by: 13
     - Carried to the PR checklist: macOS CI app build; the phone checks in Light and Dark (Today
       Rings and Story, Sleep, Body Weight, Body Food, targets sheet, every popup, every tap that
       opened a popup or sheet before).
+    - Built: 1,147 tests, `swift format lint --strict` and `swift build` green on Windows. Core
+      criteria 1–8 each tested at their seam with the spec's literals and state/waiting kind
+      (TodayView, LoadPopup, MetricPopup, SleepView / SleepPopup, BodyView, FoodView,
+      VerdictTests). PR checklist also gathers each task's notes: All Weigh-ins keeps the
+      system tab bar hidden; 0.5% / 0.75% set their own dates; VoiceOver can close a popup;
+      Remove goal / Delete Food Entry draw red; Milestones scroll when many; Onboarding's Send
+      button and chips stay rounded (Non-goal).
 
 ## Verification
 - Core: `swift test` runs every verdict case at the spec's literals; `swift format lint
