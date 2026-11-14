@@ -84,7 +84,7 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      `BlockButtonStyle`. Until task 2, Rings shows Readiness twice (headline and ring). The
      masthead dropped spec 002's greeting; the user chose to drop it for good (2026-11-14), so
      task 13 removes the unused greeting code.
-2. [ ] **Slice:** Today's Rings layout as concept M: Load section (`PosterBar` 0 to 2× typical
+2. [x] **Slice:** Today's Rings layout as concept M: Load section (`PosterBar` 0 to 2× typical
    Load, tick at typical, spec 006 sentence as note; number alone while typical Load is
    learned), Sleep Score and Time Asleep side by side, Nightly Metrics and Resting HR as rows
    with Zone tags, the Readiness message as a ruled section with ✕, week strip restyled. Taps
@@ -93,6 +93,13 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      `MetricTileView.swift`, `BaselineComparisonRow.swift`, `src/SerenixCore/TodayView.swift`
      only if the Today Load bar needs a public fill (reuse `LoadPopup.loadBarFill`'s rule)
    - Done when: phone criterion "Today's Load section … tick at typical Load … number alone".
+   - Built: no core change (the bar uses `LoadPopup.loadBarFill`; tick at 0.5 as the Load popup
+     does). "vs your Baseline" rows dropped: each metric row's tag carries the difference, and
+     the Calibrating line is the section's note. Without a Night: no Sleep Score / Time Asleep
+     section, and Resting HR under a "Resting HR" heading. Tile views and
+     `BaselineComparisonRow` deleted; `NightlyMetric.icon` and `Zone.colour` (now Poster
+     colours) moved to `MetricLook.swift`. `ReadinessBand.colour` stays system colours until
+     task 13.
 3. [ ] **Slice:** Story in the Poster look under the Readiness headline: timeline as ruled rows,
    dots in ink/red/Zone colours, Zone pills as `PosterTag`, Load bar as `PosterBar`.
    - Files: `StoryBodyView.swift`, `TodayScreen.swift`
@@ -164,7 +171,11 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
     Theme uses at the Poster palette; app-wide tint to ink. `grep` finds no `Theme.accent`.
     Remove the greeting the masthead replaced (user, 2026-11-14): `TodayView.greeting` /
     `greetingName`, `Profile.greeting(at:in:)` and their tests (`ProfileTests.swift`,
-    `TodayViewTests.swift`), as the spec no longer shows it.
+    `TodayViewTests.swift`), as the spec no longer shows it. Also remove core fields nothing
+    draws any more (check with grep first; Story may still use some): `VsBaseline`
+    comparisons, `TodayView.readinessFill` / `loadFill` / `sleepScoreFill`, the tiles'
+    `gauge`, and their tests; rename `gridTiles` to rows. Files add
+    `src/SerenixCore/TodayView.swift` and its tests.
     - Blocked by: 3, 4, 6, 9, 12 · Files: `Theme.swift`, `SerenixApp.swift`,
       `OnboardingScreen.swift`, `ProfileMenu.swift`, `SyncPillView.swift`, `ScoreRing.swift`
     - Done when: phone criterion "no rounded cards or shadows, and no purple anywhere".

@@ -53,16 +53,20 @@ struct TodayScreen: View {
             .buttonStyle(.plain)
             switch todayLayout {
             case .rings:
+                // Concept M (spec 018, Today): the Readiness message, Load, Sleep Score and Time
+                // Asleep, then the Nightly Metrics as rows.
                 if let message = today.noNightMessage {
                     Text(message)
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    noNightRestingHR(today)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Poster.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                rings(today)
                 readinessMessage(today, for: shownDay)
-                vsBaseline(today)
-                tiles(today)
+                loadSection(today)
+                if let timeAsleep = today.timeAsleepTile {
+                    sleepSection(today, timeAsleep: timeAsleep)
+                }
+                metricsSection(today)
             case .story:
                 StoryBodyView(today: today) { openStoryTap($0, in: today) }
             }
@@ -77,184 +81,185 @@ struct TodayScreen: View {
         }
     }
 
-    /// Sleep Score, Readiness in the middle and Load, the same size, spread evenly across the card.
-    private func rings(_ today: TodayView) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            Button {
-                open(.sleep, in: today)
-            } label: {
-                ScoreRing(
-                    text: today.sleepScoreText,
-                    fill: today.sleepScoreFill,
-                    label: "Sleep Score",
-                    diameter: ringDiameter,
-                    colour: Theme.accent
-                )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            Button {
-                open(.readiness, in: today)
-            } label: {
-                ScoreRing(
-                    text: today.readinessText,
-                    fill: today.readinessFill,
-                    label: "Readiness",
-                    diameter: ringDiameter,
-                    colour: today.readinessBand?.colour ?? .secondary
-                )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            // The Load ring opens the profile menu while it asks for the age (spec 005, Add your
-            // age), and the Load popup otherwise (spec 006).
-            Button {
-                openLoad(today)
-            } label: {
-                loadRing(today).contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(
-                today.loadOpensProfileMenu ? "Opens your profile" : "Shows your Load"
-            )
-            .frame(maxWidth: .infinity)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .themeCard()
-    }
-
-    private func loadRing(_ today: TodayView) -> some View {
-        ScoreRing(
-            text: today.loadText,
-            fill: today.loadFill,
-            label: today.loadLabel,
-            diameter: ringDiameter
-        )
-    }
-
-    /// The band word for the Night shown, in its colour, with the Today view's advice under it,
-    /// on a card with an ✕ that hides it for that Night; none while Readiness is Calibrating or
-    /// missing.
+    /// The band word for the Night shown, in its colour, as a ruled section with the Today view's
+    /// advice under it and an ✕ that hides it for that Night; none while Readiness is Calibrating
+    /// or missing (spec 002, Readiness message; spec 018).
     @ViewBuilder
     private func readinessMessage(_ today: TodayView, for day: Day) -> some View {
         if let band = today.readinessBand, !closedMessages.contains(day) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(band.word)
-                        .font(.headline)
+            VStack(alignment: .leading, spacing: 10) {
+                PosterRule()
+                HStack(alignment: .firstTextBaseline) {
+                    Text(band.word.uppercased())
+                        .font(Poster.labelFont)
                         .foregroundStyle(band.colour)
-                    if let advice = today.readinessAdvice {
-                        Text(advice)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Button {
+                        withAnimation { closedMessages.close(day) }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.footnote.weight(.bold))
+                            .foregroundStyle(Poster.ink)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Close")
                 }
-                Spacer(minLength: 0)
-                Button {
-                    withAnimation { closedMessages.close(day) }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 28)
-                        .background(Theme.accentSoft, in: Circle())
+                if let advice = today.readinessAdvice {
+                    Text(advice)
+                        .font(.subheadline)
+                        .foregroundStyle(Poster.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Close")
             }
-            .padding(16)
-            .themeCard()
             .transition(.opacity)
         }
     }
 
-    /// HRV and Sleeping HR against Baseline, or the one Calibrating line; nothing on a Day without
-    /// a Night.
-    @ViewBuilder
-    private func vsBaseline(_ today: TodayView) -> some View {
-        switch today.vsBaseline {
-        case .comparisons(let comparisons):
-            VStack(alignment: .leading, spacing: 8) {
-                Text("vs your Baseline")
-                    .font(.headline)
-                ForEach(comparisons, id: \.metric) { comparison in
-                    BaselineComparisonRow(comparison: comparison)
+    /// The Day's Load as a large red number beside a bar from 0 to twice typical Load with a tick
+    /// at typical Load, spec 006's sentence as the note; the number alone while typical Load is
+    /// learned (spec 018, Today). It opens the Load popup, or the profile menu while Load asks
+    /// for the age (spec 005).
+    private func loadSection(_ today: TodayView) -> some View {
+        let popup = today.loadPopup
+        return Button {
+            openLoad(today)
+        } label: {
+            RuledSection(name: today.loadLabel, note: popup?.comparisonText) {
+                HStack(alignment: .center, spacing: 16) {
+                    Text(today.loadText)
+                        .font(Poster.headlineFont(size: 56))
+                        .tracking(-2.8)
+                        .foregroundStyle(Poster.red)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    if let fill = popup?.loadBarFill {
+                        PosterBar(fill: fill, tick: typicalLoadTick)
+                    }
                 }
             }
-            .padding(16)
-            .themeCard()
-        case .calibrating(let line):
-            Text(line)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .themeCard()
-        case nil:
-            EmptyView()
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityHint(today.loadOpensProfileMenu ? "Opens your profile" : "Shows your Load")
     }
 
-    /// On a Day with no Night, its Resting HR tile on its own under the message, when the Day
-    /// has one (spec 002, No Night for the Day): half the width, as a cell of the tile grid.
-    @ViewBuilder
-    private func noNightRestingHR(_ today: TodayView) -> some View {
-        if let tile = today.restingHRTile {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                restingHRButton(tile, in: today)
-            }
-        }
-    }
-
-    /// The Resting HR tile as a button opening its popup (spec 011), in the grid or on its own.
-    private func restingHRButton(_ tile: RestingHRTile, in today: TodayView) -> some View {
+    /// Sleep Score and Time Asleep side by side, each opening the Sleep popup (spec 018, Today);
+    /// only with a Night, which always has Time Asleep.
+    private func sleepSection(_ today: TodayView, timeAsleep: TimeAsleepTile) -> some View {
         Button {
-            open(.restingHR, in: today)
+            open(.sleep, in: today)
         } label: {
-            RestingHRTileView(tile: tile)
+            HStack(alignment: .top, spacing: 16) {
+                RuledSection(name: "Sleep Score") {
+                    Text(today.sleepScoreText)
+                        .font(Poster.headlineFont(size: 56))
+                        .tracking(-2.8)
+                        .foregroundStyle(Poster.ink)
+                        .lineLimit(1)
+                }
+                RuledSection(name: "Time Asleep", note: timeAsleep.spanText) {
+                    Text(timeAsleep.valueText)
+                        .font(Poster.headlineFont(size: 40))
+                        .tracking(-1.6)
+                        .foregroundStyle(Poster.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    /// Under "Last night" or the date: Time Asleep across the full width, then the Nightly Metric
-    /// tiles and the Resting HR tile in a 2-column grid (spec 007); none on a Day without a Night,
-    /// where the Resting HR tile shows under the message instead.
-    private func tiles(_ today: TodayView) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if today.noNightMessage == nil {
-                Text(today.tilesHeading)
-                    .font(.headline)
-                if let timeAsleep = today.timeAsleepTile {
-                    Button {
-                        open(.sleep, in: today)
-                    } label: {
-                        TimeAsleepTileView(tile: timeAsleep)
-                    }
-                    .buttonStyle(.plain)
-                    // Matches the grid's 12pt gap, after the stack's 8.
-                    .padding(.bottom, 4)
-                }
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(today.gridTiles) { gridTile in
-                        switch gridTile {
-                        case .metric(let tile):
-                            Button {
-                                open(.metric(tile.metric), in: today)
-                            } label: {
-                                MetricTileView(tile: tile)
-                            }
-                            .buttonStyle(.plain)
-                        case .restingHR(let tile):
-                            restingHRButton(tile, in: today)
-                        }
-                    }
+    /// The Nightly Metrics and Resting HR as rows: name, value, and a tag with the difference from
+    /// Baseline in the Zone's colour (spec 018, Today). While Calibrating, the Calibrating line is
+    /// the section's note. On a Day without a Night, only Resting HR, when the Day has one.
+    @ViewBuilder
+    private func metricsSection(_ today: TodayView) -> some View {
+        let calibratingLine: String? =
+            if case .calibrating(let line) = today.vsBaseline { line } else { nil }
+        let hasNight = today.noNightMessage == nil
+        let rows = hasNight ? today.gridTiles : []
+        if !rows.isEmpty || today.restingHRTile != nil {
+            // Without a Night, Resting HR belongs to the Day (spec 007), so the heading doesn't
+            // name a Night.
+            metricsSection(
+                today,
+                heading: hasNight ? today.tilesHeading : "Resting HR",
+                rows: rows,
+                note: calibratingLine
+            )
+        }
+    }
+
+    private func metricsSection(
+        _ today: TodayView,
+        heading: String,
+        rows: [TodayTile],
+        note: String?
+    ) -> some View {
+        RuledSection(name: heading, note: note) {
+            ForEach(rows) { row in
+                switch row {
+                case .metric(let tile):
+                    metricRow(
+                        name: tile.metric.name,
+                        value: tile.valueText,
+                        tag: zoneTag(tile),
+                        detail: tile.zone == nil ? tile.statusText : nil
+                    ) { open(.metric(tile.metric), in: today) }
+                case .restingHR(let tile):
+                    restingHRRow(tile, in: today)
                 }
             }
+            if today.noNightMessage != nil, let tile = today.restingHRTile {
+                restingHRRow(tile, in: today)
+            }
         }
+    }
+
+    /// A metric's difference from Baseline in its Zone's colour; none without a Zone.
+    private func zoneTag(_ tile: MetricTile) -> (text: String, colour: Color)? {
+        guard let zone = tile.zone else { return nil }
+        return (tile.differenceText, zone.colour)
+    }
+
+    /// The Resting HR row, opening its popup (spec 011); it has no Zone, so no tag.
+    private func restingHRRow(_ tile: RestingHRTile, in today: TodayView) -> some View {
+        metricRow(name: tile.name, value: tile.valueText, tag: nil, detail: tile.statusText) {
+            open(.restingHR, in: today)
+        }
+    }
+
+    /// One metric row: its name, value, and a tag or a secondary detail at the right.
+    private func metricRow(
+        name: String,
+        value: String,
+        tag: (text: String, colour: Color)?,
+        detail: String?,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            RuledRow {
+                HStack(spacing: 12) {
+                    Text(name).font(.subheadline).foregroundStyle(Poster.ink)
+                    Spacer(minLength: 8)
+                    Text(value)
+                        .font(.subheadline.weight(.bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Poster.ink)
+                    if let tag {
+                        PosterTag(text: tag.text, colour: tag.colour)
+                    } else if let detail, !detail.isEmpty {
+                        Text(detail).font(.footnote).foregroundStyle(Poster.secondary)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     /// A tap in the Story opens the popup the Rings layout's would; Load opens the profile menu
@@ -295,5 +300,5 @@ struct TodayScreen: View {
     }
 }
 
-/// All three rings' size, points (spec 002, Rings: the same size).
-private let ringDiameter: CGFloat = 84
+/// Where typical Load sits on the Load bar, which runs from 0 to twice typical Load (spec 006).
+private let typicalLoadTick = 0.5
