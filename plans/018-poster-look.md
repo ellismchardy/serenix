@@ -100,10 +100,14 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      `BaselineComparisonRow` deleted; `NightlyMetric.icon` and `Zone.colour` (now Poster
      colours) moved to `MetricLook.swift`. `ReadinessBand.colour` stays system colours until
      task 13.
-3. [ ] **Slice:** Story in the Poster look under the Readiness headline: timeline as ruled rows,
+3. [x] **Slice:** Story in the Poster look under the Readiness headline: timeline as ruled rows,
    dots in ink/red/Zone colours, Zone pills as `PosterTag`, Load bar as `PosterBar`.
    - Files: `StoryBodyView.swift`, `TodayScreen.swift`
    - Done when: phone criterion for Today (Story) in Light and Dark.
+   - Built: each step sits under a heavy rule like a section, square dots on a hairline; the
+     Sleep Score ring became a 40 pt number labelled "SLEEP SCORE". No change to
+     `TodayScreen.swift` was needed. `ScoreRing` now has no callers (task 13); This morning's
+     dot uses `ReadinessBand.colour`, still system colours until task 13.
 4. [ ] **Slice:** the block tab bar: Today, Sleep, Body as three equal cells under a heavy
    rule, the current one solid ink with paper text (custom bar over the tab content, replacing
    `TabView`'s `.tabItem`).
