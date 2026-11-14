@@ -168,7 +168,7 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      reads. "LOGGED." (no Calorie Target) is a state verdict, as the criteria mark only LOGGING.
      and NOTHING LOGGED. waiting; it wins over LOGGING. (tested). Body headlines share
      `Poster.bodyHeadlineSize`.
-9. [ ] **Slice:** the sheets in the Poster look: Targets (spec's *Targets sheet* list, Activity
+9. [x] **Slice:** the sheets in the Poster look: Targets (spec's *Targets sheet* list, Activity
    Level as a four-cell `SegmentedBar`, floor message amber with Ease the goal / Change my
    Pace), Weigh-in, Weight Goal (segmented pickers, Pace band tags), Food Entry; primary button
    ink block, destructive red.
@@ -176,6 +176,13 @@ Popups stay system sheets (TodayPopups.swift:47) with the Poster paper as
      `BodyScreen.swift` (WeighInSheet), `WeighInList.swift`
    - Done when: phone criterion for the targets sheet; Ease the goal, Change my Pace and Day
      complete still work.
+   - Built: `posterForm()` / `posterRows()` put each form on the paper with hairline rows;
+     Save is a solid ink block and Remove goal / Delete Food Entry red blocks at the foot of
+     each form (`SheetActions`), Cancel stays in the toolbar. `SegmentedBar` gains a VoiceOver
+     `label`. `BandLabel` uses `PosterTag`; `CapsuleTag` deleted. The Hold band picker stays a
+     system menu picker. PR checklist: 0.5% and 0.75% each set their own date. Open: whether
+     the four sheets also get the popups' grab bar and masthead (spec 018 lists Sheets under
+     Popups) — raised with the user; task 10 can add them.
 10. [ ] **Slice:** Load popup verdict and the popup chrome: `LoadPopup.verdict`; every popup
     gets Poster paper, grab bar and masthead (popup name left, Night or Day right); the Load
     popup's sections ruled (bar vs typical, How hard split bar and HR Zone rows, When hourly

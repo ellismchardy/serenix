@@ -245,8 +245,16 @@ struct PosterBar: View {
 struct SegmentedBar<Value: Hashable>: View {
     let options: [(value: Value, label: String)]
     @Binding var selection: Value
+    /// What the bar picks, for VoiceOver, e.g. "Activity Level"; each cell keeps its own name.
+    var label: String?
 
     var body: some View {
+        bar
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(label ?? "")
+    }
+
+    private var bar: some View {
         HStack(spacing: 0) {
             ForEach(options.indices, id: \.self) { index in
                 let option = options[index]
@@ -277,13 +285,70 @@ struct BlockButtonStyle: ButtonStyle {
     var outlined = false
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.bold))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(outlined ? Color.clear : colour)
-            .foregroundStyle(outlined ? colour : Poster.paper)
-            .overlay(Rectangle().stroke(colour, lineWidth: Poster.sectionRule))
-            .opacity(configuration.isPressed ? 0.7 : 1)
+        BlockButton(
+            configuration: configuration,
+            colour: colour,
+            outlined: outlined
+        )
+    }
+
+    /// The block itself, a view so it can read whether the button is enabled.
+    private struct BlockButton: View {
+        let configuration: Configuration
+        let colour: Color
+        let outlined: Bool
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            configuration.label
+                .font(.subheadline.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(outlined ? Color.clear : colour)
+                .foregroundStyle(outlined ? colour : Poster.paper)
+                .overlay(Rectangle().stroke(colour, lineWidth: Poster.sectionRule))
+                // Pressed and disabled both fade it, as the system buttons do.
+                .opacity(!isEnabled ? 0.35 : configuration.isPressed ? 0.7 : 1)
+        }
+    }
+}
+
+/// A sheet's last rows: Save as a solid ink block and, when there is one, the destructive
+/// action as a red block (spec 018, Sheets).
+struct SheetActions: View {
+    let saveDisabled: Bool
+    let save: () -> Void
+    var destructive: (title: String, action: () -> Void)?
+
+    var body: some View {
+        Section {
+            VStack(spacing: 10) {
+                Button("Save", action: save)
+                    .buttonStyle(BlockButtonStyle())
+                    .disabled(saveDisabled)
+                if let destructive {
+                    Button(destructive.title, role: .destructive, action: destructive.action)
+                        .buttonStyle(BlockButtonStyle(colour: Poster.red))
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+        }
+    }
+}
+
+extension View {
+    /// A sheet's form in the Poster look (spec 018, Sheets): paper behind it, ink controls.
+    /// Each section adds `posterRows()`, so its fields are ruled rows on the paper.
+    func posterForm() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Poster.paper.ignoresSafeArea())
+            .tint(Poster.ink)
+    }
+
+    /// A form section's rows on the paper, ruled by hairlines.
+    func posterRows() -> some View {
+        listRowBackground(Poster.paper).listRowSeparatorTint(Poster.hairline)
     }
 }

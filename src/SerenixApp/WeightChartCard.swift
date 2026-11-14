@@ -68,7 +68,8 @@ struct WeightChartCard: View {
                 .frame(height: 220)
                 SegmentedBar(
                     options: ChartRange.allCases.map { (value: $0, label: $0.label) },
-                    selection: $range
+                    selection: $range,
+                    label: "Chart range"
                 )
             }
         }

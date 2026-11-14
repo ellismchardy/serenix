@@ -34,7 +34,8 @@ struct BodyScreen: View {
                         options: [
                             (value: .weight, label: "Weight"), (value: .food, label: "Food"),
                         ],
-                        selection: $section
+                        selection: $section,
+                        label: "Show"
                     )
                 }
                 .padding(.horizontal)
@@ -413,34 +414,38 @@ struct WeighInSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                switch units {
-                case .kilograms:
-                    TextField("Weight (kg)", text: $text).keyboardType(.decimalPad)
-                case .pounds:
-                    TextField("Weight (lb)", text: $text).keyboardType(.decimalPad)
-                case .stonesAndPounds:
-                    HStack {
-                        TextField("st", text: $stonesText).keyboardType(.numberPad)
-                        Text("st")
-                        TextField("lb", text: $text).keyboardType(.decimalPad)
-                        Text("lb")
+                Section {
+                    switch units {
+                    case .kilograms:
+                        TextField("Weight (kg)", text: $text).keyboardType(.decimalPad)
+                    case .pounds:
+                        TextField("Weight (lb)", text: $text).keyboardType(.decimalPad)
+                    case .stonesAndPounds:
+                        HStack {
+                            TextField("st", text: $stonesText).keyboardType(.numberPad)
+                            Text("st")
+                            TextField("lb", text: $text).keyboardType(.decimalPad)
+                            Text("lb")
+                        }
+                    }
+                    DatePicker("Taken", selection: $time, in: ...Date())
+                    if let refusal {
+                        Text(refusal.message(in: units)).foregroundStyle(Poster.red)
                     }
                 }
-                DatePicker("Taken", selection: $time, in: ...Date())
-                if let refusal {
-                    Text(refusal.message(in: units)).foregroundStyle(.red)
-                }
-            }
-            .navigationTitle(isEditing ? "Edit Weigh-in" : "Log Weigh-in")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                .posterRows()
+                SheetActions(
+                    saveDisabled: weight == nil || refusal != nil,
+                    save: {
                         if let weight { save(WeighIn(time: time, kilograms: weight)) }
                         dismiss()
                     }
-                    .disabled(weight == nil || refusal != nil)
-                }
+                )
+            }
+            .posterForm()
+            .navigationTitle(isEditing ? "Edit Weigh-in" : "Log Weigh-in")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
         }
     }
@@ -459,21 +464,6 @@ struct PaceBadgeLabel: View {
             case .tooFast: ("Too fast", Poster.amber)
             }
         PosterTag(text: text, colour: colour)
-    }
-}
-
-/// A short status in its colour on a tinted capsule: the pace badge, a Pace band, a hold state.
-struct CapsuleTag: View {
-    let text: String
-    let colour: Color
-
-    var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(colour.opacity(0.18), in: Capsule())
-            .foregroundStyle(colour)
     }
 }
 
