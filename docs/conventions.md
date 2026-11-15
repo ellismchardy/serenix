@@ -53,9 +53,10 @@ inventing new ones.
 - Solo project: the author merges their own PRs once both review axes and CI are green.
 
 ## Checked by tooling
-(not yet enforced — needs `scripts/check-rules`, run by the pre-commit hook and CI)
-One line per mechanical rule; the linter or `scripts/check-rules` enforces it in the pre-commit
-hook and CI, so reviewers needn't. Add new ones here *and* to the check.
+(not yet enforced — needs `scripts/check-rules`, run by the pre-commit hook and CI; until
+then `standards-reviewer` checks these by hand)
+One line per mechanical rule. Once enforced, the linter or `scripts/check-rules` runs it in the
+pre-commit hook and CI, so reviewers needn't. Add new ones here *and* to the check.
 - `src/SerenixCore/` imports Foundation only.
 - No `Date()` in `src/SerenixCore/`; time is passed in.
 - WHOOP's score names (recovery, strain, sleep performance) appear nowhere in `src/`.

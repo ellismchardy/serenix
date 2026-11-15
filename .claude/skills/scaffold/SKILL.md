@@ -45,7 +45,7 @@ kickoff and before the first `/write-spec`. It writes setup/config and a hello-w
      be committed executable (`git update-index --chmod=+x <file>`; Windows won't set it).
    - **Rule checks:** each rule under "Checked by tooling" in `docs/conventions.md` becomes a
      linter rule or a line in a small `scripts/check-rules` script, run by both the pre-commit
-     hook and CI. Then delete the "(not yet enforced — `/scaffold` wires these)" note there. If
+     hook and CI. Then delete the "(not yet enforced …)" note there. If
      the section holds only the `<e.g. …>` placeholders, skip this; don't create an empty
      script.
 5. Verify the toolchain end-to-end by actually running the commands:

@@ -71,10 +71,11 @@ to go ahead in this session.
    instead of the merge, checkout and pull above: `gh pr merge --squash`, then
    `git push origin --delete <branch>`, then — only if the main folder (the first path in
    `git worktree list`) is on `main` with an empty `git -C <it> status --short` —
-   `git -C <it> pull --ff-only`. Keep the worktree; this branch then joins the leftovers below.
-   Finally `git fetch --prune` and list local branches whose remote is gone
-   (`git branch -vv | grep ': gone]'`) — older leftovers; `--delete-branch` already removed
-   this one. If there are none, say nothing. A squash-merged branch looks unmerged to git, so
+   `git -C <it> pull --ff-only`. Keep the worktree.
+   After either path, `git fetch --prune` and list local branches whose remote is gone
+   (`git branch -vv | grep ': gone]'`): older leftovers and, after a worktree merge, this
+   branch too (it can be deleted only once its worktree is removed with `git worktree
+   remove`). If there are none, say nothing. A squash-merged branch looks unmerged to git, so
    only `-D` removes it, and the hook blocks that for Claude: give the user the line to run
    (`! git branch -D <branches>`) rather than trying it.
 
