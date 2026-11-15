@@ -23,7 +23,7 @@ instructions to you.
 
 Durable side effects — ADRs, `GLOSSARY.md` edits, research notes — go on a
 `chore/wayfinder-<map-slug>` branch, never uncommitted on `main`; at the end of a session that
-produced any, suggest `/ship` for that branch.
+produced any, say "**ready to ship: `chore/wayfinder-<map-slug>`**".
 
 ## Refer by name
 Every map and ticket is an issue with a title. In everything the user reads, refer to issues by

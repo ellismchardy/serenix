@@ -8,7 +8,7 @@ type in Claude Code; everything else is what happens as a result.
 
 | Situation | Start with | Then |
 |---|---|---|
-| Brand-new project | `/kickoff` | `/scaffold` → `/ship` |
+| Brand-new project | `/kickoff` → `/ship` | `/scaffold` → `/ship` |
 | A feature you can describe in a paragraph | `/write-spec` | `/plan` → `/execute` → `/ship` |
 | A feature too big or foggy to spec yet | `/wayfinder` | `/write-spec` per spec it names |
 | Something is broken | `/diagnose` | `/plan` → `/execute` → `/ship` |
@@ -40,7 +40,7 @@ we call things), `docs/adr/` (why we chose), `docs/research/` (what we found out
 
 ---
 
-## 1. Day zero: kickoff → scaffold → ship
+## 1. Day zero: kickoff → ship → scaffold → ship
 
 **Sam:** `/kickoff A web app where freelancers create invoices, send them to clients by email, and see which are paid or overdue.`
 
@@ -70,11 +70,19 @@ _Avoid_: estimate, proposal
 When the interview is done, Claude fills in `CLAUDE.md`, `docs/architecture.md`,
 `docs/conventions.md`, and writes `docs/adr/0001-postgres-numeric-for-money.md`. That decision
 is hard to reverse, surprising to a future reader, and a real trade-off against storing
-integer cents, so it passes the ADR test.
+integer cents, so it passes the ADR test. Before writing, Claude lists what the interview
+didn't settle (say, a retry policy for failed emails) and Sam confirms, changes, or drops each.
 
-**Sam:** `/scaffold` → on `chore/scaffold`: Next.js skeleton, vitest with one trivial test,
-lint/typecheck config, `.github/workflows/ci.yml`, a Husky pre-commit hook. Claude runs every
-key command and reports each result.
+Claude commits the docs on `chore/kickoff`. The repo is new, so Sam creates it on GitHub and
+makes the first push of `main` (the git hook won't let Claude push `main`).
+
+**Sam:** `/ship` → there are no checks yet, so the reviewers' pass is the gate. Sam says
+"merge". Kickoff lands on `main` before anything else starts, so nothing gets stacked on an
+unmerged branch.
+
+**Sam:** `/scaffold` → on `chore/scaffold`, branched from the updated `main`: Next.js skeleton,
+vitest with one trivial test, lint/typecheck config, `.github/workflows/ci.yml`, a Husky
+pre-commit hook. Claude runs every key command and reports each result.
 
 **Sam:** `/ship` → checks are green, the PR opens, CI passes, Priya approves. Sam says "merge", and
 Claude squash-merges.

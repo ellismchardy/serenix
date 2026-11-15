@@ -83,8 +83,9 @@ Let the user pick.
      - **Rejected enhancement** — record it in `.out-of-scope/` (create or update the concept's
        file) on a `chore/out-of-scope-<concept>` branch cut from a clean, up-to-date `main` — if
        the working tree isn't clean (e.g. mid-feature), stop and ask first. Commit it, then
-       tell the user to run `/ship` for that branch. Close the issue with a comment linking the
-       PR (the file only exists on `main` once it merges).
+       say "**ready to ship: `chore/out-of-scope-<concept>`**". Once the user's `/ship` has
+       merged it, close the issue with a comment linking the PR (the file only exists on
+       `main` after the merge).
 
 ## Quick override
 If the user says "move #42 to ready-for-agent", trust them: confirm the label change and apply

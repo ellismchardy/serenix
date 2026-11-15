@@ -37,8 +37,10 @@ code (backend module → logic; page or component → UI) and state the assumpti
 ## Capture it when done
 - **The answer** goes into the spec being written (Design decisions / Notes), with a pointer to
   the `prototype/<name>` branch. A decision that's hard to reverse also gets an ADR.
-- **The prototype** gets committed and pushed on `prototype/<name>` (push only with the user's
-  OK) so it stays re-runnable. Don't open a PR for it.
+- **The prototype** gets committed on `prototype/<name>` so it stays re-runnable. If the user
+  wants it on GitHub, they push it themselves (`! git push -u origin prototype/<name>`):
+  `/ship` doesn't take `prototype/` branches, and CLAUDE.md rule 8 leaves pushing to the user.
+  Don't open a PR for it.
 - **Code worth keeping** (e.g. a validated reducer or state machine) is rebuilt properly,
   test-first, through the normal spec → plan → execute loop. A short snippet that encodes the
   decision more precisely than prose may be quoted in the spec, noted as from the prototype.

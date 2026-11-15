@@ -66,8 +66,8 @@ When the last box is ticked:
 - If the plan has a spec, update its `Status` to `built` and check off the success criteria
   now met. (Bug and refactor plans have no spec — skip this.)
 - Move the plan to `plans/done/` (it's disposable; the spec is the durable record), and commit.
-- Report the plan complete and point the user at `/ship` to review the whole branch and open
-  the PR. Don't push or open it from here.
+- Report the plan complete and say "**ready to ship: `<branch>`**" with a one-line summary;
+  the user's `/ship` reviews the whole branch and opens the PR. Don't push or open it from here.
 
 ## Then
 Want it to run unattended through the whole plan? Chain it: `/loop /execute` runs one task per

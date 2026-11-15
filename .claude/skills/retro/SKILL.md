@@ -8,6 +8,12 @@ disable-model-invocation: true
 
 Look back at a session and suggest changes to the **environment** — not the code — so the next
 session goes better. Default to the current session; if the user names another, read its log.
+If the current session has no work in it yet (e.g. `/retro` opened a fresh session), use the
+most recent log **other than this session's own** in `~/.claude/projects/<project>/`. The
+folder is the project's absolute path with every non-alphanumeric character turned into `-`
+(`C:\Users\me\app` → `C--Users-me-app`; drive-letter case can vary, so list and match). If
+the work happened in another project (e.g. one made from this template), look in its folder.
+Say which session you're reviewing.
 
 ## Where things belong here
 - `CLAUDE.md` — loaded every session, so use it sparingly: core rules and **navigation
@@ -40,3 +46,9 @@ session goes better. Default to the current session; if the user names another, 
 Present the candidates **most severe first**, each with: what happened (with evidence from the
 session), the proposed change, and the exact file it goes in. Don't apply any of them until the
 user picks — each one is a small `chore/` change of its own.
+
+If this project was made from a template (e.g. `aigile-template`) and a fix lands in a file it
+inherited — e.g. `.claude/skills/`, `.claude/agents/`, `.claude/hooks/`, CLAUDE.md's core
+rules — offer to port it to the template too, so the next project starts with it. Port only
+the generic part: files kickoff fills in (`docs/conventions.md`, `docs/architecture.md`) carry
+project-specific rules that don't belong in the template.
