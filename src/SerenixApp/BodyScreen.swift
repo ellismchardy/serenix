@@ -23,21 +23,11 @@ struct BodyScreen: View {
         )
         NavigationStack {
             ScrollView {
-                // The masthead, then the Weight | Food switch as a two-cell segmented bar (spec
-                // 018, Body).
-                VStack(spacing: 16) {
-                    Masthead(
-                        title: "Serenix · Body",
-                        detail: Poster.dayText(Date())
-                    )
-                    SegmentedBar(
-                        options: [
-                            (value: .weight, label: "Weight"), (value: .food, label: "Food"),
-                        ],
-                        selection: $section,
-                        label: "Show"
-                    )
+                Picker("Show", selection: $section) {
+                    Text("Weight").tag(BodySection.weight)
+                    Text("Food").tag(BodySection.food)
                 }
+                .pickerStyle(.segmented)
                 .padding(.horizontal)
                 if section == .food {
                     FoodScreen(
@@ -52,8 +42,8 @@ struct BodyScreen: View {
                     weightScreen(view)
                 }
             }
-            .background(Poster.paper.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
+            .background(Theme.background)
+            .navigationTitle("Body")
             .toolbar {
                 if section == .weight {
                     Button {
@@ -127,196 +117,177 @@ struct BodyScreen: View {
         }
     }
 
-    /// The weight screen (spec 015, drawn in the Poster look of spec 018): the Trend Weight
-    /// headline with its verdict, the chart, and the goal sections.
+    /// The weight screen (spec 015): Trend Weight, the chart and the goal cards.
     private func weightScreen(_ view: BodyView) -> some View {
-        let units = profile.units
-        return VStack(alignment: .leading, spacing: 24) {
-            PosterHeadline(
-                number: view.trendWeight.map { units.text($0, locale: .current) } ?? "—",
-                verdict: view.weightVerdict,
-                caption: view.lastWeighIn.map {
-                    "Trend Weight · last Weigh-in \(units.text($0.kilograms, locale: .current))"
-                } ?? "Log your first Weigh-in",
-                size: Poster.bodyHeadlineSize
-            )
-            WeightChartCard(view: view, units: units)
+        VStack(alignment: .leading, spacing: 8) {
+            if let trendWeight = view.trendWeight {
+                Text(profile.units.text(trendWeight, locale: .current))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                if let last = view.lastWeighIn {
+                    Text(
+                        "Trend Weight · last Weigh-in \(profile.units.text(last.kilograms, locale: .current))"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("Log your first Weigh-in")
+                    .font(.title3.weight(.semibold))
+            }
+            WeightChartCard(view: view, units: profile.units)
             if let card = view.goalCard {
                 if let state = card.holdState {
-                    holdSection(card, state: state)
+                    holdCard(card, state: state)
                 } else {
-                    rateAndGoal(card, weeklyRate: view.weeklyRate, easierGoal: easierGoal(view))
-                    milestonesSection(card)
+                    goalCards(card, weeklyRate: view.weeklyRate, easierGoal: easierGoal(view))
+                    milestonesCard(card)
                 }
             } else if view.trendWeight != nil {
-                setGoalSection
+                setGoalCard
             }
             if !view.weighIns.isEmpty {
-                NavigationLink {
-                    WeighInList(store: store, units: units)
-                } label: {
-                    RuledRow {
-                        HStack {
-                            Text("All Weigh-ins").font(.subheadline.weight(.semibold))
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.footnote.weight(.bold))
-                        }
-                        .foregroundStyle(Poster.ink)
-                        .contentShape(Rectangle())
-                    }
+                NavigationLink("All Weigh-ins") {
+                    WeighInList(store: store, units: profile.units)
                 }
-                .buttonStyle(.plain)
+                .padding(.top, 8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
     }
 
-    /// Rate and Goal as two columns in one ruled section (spec 015, Screen; spec 018, Body), with
-    /// the Ease the goal offer when there is one.
-    private func rateAndGoal(
+    /// The Rate and Goal cards (spec 015, Screen), with the Ease the goal offer when there is one.
+    private func goalCards(
         _ card: GoalCard,
         weeklyRate: Double?,
         easierGoal: FoodScreen.EasierGoal?
     ) -> some View {
-        let units = profile.units
-        return RuledSection(name: "Rate · Goal") {
-            HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("RATE").font(.caption).foregroundStyle(.secondary)
+                Text(weeklyRate.map { profile.units.rateText($0, locale: .current) } ?? "—")
+                    .font(.headline)
+                Text("Weekly Rate").font(.caption).foregroundStyle(.secondary)
+                switch card.status {
+                case .settlingIn(let day):
+                    Text("Settling in, day \(day) of \(PaceStatus.settlingDays)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                case .badge(let badge):
+                    PaceBadgeLabel(badge: badge)
+                case nil:
+                    EmptyView()
+                }
+                if let easierGoal {
+                    Button(easierGoal.label, action: easierGoal.apply)
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .tint(Theme.accent)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .themeCard()
+            Button {
+                showsGoalSheet = true
+            } label: {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(weeklyRate.map { units.rateText($0, locale: .current) } ?? "—")
-                        .font(Poster.headlineFont(size: 28))
-                        .foregroundStyle(Poster.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Text("WEEKLY RATE").font(Poster.labelFont).foregroundStyle(Poster.secondary)
-                    switch card.status {
-                    case .settlingIn(let day):
-                        Text("Settling in, day \(day) of \(PaceStatus.settlingDays)")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Poster.secondary)
-                    case .badge(let badge):
-                        PaceBadgeLabel(badge: badge)
-                    case nil:
-                        EmptyView()
+                    Text("GOAL").font(.caption).foregroundStyle(.secondary)
+                    Text(profile.units.text(card.goal.goalWeight, locale: .current))
+                        .font(.headline)
+                    if let pace = card.paceKilogramsPerWeek {
+                        Text(
+                            "Pace \(profile.units.paceText(pace, locale: .current))"
+                        )
+                        .font(.caption)
                     }
-                    if let easierGoal {
-                        Button(easierGoal.label, action: easierGoal.apply)
-                            .buttonStyle(BlockButtonStyle(outlined: true))
+                    if let band = card.paceBand { BandLabel(band: band) }
+                    // The planned Day beside the projected one (spec 015, Projected date).
+                    if let planned = card.plannedDay {
+                        Text("Planned \(Self.shown(planned))").font(.caption)
+                    }
+                    if let projected = card.projectedDay {
+                        Text("Projected \(Self.shown(projected))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Button {
-                    showsGoalSheet = true
-                } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(units.text(card.goal.goalWeight, locale: .current))
-                            .font(Poster.headlineFont(size: 28))
-                            .foregroundStyle(Poster.ink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                        Text("GOAL").font(Poster.labelFont).foregroundStyle(Poster.secondary)
-                        if let pace = card.paceKilogramsPerWeek {
-                            Text("Pace \(units.paceText(pace, locale: .current))")
-                                .font(.caption)
-                                .foregroundStyle(Poster.ink)
-                        }
-                        if let band = card.paceBand { BandLabel(band: band) }
-                        // The planned Day beside the projected one (spec 015, Projected date).
-                        if let planned = card.plannedDay {
-                            Text("Planned \(Self.shown(planned))")
-                                .font(.caption)
-                                .foregroundStyle(Poster.ink)
-                        }
-                        if let projected = card.projectedDay {
-                            Text("Projected \(Self.shown(projected))")
-                                .font(.caption)
-                                .foregroundStyle(Poster.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                .padding()
+                .themeCard()
             }
+            .buttonStyle(.plain)
         }
     }
 
-    /// A hold goal's section: Goal Weight ± band, and where Trend Weight sits against the band as
-    /// a solid tag (spec 015, Hold; spec 018, Body).
-    private func holdSection(_ card: GoalCard, state: HoldState) -> some View {
+    /// A hold goal's card: where Trend Weight sits against the band (spec 015, Hold).
+    private func holdCard(_ card: GoalCard, state: HoldState) -> some View {
         let units = profile.units
         let band = card.goal.holdBand ?? 1
         let (text, colour): (String, Color) =
             switch state {
-            case .inBand: ("In band", Poster.green)
-            case .aboveBand: ("Above band", Poster.amber)
-            case .belowBand: ("Below band", Poster.amber)
+            case .inBand: ("In band", .green)
+            case .aboveBand: ("Above band", .orange)
+            case .belowBand: ("Below band", .orange)
             }
         return Button {
             showsGoalSheet = true
         } label: {
-            RuledSection(name: "Hold") {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text(
-                        "\(units.text(card.goal.goalWeight, locale: .current)) ± "
-                            + (units == .kilograms ? units : .pounds).text(band, locale: .current)
-                    )
-                    .font(Poster.headlineFont(size: 28))
-                    .foregroundStyle(Poster.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    Spacer(minLength: 8)
-                    PosterTag(text: text, colour: colour)
-                }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("HOLD").font(.caption).foregroundStyle(.secondary)
+                Text(
+                    "\(units.text(card.goal.goalWeight, locale: .current)) ± "
+                        + (units == .kilograms ? units : .pounds).text(band, locale: .current)
+                )
+                .font(.headline)
+                CapsuleTag(text: text, colour: colour)
             }
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .themeCard()
         }
         .buttonStyle(.plain)
     }
 
-    /// The Milestones section: each Milestone one cell of a segmented progress bar, passed cells
-    /// solid red with a ✓, and how far along the goal is as its note (spec 015, Progress; spec
-    /// 018, Body).
-    private func milestonesSection(_ card: GoalCard) -> some View {
+    /// The Milestones card: each Milestone, passed ones ticked, and how far along the goal is
+    /// (spec 015, Progress).
+    private func milestonesCard(_ card: GoalCard) -> some View {
         let units = profile.units
-        let note =
-            "\(Int(card.progress.percent.rounded()))% of the way · "
-            + "\(units.text(abs(card.progress.changeSinceStart), locale: .current)) "
-            + "\(card.direction == .lose ? "lost" : "gained") · "
-            + "\(units.text(card.progress.toGo, locale: .current)) to go"
-        return RuledSection(name: "Milestones", note: note) {
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("MILESTONES").font(.caption).foregroundStyle(.secondary)
             if !card.milestones.isEmpty {
-                // Equal cells across the width when they fit; otherwise they scroll, so a long
-                // goal's Milestones stay readable.
-                ViewThatFits(in: .horizontal) {
-                    milestoneCells(card, width: nil)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        milestoneCells(card, width: milestoneCellWidth)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(card.milestones, id: \.kilograms) { milestone in
+                            Text(
+                                (milestone.passed ? "✓ " : "")
+                                    + units.text(milestone.kilograms, locale: .current)
+                            )
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                milestone.passed ? Theme.accent : Theme.accentSoft,
+                                in: Capsule()
+                            )
+                            .foregroundStyle(milestone.passed ? .white : Theme.accent)
+                        }
                     }
                 }
             }
+            ProgressView(value: card.progress.percent, total: 100).tint(Theme.accent)
+            Text(
+                "\(Int(card.progress.percent.rounded()))% of the way · "
+                    + "\(units.text(abs(card.progress.changeSinceStart), locale: .current)) "
+                    + "\(card.direction == .lose ? "lost" : "gained") · "
+                    + "\(units.text(card.progress.toGo, locale: .current)) to go"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
-    }
-
-    /// The Milestones as cells, each `width` wide, or sharing the width equally when nil.
-    private func milestoneCells(_ card: GoalCard, width: CGFloat?) -> some View {
-        HStack(spacing: 3) {
-            ForEach(card.milestones, id: \.kilograms) { milestone in
-                Text(
-                    (milestone.passed ? "✓ " : "")
-                        + profile.units.text(milestone.kilograms, locale: .current)
-                )
-                .font(.caption2.weight(.bold))
-                .lineLimit(1)
-                .fixedSize()
-                .padding(.horizontal, 6)
-                .frame(minWidth: width, maxWidth: width ?? .infinity)
-                .padding(.vertical, 8)
-                .background(milestone.passed ? Poster.red : Color.clear)
-                .foregroundStyle(milestone.passed ? Color.white : Poster.ink)
-                .overlay(Rectangle().stroke(Poster.ink, lineWidth: Poster.rowRule))
-            }
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .themeCard()
     }
 
     /// Spec 015's easier goal, when the Rate card offers one, as a label and an action: what the
@@ -343,17 +314,19 @@ struct BodyScreen: View {
         day.midday(in: .current).formatted(date: .abbreviated, time: .omitted)
     }
 
-    /// In place of the goal sections when there is no Weight Goal.
-    private var setGoalSection: some View {
-        RuledSection(name: "No Weight Goal yet") {
+    /// In place of the goal cards when there is no Weight Goal.
+    private var setGoalCard: some View {
+        VStack(spacing: 10) {
+            Text("No Weight Goal yet").font(.headline)
             Button("Set a goal") { showsGoalSheet = true }
-                .buttonStyle(BlockButtonStyle())
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
         }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .themeCard()
     }
 }
-
-/// A Milestone cell's width when the cells scroll, points.
-private let milestoneCellWidth: CGFloat = 72
 
 /// Logs one Weigh-in, or edits one, in the Profile's units: the last weight filled in, and an
 /// editable date and time (spec 015). Fields are text, parsed on every keystroke, because a
@@ -414,56 +387,67 @@ struct WeighInSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    switch units {
-                    case .kilograms:
-                        TextField("Weight (kg)", text: $text).keyboardType(.decimalPad)
-                    case .pounds:
-                        TextField("Weight (lb)", text: $text).keyboardType(.decimalPad)
-                    case .stonesAndPounds:
-                        HStack {
-                            TextField("st", text: $stonesText).keyboardType(.numberPad)
-                            Text("st")
-                            TextField("lb", text: $text).keyboardType(.decimalPad)
-                            Text("lb")
-                        }
-                    }
-                    DatePicker("Taken", selection: $time, in: ...Date())
-                    if let refusal {
-                        Text(refusal.message(in: units)).foregroundStyle(Poster.red)
+                switch units {
+                case .kilograms:
+                    TextField("Weight (kg)", text: $text).keyboardType(.decimalPad)
+                case .pounds:
+                    TextField("Weight (lb)", text: $text).keyboardType(.decimalPad)
+                case .stonesAndPounds:
+                    HStack {
+                        TextField("st", text: $stonesText).keyboardType(.numberPad)
+                        Text("st")
+                        TextField("lb", text: $text).keyboardType(.decimalPad)
+                        Text("lb")
                     }
                 }
-                .posterRows()
-                SheetActions(
-                    saveDisabled: weight == nil || refusal != nil,
-                    save: {
-                        if let weight { save(WeighIn(time: time, kilograms: weight)) }
-                        dismiss()
-                    }
-                )
+                DatePicker("Taken", selection: $time, in: ...Date())
+                if let refusal {
+                    Text(refusal.message(in: units)).foregroundStyle(.red)
+                }
             }
-            .posterForm()
             .navigationTitle(isEditing ? "Edit Weigh-in" : "Log Weigh-in")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if let weight { save(WeighIn(time: time, kilograms: weight)) }
+                        dismiss()
+                    }
+                    .disabled(weight == nil || refusal != nil)
+                }
             }
         }
     }
 }
 
-/// The pace badge as a solid tag in its colour (spec 015, Pace badge; spec 018).
+/// The pace badge in its colour (spec 015, Pace badge).
 struct PaceBadgeLabel: View {
     let badge: PaceBadge
 
     var body: some View {
         let (text, colour): (String, Color) =
             switch badge {
-            case .onPace: ("On pace", Poster.green)
-            case .behind: ("A bit behind", Poster.amber)
-            case .offPace: ("Off pace", Poster.red)
-            case .tooFast: ("Too fast", Poster.amber)
+            case .onPace: ("On pace", .green)
+            case .behind: ("A bit behind", .orange)
+            case .offPace: ("Off pace", .red)
+            case .tooFast: ("Too fast", .orange)
             }
-        PosterTag(text: text, colour: colour)
+        CapsuleTag(text: text, colour: colour)
+    }
+}
+
+/// A short status in its colour on a tinted capsule: the pace badge, a Pace band, a hold state.
+struct CapsuleTag: View {
+    let text: String
+    let colour: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(colour.opacity(0.18), in: Capsule())
+            .foregroundStyle(colour)
     }
 }
 
