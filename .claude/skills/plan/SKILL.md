@@ -46,7 +46,10 @@ Turn an approved spec — or a diagnosed bug — into a disposable execution pla
    list top to bottom (`/execute`) is always a valid order.
 8. End with a verify task (full suite + lint + typecheck; every success criterion checked).
    Its `Blocked by:` lists every task nothing else depends on — the ends of the graph — which
-   makes it wait for everything.
+   makes it wait for everything. It covers only what can run **before a PR exists**: the
+   macOS CI build and the by-hand phone checks (ADR 0002/0003) need the PR, so list them in
+   the task as "carried to the PR checklist" instead of making them its Done when — otherwise
+   the task can't be ticked and `/ship`'s preflight can't pass.
 9. Save as `plans/<NNN>-<kebab-name>.md` (features), `plans/fix-<kebab-name>.md` (bugs), or
    `plans/refactor-<kebab-name>.md` (behavior-preserving refactors from
    `/improve-architecture`), and fill in the **Branch:** field (`feat/`, `fix/`, or `chore/`).

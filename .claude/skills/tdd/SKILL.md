@@ -41,6 +41,9 @@ still gives a fast, deterministic signal — the fewer seams, the better.
 - **Weakened to pass** — loosening an assertion, skipping a case, or special-casing an input so
   the suite goes green. Never. A red test means the code is wrong (or the test is wrong for a
   reason you can state — then fix the test and say why).
+- **Weakened by accident** — a line-number `sed` or scripted rewrite that replaces the wrong
+  line can drop an assertion with the suite still green. Edit tests by exact match (the Edit
+  tool), and check `git diff` loses no `#expect` before committing.
 
 ## Rules of the loop
 - **Red before green.** Write the failing test, run it, and confirm it fails *for the right

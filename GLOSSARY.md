@@ -7,6 +7,18 @@
 Personal wellness tracking from a wearable's raw sensor data: sleep, overnight physiology, and
 daily scores, computed on the user's phone without the wearable vendor's subscription.
 
+## The user
+
+**Profile**:
+The user's name, and optionally their birth year, sex, height, Max HR and preferred units, kept
+only on the phone, used to address them and to work out Load and their Usual Need.
+_Avoid_: account, user account, login
+
+**Onboarding**:
+The one-time conversation on first launch in which Serenix sets up the user's Profile and pairs
+their Strap.
+_Avoid_: setup wizard, intro, welcome flow
+
 ## Devices and data
 
 **Strap**:
@@ -28,9 +40,35 @@ _Avoid_: download, backfill, import
 A short period, during sleep, in which the Strap measures blood-oxygen saturation and writes
 readings into its History Records.
 
+**Record Counter**:
+The Strap's sequence number for a History Record, one higher for each record it stores. Together
+with the record's timestamp it identifies a History Record: after a reboot the Strap can reuse
+a Record Counter for a new record.
+_Avoid_: index, record ID
+
+**Batch**:
+A group of History Records the Strap sends together during a History Sync, ending with a Sync
+Cursor.
+_Avoid_: chunk, page, burst
+
 **Sync Cursor**:
-The last History Record the phone has acknowledged to the Strap. The next History Sync
-starts after it.
+An opaque position in the Strap's storage, given by the Strap at the end of each Batch. Echoing
+it back acknowledges the Batch, and the Strap then never sends those History Records again.
+The Strap keeps it; the phone never stores or computes it.
+
+**Frame**:
+One message exchanged with the Strap: a command, a reply, or data.
+_Avoid_: packet, message
+
+**Sync Log**:
+The record of every Frame exchanged with the Strap, in order, with direction and time. Kept on
+the phone and shared only when the user chooses to.
+_Avoid_: debug log, trace
+
+**Live HR**:
+The user's heart rate as the Strap measures it right now, streamed only while it is on screen.
+Never stored, and never a History Record.
+_Avoid_: realtime HR, current HR, streaming HR
 
 ## Sleep
 
@@ -48,10 +86,42 @@ The moment the user last wakes at the end of a Sleep Period.
 **Time in Bed**:
 The span around a Sleep Period during which the user is lying down but not up and about.
 
+**Time Asleep**:
+The part of a Sleep Period spent asleep: from Sleep Onset to Final Wake, minus the Wake Bouts
+inside it.
+_Avoid_: sleep duration, total sleep
+
+**Wake Bout**:
+One unbroken stretch of wake inside a Sleep Period, between Sleep Onset and Final Wake.
+_Avoid_: awakening, interruption, disturbance
+
+**Heart Rate Trace**:
+The user's heart rate through one Night's Time in Bed, in 5-minute steps, kept with the Night.
+_Avoid_: overnight HR, HR series, HR graph
+
+**Usual Need**:
+The Time Asleep the user needs on a night with no Sleep Debt to repay.
+_Avoid_: typical need, base need, sleep baseline
+
+**Sleep Need**:
+How much Time Asleep the user needs on a given night: their Usual Need, plus extra to repay
+Sleep Debt.
+_Avoid_: sleep goal, sleep target
+
+**Sleep Debt**:
+How far the user's Time Asleep has fallen short of their Usual Need over recent Nights, added
+up, with Nights whose Time Asleep exceeds their Usual Need paying the shortfall back.
+_Avoid_: sleep deficit, sleep owed
+
 **Night**:
 The dated record of one night's sleep: a Sleep Period together with the Nightly Metrics and
 scores drawn from it, dated by the local calendar date of its Final Wake.
 _Avoid_: sleep, cycle
+
+**Night window**:
+The stretch from local noon on one Day to local noon on the next, in which Serenix looks for one
+Night. Its Night is dated one of those two Days.
+_Avoid_: sleep window, night range
 
 **Nap**:
 A stretch of sleep outside the Sleep Period. A Nap never makes a Night.
@@ -63,17 +133,39 @@ _Avoid_: cycle
 ## Metrics and scores
 
 **Baseline**:
-The user's typical HRV and Resting HR, taken over their most recent Nights.
-_Avoid_: norm, average (when the personal reference is meant)
+The user's typical Sleeping HR, HRV, respiratory rate and skin temperature, and the Spread of
+each, taken over their most recent Nights. It also holds their typical Load, taken over their
+most recent Days. SpO2 has no Baseline.
+_Avoid_: norm, average, usual (alone, when the Baseline is meant)
+
+**Spread**:
+How much one Nightly Metric usually varies from Night to Night for the user; part of that
+metric's Baseline.
+_Avoid_: variability (clashes with HRV), SD, deviation
+
+**Zone**:
+Where one Nightly Metric sits against its Baseline (or, for SpO2, against fixed levels): In
+range, Watch or Out of range.
+_Avoid_: status, colour, traffic light
 
 **Nightly Metrics**:
-The physiological measures taken over one Sleep Period: Resting HR, HRV, respiratory rate, skin
+The physiological measures taken over one Sleep Period: Sleeping HR, HRV, respiratory rate, skin
 temperature, and SpO2.
 _Avoid_: vitals, biometrics
 
+**Sleeping HR**:
+The user's lowest sustained heart rate during a Sleep Period. Abbreviated SHR in code and where
+space is tight.
+_Avoid_: overnight HR, sleep HR, nocturnal HR, Resting HR (when sleep is meant)
+
 **Resting HR**:
-The user's lowest sustained heart rate during a Sleep Period.
-_Avoid_: RHR (in prose; fine as an abbreviation in code)
+The user's lowest sustained heart rate on a Day while awake and still, outside the Sleep Period.
+Abbreviated RHR in code and where space is tight.
+_Avoid_: awake HR, daytime HR
+
+**Max HR**:
+The highest heart rate the user can reach: estimated from their age unless they enter it.
+_Avoid_: HRmax (in prose), peak HR
 
 **HRV**:
 Heart-rate variability during a Sleep Period, expressed as RMSSD in milliseconds.
@@ -82,17 +174,152 @@ Heart-rate variability during a Sleep Period, expressed as RMSSD in milliseconds
 Serenix's rating of how well the user slept in one Sleep Period.
 _Avoid_: sleep performance, sleep quality
 
+**Sleep Sufficiency**:
+The part of Sleep Score that rates how much of the user's Sleep Need their Time Asleep met.
+_Avoid_: hours vs needed, duration score
+
+**Sleep Efficiency**:
+The part of Sleep Score that rates the share of the Sleep Period the user spent asleep. Unlike
+the common measure of the same name, it leaves out Time in Bed outside the Sleep Period.
+_Avoid_: continuity, restfulness
+
+**Sleep Consistency**:
+The part of Sleep Score that rates how close the user's Sleep Onset and Final Wake came to the
+times they fell asleep and woke on recent Nights.
+_Avoid_: regularity, sleep timing
+
 **Calibrating**:
-The state of Readiness while too few Nights exist to form a Baseline.
+The state of Readiness while too few Nights exist to form an HRV or Sleeping HR Baseline.
 
 **Readiness**:
-Serenix's rating of how prepared the user's body is for exertion, derived from Nightly Metrics
-relative to their own Baseline.
+Serenix's rating of how prepared the user's body is for exertion, from their HRV and Sleeping HR
+against Baseline, their Time Asleep, and the previous Day's Load.
 _Avoid_: recovery (WHOOP's term)
 
 **Load**:
 Serenix's measure of how much cardiovascular exertion the user accumulated over a Day.
 _Avoid_: strain (WHOOP's term), effort, exertion score
 
+**HR Zone**:
+One of five bands of heart rate by share of Max HR, from HR Zone 1 (50–60%) to HR Zone 5
+(90–100%); heart rate under 50% is in no HR Zone. Always "HR Zone" in full, never bare "Zone",
+which means a Nightly Metric against its Baseline.
+_Avoid_: heart rate zone (in code), training zone, Zone (alone)
+
 **Stress**:
 Serenix's measure of physiological stress through a Day.
+
+**Verdict**:
+The few words in capitals, ending with a full stop, beside a headline number that tell the user
+where they stand, such as "GO HARD." for Readiness or "ON PACE." for a Weight Goal.
+_Avoid_: label, status, badge
+
+**Waiting verdict**:
+A Verdict saying there isn't enough data yet to tell where the user stands, such as "2 TO GO."
+while Readiness is Calibrating. Never a warning.
+
+## Body
+
+**Weigh-in**:
+One reading of the user's body weight, at a time on a Day.
+_Avoid_: weight entry, measurement
+
+**Trend Weight**:
+The user's body weight with the day-to-day swings of water and food smoothed out of their
+Weigh-ins.
+_Avoid_: moving average, smoothed weight, true weight
+
+**Weight Goal**:
+The weight the user is working toward from a Start Weight on a start date, to lose, gain or
+hold: a Goal Weight with a Pace, or for holding, a band around the Goal Weight.
+_Avoid_: target, plan
+
+**Start Weight**:
+The Trend Weight a Weight Goal counts progress from.
+
+**Goal Weight**:
+The weight a Weight Goal aims to reach.
+
+**Pace**:
+The change in weight per week a Weight Goal plans for, whether the user chose it as a rate or as
+a date to reach Goal Weight by.
+_Avoid_: speed, target rate
+
+**Weekly Rate**:
+How fast Trend Weight is actually changing, per week.
+_Avoid_: speed, velocity
+
+**Milestone**:
+A mark on the way from Start Weight to Goal Weight, passed when Trend Weight reaches it.
+_Avoid_: checkpoint
+
+**Intake**:
+The calories and macros of a Day's Food Entries, added up.
+_Avoid_: consumption, food log total
+
+**Food Entry**:
+One thing the user logs as eaten, at a time on a Day: its calories, and optionally its protein,
+fat and carbs.
+_Avoid_: meal, food log, item
+
+**Macro Targets**:
+The grams of protein, fat and carbs the user aims for each Day, drawn from their Calorie Target.
+_Avoid_: macro goals, macro budget
+
+**Complete Day**:
+A Day the user marks as having all of its Intake logged.
+_Avoid_: closed day, finished log
+
+**Calories Burned**:
+Serenix's estimate of the energy the user spent on a Day, from their heart rate and Profile.
+_Avoid_: active energy, TDEE
+
+**Expenditure**:
+Serenix's estimate of the energy the user spends in a Day, worked out from their Intake on
+Complete Days and the change in their Trend Weight rather than from heart rate; until there is
+enough of those, estimated from their Profile and Activity Level.
+_Avoid_: TDEE, maintenance, metabolism
+
+**Activity Level**:
+How active the user says their Days usually are, from Mostly sitting to Very active, used only
+to estimate their Expenditure before there is enough logged data.
+_Avoid_: lifestyle, activity factor (in prose)
+
+**Calorie Target**:
+The Intake the user aims for each Day.
+_Avoid_: budget, calorie goal
+
+**Deficit Check**:
+Serenix's watch for HRV and Sleeping HR worsening against Baseline while the user eats below
+their Expenditure, which can lead it to suggest a Diet Break.
+_Avoid_: recovery guard (uses WHOOP's "recovery"), overreaching alert
+
+**Diet Break**:
+A planned stretch of eating at Expenditure in the middle of a Weight Goal that loses weight.
+_Avoid_: refeed (a shorter thing), maintenance phase
+
+**Check-in**:
+What the user logs about one Day's habits and how they felt: Water, Caffeine, Alcohol, Mood and
+Motivation.
+_Avoid_: journal (WHOOP's term), tags, diary
+
+**Alcohol**:
+The alcohol the user drank on a Day.
+_Avoid_: drinks (as a measure)
+
+**Habit Link**:
+An association Serenix finds between a Check-in habit and a Nightly Metric or score, with no
+claim that one causes the other.
+_Avoid_: correlation, insight, discovery
+
+**BP Reading**:
+One measurement of the user's systolic and diastolic blood pressure, with their pulse.
+_Avoid_: BP entry, measurement
+
+**BP Session**:
+BP Readings taken together at one sitting, and their average.
+
+**BP Category**:
+Where a BP Session's average, or a single very high BP Reading, sits: Normal, Elevated, High
+stage 1, High stage 2 or Very high.
+_Avoid_: Zone (a Nightly Metric against its Baseline), status

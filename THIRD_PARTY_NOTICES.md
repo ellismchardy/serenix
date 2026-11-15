@@ -1,6 +1,6 @@
 # Third-party notices
 
-Parts of this template's `.claude/` skills and agents are adapted from
+Parts of this project's `.claude/` skills and agents are adapted from
 [mattpocock/skills](https://github.com/mattpocock/skills) (commit `59db609`), used under the
 MIT License below. Adapted material: the `tdd`, `grilling`, `domain-modeling`, `diagnose`,
 `handoff`, `retro`, `triage` (incl. `AGENT-BRIEF.md`, `OUT-OF-SCOPE.md`), `wayfinder`,

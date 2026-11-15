@@ -1,0 +1,979 @@
+import Foundation
+
+/// The Readiness popup (spec 012): Readiness with its band and verdict, each input's effect on it,
+/// the last 7 Days, and Sleep Score.
+public struct ReadinessPopup: Equatable, Sendable {
+    /// As on the Today headline: the number, "n/4" while Calibrating, or "—" when missing.
+    public let readinessText: String
+    public let band: ReadinessBand?
+    /// The Night's Sleep Score, shown whether or not Readiness is Calibrating.
+    public let sleepScoreText: String?
+    /// The sentence under the headline (spec 012, Verdict), or why there's no Readiness: spec
+    /// 002's Calibrating explanation, or no HRV.
+    public let verdictText: String?
+    /// The headline's short verdict, as on the Today headline (spec 018, Verdicts).
+    public let verdict: Verdict?
+    /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
+    /// none without a Readiness.
+    public let whyRows: [ReadinessWhyRow]
+    /// Your week: the Day shown and the 6 Days before it, oldest first (spec 012).
+    public let week: [ReadinessWeekBar]
+    /// The band scale's three segments, lowest band first, whatever the Night (spec 012).
+    public let scaleSegments: [ReadinessScaleSegment]
+    /// Where Readiness sits on the band scale, Readiness / 100; nil while Calibrating or missing.
+    public let scaleMarker: Double?
+    /// The "usual 70" tick on the band scale, 0.70; nil while Calibrating or missing.
+    public let usualTick: Double?
+}
+
+/// One band's stretch of the Readiness popup's band scale, 0 to 1 (spec 012).
+public struct ReadinessScaleSegment: Equatable, Sendable {
+    public let band: ReadinessBand
+    public let from: Double
+    public let to: Double
+}
+
+/// One Day in the Readiness popup's Your week (spec 012).
+public struct ReadinessWeekBar: Equatable, Sendable {
+    /// "Mon" to "Sun".
+    public let weekdayText: String
+    /// That Day's Readiness, or "—" with none (no Night, missing or Calibrating).
+    public let readinessText: String
+    /// Nil with no Readiness.
+    public let band: ReadinessBand?
+    /// The bar's height, 0 to 1: Readiness out of 100; 0 with no Readiness.
+    public let fill: Double
+    /// Outlined: the Day the popup is for.
+    public let isDayShown: Bool
+}
+
+/// One input in the Readiness popup's Why list (spec 012).
+public struct ReadinessWhyRow: Equatable, Sendable {
+    /// "HRV", "Sleeping HR", "Time Asleep" or "Yesterday's Load".
+    public let name: String
+    /// The re-weighted weight as a whole percentage ("56%"), or "dropped".
+    public let weightText: String
+    /// As in spec 008's popup rows ("50 ms", "7h 30m", "85", or "—").
+    public let valueText: String
+    /// "−23 pts", "+12 pts" or "±0 pts"; nil when dropped.
+    public let pointsText: String?
+    /// Why the input scored as it did, in plain words (spec 012, Reasons).
+    public let reasonText: String
+    /// Where the marker sits on the worse–usual–better gauge, 0 to 1 (0.5 is usual); nil when
+    /// dropped.
+    public let gaugePosition: Double?
+
+    /// The Why rows in order, and the verdict, from Readiness's breakdown and spec 008's rows
+    /// for each input.
+    static func list(
+        _ breakdown: Readiness.Breakdown,
+        rows: [Readiness.Input: ReadinessPopupRow],
+        previousDayLoad: Int?,
+        typicalLoad: TypicalLoad
+    ) -> (rows: [ReadinessWhyRow], verdict: String) {
+        let inputs = Readiness.Input.allCases
+        let points = breakdown.points
+        let counted = inputs.indices.map { index -> (row: ReadinessWhyRow, points: Int?) in
+            let input = inputs[index]
+            let name = input.name
+            let row = rows[input]
+            let valueText = row?.valueText ?? missingText
+            guard let partIndex = breakdown.parts.firstIndex(where: { $0.input == input }) else {
+                return (
+                    ReadinessWhyRow(
+                        name: name,
+                        weightText: "dropped",
+                        valueText: valueText,
+                        pointsText: nil,
+                        reasonText: droppedReason(
+                            input,
+                            previousDayLoad: previousDayLoad,
+                            typicalLoad: typicalLoad
+                        ),
+                        gaugePosition: nil
+                    ),
+                    nil
+                )
+            }
+            let part = breakdown.parts[partIndex]
+            let percent = Int((part.weight * 100).rounded(.toNearestOrAwayFromZero))
+            return (
+                ReadinessWhyRow(
+                    name: name,
+                    weightText: "\(percent)%",
+                    valueText: valueText,
+                    pointsText: "\(signedText(points[partIndex])) pts",
+                    reasonText: reason(
+                        input,
+                        score: part.score,
+                        row: row,
+                        minutesShort: breakdown.minutesShort,
+                        typicalLoad: typicalLoad
+                    ),
+                    // Maps the clamped score, −limit to +limit, onto 0 to 1.
+                    gaugePosition: 0.5 + part.score / (2 * Readiness.scoreLimit)
+                ),
+                points[partIndex]
+            )
+        }
+        // Lowest points first, as the breakdown ranks them; dropped last, in the inputs' order.
+        let rank = breakdown.inputsByPoints.map(\.input)
+        let ordered =
+            rank.compactMap { input in inputs.firstIndex(of: input).map { counted[$0].row } }
+            + counted.filter { $0.points == nil }.map(\.row)
+        let verdict =
+            if let costliest = breakdown.costliestInputs.first {
+                "\(costliest.name) pulled it down most."
+            } else {
+                "Your body looks recovered."
+            }
+        return (ordered, verdict)
+    }
+
+    /// Why a counted input scored as it did (spec 012, Reasons).
+    private static func reason(
+        _ input: Readiness.Input,
+        score: Double,
+        row: ReadinessPopupRow?,
+        minutesShort: Int,
+        typicalLoad: TypicalLoad
+    ) -> String {
+        switch input {
+        case .hrv, .sleepingHR:
+            return "\(row?.differenceText ?? missingText) against your usual "
+                + "\(row?.referenceText ?? missingText)."
+        case .timeAsleep:
+            guard minutesShort > 0 else { return "Enough for your Sleep Need." }
+            return "\(hoursMinutesText(minutesShort)) short of your Sleep Need."
+        case .previousDayLoad:
+            let typical =
+                if case .value(let typical) = typicalLoad { "\(typical)" } else { missingText }
+            return score < 0
+                ? "Above your typical \(typical)." : "No more than your typical \(typical)."
+        }
+    }
+
+    /// Why an input was left out of Readiness (spec 012, Reasons). HRV is never dropped: without
+    /// it there's no Readiness.
+    private static func droppedReason(
+        _ input: Readiness.Input,
+        previousDayLoad: Int?,
+        typicalLoad: TypicalLoad
+    ) -> String {
+        switch input {
+        case .previousDayLoad:
+            if previousDayLoad != nil, case .calibrating = typicalLoad {
+                "Typical Load is still calibrating, so it's left out."
+            } else {
+                "No Load for yesterday, so it's left out."
+            }
+        case .sleepingHR: "No Sleeping HR for this Night, so it's left out."
+        // Without HRV there's no Readiness (spec 008). Time Asleep is dropped only when the stored
+        // value is implausible, a case spec 012 gives no reason for.
+        case .hrv, .timeAsleep: missingText
+        }
+    }
+}
+
+/// One input's value and what it's measured against, for the Readiness popup's Why rows (spec 012).
+struct ReadinessPopupRow: Equatable, Sendable {
+    /// e.g. "HRV", "Time Asleep", "Yesterday's Load".
+    let name: String
+    /// As on the tile for a Nightly Metric and Time Asleep; the whole Load for Yesterday's Load.
+    let valueText: String
+    /// What the value is measured against: the Baseline as a whole number with its unit, e.g. "60
+    /// ms" ("Calibrating" while it is), the Night's Sleep Need for Time Asleep ("8h 0m"), or
+    /// "Typical 45" ("Calibrating" while typical Load is) for Yesterday's Load.
+    let referenceText: String
+    /// As on the tile for a Nightly Metric; hours and minutes for Time Asleep; a signed whole
+    /// number ("+40", "−5", "±0") for Yesterday's Load.
+    let differenceText: String
+
+    init(_ tile: MetricTile) {
+        name = tile.metric.name
+        valueText = tile.valueText
+        referenceText = tile.baselineText
+        differenceText = tile.differenceText
+    }
+
+    /// The Night's Time Asleep against its Sleep Need (spec 009), e.g. "7h 30m", "8h 0m", "−30m".
+    init(timeAsleep: TimeInterval?, sleepNeed: TimeInterval) {
+        name = "Time Asleep"
+        valueText = timeAsleep.map(durationText) ?? missingText
+        referenceText = durationText(sleepNeed)
+        differenceText =
+            timeAsleep.map { Self.differenceText($0 - sleepNeed) }
+            ?? missingText
+    }
+
+    /// The previous Day's Load against its typical Load (spec 006), e.g. "85", "Typical 45",
+    /// "+40", or "85", "Calibrating", "—" while typical Load is calibrating; "—" for a missing
+    /// Load.
+    init(previousDayLoad load: Int?, typical: TypicalLoad) {
+        name = "Yesterday's Load"
+        valueText = load.map(String.init) ?? missingText
+        switch typical {
+        case .value(let typical):
+            referenceText = "Typical \(typical)"
+            differenceText = load.map { signedText($0 - typical) } ?? missingText
+        case .calibrating:
+            referenceText = "Calibrating"
+            differenceText = missingText
+        }
+    }
+
+    /// A signed difference in whole minutes: "−30m", "+1h 10m", "±0".
+    private static func differenceText(_ seconds: TimeInterval) -> String {
+        guard let minutes = Int(exactly: (seconds / 60).rounded()) else { return missingText }
+        return signedText(minutes, magnitude: hoursMinutesText(abs(minutes)))
+    }
+}
+
+/// Whole minutes in hours and minutes for a popup: "35m", "1h 10m", "2h 0m".
+func hoursMinutesText(_ minutes: Int) -> String {
+    minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m" : "\(minutes)m"
+}
+
+/// A signed difference for a popup: "+12", "−5" or "±0" (spec 006 and 008), with `magnitude`
+/// as the size shown after the sign (by default the number itself).
+func signedText(_ difference: Int, magnitude: String? = nil) -> String {
+    let shown = magnitude ?? "\(abs(difference))"
+    return switch difference {
+    case 1...: "+\(shown)"
+    case 0: "\u{00B1}0"
+    default: "\u{2212}\(shown)"
+    }
+}
+
+/// One part of Sleep Score in the Sleep popup, drawn as a row with a thin bar (spec 010, Sleep
+/// popup; spec 018).
+public struct SleepScorePart: Equatable, Sendable {
+    /// "Sleep Sufficiency", "Sleep Efficiency" or "Sleep Consistency".
+    public let name: String
+    /// The part as a whole number, halves up, as the Sleep Score key shows it; "—" when it's left
+    /// out or Sleep Score is missing.
+    public let scoreText: String
+    /// The bar's fill, 0 to 1; an empty bar when it's left out.
+    public let fill: Double
+    /// What it came from, e.g. "6h 0m of 8h 0m", "89% asleep", "35m off your usual", "Needs 3
+    /// Nights"; "—" when there's nothing to show.
+    public let detailText: String
+
+    init(name: String, score: Double?, detailText: String = missingText) {
+        self.name = name
+        let rounded = score.map(halvesUp)
+        scoreText = SerenixCore.scoreText(rounded)
+        fill = scoreFill(rounded)
+        self.detailText = detailText
+    }
+
+    /// Sleep Score's three parts, in order; each "—" when Sleep Score is missing (spec 010).
+    static func parts(of sleepScore: SleepScore?) -> [SleepScorePart] {
+        guard let sleepScore else {
+            return [sufficiencyName, efficiencyName, consistencyName].map {
+                SleepScorePart(name: $0, score: nil)
+            }
+        }
+        let timeAsleep = durationText(sleepScore.timeAsleep)
+        let sleepNeed = durationText(sleepScore.sleepNeed)
+        let asleep = sleepScore.asleepShare.map { "\(halvesUp($0 * 100))% asleep" }
+        let off = sleepScore.minutesOff.map { "\(hoursMinutesText(halvesUp($0))) off your usual" }
+        return [
+            SleepScorePart(
+                name: sufficiencyName,
+                score: sleepScore.sufficiency,
+                detailText: "\(timeAsleep) of \(sleepNeed)"
+            ),
+            SleepScorePart(
+                name: efficiencyName,
+                score: sleepScore.efficiency,
+                detailText: asleep ?? missingText
+            ),
+            SleepScorePart(
+                name: consistencyName,
+                score: sleepScore.consistency,
+                detailText: off ?? "Needs \(SleepScore.fewestConsistencyNights) Nights"
+            ),
+        ]
+    }
+
+    static let sufficiencyName = "Sleep Sufficiency"
+    static let efficiencyName = "Sleep Efficiency"
+    static let consistencyName = "Sleep Consistency"
+}
+
+/// `value` rounded to a whole number with halves up, for scores and their parts, which are never
+/// negative (rounding away from zero is then rounding halves up).
+func halvesUp(_ value: Double) -> Int {
+    Int(value.rounded(.toNearestOrAwayFromZero))
+}
+
+/// The Sleep popup (spec 002, Popups).
+public struct SleepPopup: Equatable, Sendable {
+    public let sleepScoreText: String
+    /// The Sleep Score headline's verdict (spec 018), as on the Sleep tab; nil without a Sleep
+    /// Score.
+    public let verdict: Verdict?
+    /// Sleep Score's parts as three rows, in order: Sleep Sufficiency, Sleep Efficiency, Sleep
+    /// Consistency (spec 010).
+    public let parts: [SleepScorePart]
+    /// Beside the "When you slept" heading (spec 010): Sleep Consistency's detail ("35m off your
+    /// usual"), or "Usual times need 3 Nights" while it's left out; nil when Sleep Score is
+    /// missing.
+    public var whenYouSleptNote: String? {
+        guard sleepScoreText != missingText else { return nil }
+        let consistency = parts.first { $0.name == SleepScorePart.consistencyName }
+        return consistency?.scoreText == missingText
+            ? "Usual times need \(SleepScore.fewestConsistencyNights) Nights"
+            : consistency?.detailText
+    }
+    /// Sleep Efficiency's detail, in the "When you slept" caption (spec 010).
+    public var sleepEfficiencyDetailText: String { detail(of: SleepScorePart.efficiencyName) }
+    /// Start–end in local time, e.g. "22:30–07:05"; "—" if either is missing.
+    public let timeInBedText: String
+    /// e.g. "8h 35m"; "—" if missing.
+    public let timeInBedDurationText: String
+    public let sleepOnsetText: String
+    public let finalWakeText: String
+    public let timeAsleepText: String
+    /// The Night's Sleep Need (spec 009), e.g. "8h 15m".
+    public let sleepNeedText: String
+    /// The Sleep Debt behind it, e.g. "1h 0m".
+    public let sleepDebtText: String
+    /// Which Nights the Sleep Debt is from, e.g. "Your last 5 Nights"; "No earlier Nights" when
+    /// none counted.
+    public let sleepDebtCaption: String
+    /// Minutes awake within the Sleep Period: Final Wake − Sleep Onset − Time Asleep, e.g.
+    /// "32 min"; "—" if any is missing or it comes out negative.
+    public let minutesAwakeText: String
+    /// The "When you slept" timeline (spec 010); nil without Sleep Onset or Final Wake.
+    public let timeline: SleepTimeline?
+    /// The "How much you slept" bar: Time Asleep against Sleep Need (spec 010).
+    public let sleepNeedBar: SleepNeedBar
+
+    init(
+        _ night: Night,
+        sleepNeed: SleepNeed,
+        sleepScore: SleepScore?,
+        timeZone: TimeZone
+    ) {
+        sleepScoreText = scoreText(sleepScore?.score)
+        verdict = sleepScore.map { Verdict.sleepScore($0.score) }
+        parts = SleepScorePart.parts(of: sleepScore)
+        sleepNeedText = durationText(sleepNeed.sleepNeed)
+        sleepDebtText = durationText(sleepNeed.sleepDebt)
+        sleepDebtCaption =
+            switch sleepNeed.nightsCounted {
+            case 0: "No earlier Nights"
+            case 1: "Your last 1 Night"
+            case let count: "Your last \(count) Nights"
+            }
+        let timeInBed = night.timeInBedStart.flatMap { start in
+            night.timeInBedEnd.map { (start: start, end: $0) }
+        }
+        timeInBedText =
+            timeInBed.map {
+                "\(clockText($0.start, in: timeZone))\u{2013}\(clockText($0.end, in: timeZone))"
+            } ?? missingText
+        timeInBedDurationText =
+            timeInBed.map { durationText($0.end.timeIntervalSince($0.start)) } ?? missingText
+        timeline = SleepTimeline(night, sleepScore: sleepScore, timeZone: timeZone)
+        sleepOnsetText = night.sleepOnset.map { clockText($0, in: timeZone) } ?? missingText
+        finalWakeText = night.finalWake.map { clockText($0, in: timeZone) } ?? missingText
+        let timeAsleep = night.plausibleTimeAsleep
+        timeAsleepText = timeAsleep.map(durationText) ?? missingText
+        sleepNeedBar = SleepNeedBar(timeAsleep: timeAsleep, sleepNeed: sleepNeed.sleepNeed)
+        minutesAwakeText = night.minutesAwake.map { "\($0) min" } ?? missingText
+    }
+
+    /// The detail of the part named `name`; "—" if there's no such part.
+    private func detail(of name: String) -> String {
+        parts.first { $0.name == name }?.detailText ?? missingText
+    }
+}
+
+/// The Sleep popup's "How much you slept" bar (spec 010): Time Asleep against Sleep Need, on a
+/// scale of whichever is longer.
+public struct SleepNeedBar: Equatable, Sendable {
+    /// How far the bar fills, 0 to 1: Time Asleep's share of the scale; 0 with no Time Asleep.
+    public let fill: Double
+    /// Where the Sleep Need marker sits, 0 to 1: Sleep Need's share of the scale.
+    public let marker: Double
+    /// e.g. "8h 0m asleep"; "—" with no Time Asleep.
+    public let asleepText: String
+    /// e.g. "needed 8h 0m".
+    public let neededText: String
+
+    /// The bar for `timeAsleep` (nil when there's no plausible Time Asleep) against `sleepNeed`,
+    /// both in seconds.
+    init(timeAsleep: TimeInterval?, sleepNeed: TimeInterval) {
+        let scale = max(timeAsleep ?? 0, sleepNeed)
+        fill = scale > 0 ? (timeAsleep ?? 0) / scale : 0
+        // With nothing to scale by, the marker sits at the end, as with no Time Asleep.
+        marker = scale > 0 ? sleepNeed / scale : 1
+        asleepText = timeAsleep.map { "\(durationText($0)) asleep" } ?? missingText
+        neededText = "needed \(durationText(sleepNeed))"
+    }
+}
+
+/// The Nightly Metric popup (spec 011): where the value sits among the Zones, what that means,
+/// the last 14 Nights, and what the metric is.
+public struct MetricPopup: Equatable, Sendable {
+    public let metric: NightlyMetric
+    /// As on the tile.
+    public let valueText: String
+    public let zone: Zone?
+    /// "Night of 31 Oct–1 Nov": the evening before the Night's date, then its date (spec 011).
+    public let nightText: String
+    /// As on the tile: its status word, or SpO2's level.
+    public let statusText: String
+    /// What the value means for the user, e.g. "−20% against your Baseline: about usual for
+    /// you." (spec 011, Verdict). Its last words take `zone`'s colour.
+    public let verdictText: String
+    /// The value headline's verdict (spec 018): "ABOUT USUAL." / "UNUSUAL." / "WAY OFF.", SpO2's
+    /// "HEALTHY." / "A BIT LOW." / "LOW.", or waiting "N TO GO." / "NO DATA.".
+    public let verdict: Verdict?
+    /// Where the value sits among the Zones (spec 011, Zone scale); nil with no Zone.
+    public let scale: MetricPopupScale?
+    /// "Your Zones · Baseline 60 ms", or "Zones" for SpO2 (spec 011, Your Zones); nil with no
+    /// rows.
+    public let zonesHeading: String?
+    /// In range, Watch and Out of range, with their ranges; none without a Baseline to measure
+    /// from (Calibrating).
+    public let zoneRows: [MetricPopupZoneRow]
+    /// The Night shown's date and the 13 dates before it, oldest first (spec 011, Last 14
+    /// Nights).
+    public let blocks: [MetricPopupBlock]
+    /// The Baseline as the tile formats values, e.g. "60 ms"; "Calibrating" while it is; nil for
+    /// SpO2, which has none.
+    public let baselineText: String?
+    /// The lowest value in the blocks, as on the tile; "—" when none has a value.
+    public let lowestText: String
+    /// The highest value in the blocks, as on the tile; "—" when none has a value.
+    public let highestText: String
+    /// What the metric is (spec 011, Text); the same every Night.
+    public let whatItIsText: String
+    /// What tends to move it, in order (spec 011, Text).
+    public let whatMovesItTexts: [String]
+
+    /// How many dates the blocks cover, including the Night shown's (spec 011, Last 14 Nights).
+    static let blockDays = 14
+
+    init(_ tile: MetricTile, for night: Night, among nights: [Night]) {
+        metric = tile.metric
+        valueText = tile.valueText
+        zone = tile.zone
+        nightText = "Night of \(night.day.nightSpanText)"
+        statusText = tile.statusText
+        let reading = Reading(tile, value: night.value(of: tile.metric))
+        verdictText = reading.sentence(tile)
+        verdict = reading.verdict
+        scale = MetricPopupScale(tile, value: night.value(of: tile.metric))
+        zoneRows = MetricPopupZoneRow.rows(tile)
+        // SpO2 has fixed levels, so no Baseline to name.
+        zonesHeading =
+            zoneRows.isEmpty
+            ? nil
+            : !tile.metric.hasBaseline
+                ? "Zones"
+                : tile.baseline.map {
+                    "Your Zones · Baseline \(formattedValue(of: tile.metric, $0))"
+                }
+        let blockDates = night.day.lastDays(Self.blockDays)
+        let blockNights = blockDates.map { day in
+            nights.first { $0.day == day && $0.value(of: tile.metric) != nil }
+        }
+        blocks = zip(blockDates, blockNights).map { day, match in
+            let state: MetricPopupBlockState =
+                if let match {
+                    // Judged against that Night's own Baseline, as its tile was.
+                    MetricTile(tile.metric, for: match, among: nights).zone.map { .zone($0) }
+                        ?? .noZone
+                } else {
+                    .noValue
+                }
+            return MetricPopupBlock(
+                weekdayLetter: day.weekdayLetter,
+                state: state,
+                isNightShown: day == night.day
+            )
+        }
+        baselineText = tile.metric.hasBaseline ? tile.baselineText : nil
+        let blockValues = blockNights.compactMap { $0?.value(of: tile.metric) }
+        lowestText = blockValues.min().map { formattedValue(of: tile.metric, $0) } ?? missingText
+        highestText = blockValues.max().map { formattedValue(of: tile.metric, $0) } ?? missingText
+        whatItIsText = MetricTexts.whatItIs(tile.metric)
+        whatMovesItTexts = MetricTexts.whatMovesIt(tile.metric)
+    }
+
+    /// What the Night's value says, decided once for the sentence and the verdict (spec 011's
+    /// order): missing, SpO2's level, a Calibrating Baseline with its earlier Nights so far, or
+    /// the Zone against a formed Baseline (none for HRV against a Baseline of 0 or less).
+    private enum Reading {
+        case missing
+        case spo2(Zone?)
+        case calibrating(soFar: Int)
+        case zone(Zone?)
+
+        init(_ tile: MetricTile, value: Double?) {
+            if value == nil {
+                self = .missing
+            } else if tile.metric == .spo2 {
+                self = .spo2(tile.zone)
+            } else if let baseline = tile.comparedBaseline, !baseline.isCalibrating {
+                self = .zone(tile.zone)
+            } else {
+                self = .calibrating(soFar: tile.comparedBaseline?.earlierNights ?? 0)
+            }
+        }
+
+        /// The verdict sentence (spec 011): the difference and the Zone in words against a
+        /// Baseline, SpO2's level, how many earlier Nights a Calibrating Baseline has, or that
+        /// the value is missing.
+        func sentence(_ tile: MetricTile) -> String {
+            let name = tile.metric.name
+            switch self {
+            case .missing:
+                return "No \(name) for this Night."
+            case .spo2(let zone):
+                return switch zone {
+                case .inRange: "A healthy level."
+                case .watch: "A little low."
+                case .outOfRange: "Low."
+                case nil: missingText
+                }
+            case .calibrating(let soFar):
+                return "Calibrating: Serenix needs \(Baseline.minEarlierNights) earlier Nights "
+                    + "with \(name) to know what's usual for you (\(soFar) so far)."
+            case .zone(nil):
+                // No Zone, and so nothing to say.
+                return missingText
+            case .zone(let zone?):
+                let meaning =
+                    switch zone {
+                    case .inRange: "about usual for you."
+                    case .watch: "unusual for you."
+                    case .outOfRange: "well outside your usual."
+                    }
+                return "\(tile.differenceText) against your Baseline: \(meaning)"
+            }
+        }
+
+        /// The headline's verdict (spec 018): waiting "NO DATA." or "N TO GO." with the earlier
+        /// Nights a Calibrating Baseline still needs (spec 011's count), SpO2's level, or the
+        /// Zone; none without a Zone.
+        var verdict: Verdict? {
+            switch self {
+            case .missing:
+                Verdict(text: "NO DATA.", kind: .waiting)
+            case .calibrating(let soFar):
+                Verdict(text: "\(Baseline.minEarlierNights - soFar) TO GO.", kind: .waiting)
+            case .spo2(.inRange): Verdict(text: "HEALTHY.", kind: .state)
+            case .spo2(.watch): Verdict(text: "A BIT LOW.", kind: .state)
+            case .spo2(.outOfRange): Verdict(text: "LOW.", kind: .state)
+            case .zone(.inRange): Verdict(text: "ABOUT USUAL.", kind: .state)
+            case .zone(.watch): Verdict(text: "UNUSUAL.", kind: .state)
+            case .zone(.outOfRange): Verdict(text: "WAY OFF.", kind: .state)
+            case .spo2(nil), .zone(nil): nil
+            }
+        }
+    }
+}
+
+/// The Nightly Metric popup's Zone scale (spec 011): its segments, and where the value and the
+/// Baseline sit on it, 0 (left) to 1 (right).
+public struct MetricPopupScale: Equatable, Sendable {
+    /// Left to right; the same for every Night of a metric.
+    public let segments: [MetricPopupScaleSegment]
+    /// Where the value's marker sits, clamped to the ends.
+    public let valuePosition: Double
+    /// Always 0.5 where there's a Baseline; nil for SpO2.
+    public let baselinePosition: Double?
+    /// The Baseline tick's label, e.g. "Baseline 62", no unit; nil for SpO2.
+    public let baselineLabel: String?
+
+    /// Nil when the value has no Zone: missing or Calibrating.
+    init?(_ tile: MetricTile, value: Double?) {
+        guard tile.zone != nil, let value,
+            let position = Zone.scalePosition(
+                tile.metric,
+                value: value,
+                baseline: tile.comparedBaseline
+            )
+        else { return nil }
+        segments = Zone.scaleSegments(tile.metric)
+        valuePosition = position
+        baselinePosition = tile.metric.hasBaseline ? 0.5 : nil
+        baselineLabel = tile.baseline.map { "Baseline \(numberText(of: tile.metric, $0))" }
+    }
+}
+
+/// One Zone's stretch of the Zone scale.
+public struct MetricPopupScaleSegment: Equatable, Sendable {
+    public let zone: Zone
+    public let from: Double
+    public let to: Double
+}
+
+/// One date in the Nightly Metric popup's Last 14 Nights (spec 011).
+public struct MetricPopupBlock: Equatable, Sendable {
+    /// e.g. "S" for Sunday.
+    public let weekdayLetter: String
+    public let state: MetricPopupBlockState
+    /// True only for the Night shown's date, which is outlined.
+    public let isNightShown: Bool
+}
+
+/// What a block shows: its Night's Zone, a value with no Zone (Calibrating), or no value (no
+/// Night that date, or no value for the metric).
+public enum MetricPopupBlockState: Equatable, Sendable {
+    case zone(Zone)
+    case noZone
+    case noValue
+}
+
+/// One row of the Nightly Metric popup's Your Zones (spec 011).
+public struct MetricPopupZoneRow: Equatable, Sendable {
+    public let zone: Zone
+    /// The Zone's values, rounded as the metric's are shown, e.g. "41–48 ms, or above 87 ms".
+    public let rangeText: String
+    /// True for the Night's own Zone; with no value, no row is.
+    public let isThisNight: Bool
+    /// The Zone in words, "← this Night" after it on the Night's row, e.g. "Watch ← this Night".
+    public var nameText: String {
+        let name =
+            switch zone {
+            case .inRange: "In range"
+            case .watch: "Watch"
+            case .outOfRange: "Out of range"
+            }
+        return isThisNight ? "\(name) ← this Night" : name
+    }
+
+    /// In range, Watch and Out of range for `tile`'s metric (spec 011, Your Zones table); none
+    /// when its Zones have no edges.
+    static func rows(_ tile: MetricTile) -> [MetricPopupZoneRow] {
+        guard let edges = Zone.edges(tile.metric, baseline: tile.comparedBaseline),
+            let texts = rangeTexts(tile.metric, edges)
+        else { return [] }
+        return zip([Zone.inRange, .watch, .outOfRange], texts).map {
+            MetricPopupZoneRow(zone: $0, rangeText: $1, isThisNight: $0 == tile.zone)
+        }
+    }
+
+    /// The In range, Watch and Out of range texts; nil if an edge the metric needs is missing.
+    private static func rangeTexts(_ metric: NightlyMetric, _ edges: ZoneEdges) -> [String]? {
+        let (inLow, inHigh) = (edges.inRange.low, edges.inRange.high)
+        let (watchLow, watchHigh) = (edges.watch.low, edges.watch.high)
+        switch metric {
+        case .hrv:
+            guard let low = inLow.map(wholeText), let high = inHigh.map(wholeText),
+                let watch = watchLow.map(wholeText)
+            else { return nil }
+            return [
+                "\(low)–\(high) ms", "\(watch)–\(low) ms, or above \(high) ms", "under \(watch) ms",
+            ]
+        case .respiratoryRate:
+            guard let low = inLow.map(tenthsText), let high = inHigh.map(tenthsText),
+                let bottom = watchLow.map(tenthsText), let top = watchHigh.map(tenthsText)
+            else { return nil }
+            return [
+                "\(low)–\(high) br/min", "\(bottom)–\(low) or \(high)–\(top) br/min",
+                "under \(bottom) or above \(top) br/min",
+            ]
+        case .sleepingHR:
+            guard let high = inHigh.map(wholeText), let top = watchHigh.map(wholeText) else {
+                return nil
+            }
+            return ["under \(high) bpm", "\(high) to \(top) bpm", "\(top) bpm and up"]
+        case .skinTemperature:
+            guard let low = inLow.map(tenthsText), let high = inHigh.map(tenthsText),
+                let bottom = watchLow.map(tenthsText), let top = watchHigh.map(tenthsText)
+            else { return nil }
+            return [
+                "\(low) to \(high) °C", "\(bottom) to \(low) or \(high) to \(top) °C",
+                "under \(bottom) or above \(top) °C",
+            ]
+        case .spo2:
+            guard let from = inLow.map(wholeText), let watch = watchLow.map(wholeText) else {
+                return nil
+            }
+            return ["\(from)% and up", "\(watch)% to \(from)%", "under \(watch)%"]
+        }
+    }
+}
+
+/// The Load popup (spec 006): the Day's Load against typical Load, its time in each HR Zone, hour
+/// by hour, its Highest HR and the Max HR used, and on today the Live HR pill.
+public struct LoadPopup: Equatable, Sendable {
+    /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
+    public let dateText: String
+    /// As on Today's Load section.
+    public let loadText: String
+    /// "As of your last sync at 08:12" on today; nil on an earlier Day or before any sync.
+    public let lastSyncText: String?
+    /// e.g. "Typical: 45 · today +12", or "Typical Load after 4 Days (3 so far)".
+    public let typicalText: String
+    /// e.g. "A harder Day than usual": the Day's Load against typical Load (spec 006).
+    public let comparisonText: String
+    /// The headline's verdict, from the same bands as the sentence (spec 018): "EASIER DAY."
+    /// to "MUCH HARDER.", or waiting "LEARNING." / "NO LOAD.".
+    public let verdict: Verdict
+    /// How full the Load bar is, 0 to 1: the Day's Load on a bar from 0 to twice typical Load, its
+    /// marker at the middle (spec 006). 0 with the Day's Load missing; nil, no bar, with no
+    /// typical Load yet.
+    public let loadBarFill: Double?
+    /// Today only.
+    public let showsLiveHR: Bool
+    /// Why there are no HR Zones, Highest HR or Max HR used; nil when they're there.
+    public let note: String?
+    /// HR Zone 5 down to 1, hardest first; none when there's a note.
+    public let zoneRows: [LoadPopupZoneRow]
+    /// The bar split by HR Zone: each HR Zone with time in it, HR Zone 1 to 5, and its share of
+    /// the Day's time in HR Zones; none with no time in any, or when there's a note.
+    public let zoneMix: [LoadPopupZoneShare]
+    /// The Day's seconds in each HR Zone, hour by hour from local midnight; none when there's a
+    /// note.
+    public let hourlyZoneSeconds: [[HRZone: Int]]
+    /// e.g. "Highest HR 172 bpm at 18:40"; nil when there's a note.
+    public let highestHRText: String?
+    /// e.g. "Using Max HR 190 (entered)"; nil when there's a note.
+    public let maxHRText: String?
+
+    init(
+        _ dayLoad: DayLoad?,
+        loadText: String,
+        for day: Day,
+        isToday: Bool,
+        among dayLoads: [DayLoad],
+        lastSyncEnded: Date?,
+        timeZone: TimeZone
+    ) {
+        let load = dayLoad?.load
+        dateText = isToday ? "Today" : day.text
+        self.loadText = loadText
+        lastSyncText =
+            isToday
+            ? lastSyncEnded.map { "As of your last sync at \(clockText($0, in: timeZone))" } : nil
+        let typical = typicalLoad(for: day, among: dayLoads)
+        typicalText = Self.typicalText(typical, load: load, dayWord: isToday ? "today" : "that Day")
+        let comparison = Comparison(typical, load: load)
+        comparisonText = comparison.text
+        verdict = comparison.verdict
+        loadBarFill = Self.loadBarFill(typical, load: load)
+        showsLiveHR = isToday
+        let heartRate = dayLoad?.heartRate
+        note =
+            if dayLoad == nil || dayLoad?.missingReason == .noRecords {
+                "No heart rate recorded this Day"
+            } else if heartRate == nil {
+                "Heart rate zones aren't available for this Day"
+            } else {
+                nil
+            }
+        let zoneTotal = heartRate.map { $0.zoneSeconds.values.reduce(0, +) } ?? 0
+        zoneRows =
+            heartRate.map { heartRate in
+                HRZone.allCases.reversed().map { zone in
+                    LoadPopupZoneRow(zone, seconds: heartRate.zoneSeconds[zone] ?? 0, of: zoneTotal)
+                }
+            } ?? []
+        zoneMix = zoneRows.reversed().filter { $0.share > 0 }
+            .map { LoadPopupZoneShare(zone: $0.zone, share: $0.share) }
+        hourlyZoneSeconds = heartRate?.hourlyZoneSeconds ?? []
+        highestHRText = heartRate.map { heartRate in
+            let highest = heartRate.highestHR.map {
+                "\($0.bpm) bpm at \(clockText($0.time, in: timeZone))"
+            }
+            return "Highest HR \(highest ?? missingText)"
+        }
+        maxHRText = heartRate.map { heartRate in
+            let used = heartRate.maxHRUsed
+            let source =
+                switch used.source {
+                case .entered: "entered"
+                case .estimated: "estimated from your age"
+                }
+            return "Using Max HR \(Int(used.bpm.rounded())) (\(source))"
+        }
+    }
+
+    /// "Typical: 45 · today +12" ("−" below, "±0" equal), just "Typical: 45" with the Day's Load
+    /// missing, or how many Days there are so far while typical Load is calibrating.
+    private static func typicalText(_ typical: TypicalLoad, load: Int?, dayWord: String) -> String {
+        switch typical {
+        case .calibrating(let soFar):
+            return "Typical Load after \(TypicalLoad.minimumDays) Days (\(soFar) so far)"
+        case .value(let typical):
+            guard let load else { return "Typical: \(typical)" }
+            return "Typical: \(typical) \u{00B7} \(dayWord) \(signedText(load - typical))"
+        }
+    }
+
+    /// Load ÷ typical Load under which a Day is easier than usual (spec 006).
+    static let easierBelow = 0.8
+    /// Load ÷ typical Load from which a Day is harder than usual (spec 006).
+    static let harderFrom = 1.2
+    /// Load ÷ typical Load from which a Day is much harder than usual (spec 006).
+    static let muchHarderFrom = 1.5
+
+    /// Where the Day's Load sits against typical Load, in four bands of Load ÷ typical Load, or
+    /// why it can't be placed. With a typical Load of 0, a Load of 0 is usual and any other much
+    /// harder (spec 006's named assumption). No typical Load yet wins, even when the Day's Load is
+    /// missing too.
+    private enum Comparison {
+        case learning, noLoad, easier, usual, harder, muchHarder
+
+        init(_ typical: TypicalLoad, load: Int?) {
+            guard case .value(let typical) = typical else {
+                self = .learning
+                return
+            }
+            guard let load else {
+                self = .noLoad
+                return
+            }
+            let ratio =
+                typical > 0
+                ? Double(load) / Double(typical) : (load == 0 ? 1 : .infinity)
+            self =
+                switch ratio {
+                case ..<LoadPopup.easierBelow: .easier
+                case ..<LoadPopup.harderFrom: .usual
+                case ..<LoadPopup.muchHarderFrom: .harder
+                default: .muchHarder
+                }
+        }
+
+        /// The sentence (spec 006).
+        var text: String {
+            switch self {
+            case .learning: "Learning your typical Load"
+            case .noLoad: "No Load this Day"
+            case .easier: "An easier Day than usual"
+            case .usual: "About your usual Day"
+            case .harder: "A harder Day than usual"
+            case .muchHarder: "A much harder Day than usual"
+            }
+        }
+
+        /// The headline's verdict (spec 018): the sentence's band, or waiting.
+        var verdict: Verdict {
+            switch self {
+            case .learning: Verdict(text: "LEARNING.", kind: .waiting)
+            case .noLoad: Verdict(text: "NO LOAD.", kind: .waiting)
+            case .easier: Verdict(text: "EASIER DAY.", kind: .state)
+            case .usual: Verdict(text: "USUAL DAY.", kind: .state)
+            case .harder: Verdict(text: "HARDER DAY.", kind: .state)
+            case .muchHarder: Verdict(text: "MUCH HARDER.", kind: .state)
+            }
+        }
+    }
+
+    /// The Load bar runs from 0 to this many times typical Load, so typical sits at its middle
+    /// (spec 006).
+    static let loadBarSpan = 2
+    /// Where typical Load sits along the Load bar, 0 to 1: its middle (spec 006).
+    public static let typicalLoadTick = 1 / Double(loadBarSpan)
+
+    /// The Load bar's fill: the Day's Load over twice typical Load, full at that or more. With a
+    /// typical Load of 0, empty for a Load of 0 and full for any other.
+    private static func loadBarFill(_ typical: TypicalLoad, load: Int?) -> Double? {
+        guard case .value(let typical) = typical else { return nil }
+        guard let load, load > 0 else { return 0 }
+        guard typical > 0 else { return 1 }
+        return min(1, Double(load) / Double(loadBarSpan * typical))
+    }
+}
+
+/// One part of the Load popup's HR Zone mix bar: an HR Zone and its share of the Day's time in
+/// HR Zones, 0 to 1.
+public struct LoadPopupZoneShare: Equatable, Sendable {
+    public let zone: HRZone
+    public let share: Double
+}
+
+/// One HR Zone in the Load popup.
+public struct LoadPopupZoneRow: Equatable, Sendable {
+    public let zone: HRZone
+    /// e.g. "Zone 1 · 50–60%" (the popup heads these "How hard", beside the HR Zone mix bar, so
+    /// "Zone" alone is clear there).
+    public let label: String
+    /// Whole minutes: "42m" under an hour, "1h 05m" from an hour.
+    public let timeText: String
+    /// This HR Zone's share of the Day's time in HR Zones, 0 to 1; 0 with none.
+    public let share: Double
+
+    init(_ zone: HRZone, seconds: Int, of total: Int) {
+        self.zone = zone
+        let percent = { (share: Double) in Int((share * 100).rounded()) }
+        let edges = zone.shareRange
+        label =
+            "Zone \(zone.rawValue) \u{00B7} \(percent(edges.lower))\u{2013}\(percent(edges.upper))%"
+        let minutes = Int((Double(seconds) / 60).rounded())
+        timeText =
+            minutes < 60
+            ? "\(minutes)m" : "\(minutes / 60)h " + String(format: "%02ldm", minutes % 60)
+        share = total > 0 ? Double(seconds) / Double(total) : 0
+    }
+}
+
+/// The Resting HR popup (spec 011): the Day's Resting HR, its last 14 Days, and what it is.
+/// Resting HR has no Baseline or Zone, so there's no pill, scale or Your Zones.
+public struct RestingHRPopup: Equatable, Sendable {
+    /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
+    public let dateText: String
+    /// As on the tile, e.g. "57 bpm", or "—".
+    public let valueText: String
+    /// On today, that a stiller moment can still lower it; "No Resting HR for this Day." with
+    /// none; nil on an earlier Day with Resting HR.
+    public let sentenceText: String?
+    /// The Day shown and the 13 Days before it, oldest first.
+    public let blocks: [RestingHRPopupBlock]
+    /// The lowest Resting HR over those Days, in whole bpm; "—" when none has one.
+    public let lowestText: String
+    /// The highest Resting HR over those Days, in whole bpm; "—" when none has one.
+    public let highestText: String
+    /// What Resting HR is (spec 011, Text).
+    public let whatItIsText: String
+    /// What tends to move it, in order (spec 011, Text).
+    public let whatMovesItTexts: [String]
+
+    /// `restingHR` is the Day shown's, as its tile has it.
+    init(restingHR: Double?, for day: Day, isToday: Bool, among dayLoads: [DayLoad]) {
+        dateText = isToday ? "Today" : day.text
+        valueText = RestingHRTile.text(restingHR)
+        sentenceText =
+            if restingHR == nil {
+                "No Resting HR for this Day."
+            } else if isToday {
+                "So far today. A stiller moment later today can still lower it."
+            } else {
+                nil
+            }
+        let blockDays = day.lastDays(MetricPopup.blockDays)
+        let values = blockDays.map { blockDay in dayLoads.first { $0.day == blockDay }?.restingHR }
+        blocks = zip(blockDays, values).map { blockDay, value in
+            RestingHRPopupBlock(
+                weekdayLetter: blockDay.weekdayLetter,
+                hasValue: value != nil,
+                isDayShown: blockDay == day
+            )
+        }
+        let known = values.compactMap { $0 }
+        lowestText = RestingHRTile.text(known.min())
+        highestText = RestingHRTile.text(known.max())
+        whatItIsText = MetricTexts.restingHRWhatItIs
+        whatMovesItTexts = MetricTexts.restingHRWhatMovesIt
+    }
+}
+
+/// One Day in the Resting HR popup's Last 14 Days (spec 011).
+public struct RestingHRPopupBlock: Equatable, Sendable {
+    /// e.g. "S" for Sunday.
+    public let weekdayLetter: String
+    /// False for a Day with no Resting HR, drawn hatched.
+    public let hasValue: Bool
+    /// True only for the Day shown, which is outlined.
+    public let isDayShown: Bool
+}

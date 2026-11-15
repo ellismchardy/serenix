@@ -33,6 +33,8 @@ DerivedData/
 xcuserdata/
 *.ipa
 src/SerenixApp/Info.plist
+# SwiftPM on Windows writes the test resource bundle's plist to the package root
+/Info.plist
 
 # Bluetooth captures and phone diagnostics: they hold the Strap serial and raw health data
 *.pklg
