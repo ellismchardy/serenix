@@ -2,7 +2,7 @@ import SerenixCore
 import SwiftUI
 
 /// The sync pill that slides down over the top of the Today screen (spec 002, Sync pill):
-/// "Syncing" with a spinner and a purple outline while syncing, green ✓ when a sync finishes,
+/// "Syncing" with a spinner and an ink outline while syncing, green ✓ when a sync finishes,
 /// amber ⚠ when it's paused and red ✕ when it failed. 001's progress shows in the profile menu,
 /// not here. The Today view decides which; the screen decides
 /// how long it stays up.
@@ -16,9 +16,9 @@ struct SyncPillView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Theme.card, in: Capsule())
-        .overlay(Capsule().strokeBorder(colour.opacity(0.6)))
-        .shadow(radius: 6, y: 2)
+        .foregroundStyle(Poster.ink)
+        .background(Poster.paper)
+        .overlay(Rectangle().strokeBorder(colour, lineWidth: Poster.sectionRule))
         .accessibilityElement(children: .combine)
     }
 
@@ -34,10 +34,10 @@ struct SyncPillView: View {
 
     private var colour: Color {
         switch pill.kind {
-        case .syncing: Theme.accent
-        case .successful: .green
-        case .paused: .orange
-        case .failed: .red
+        case .syncing: Poster.ink
+        case .successful: Poster.green
+        case .paused: Poster.amber
+        case .failed: Poster.red
         }
     }
 }

@@ -375,42 +375,6 @@ func readinessShowsItsNumberAndBand(
     #expect(view.readinessBand == nil)
 }
 
-/// 2026-10-31T21:16:00Z.
-private let onsetOct31At2116 = Date(timeIntervalSince1970: 1_793_481_360)
-/// 2026-11-01T07:00:00Z.
-private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
-
-@Test func eachRingFillsToItsScoreOutOf100() {
-    let view = todayView(
-        // HRV 59 against 60 with Time Asleep 8 h, its Sleep Need: Readiness 67. Sleep Score
-        // (spec 010): Sleep Sufficiency 100; 8 h asleep in a 9 h 44 m Sleep Period (21:16 to
-        // 07:00) is 82.19%, so Sleep Efficiency 35.96; 0.75 × 100 + 0.25 × 35.96 = 83.99, so 84.
-        nights: calibratedNightsBeforeNov1 + [
-            Night(
-                day: nov1,
-                sleepingHR: 50,
-                hrv: 59,
-                sleepOnset: onsetOct31At2116,
-                finalWake: finalWakeNov1At0700,
-                timeAsleep: 28_800
-            )
-        ],
-        showing: nov1
-    )
-
-    #expect(view.sleepScoreFill == 0.84)
-    #expect(view.readinessFill == 0.67)
-    #expect(view.loadFill == 0.05)
-}
-
-@Test func aRingWithAMissingScoreIsEmpty() {
-    let view = todayView(nights: [Night(day: nov1)], dayLoads: [], showing: nov1)
-
-    #expect(view.sleepScoreFill == 0)
-    #expect(view.readinessFill == 0)
-    #expect(view.loadFill == 0)
-}
-
 // MARK: Readiness Calibrating
 
 @Test func readinessIsCalibratingUntilThreeEarlierNightsFormBothBaselines() {
@@ -423,7 +387,6 @@ private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
     )
     #expect(twoEarlier.readinessText == "3/4")
     #expect(twoEarlier.readinessBand == nil)
-    #expect(twoEarlier.readinessFill == 0)
 
     let threeEarlier = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
     #expect(threeEarlier.readinessText == "80")
@@ -438,7 +401,6 @@ private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
 
     #expect(view.readinessText == "1/4")
     #expect(view.readinessBand == nil)
-    #expect(view.readinessFill == 0)
 }
 
 @Test func calibratingCountsNightsByTheMetricWithFewestEarlierValues() {
@@ -449,6 +411,64 @@ private let finalWakeNov1At0700 = Date(timeIntervalSince1970: 1_793_516_400)
 
     #expect(view.readinessText == "2/4")
     #expect(view.readinessBand == nil)
+}
+
+// MARK: Readiness verdict (spec 018)
+
+/// HRV, Sleeping HR and Time Asleep (seconds) against Baselines of 60 ms and 50 bpm and Sleep
+/// Need 8 h, giving Readiness 67 (Ready), 66 (Steady) and 33 (Take it easy) as in
+/// `readinessShowsItsNumberAndBand` (spec 008).
+@Test(
+    arguments: [
+        (59, 50, 28_800, ReadinessBand.ready, "GO HARD."),
+        (60, 50, 27_000, .steady, "HOLD STEADY."),
+        (51, 50, 25_200, .takeItEasy, "EASE OFF."),
+    ] as [(Double, Double, TimeInterval, ReadinessBand, String)]
+)
+func eachReadinessBandGivesItsStateVerdict(
+    hrv: Double,
+    sleepingHR: Double,
+    timeAsleep: TimeInterval,
+    band: ReadinessBand,
+    text: String
+) {
+    let shown = Night(day: nov1, sleepingHR: sleepingHR, hrv: hrv, timeAsleep: timeAsleep)
+    let view = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
+
+    #expect(view.readinessBand == band)
+    #expect(view.readinessVerdict == Verdict(text: text, kind: .state))
+}
+
+@Test func calibratingReadinessGivesAWaitingVerdictWithTheNightsStillNeeded() {
+    // One earlier Sleeping HR: 2 of 4 Nights so far, so 2 to go.
+    let nights =
+        nightsBeforeNov1(hrv: [60, 60, 60], sleepingHR: [50])
+        + [Night(day: nov1, sleepingHR: 50, hrv: 60)]
+    let view = todayView(nights: nights, showing: nov1)
+
+    #expect(view.readinessText == "2/4")
+    #expect(view.readinessVerdict == Verdict(text: "2 TO GO.", kind: .waiting))
+}
+
+@Test(arguments: [nil, 0] as [Double?])
+func aNightWithoutHRVGivesTheWaitingVerdictNoHRV(hrv: Double?) {
+    let shown = Night(day: nov1, sleepingHR: 50, hrv: hrv, timeAsleep: 28_800)
+    let view = todayView(nights: calibratedNightsBeforeNov1 + [shown], showing: nov1)
+
+    #expect(view.readinessVerdict == Verdict(text: "NO HRV.", kind: .waiting))
+}
+
+@Test func todayWithoutANightGivesTheWaitingVerdictNoNight() {
+    // Three earlier Nights, so Readiness on 1 Nov is past Calibrating; only the Night is absent.
+    let view = todayView(nights: calibratedNightsBeforeNov1, showing: nov1)
+
+    #expect(view.readinessVerdict == Verdict(text: "NO NIGHT.", kind: .waiting))
+}
+
+@Test func anEarlierDayWithoutANightGivesTheWaitingVerdictNoNight() {
+    let view = todayView(nights: nightsOct30AndNov1, showing: oct31)
+
+    #expect(view.readinessVerdict == Verdict(text: "NO NIGHT.", kind: .waiting))
 }
 
 // MARK: Baseline (through the HRV tile)
@@ -1805,6 +1825,82 @@ func spo2PopupVerdictSaysItsLevelInWords(spo2: Double, status: String, verdict: 
     #expect(sleepingHR != nil && sleepingHR?.zone == nil)
 }
 
+// MARK: Nightly Metric popup verdict (spec 018)
+
+/// HRV against a formed Baseline of 0 has no Zone (spec 011), so no verdict rather than a wrong
+/// one (spec 018, user story 5).
+@Test func anHRVPopupWithNoZoneAgainstAFormedBaselineHasNoVerdict() {
+    let shown = Night(day: nov1, hrv: 62)
+    let view = todayView(nights: nightsBeforeNov1(hrv: [0, 0, 0]) + [shown], showing: nov1)
+
+    #expect(view.metricPopup(.hrv)?.valueText == "62 ms")
+    #expect(view.metricPopup(.hrv)?.verdict == nil)
+}
+
+// HRV against a Baseline of 60 with a typical Spread (0.15), as in
+// `hrvZoneAgainstABaselineOf60`: 48 is In range (z = −1.49), 45 is Watch (z = −1.92), and 40 is
+// Out of range (z = ln(40 / 60) / 0.15 = −2.70).
+@Test(
+    arguments: [
+        (48, "ABOUT USUAL."),
+        (45, "UNUSUAL."),
+        (40, "WAY OFF."),
+    ] as [(Double, String)]
+)
+func eachNightlyMetricZoneGivesItsStateVerdict(hrv: Double, text: String) {
+    let popup = todayView(
+        nights: exactBaselinesBeforeNov1 + [Night(day: nov1, hrv: hrv)],
+        showing: nov1
+    ).metricPopup(.hrv)
+
+    #expect(popup?.verdict == Verdict(text: text, kind: .state))
+}
+
+// SpO2's fixed levels (spec 004): In range from 95%, Watch from 92%, Out of range below. SpO2 has
+// no Baseline, so a first Night already has a Zone and a verdict.
+@Test(
+    arguments: [
+        (97, "HEALTHY."),
+        (93, "A BIT LOW."),
+        (90, "LOW."),
+    ] as [(Double, String)]
+)
+func eachSpO2ZoneGivesItsStateVerdict(spo2: Double, text: String) {
+    let popup = todayView(nights: [Night(day: nov1, spo2: spo2)], showing: nov1)
+        .metricPopup(.spo2)
+
+    #expect(popup?.verdict == Verdict(text: text, kind: .state))
+}
+
+// A Baseline needs 3 earlier Nights with the metric (spec 004), so N is 3 less those so far.
+@Test(
+    arguments: [
+        ([], "3 TO GO."),
+        ([60], "2 TO GO."),
+        ([60, 60], "1 TO GO."),
+    ] as [([Double?], String)]
+)
+func aCalibratingMetricPopupGivesAWaitingVerdictWithTheNightsStillNeeded(
+    earlierHRV: [Double?],
+    text: String
+) {
+    let nights = nightsBeforeNov1(hrv: earlierHRV) + [Night(day: nov1, hrv: 60)]
+    let popup = todayView(nights: nights, showing: nov1).metricPopup(.hrv)
+
+    #expect(popup?.verdict == Verdict(text: text, kind: .waiting))
+}
+
+@Test func aMetricPopupMissingItsValueGivesTheWaitingVerdictNoData() {
+    let view = todayView(nights: exactBaselinesBeforeNov1 + [Night(day: nov1)], showing: nov1)
+
+    #expect(view.metricPopup(.hrv)?.verdict == Verdict(text: "NO DATA.", kind: .waiting))
+    #expect(view.metricPopup(.spo2)?.verdict == Verdict(text: "NO DATA.", kind: .waiting))
+
+    // Missing comes before Calibrating: no earlier Nights either.
+    let firstNight = todayView(nights: [Night(day: nov1, spo2: 97)], showing: nov1)
+    #expect(firstNight.metricPopup(.hrv)?.verdict == Verdict(text: "NO DATA.", kind: .waiting))
+}
+
 // Spec 011: the Zone scale. Positions are quoted to 4 dp in the spec, so they're compared within
 // 0.00005.
 
@@ -2459,53 +2555,7 @@ private let restingHRDayLoadsOct5ToNov1: [DayLoad] =
     #expect(view.pickerRange == nov1...nov1)
 }
 
-// MARK: Greeting and Profile
-
-/// A time on 1 Nov 2026, London, where local time equals UTC.
-private func onNov1(_ hour: Int, _ minute: Int) -> Date {
-    // 2026-11-01T00:00:00Z.
-    Date(timeIntervalSince1970: 1_793_491_200 + Double(hour * 3600 + minute * 60))
-}
-
-@Test(arguments: [
-    (5, 0, "Good morning!"),
-    (8, 12, "Good morning!"),
-    (11, 59, "Good morning!"),
-    (12, 0, "Good afternoon!"),
-    (17, 59, "Good afternoon!"),
-    (18, 0, "Good evening!"),
-    (4, 59, "Good evening!"),
-])
-func theGreetingFitsTheLocalTimeOfDayWithTheProfileNameUnderIt(
-    hour: Int,
-    minute: Int,
-    greeting: String
-) {
-    let view = todayView(
-        nights: [],
-        showing: nov1,
-        at: onNov1(hour, minute),
-        profileName: "Ellis"
-    )
-
-    #expect(view.greeting == greeting)
-    #expect(view.greetingName == "Ellis")
-}
-
-@Test func anEarlierDayHasTheSameGreetingAndName() {
-    let view = todayView(nights: [], showing: oct31, at: onNov1(8, 12), profileName: "Ellis")
-
-    #expect(view.greeting == "Good morning!")
-    #expect(view.greetingName == "Ellis")
-}
-
-@Test(arguments: [nil, "   "] as [String?])
-func withoutAProfileNameTheGreetingStandsAlone(profileName: String?) {
-    let view = todayView(nights: [], showing: nov1, at: onNov1(8, 12), profileName: profileName)
-
-    #expect(view.greeting == "Good morning!")
-    #expect(view.greetingName == nil)
-}
+// MARK: Profile
 
 @Test func theAvatarLetterIsTheProfileNamesFirstLetterUpperCased() {
     let view = todayView(nights: [], showing: nov1, profileName: "ellis")

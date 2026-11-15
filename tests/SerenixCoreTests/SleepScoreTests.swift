@@ -68,11 +68,10 @@ private func earlierNights(_ timesAsleep: [TimeInterval]) -> [Night] {
 
 // MARK: Score and Sleep Sufficiency
 
-@Test func theDefaultNightReads100WithTheRingFull() {
+@Test func theDefaultNightReads100() {
     let view = todayView(nights: [nightOn15Nov()])
 
     #expect(view.sleepScoreText == "100")
-    #expect(view.sleepScoreFill == 1.0)
 }
 
 @Test func sixHoursAsleepAgainstASleepNeedOf8HoursReads81() {
@@ -81,11 +80,10 @@ private func earlierNights(_ timesAsleep: [TimeInterval]) -> [Night] {
     #expect(view.sleepScoreText == "81")
 }
 
-@Test func timeAsleep7Hours36Reads96AndTheRingFillsTo096() {
+@Test func timeAsleep7Hours36Reads96() {
     let view = todayView(nights: [nightOn15Nov(timeAsleep: 7 * oneHour + 36 * oneMinute)])
 
     #expect(view.sleepScoreText == "96")
-    #expect(view.sleepScoreFill == 0.96)
 }
 
 @Test func aSleepNeedRaisedTo9HoursLowersSleepSufficiency() {
@@ -245,11 +243,10 @@ private let usualEarlierNights = [14, 13, 12].map { day in
 
 // MARK: Missing and where it shows
 
-@Test func aNightWithNoTimeAsleepHasNoSleepScoreAndAnEmptyRing() {
+@Test func aNightWithNoTimeAsleepHasNoSleepScore() {
     let view = todayView(nights: [nightOn15Nov(timeAsleep: nil)])
 
     #expect(view.sleepScoreText == "\u{2014}")
-    #expect(view.sleepScoreFill == 0)
 }
 
 @Test func theReadinessPopupsSleepScoreRowShowsTheNightsSleepScore() {
@@ -474,6 +471,26 @@ private func part(_ name: String, of view: TodayView) -> SleepScorePart? {
 
     #expect(popup != nil)
     #expect(popup?.whenYouSleptNote == nil)
+}
+
+// MARK: Sleep popup verdict (spec 018, Popups and Verdicts)
+
+@Test func sixHoursAsleepReading81GivesTheSleepPopupTheVerdictStrongNight() {
+    let popup = todayView(
+        nights: [nightOn15Nov(finalWake: at(15, 5, 18), timeAsleep: 6 * oneHour)]
+    )
+    .sleepPopup
+
+    #expect(popup?.sleepScoreText == "81")
+    #expect(popup?.verdict == Verdict(text: "STRONG NIGHT.", kind: .state))
+}
+
+@Test func withNoTimeAsleepTheSleepPopupHasNoVerdict() {
+    let popup = todayView(nights: [nightOn15Nov(timeAsleep: nil)]).sleepPopup
+
+    #expect(popup != nil)
+    #expect(popup?.sleepScoreText == "\u{2014}")
+    #expect(popup?.verdict == nil)
 }
 
 /// `share` of the axis to 3 decimal places, as spec 010 states timeline positions.

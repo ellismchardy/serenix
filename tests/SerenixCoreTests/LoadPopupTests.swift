@@ -464,6 +464,90 @@ func theSentenceAgainstTypicalLoadZero(load: Int, sentence: String) {
     #expect(view.loadPopup?.comparisonText == sentence)
 }
 
+// MARK: The verdict
+
+// The Load verdict (spec 018, Verdicts) follows spec 006's sentence bands of Load ÷ typical Load:
+// under 0.8 "EASIER DAY.", 0.8 to under 1.2 "USUAL DAY.", 1.2 to under 1.5 "HARDER DAY.", 1.5
+// and over "MUCH HARDER."; waiting "LEARNING." with no typical Load, "NO LOAD." with no Load.
+
+@Test(
+    "Against typical Load 50, the verdict names the Day's band",
+    arguments: [
+        (39, "EASIER DAY."),  // 0.78
+        (40, "USUAL DAY."),  // 0.8 exactly
+        (59, "USUAL DAY."),  // 1.18
+        (60, "HARDER DAY."),  // 1.2 exactly
+        (74, "HARDER DAY."),  // 1.48
+        (75, "MUCH HARDER."),  // 1.5 exactly
+        (120, "MUCH HARDER."),  // 2.4
+    ]
+)
+func theVerdictNamesTheDaysLoadBandAgainstTypicalLoad(load: Int, verdict: String) {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: load, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.verdict == Verdict(text: verdict, kind: .state))
+}
+
+@Test func withFewerThan4DaysTheVerdictIsWaitingLearning() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 57, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.verdict == Verdict(text: "LEARNING.", kind: .waiting))
+}
+
+@Test func withFewerThan4DaysAndTheDaysLoadMissingTheVerdictIsStillWaitingLearning() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.verdict == Verdict(text: "LEARNING.", kind: .waiting))
+}
+
+@Test func aDayWithItsLoadMissingHasTheWaitingNoLoadVerdict() {
+    let view = todayView(
+        dayLoads: typicalLoadBeforeNov1(50) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.verdict == Verdict(text: "NO LOAD.", kind: .waiting))
+}
+
+// MARK: The Day's Load while typical Load is learned
+
+// Spec 006: the popup always shows the Day's Load; with no bar while typical Load is learned,
+// the headline's number carries it (spec 018).
+
+@Test func withFewerThan4DaysThePopupStillShowsTheDaysLoadWithNoBar() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: 40, heartRate: heartRate())
+        ]
+    )
+
+    #expect(view.loadPopup?.loadText == "40")
+    #expect(view.loadPopup?.loadBarFill == nil)
+}
+
+@Test func withFewerThan4DaysAMissingLoadShowsADash() {
+    let view = todayView(
+        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
+            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
+        ]
+    )
+
+    #expect(view.loadPopup?.loadText == "\u{2014}")
+}
+
 // MARK: The Load bar
 
 @Test(
@@ -545,37 +629,4 @@ func theLoadBarAgainstTypicalLoadZero(load: Int, fill: Double) {
     #expect(popup.comparisonText == "About your usual Day")
     #expect(popup.typicalText == "Typical: 50 · today −10")
     #expect(popup.loadBarFill == 0.4)
-}
-
-// MARK: The Day's Load while typical Load is learned
-
-@Test func withFewerThan4DaysTheDaysLoadShowsAsANumber() {
-    let view = todayView(
-        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
-            DayLoad(day: nov1, load: 40, heartRate: heartRate())
-        ]
-    )
-
-    #expect(view.loadPopup?.learningLoadText == "Load 40")
-}
-
-@Test func withFewerThan4DaysAMissingLoadShowsADash() {
-    let view = todayView(
-        dayLoads: Array(typicalLoadBeforeNov1(50).dropFirst()) + [
-            DayLoad(day: nov1, load: nil, missingReason: .noRecords)
-        ]
-    )
-
-    #expect(view.loadPopup?.learningLoadText == "Load —")
-}
-
-@Test func withATypicalLoadTheDaysLoadDoesNotShowAsANumber() throws {
-    let view = todayView(
-        dayLoads: typicalLoadBeforeNov1(50) + [
-            DayLoad(day: nov1, load: 40, heartRate: heartRate())
-        ]
-    )
-    let popup = try #require(view.loadPopup)
-
-    #expect(popup.learningLoadText == nil)
 }

@@ -60,7 +60,8 @@ no History Records. The popup slides up and closes like spec 002's popups.
      over 0 and empty for 0.
    - **The Day's Load while typical Load is learned**: with no typical Load yet, in place of the
      bar, the Day's Load as a large number, "Load 40" ("Load —" with it missing), so the popup
-     always shows the Day's Load.
+     always shows the Day's Load (superseded by spec 018: the headline's number takes the place
+     of "Load 40").
    - On today, "As of your last sync at 08:12" (the time the last History Sync ended, local
      time).
 3. **How hard**: one bar split by the Day's time in each HR Zone, HR Zone 1 to 5 left to right,

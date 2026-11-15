@@ -23,12 +23,14 @@ struct WeighInList: View {
                             .monospacedDigit()
                     }
                 }
-                .foregroundStyle(.primary)
+                .foregroundStyle(Poster.ink)
             }
             .onDelete { offsets in
                 for index in offsets { store.delete(rows[index].id) }
             }
+            .posterRows()
         }
+        .posterForm()
         .navigationTitle("Weigh-ins")
         .sheet(item: $editing) { row in
             WeighInSheet(units: units, editing: row.weighIn, lastWeight: row.weighIn.kilograms) {

@@ -95,6 +95,7 @@ struct FoodTargetsSheet: View {
                 } footer: {
                     Text("Leave it blank for no Calorie Target.")
                 }
+                .posterRows()
                 Section {
                     TextField(placeholder("Protein", suggestion?.protein), text: $proteinText)
                         .keyboardType(.decimalPad)
@@ -110,6 +111,7 @@ struct FoodTargetsSheet: View {
                 } footer: {
                     Text("Leave protein or fat blank to use the suggestion. Carbs fill the rest.")
                 }
+                .posterRows()
                 Section {
                     // How Expenditure was worked out (spec 017): the logged data's figure.
                     if let windowFigure = figures.windowFigure {
@@ -118,11 +120,12 @@ struct FoodTargetsSheet: View {
                             value: "~\(Self.whole(windowFigure)) kcal a Day"
                         )
                     }
-                    Picker("Activity Level", selection: $activityLevel) {
-                        ForEach(ActivityLevel.allCases, id: \.self) { level in
-                            Text(Self.label(level)).tag(level)
-                        }
-                    }
+                    // The four Activity Levels as a segmented bar (spec 018, Targets sheet).
+                    SegmentedBar(
+                        options: ActivityLevel.allCases.map { (value: $0, label: Self.label($0)) },
+                        selection: $activityLevel,
+                        label: "Activity Level"
+                    )
                 } header: {
                     Text("Expenditure")
                 } footer: {
@@ -135,6 +138,7 @@ struct FoodTargetsSheet: View {
                         )
                     }
                 }
+                .posterRows()
                 // The Adapt switch (spec 017): the typed Calorie Target is kept for when it's off.
                 Section {
                     Toggle("Adapt my Calorie Target", isOn: $adaptsCalorieTarget)
@@ -143,6 +147,7 @@ struct FoodTargetsSheet: View {
                         "Uses the suggested Calorie Target each Day. Your own Calorie Target is kept for when it's off, or while there's no suggestion."
                     )
                 }
+                .posterRows()
                 // The suggestion, and the floor message when the Pace can't be met (spec 017).
                 if let suggestedCalorieTarget = figures.suggestedCalorieTarget {
                     Section("Suggested Calorie Target") {
@@ -154,39 +159,45 @@ struct FoodTargetsSheet: View {
                                 value: "~\(Self.whole(expenditure)) kcal a Day"
                             )
                         }
-                        LabeledContent(
-                            "For your Pace",
-                            value: "\(Self.whole(suggestedCalorieTarget)) kcal a Day"
-                        )
+                        // The suggestion as a large number (spec 018, Targets sheet).
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Self.whole(suggestedCalorieTarget))
+                                .font(Poster.headlineFont(size: 40))
+                                .foregroundStyle(Poster.ink)
+                            Text("kcal a Day · for your Pace")
+                                .font(Poster.labelFont)
+                                .foregroundStyle(Poster.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
                         if figures.paceNotSafelyReachable {
                             Text(
                                 "Your Pace needs less than is safe at this Expenditure, so this is the lowest Serenix suggests."
                             )
                             .font(.footnote)
-                            .foregroundStyle(Color.orange)
+                            .foregroundStyle(Poster.amber)
                             if let easierGoal {
                                 Button(easierGoal.label) {
                                     easierGoal.apply()
                                     dismiss()
                                 }
+                                .buttonStyle(BlockButtonStyle(outlined: true))
                             } else {
                                 Button("Change my Pace") {
                                     changePace()
                                     dismiss()
                                 }
+                                .buttonStyle(BlockButtonStyle(outlined: true))
                             }
                         }
                     }
+                    .posterRows()
                 }
                 if let message = calorieRefusal?.message ?? overrideRefusal?.message {
-                    Text(message).foregroundStyle(.red)
+                    Text(message).foregroundStyle(Poster.red).posterRows()
                 }
-            }
-            .navigationTitle("Targets")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                SheetActions(
+                    saveDisabled: calorieRefusal != nil || overrideRefusal != nil || unreadable,
+                    save: {
                         save(
                             FoodTargets(
                                 calorieTarget: calorieTarget,
@@ -199,8 +210,12 @@ struct FoodTargetsSheet: View {
                         )
                         dismiss()
                     }
-                    .disabled(calorieRefusal != nil || overrideRefusal != nil || unreadable)
-                }
+                )
+            }
+            .posterForm()
+            .navigationTitle("Targets")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
         }
     }

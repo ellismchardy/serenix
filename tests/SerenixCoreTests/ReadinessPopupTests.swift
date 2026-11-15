@@ -278,6 +278,20 @@ private func expectGauge(_ position: Double?, isAbout expected: Double) {
     #expect(popup != nil && popup?.sleepScoreText != nil)
 }
 
+// MARK: Verdict (spec 018)
+
+@Test func thePopupCarriesTheSameVerdictAsTheTodayHeadline() {
+    let usual = readinessView(for: nightOn15Nov())
+    #expect(usual.readinessPopup?.band == .ready)
+    #expect(usual.readinessPopup?.verdict == Verdict(text: "GO HARD.", kind: .state))
+
+    let calibrating = readinessView(for: nightOn15Nov(), earlierNights: 1)
+    #expect(calibrating.readinessPopup?.verdict == Verdict(text: "2 TO GO.", kind: .waiting))
+
+    let noHRV = readinessView(for: nightOn15Nov(hrv: nil))
+    #expect(noHRV.readinessPopup?.verdict == Verdict(text: "NO HRV.", kind: .waiting))
+}
+
 // MARK: Band scale
 
 private func expectScale(_ popup: ReadinessPopup?) {

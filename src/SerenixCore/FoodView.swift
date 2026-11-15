@@ -28,6 +28,9 @@ public struct FoodView: Equatable, Sendable {
     public let macroWarning: MacroWarning?
     /// A Calorie Target is set but there's no Trend Weight yet, so a Weigh-in is needed.
     public let needsWeighIn: Bool
+    /// The Intake headline's verdict (spec 018): against the Calorie Target that applies, once
+    /// the Day is complete or past; waiting while today is still being logged or nothing is.
+    public let intakeVerdict: Verdict
     /// The user's Expenditure, kcal a Day; nil when there's no starting estimate (spec 017).
     public let expenditure: Double?
     /// Where Expenditure comes from; nil with no Expenditure.
@@ -54,7 +57,8 @@ public struct FoodView: Equatable, Sendable {
 
     /// Each Food Entry counts on the local Day of its time in `timeZone`, as Weigh-ins do.
     /// `completeDays` are the Days the user marked complete. Macro Targets use today's Trend
-    /// Weight, worked out by the Body view from `weighIns`, so the two never disagree.
+    /// Weight, worked out by the Body view from `weighIns`, so the two never disagree. `today` is
+    /// the phone's today, for the Intake verdict; nil treats the Day shown as a past Day.
     public init(
         foodEntries: [FoodEntry],
         completeDays: Set<Day> = [],
@@ -65,6 +69,7 @@ public struct FoodView: Equatable, Sendable {
         birthYear: Int? = nil,
         sex: Sex? = nil,
         day: Day,
+        today: Day? = nil,
         timeZone: TimeZone
     ) {
         self.day = day
@@ -173,6 +178,12 @@ public struct FoodView: Equatable, Sendable {
             macroWarning = nil
         }
         needsWeighIn = calorieTarget != nil && trendWeight == nil
+        intakeVerdict = .intake(
+            intake.kilocalories,
+            hasEntries: !entries.isEmpty,
+            calorieTarget: calorieTarget,
+            isStillLogging: day == today && !isComplete
+        )
     }
 
     /// The suggested Macro Targets (no overrides) at `calorieTarget`, from today's Trend Weight:

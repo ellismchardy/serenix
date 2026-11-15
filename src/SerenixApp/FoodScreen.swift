@@ -34,74 +34,60 @@ struct FoodScreen: View {
         // One snapshot of the stored rows: the view gets their entries, and its entry positions
         // index back into this same array, so the two can't fall out of step.
         let rows = store.rows
-        let view = foodView(rows, day: pickedDay ?? today, targets: store.targets)
-        VStack(alignment: .leading, spacing: 12) {
-            DatePicker(
-                "Day",
-                selection: Binding(
-                    get: { view.day.midday(in: .current) },
-                    // Picking today goes back to following today.
-                    set: {
-                        let picked = Day(containing: $0, in: .current)
-                        pickedDay = picked == today ? nil : picked
-                    }
-                ),
-                in: ...Date(),
-                displayedComponents: .date
-            )
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(Self.whole(view.intake.kilocalories)) kcal")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                // Against the Calorie Target, when there is one (spec 016, Screen).
-                if let target = view.calorieTarget, let balance = view.calorieBalance {
-                    Text("of \(Self.whole(target)) kcal · \(Self.balanceText(balance))")
-                        .font(.headline)
-                        .foregroundStyle(Self.isOver(balance) ? Color.orange : Color.secondary)
-                }
-                // Expenditure and where it came from (spec 017, Screen).
-                if let expenditure = view.expenditure, let source = view.expenditureSource {
-                    Text(
-                        "Expenditure ~\(Self.whole(expenditure)) kcal · \(Self.sourceText(source))"
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-                Text(
-                    "Protein \(Self.whole(view.intake.protein)) g · Fat \(Self.whole(view.intake.fat)) g · Carbs \(Self.whole(view.intake.carbs)) g"
+        let view = foodView(rows, day: pickedDay ?? today, today: today, targets: store.targets)
+        VStack(alignment: .leading, spacing: 24) {
+            RuledRow {
+                DatePicker(
+                    "Day",
+                    selection: Binding(
+                        get: { view.day.midday(in: .current) },
+                        // Picking today goes back to following today.
+                        set: {
+                            let picked = Day(containing: $0, in: .current)
+                            pickedDay = picked == today ? nil : picked
+                        }
+                    ),
+                    in: ...Date(),
+                    displayedComponents: .date
                 )
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Poster.ink)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .themeCard()
-            macroCard(view)
-            if view.entries.isEmpty {
-                Text("Nothing logged on this Day.").foregroundStyle(.secondary)
-            }
+            intakeHeadline(view)
+            macroSection(view)
             // Only a Day with a Food Entry can be marked complete (spec 016).
             if view.canBeMarkedComplete {
-                Toggle(
-                    "Day complete",
-                    isOn: Binding(
-                        get: { view.isComplete },
-                        set: { store.setComplete($0, on: view.day) }
+                RuledRow {
+                    Toggle(
+                        "Day complete",
+                        isOn: Binding(
+                            get: { view.isComplete },
+                            set: { store.setComplete($0, on: view.day) }
+                        )
                     )
-                )
-                .padding()
-                .themeCard()
-            }
-            // Tap to edit or delete; holding also offers Delete (spec 016: any Food Entry can be
-            // edited or deleted).
-            ForEach(view.entryIndices.map { rows[$0] }) { row in
-                Button {
-                    editing = row
-                } label: {
-                    entryRow(row.entry)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Poster.ink)
+                    .tint(Poster.ink)
                 }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button("Delete", role: .destructive) { store.delete(row.id) }
+            }
+            RuledSection(name: "Food Entries") {
+                if view.entries.isEmpty {
+                    Text("Nothing logged on this Day.")
+                        .font(.subheadline)
+                        .foregroundStyle(Poster.secondary)
+                }
+                // Tap to edit or delete; holding also offers Delete (spec 016: any Food Entry
+                // can be edited or deleted).
+                ForEach(view.entryIndices.map { rows[$0] }) { row in
+                    Button {
+                        editing = row
+                    } label: {
+                        entryRow(row.entry)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Delete", role: .destructive) { store.delete(row.id) }
+                    }
                 }
             }
             Button {
@@ -109,8 +95,7 @@ struct FoodScreen: View {
             } label: {
                 Label("Log a Food Entry", systemImage: "plus")
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.accent)
+            .buttonStyle(BlockButtonStyle(colour: Poster.red))
         }
         .toolbar {
             Button {
@@ -137,6 +122,7 @@ struct FoodScreen: View {
                     return foodView(
                         rows,
                         day: view.day,
+                        today: today,
                         targets: FoodTargets(
                             calorieTarget: targets.calorieTarget,
                             proteinOverride: targets.proteinOverride,
@@ -184,31 +170,78 @@ struct FoodScreen: View {
 
     /// One Food Entry: its time and name, calories, and the macros it has.
     private func entryRow(_ entry: FoodEntry) -> some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.name ?? "Food Entry").font(.headline)
-                Text(entry.time.formatted(date: .omitted, time: .shortened))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(Self.whole(entry.kilocalories)) kcal")
-                let macros = [("P", entry.protein), ("F", entry.fat), ("C", entry.carbs)]
-                    .compactMap { label, grams in grams.map { "\(label) \(Self.whole($0)) g" } }
-                if !macros.isEmpty {
-                    Text(macros.joined(separator: " · "))
+        RuledRow {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.name ?? "Food Entry")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Poster.ink)
+                    Text(entry.time.formatted(date: .omitted, time: .shortened))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Poster.secondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(Self.whole(entry.kilocalories)) kcal")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Poster.ink)
+                    let macros = [("P", entry.protein), ("F", entry.fat), ("C", entry.carbs)]
+                        .compactMap { label, grams in
+                            grams.map { "\(label) \(Self.whole($0)) g" }
+                        }
+                    if !macros.isEmpty {
+                        Text(macros.joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(Poster.secondary)
+                    }
                 }
             }
+            .contentShape(Rectangle())
         }
-        .padding()
-        .themeCard()
     }
 
-    /// The Food view for `day` with `targets`, from the stored rows, Weigh-ins and Profile.
-    private func foodView(_ rows: [FoodEntryRow], day: Day, targets: FoodTargets) -> FoodView {
+    /// The Day's Intake as the headline with its verdict, then its caption lines: against the
+    /// Calorie Target ("N over" in amber), Expenditure and where it came from, and the macros;
+    /// then a red bar toward the Calorie Target (spec 018, Food).
+    private func intakeHeadline(_ view: FoodView) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            PosterHeadline(
+                number: Self.whole(view.intake.kilocalories),
+                unit: "kcal",
+                verdict: view.intakeVerdict,
+                size: Poster.bodyHeadlineSize
+            )
+            // Against the Calorie Target, when there is one (spec 016, Screen).
+            if let target = view.calorieTarget, let balance = view.calorieBalance {
+                Text("of \(Self.whole(target)) kcal · \(Self.balanceText(balance))")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Self.isOver(balance) ? Poster.amber : Poster.ink)
+            }
+            // Expenditure and where it came from (spec 017, Screen).
+            if let expenditure = view.expenditure, let source = view.expenditureSource {
+                Text("Expenditure ~\(Self.whole(expenditure)) kcal · \(Self.sourceText(source))")
+                    .font(.subheadline)
+                    .foregroundStyle(Poster.secondary)
+            }
+            Text(
+                "Protein \(Self.whole(view.intake.protein)) g · Fat \(Self.whole(view.intake.fat)) g · Carbs \(Self.whole(view.intake.carbs)) g"
+            )
+            .font(.subheadline)
+            .foregroundStyle(Poster.secondary)
+            if let target = view.calorieTarget, target > 0 {
+                PosterBar(fill: view.intake.kilocalories / target).padding(.top, 4)
+            }
+        }
+    }
+
+    /// The Food view for `day` with `targets`, from the stored rows, Weigh-ins and Profile;
+    /// `today` is the one `body` read, so the Day shown and its verdict use the same today.
+    private func foodView(
+        _ rows: [FoodEntryRow],
+        day: Day,
+        today: Day,
+        targets: FoodTargets
+    ) -> FoodView {
         FoodView(
             foodEntries: rows.map(\.entry),
             completeDays: store.completeDays,
@@ -219,6 +252,7 @@ struct FoodScreen: View {
             birthYear: profile.birthYear,
             sex: profile.sex,
             day: day,
+            today: today,
             timeZone: .current
         )
     }
@@ -237,9 +271,9 @@ struct FoodScreen: View {
     /// Protein, fat and carbs against their Macro Targets, with the carbs warning; or why there
     /// are no targets (spec 016, Macro Targets).
     @ViewBuilder
-    private func macroCard(_ view: FoodView) -> some View {
+    private func macroSection(_ view: FoodView) -> some View {
         if let targets = view.macroTargets {
-            VStack(alignment: .leading, spacing: 10) {
+            RuledSection(name: "Macro Targets") {
                 macroBar("Protein", eaten: view.intake.protein, target: targets.protein)
                 macroBar("Fat", eaten: view.intake.fat, target: targets.fat)
                 macroBar("Carbs", eaten: view.intake.carbs, target: targets.carbs)
@@ -249,38 +283,40 @@ struct FoodScreen: View {
                         "Carbs are under \(Self.whole(MacroTargets.lowCarbsGrams)) g a Day at this Calorie Target."
                     )
                     .font(.caption)
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(Poster.amber)
                 case .noCarbsLeft:
                     Text(
                         "Protein and fat use up the whole Calorie Target, so there's none left for carbs."
                     )
                     .font(.caption)
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(Poster.amber)
                 case nil:
                     EmptyView()
                 }
             }
-            .padding()
-            .themeCard()
         } else if view.needsWeighIn {
-            Text("Log a Weigh-in to get your Macro Targets.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            RuledSection(name: "Macro Targets") {
+                Text("Log a Weigh-in to get your Macro Targets.")
+                    .font(.subheadline)
+                    .foregroundStyle(Poster.secondary)
+            }
         }
     }
 
     /// One macro's grams eaten against its target, as a bar.
     private func macroBar(_ name: String, eaten: Double, target: Double) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(name).font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("\(Self.whole(eaten)) / \(Self.whole(target)) g")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        RuledRow {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(name).font(.subheadline.weight(.semibold)).foregroundStyle(Poster.ink)
+                    Spacer()
+                    Text("\(Self.whole(eaten)) / \(Self.whole(target)) g")
+                        .font(.subheadline.weight(.bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Poster.ink)
+                }
+                PosterBar(fill: target > 0 ? eaten / target : 0, height: 4)
             }
-            ProgressView(value: min(eaten, target), total: max(target, 1))
-                .tint(Theme.accent)
         }
     }
 

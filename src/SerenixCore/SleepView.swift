@@ -17,6 +17,16 @@ public struct SleepView: Equatable, Sendable {
     /// What stood out about the Night dated the Day shown, up to three rows in order: Wake Bouts,
     /// bedtime, heart rate; empty when that Day has no Night.
     public let standouts: [SleepStandout]
+    /// The Sleep Score headline's verdict (spec 018): the Night's Sleep Score's, or waiting
+    /// "TONIGHT." on today without a Night yet and "NO NIGHT." on an earlier Day; none for a
+    /// Night without a Sleep Score.
+    public let sleepScoreVerdict: Verdict?
+    /// The headline's number: the Night's Sleep Score (spec 010), the one its verdict comes
+    /// from; "—" without a Night or a Sleep Score.
+    public let sleepScoreText: String
+    /// Whether the Night's Sleep Need carries Sleep Debt of a minute or more (spec 009), for
+    /// Sleep Debt in red; false without a Night.
+    public let hasSleepDebt: Bool
 
     /// `birthYear` is the Profile's, for Sleep Need (spec 009).
     public init(
@@ -46,13 +56,32 @@ public struct SleepView: Equatable, Sendable {
             birthYear: birthYear
         )
         let night = nights.first { $0.day == day }
+        let sleepNeed = SleepNeed(for: day, among: nights, birthYear: birthYear)
         summary = night.map {
             SleepSummary(
                 $0,
                 label: isToday ? "Last night" : day.text,
-                sleepNeed: SleepNeed(for: day, among: nights, birthYear: birthYear).sleepNeed,
+                sleepNeed: sleepNeed.sleepNeed,
                 timeZone: timeZone
             )
+        }
+        if let night {
+            // The same Sleep Score the Sleep popup shows (spec 010).
+            let score = SleepScore(
+                of: night,
+                among: nights,
+                sleepNeed: sleepNeed.sleepNeed,
+                timeZone: timeZone
+            )?
+            .score
+            sleepScoreVerdict = score.map(Verdict.sleepScore)
+            sleepScoreText = scoreText(score)
+            // In whole minutes, as Sleep Debt is shown, so red never sits beside "0m".
+            hasSleepDebt = (sleepNeed.sleepDebt / 60).rounded() >= 1
+        } else {
+            sleepScoreVerdict = Verdict(text: isToday ? "TONIGHT." : "NO NIGHT.", kind: .waiting)
+            sleepScoreText = scoreText(nil)
+            hasSleepDebt = false
         }
         noNightMessage = night != nil ? nil : TodayView.noNightMessage(isToday: isToday)
         standouts =
@@ -262,7 +291,8 @@ public struct SleepWeek: Equatable, Sendable {
     public let axisEndHour: Int
     /// The axis' labels, on the even clock hours inside it: "22", "00" … "08".
     public let axisLabels: [SleepAxisLabel]
-    /// The lane open when the tab is shown: the Day shown when it has a Night, else none.
+    /// The Day shown when it has a Night, else none: the Night whose chart has its own section on
+    /// the Sleep tab (spec 018; spec 012 opened its lane instead).
     public let firstOpenLane: Day?
     /// The time zone the axis was worked out in, so times are placed on it the same way.
     let timeZone: TimeZone

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Everything the Today view needs about one Night's Readiness (specs 002, 008, 009), worked out
-/// once so the ring, advice and popup can't disagree, and reusable for any Day.
+/// once so the headline, advice and popup can't disagree, and reusable for any Day.
 struct NightReadiness {
     /// HRV's and Sleeping HR's Baselines; nil when there's no Night that Day.
     let baselines: (hrv: Baseline, sleepingHR: Baseline)?
