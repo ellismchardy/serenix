@@ -1,6 +1,6 @@
 # Can the Walch 2019 sleep-accel nights drive Serenix's motion rule?
 
-**Date:** 2026-11-16 · **Unblocks:** the wayfinder ticket "What the accuracy harness measures and
+**Date:** 2026-11-16 · **Unblocks:** the wayfinder ticket (map [#78](https://github.com/ellismchardy/serenix/issues/78)) "What the accuracy harness measures and
 reports": the harness's motion input format and the adapter that turns Walch's raw acceleration
 (and the Strap's History Records) into it.
 

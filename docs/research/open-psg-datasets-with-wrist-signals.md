@@ -1,6 +1,6 @@
 # Which open sleep-lab datasets pair wrist motion and beat-to-beat intervals with PSG-scored sleep stages, and can Serenix use them?
 
-**Date:** 2026-11-16 · **Unblocks:** the wayfinder tickets "Which sleep stages Serenix shows, and
+**Date:** 2026-11-16 · **Unblocks:** the wayfinder tickets (map [#78](https://github.com/ellismchardy/serenix/issues/78)) "Which sleep stages Serenix shows, and
 what they're called" and "The accuracy bar sleep stages must clear": which labelled nights a
 staging model is trained and measured on, and what the owner must do to get them. Follows
 [sleep-wake-and-sleep-stages.md](sleep-wake-and-sleep-stages.md), which found that Walch's
@@ -8,7 +8,7 @@ sleep-accel set has no RR intervals.
 
 ## Answer
 - **Two datasets match the Strap's signals: wrist motion, wrist beat-to-beat intervals and
-  PSG-scored AASM stages from the same Night.** Both use an Empatica E4 wristband.
+  PSG-scored AASM stages from the same night.** Both use an Empatica E4 wristband.
   - **DREAMT** (PhysioNet, v2.2.0): 100 sleep-clinic patients, mostly with sleep apnea.
   - **Wearanize+** (Radboud, v1.0/v1.1): 130 healthy young adults, with full PSG at home.
 
@@ -101,7 +101,7 @@ and [a concurrent actigraphy/PSG paper](https://pmc.ncbi.nlm.nih.gov/articles/PM
   licence forbids sharing access, so get the data from PhysioNet.
 
 **Wearanize+** ([Sikder et al., *Sleep Advances* 2025, 7(1):zpaf094](https://pmc.ncbi.nlm.nih.gov/articles/PMC12888818/))
-- **Who:** 130 healthy adults, one Night each at home, after set-up in the lab. Ages 18–39,
+- **Who:** 130 healthy adults, one night each at home, after set-up in the lab. Ages 18–39,
   mean 23.2, 89 women.
 - **Exclusions:** sleep disorders, sleep-affecting medication, and mainly sleeping on the
   stomach, among others.
@@ -142,8 +142,8 @@ and [a concurrent actigraphy/PSG paper](https://pmc.ncbi.nlm.nih.gov/articles/PM
   - BIDSleep: HR at ~0.2 Hz. It is also scored from a Dreem 2 EEG headband, which its own page
     says is not equivalent to PSG.
   - Both are good for sleep/wake from motion + HR, which the Strap's per-second HR matches.
-  - BIDSleep also has 253 Nights from 47 people, up to 7 Nights each. That suits checking
-    Night-to-Night stability.
+  - BIDSleep also has 253 nights from 47 people, up to 7 nights each. That suits checking
+    night-to-night stability.
 - **HMC, Challenge 2018 and CAP** have PSG ECG, which gives RR intervals, but no wrist motion.
   - Challenge 2018's test labels are held back, so only the 994 training subjects are
     labelled.
@@ -152,7 +152,7 @@ and [a concurrent actigraphy/PSG paper](https://pmc.ncbi.nlm.nih.gov/articles/PM
 - **The catch with ECG data:** RR intervals from a chest ECG are cleaner than the Strap's, which
   come from wrist PPG. Moving an ECG-trained staging algorithm straight onto reflective PPG
   lowered its performance
-  ([van Gilst 2020](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7653690/)). Transfer learning
+  ([van Gilst 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7653690/)). Transfer learning
   recovered most of it ([Radha 2021](https://pmc.ncbi.nlm.nih.gov/articles/PMC8443610/), κ 0.65).
 
 ### NSRR (MESA, MrOS, SHHS)
