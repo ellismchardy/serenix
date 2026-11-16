@@ -2,16 +2,17 @@
 
 **Date:** 2026-11-15 · **Unblocks:** whether and how to improve sleep tracking beyond hr-tracker's
 `tools/sleep.py` port: better sleep/wake labelling, a checked set of constants, and sleep stages
-(light, deep, REM), which `docs/architecture.md` lists under "Not in v1". Also bears on the
-drafted 5-minute Wake Bout rule (specs 003 and 012, GLOSSARY.md, not yet approved).
+(light, deep, REM), which `docs/architecture.md` lists under "Not in v1". Also bears on a
+proposed 5-minute minimum Wake Bout (drafted 2026-11-15 as edits to specs 003 and 012 and
+GLOSSARY.md; not on `main` when this note was written).
 
 ## Answer
 - **Serenix's sleep/wake labelling is a motion-only actigraphy rule, and its known weakness is
   quiet wake.** Every motion-only method (Cole–Kripke, Sadeh, Webster, van Hees) finds sleep in
   90%+ of sleep epochs but only 30–55% of wake epochs against polysomnography (PSG). The closest
   published method, van Hees 2015 (sleep = no arm-angle change over 5° for 5 min), reports
-  accuracy 83%, sleep sensitivity 91%, wake specificity 45% (n = 28). Serenix's rule is about as
-  good as it is likely to get from motion alone. Its constants were set by eye on two nights,
+  accuracy 83%, sleep sensitivity 91%, wake specificity 45% (n = 28). Motion-only methods as a
+  family top out around there. Serenix's constants were set by eye on two nights,
   with no reference to check them against, so no one knows yet whether they are good.
 - **Sleep stages need heart rate and HRV, and the realistic ceiling is moderate.** Published
   wrist models that combine motion, HR/HRV and time of night reach 4-class (wake, light, deep,
@@ -169,7 +170,7 @@ Today's method is `SleepPeriod.swift` and `MotionMinutes.swift`, a faithful port
 - After a motion-led wake, up to 10 following minutes stay wake while mean HR is ≥ 6 bpm above
   its 61-minute rolling median.
 - The Sleep Period is runs of ≥ 7 sleep minutes, merged across under 60 minutes of recorded
-  wake. The run with the most sleep wins.
+  wake. The merged period with the most sleep minutes wins.
 - Time in Bed widens the Sleep Period until 3 minutes in a row of ≥ 30 active seconds.
 
 **How it compares.** In shape it is a cousin of the published methods:
@@ -182,12 +183,14 @@ Today's method is `SleepPeriod.swift` and `MotionMinutes.swift`, a faithful port
 1. **No reference has ever checked it.** The constants `activeDegrees` 2°, `wakeActiveSeconds`
    10, `wakeMedianActiveSeconds` 6, `raisedHeartRate` 6 bpm, `longestHeartRateExtension` 10,
    `shortestSleepRun` 7, `longestMergedWake` 60, `upActiveSeconds` 30 and `upMinutes` 3 were
-   set by eye on the same two nights that are now the test fixtures. There was no PSG, diary or
+   set by eye on two of the owner's nights (`SleepPeriod.swift`, `MotionMinutes.swift`). There was no PSG, diary or
    headband to say which minutes were truly wake.
    - The tests prove parity with hr-tracker, not accuracy.
-   - Tuning and checking on the same two nights would overfit even with a reference.
+   - The fixtures are two of the owner's nights too; tuning and checking on the same nights
+     would overfit even with a reference.
 2. **Quiet wake is invisible unless it follows movement.**
-   - Heart rate only *extends* a wake bout that motion started, by at most 10 minutes.
+   - Heart rate only *extends* a run of wake minutes that motion started, by at most 10
+     minutes.
    - Lying awake and still is labelled sleep. That is exactly the error that puts actigraphy's
      wake specificity at 30–55%.
    - Expect Time Asleep to be overstated and WASO understated, more so on bad nights. Marino
@@ -211,8 +214,9 @@ Today's method is `SleepPeriod.swift` and `MotionMinutes.swift`, a faithful port
 6. **No heart-rate or temperature cue for the start and end of sleep.**
    - Wrist warming at onset and HR falling to the night's level are both used by HDCZA-style and
      consumer methods (Oura's temperature feature).
-   - Serenix's Sleep Period and Time in Bed come from motion alone.
-7. **The drafted 5-minute Wake Bout rule.**
+   - Time in Bed comes from motion alone, and the Sleep Period's edges move with heart rate only
+     through the wake extension above.
+7. **The proposed 5-minute minimum Wake Bout** (not on `main`; see the top of this note).
    - The threshold matches the National Sleep Foundation consensus indicator, "number of
      awakenings > 5 minutes" ([Ohayon 2017](https://doi.org/10.1016/j.sleh.2016.11.006)), which
      is a rule for *counting* awakenings.
@@ -226,7 +230,7 @@ Today's method is `SleepPeriod.swift` and `MotionMinutes.swift`, a faithful port
      spurious.
    - An option closer to the literature: show and count only Wake Bouts ≥ 5 minutes (the
      NSF-style count), but leave every wake minute out of Time Asleep. This is a judgement for
-     the main session's spec, not settled by this note.
+     the spec that settles Wake Bouts, not settled by this note.
 
 ### 3. Validating without a sleep lab
 
@@ -258,7 +262,7 @@ Four references are available without a lab, cheapest first:
    nights:
    - [ZMax](https://doi.org/10.1101/2023.08.18.553744): κ 0.72 against PSG with open scoring
      (preprint).
-   - [Somfit](https://doi.org/10.3390/s22166317): κ 0.52 multi-state.
+   - Somfit (tested in [Miller 2022](https://doi.org/10.3390/s22166317)): κ 0.52 multi-state.
    - [Dreem](https://doi.org/10.1093/sleep/zsaa097): 83.5% vs 86.4% for experts, but its
      consumer availability is uncertain.
    - Procedure: align clocks, resample to 30-s epochs, then run Menghini's EBE and Bland–Altman
@@ -292,8 +296,8 @@ stages"**, with a map roughly like this:
    - an adapter for Walch's PhysioNet nights.
 
    Output: today's labeller's real numbers, the baseline for everything after.
-2. **Decide the Wake Bout and Time Asleep question** with those numbers, before the drafted
-   5-minute rule ships (gap 7).
+2. **Decide the Wake Bout and Time Asleep question** with those numbers, before any 5-minute
+   minimum Wake Bout ships (gap 7).
 3. **Sleep/wake improvements**, each kept only if the harness shows a gain on held-out nights:
    - Webster-style rescoring;
    - a per-night HDCZA-style threshold;
