@@ -107,12 +107,11 @@ struct WeightGoalSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                SegmentedBar(
-                    options: [(value: false, label: "Lose or gain"), (value: true, label: "Hold")],
-                    selection: $holds,
-                    label: "Goal"
-                )
-                .posterRows()
+                Picker("Goal", selection: $holds) {
+                    Text("Lose or gain").tag(false)
+                    Text("Hold").tag(true)
+                }
+                .pickerStyle(.segmented)
                 // A hold has no separate start: it holds the weight below from today.
                 if !holds {
                     Section("Start") {
@@ -125,7 +124,6 @@ struct WeightGoalSheet: View {
                             displayedComponents: .date
                         )
                     }
-                    .posterRows()
                 }
                 if holds {
                     Section("Hold band") {
@@ -139,25 +137,21 @@ struct WeightGoalSheet: View {
                             }
                         }
                     }
-                    .posterRows()
                 }
                 Section(holds ? "Weight to hold" : "Goal") {
                     TextField("Goal Weight (\(Self.symbol(units)))", text: $goalText)
                         .keyboardType(.decimalPad)
                 }
-                .posterRows()
                 if let refusal {
-                    Text(refusal.message).foregroundStyle(Poster.red).posterRows()
+                    Text(refusal.message).foregroundStyle(.red)
                 }
                 if !holds, let direction {
                     Section("Pace") {
-                        SegmentedBar(
-                            options: [
-                                (value: false, label: "By rate"), (value: true, label: "By date"),
-                            ],
-                            selection: $byDate,
-                            label: "Pace"
-                        )
+                        Picker("Pace", selection: $byDate) {
+                            Text("By rate").tag(false)
+                            Text("By date").tag(true)
+                        }
+                        .pickerStyle(.segmented)
                         if byDate, let dates {
                             DatePicker(
                                 "Reach it by",
@@ -165,7 +159,7 @@ struct WeightGoalSheet: View {
                                 in: dates.earliest.midday(in: .current)...,
                                 displayedComponents: .date
                             )
-                            HStack(spacing: 8) {
+                            HStack {
                                 Button("0.5% a week") {
                                     targetDate = dates.halfPercent.midday(in: .current)
                                 }
@@ -173,42 +167,23 @@ struct WeightGoalSheet: View {
                                     targetDate = dates.threeQuarterPercent.midday(in: .current)
                                 }
                             }
-                            .buttonStyle(BlockButtonStyle(outlined: true))
+                            .buttonStyle(.bordered)
                         }
                     }
-                    .posterRows()
                     if !byDate {
                         rateSection(direction)
                     }
                     Section("Milestone every") {
-                        SegmentedBar(
-                            options: MilestoneStep.allCases.map {
-                                (value: $0, label: Self.stepLabel($0, units: units))
-                            },
-                            selection: $milestoneStep,
-                            label: "Milestone every"
-                        )
-                    }
-                    .posterRows()
-                }
-                SheetActions(
-                    saveDisabled: draft == nil || refusal != nil,
-                    save: {
-                        if let draft, refusal == nil { save(draft) }
-                        dismiss()
-                    },
-                    destructive: remove.map { remove in
-                        (
-                            title: "Remove goal",
-                            action: {
-                                remove()
-                                dismiss()
+                        Picker("Milestone every", selection: $milestoneStep) {
+                            ForEach(MilestoneStep.allCases, id: \.self) { step in
+                                Text(Self.stepLabel(step, units: units))
+                                    .tag(step)
                             }
-                        )
+                        }
+                        .pickerStyle(.segmented)
                     }
-                )
+                }
             }
-            .posterForm()
             .onChange(of: direction) { rate = nil }
             // Date mode opens on the 0.5%-a-week date, never on today, which is too early.
             .onChange(of: byDate) {
@@ -217,6 +192,21 @@ struct WeightGoalSheet: View {
             .navigationTitle("Weight Goal")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                if let remove {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button("Remove goal", role: .destructive) {
+                            remove()
+                            dismiss()
+                        }
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if let draft, refusal == nil { save(draft) }
+                        dismiss()
+                    }
+                    .disabled(draft == nil || refusal != nil)
+                }
             }
         }
     }
@@ -235,17 +225,16 @@ struct WeightGoalSheet: View {
                         Text(
                             "\(option.percentOfTrendWeight.formatted(.number.precision(.fractionLength(2))))%"
                         )
-                        .foregroundStyle(Poster.secondary)
+                        .foregroundStyle(.secondary)
                         BandLabel(band: option.band)
                         if rate == option.kilogramsPerWeek {
-                            Image(systemName: "checkmark").foregroundStyle(Poster.ink)
+                            Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                         }
                     }
                 }
-                .foregroundStyle(Poster.ink)
+                .foregroundStyle(.primary)
             }
         }
-        .posterRows()
     }
 
     /// kg or lb, to one decimal; st and lb goals are typed in total lb here.
@@ -272,17 +261,17 @@ struct WeightGoalSheet: View {
     }
 }
 
-/// A Pace band's name as a solid tag in its colour (spec 015, Pace bands; spec 018).
+/// A Pace band's name in its colour (spec 015, Pace bands).
 struct BandLabel: View {
     let band: PaceBand
 
     var body: some View {
         let (text, colour): (String, Color) =
             switch band {
-            case .sustainable: ("Sustainable", Poster.green)
-            case .aggressive: ("Aggressive", Poster.amber)
-            case .tooFast: ("Too fast", Poster.red)
+            case .sustainable: ("Sustainable", .green)
+            case .aggressive: ("Aggressive", .orange)
+            case .tooFast: ("Too fast", .red)
             }
-        PosterTag(text: text, colour: colour)
+        CapsuleTag(text: text, colour: colour)
     }
 }

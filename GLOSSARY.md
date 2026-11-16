@@ -209,15 +209,6 @@ _Avoid_: heart rate zone (in code), training zone, Zone (alone)
 **Stress**:
 Serenix's measure of physiological stress through a Day.
 
-**Verdict**:
-The few words in capitals, ending with a full stop, beside a headline number that tell the user
-where they stand, such as "GO HARD." for Readiness or "ON PACE." for a Weight Goal.
-_Avoid_: label, status, badge
-
-**Waiting verdict**:
-A Verdict saying there isn't enough data yet to tell where the user stands, such as "2 TO GO."
-while Readiness is Calibrating. Never a warning.
-
 ## Body
 
 **Weigh-in**:

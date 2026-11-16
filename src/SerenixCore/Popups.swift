@@ -3,16 +3,14 @@ import Foundation
 /// The Readiness popup (spec 012): Readiness with its band and verdict, each input's effect on it,
 /// the last 7 Days, and Sleep Score.
 public struct ReadinessPopup: Equatable, Sendable {
-    /// As on the Today headline: the number, "n/4" while Calibrating, or "—" when missing.
+    /// As on the ring: the number, "n/4" while Calibrating, or "—" when missing.
     public let readinessText: String
     public let band: ReadinessBand?
     /// The Night's Sleep Score, shown whether or not Readiness is Calibrating.
     public let sleepScoreText: String?
-    /// The sentence under the headline (spec 012, Verdict), or why there's no Readiness: spec
-    /// 002's Calibrating explanation, or no HRV.
+    /// The sentence beside the ring (spec 012, Verdict), or why there's no Readiness: spec 002's
+    /// Calibrating explanation, or no HRV.
     public let verdictText: String?
-    /// The headline's short verdict, as on the Today headline (spec 018, Verdicts).
-    public let verdict: Verdict?
     /// The inputs from the lowest points to the highest, dropped ones last (spec 012, Why);
     /// none without a Readiness.
     public let whyRows: [ReadinessWhyRow]
@@ -41,7 +39,7 @@ public struct ReadinessWeekBar: Equatable, Sendable {
     public let readinessText: String
     /// Nil with no Readiness.
     public let band: ReadinessBand?
-    /// The bar's height, 0 to 1: Readiness out of 100; 0 with no Readiness.
+    /// The bar's height, 0 to 1: Readiness out of 100, as the ring's fill; 0 with no Readiness.
     public let fill: Double
     /// Outlined: the Day the popup is for.
     public let isDayShown: Bool
@@ -245,15 +243,14 @@ func signedText(_ difference: Int, magnitude: String? = nil) -> String {
     }
 }
 
-/// One part of Sleep Score in the Sleep popup, drawn as a row with a thin bar (spec 010, Sleep
-/// popup; spec 018).
+/// One part of Sleep Score in the Sleep popup, drawn as a small ring (spec 010, Sleep popup).
 public struct SleepScorePart: Equatable, Sendable {
     /// "Sleep Sufficiency", "Sleep Efficiency" or "Sleep Consistency".
     public let name: String
     /// The part as a whole number, halves up, as the Sleep Score key shows it; "—" when it's left
     /// out or Sleep Score is missing.
     public let scoreText: String
-    /// The bar's fill, 0 to 1; an empty bar when it's left out.
+    /// The ring's fill, 0 to 1; an empty ring when it's left out.
     public let fill: Double
     /// What it came from, e.g. "6h 0m of 8h 0m", "89% asleep", "35m off your usual", "Needs 3
     /// Nights"; "—" when there's nothing to show.
@@ -263,7 +260,7 @@ public struct SleepScorePart: Equatable, Sendable {
         self.name = name
         let rounded = score.map(halvesUp)
         scoreText = SerenixCore.scoreText(rounded)
-        fill = scoreFill(rounded)
+        fill = ringFill(rounded)
         self.detailText = detailText
     }
 
@@ -311,11 +308,8 @@ func halvesUp(_ value: Double) -> Int {
 /// The Sleep popup (spec 002, Popups).
 public struct SleepPopup: Equatable, Sendable {
     public let sleepScoreText: String
-    /// The Sleep Score headline's verdict (spec 018), as on the Sleep tab; nil without a Sleep
-    /// Score.
-    public let verdict: Verdict?
-    /// Sleep Score's parts as three rows, in order: Sleep Sufficiency, Sleep Efficiency, Sleep
-    /// Consistency (spec 010).
+    /// Sleep Score's parts as three nested rings, outermost first: Sleep Sufficiency, Sleep
+    /// Efficiency, Sleep Consistency (spec 010).
     public let parts: [SleepScorePart]
     /// Beside the "When you slept" heading (spec 010): Sleep Consistency's detail ("35m off your
     /// usual"), or "Usual times need 3 Nights" while it's left out; nil when Sleep Score is
@@ -358,7 +352,6 @@ public struct SleepPopup: Equatable, Sendable {
         timeZone: TimeZone
     ) {
         sleepScoreText = scoreText(sleepScore?.score)
-        verdict = sleepScore.map { Verdict.sleepScore($0.score) }
         parts = SleepScorePart.parts(of: sleepScore)
         sleepNeedText = durationText(sleepNeed.sleepNeed)
         sleepDebtText = durationText(sleepNeed.sleepDebt)
@@ -430,9 +423,6 @@ public struct MetricPopup: Equatable, Sendable {
     /// What the value means for the user, e.g. "−20% against your Baseline: about usual for
     /// you." (spec 011, Verdict). Its last words take `zone`'s colour.
     public let verdictText: String
-    /// The value headline's verdict (spec 018): "ABOUT USUAL." / "UNUSUAL." / "WAY OFF.", SpO2's
-    /// "HEALTHY." / "A BIT LOW." / "LOW.", or waiting "N TO GO." / "NO DATA.".
-    public let verdict: Verdict?
     /// Where the value sits among the Zones (spec 011, Zone scale); nil with no Zone.
     public let scale: MetricPopupScale?
     /// "Your Zones · Baseline 60 ms", or "Zones" for SpO2 (spec 011, Your Zones); nil with no
@@ -465,9 +455,7 @@ public struct MetricPopup: Equatable, Sendable {
         zone = tile.zone
         nightText = "Night of \(night.day.nightSpanText)"
         statusText = tile.statusText
-        let reading = Reading(tile, value: night.value(of: tile.metric))
-        verdictText = reading.sentence(tile)
-        verdict = reading.verdict
+        verdictText = Self.verdict(tile, value: night.value(of: tile.metric))
         scale = MetricPopupScale(tile, value: night.value(of: tile.metric))
         zoneRows = MetricPopupZoneRow.rows(tile)
         // SpO2 has fixed levels, so no Baseline to name.
@@ -506,77 +494,34 @@ public struct MetricPopup: Equatable, Sendable {
         whatMovesItTexts = MetricTexts.whatMovesIt(tile.metric)
     }
 
-    /// What the Night's value says, decided once for the sentence and the verdict (spec 011's
-    /// order): missing, SpO2's level, a Calibrating Baseline with its earlier Nights so far, or
-    /// the Zone against a formed Baseline (none for HRV against a Baseline of 0 or less).
-    private enum Reading {
-        case missing
-        case spo2(Zone?)
-        case calibrating(soFar: Int)
-        case zone(Zone?)
-
-        init(_ tile: MetricTile, value: Double?) {
-            if value == nil {
-                self = .missing
-            } else if tile.metric == .spo2 {
-                self = .spo2(tile.zone)
-            } else if let baseline = tile.comparedBaseline, !baseline.isCalibrating {
-                self = .zone(tile.zone)
-            } else {
-                self = .calibrating(soFar: tile.comparedBaseline?.earlierNights ?? 0)
+    /// The verdict sentence (spec 011): the difference and the Zone in words against a
+    /// Baseline, SpO2's level, how many earlier Nights a Calibrating Baseline has, or that the
+    /// value is missing.
+    private static func verdict(_ tile: MetricTile, value: Double?) -> String {
+        let name = tile.metric.name
+        guard value != nil else { return "No \(name) for this Night." }
+        if tile.metric == .spo2 {
+            return switch tile.zone {
+            case .inRange: "A healthy level."
+            case .watch: "A little low."
+            case .outOfRange: "Low."
+            case nil: missingText
             }
         }
-
-        /// The verdict sentence (spec 011): the difference and the Zone in words against a
-        /// Baseline, SpO2's level, how many earlier Nights a Calibrating Baseline has, or that
-        /// the value is missing.
-        func sentence(_ tile: MetricTile) -> String {
-            let name = tile.metric.name
-            switch self {
-            case .missing:
-                return "No \(name) for this Night."
-            case .spo2(let zone):
-                return switch zone {
-                case .inRange: "A healthy level."
-                case .watch: "A little low."
-                case .outOfRange: "Low."
-                case nil: missingText
-                }
-            case .calibrating(let soFar):
-                return "Calibrating: Serenix needs \(Baseline.minEarlierNights) earlier Nights "
-                    + "with \(name) to know what's usual for you (\(soFar) so far)."
-            case .zone(nil):
-                // No Zone, and so nothing to say.
-                return missingText
-            case .zone(let zone?):
-                let meaning =
-                    switch zone {
-                    case .inRange: "about usual for you."
-                    case .watch: "unusual for you."
-                    case .outOfRange: "well outside your usual."
-                    }
-                return "\(tile.differenceText) against your Baseline: \(meaning)"
-            }
+        guard let baseline = tile.comparedBaseline, !baseline.isCalibrating else {
+            let soFar = tile.comparedBaseline?.earlierNights ?? 0
+            return "Calibrating: Serenix needs \(Baseline.minEarlierNights) earlier Nights with "
+                + "\(name) to know what's usual for you (\(soFar) so far)."
         }
-
-        /// The headline's verdict (spec 018): waiting "NO DATA." or "N TO GO." with the earlier
-        /// Nights a Calibrating Baseline still needs (spec 011's count), SpO2's level, or the
-        /// Zone; none without a Zone.
-        var verdict: Verdict? {
-            switch self {
-            case .missing:
-                Verdict(text: "NO DATA.", kind: .waiting)
-            case .calibrating(let soFar):
-                Verdict(text: "\(Baseline.minEarlierNights - soFar) TO GO.", kind: .waiting)
-            case .spo2(.inRange): Verdict(text: "HEALTHY.", kind: .state)
-            case .spo2(.watch): Verdict(text: "A BIT LOW.", kind: .state)
-            case .spo2(.outOfRange): Verdict(text: "LOW.", kind: .state)
-            case .zone(.inRange): Verdict(text: "ABOUT USUAL.", kind: .state)
-            case .zone(.watch): Verdict(text: "UNUSUAL.", kind: .state)
-            case .zone(.outOfRange): Verdict(text: "WAY OFF.", kind: .state)
-            case .spo2(nil), .zone(nil): nil
+        // HRV against a Baseline of 0 or less has no Zone, and so nothing to say.
+        guard let zone = tile.zone else { return missingText }
+        let meaning =
+            switch zone {
+            case .inRange: "about usual for you."
+            case .watch: "unusual for you."
+            case .outOfRange: "well outside your usual."
             }
-        }
+        return "\(tile.differenceText) against your Baseline: \(meaning)"
     }
 }
 
@@ -708,7 +653,7 @@ public struct MetricPopupZoneRow: Equatable, Sendable {
 public struct LoadPopup: Equatable, Sendable {
     /// "Today" on today, else the Day's date, e.g. "Sat 31 Oct".
     public let dateText: String
-    /// As on Today's Load section.
+    /// As on the ring.
     public let loadText: String
     /// "As of your last sync at 08:12" on today; nil on an earlier Day or before any sync.
     public let lastSyncText: String?
@@ -716,13 +661,13 @@ public struct LoadPopup: Equatable, Sendable {
     public let typicalText: String
     /// e.g. "A harder Day than usual": the Day's Load against typical Load (spec 006).
     public let comparisonText: String
-    /// The headline's verdict, from the same bands as the sentence (spec 018): "EASIER DAY."
-    /// to "MUCH HARDER.", or waiting "LEARNING." / "NO LOAD.".
-    public let verdict: Verdict
     /// How full the Load bar is, 0 to 1: the Day's Load on a bar from 0 to twice typical Load, its
     /// marker at the middle (spec 006). 0 with the Day's Load missing; nil, no bar, with no
     /// typical Load yet.
     public let loadBarFill: Double?
+    /// The Day's Load in the Load bar's place while typical Load is learned, e.g. "Load 40" or
+    /// "Load —"; nil once there's a typical Load (spec 006).
+    public let learningLoadText: String?
     /// Today only.
     public let showsLiveHR: Bool
     /// Why there are no HR Zones, Highest HR or Max HR used; nil when they're there.
@@ -757,10 +702,10 @@ public struct LoadPopup: Equatable, Sendable {
             ? lastSyncEnded.map { "As of your last sync at \(clockText($0, in: timeZone))" } : nil
         let typical = typicalLoad(for: day, among: dayLoads)
         typicalText = Self.typicalText(typical, load: load, dayWord: isToday ? "today" : "that Day")
-        let comparison = Comparison(typical, load: load)
-        comparisonText = comparison.text
-        verdict = comparison.verdict
+        comparisonText = Self.comparisonText(typical, load: load)
         loadBarFill = Self.loadBarFill(typical, load: load)
+        learningLoadText =
+            if case .calibrating = typical { "Load \(loadText)" } else { nil }
         showsLiveHR = isToday
         let heartRate = dayLoad?.heartRate
         note =
@@ -817,64 +762,26 @@ public struct LoadPopup: Equatable, Sendable {
     /// Load ÷ typical Load from which a Day is much harder than usual (spec 006).
     static let muchHarderFrom = 1.5
 
-    /// Where the Day's Load sits against typical Load, in four bands of Load ÷ typical Load, or
-    /// why it can't be placed. With a typical Load of 0, a Load of 0 is usual and any other much
-    /// harder (spec 006's named assumption). No typical Load yet wins, even when the Day's Load is
-    /// missing too.
-    private enum Comparison {
-        case learning, noLoad, easier, usual, harder, muchHarder
-
-        init(_ typical: TypicalLoad, load: Int?) {
-            guard case .value(let typical) = typical else {
-                self = .learning
-                return
-            }
-            guard let load else {
-                self = .noLoad
-                return
-            }
-            let ratio =
-                typical > 0
-                ? Double(load) / Double(typical) : (load == 0 ? 1 : .infinity)
-            self =
-                switch ratio {
-                case ..<LoadPopup.easierBelow: .easier
-                case ..<LoadPopup.harderFrom: .usual
-                case ..<LoadPopup.muchHarderFrom: .harder
-                default: .muchHarder
-                }
-        }
-
-        /// The sentence (spec 006).
-        var text: String {
-            switch self {
-            case .learning: "Learning your typical Load"
-            case .noLoad: "No Load this Day"
-            case .easier: "An easier Day than usual"
-            case .usual: "About your usual Day"
-            case .harder: "A harder Day than usual"
-            case .muchHarder: "A much harder Day than usual"
-            }
-        }
-
-        /// The headline's verdict (spec 018): the sentence's band, or waiting.
-        var verdict: Verdict {
-            switch self {
-            case .learning: Verdict(text: "LEARNING.", kind: .waiting)
-            case .noLoad: Verdict(text: "NO LOAD.", kind: .waiting)
-            case .easier: Verdict(text: "EASIER DAY.", kind: .state)
-            case .usual: Verdict(text: "USUAL DAY.", kind: .state)
-            case .harder: Verdict(text: "HARDER DAY.", kind: .state)
-            case .muchHarder: Verdict(text: "MUCH HARDER.", kind: .state)
-            }
+    /// The sentence: the Day's Load against typical Load, in four bands of Load ÷ typical Load.
+    /// With a typical Load of 0, a Load of 0 is usual and any other much harder (spec 006's named
+    /// assumption). With no typical Load yet it says so, even when the Day's Load is missing too.
+    private static func comparisonText(_ typical: TypicalLoad, load: Int?) -> String {
+        guard case .value(let typical) = typical else { return "Learning your typical Load" }
+        guard let load else { return "No Load this Day" }
+        let ratio =
+            typical > 0
+            ? Double(load) / Double(typical) : (load == 0 ? 1 : .infinity)
+        return switch ratio {
+        case ..<easierBelow: "An easier Day than usual"
+        case ..<harderFrom: "About your usual Day"
+        case ..<muchHarderFrom: "A harder Day than usual"
+        default: "A much harder Day than usual"
         }
     }
 
     /// The Load bar runs from 0 to this many times typical Load, so typical sits at its middle
     /// (spec 006).
     static let loadBarSpan = 2
-    /// Where typical Load sits along the Load bar, 0 to 1: its middle (spec 006).
-    public static let typicalLoadTick = 1 / Double(loadBarSpan)
 
     /// The Load bar's fill: the Day's Load over twice typical Load, full at that or more. With a
     /// typical Load of 0, empty for a Load of 0 and full for any other.

@@ -55,9 +55,9 @@ struct OnboardingScreen: View {
             }
             controls
                 .padding(16)
-                .background(Poster.paper)
+                .background(Theme.background)
         }
-        .background(Poster.paper.ignoresSafeArea())
+        .background(Theme.background)
         // Find my Strap or Try again: connect, then run the first History Sync (spec 001).
         .onChange(of: conversation.isLookingForStrap) { _, looking in
             guard looking else { return }
@@ -123,7 +123,7 @@ struct OnboardingScreen: View {
                         .focused($fieldIsFocused)
                         .onSubmit(send)
                         .padding(12)
-                        .overlay(Rectangle().stroke(Poster.ink, lineWidth: Poster.rowRule))
+                        .themeCard(RoundedRectangle(cornerRadius: 12))
                     Button("Send", action: send)
                         .buttonStyle(.borderedProminent)
                 }
@@ -163,8 +163,11 @@ private struct BubbleView: View {
             Text(bubble.text)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .foregroundStyle(fromUser ? Poster.paper : Poster.ink)
-                .background(fromUser ? Poster.ink : Poster.track)
+                .foregroundStyle(fromUser ? Color.white : Color.primary)
+                .background(
+                    fromUser ? Theme.accent : Theme.card,
+                    in: RoundedRectangle(cornerRadius: 18)
+                )
             if !fromUser { Spacer(minLength: 48) }
         }
     }

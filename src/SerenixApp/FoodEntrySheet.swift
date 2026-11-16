@@ -68,51 +68,40 @@ struct FoodEntrySheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("Name (optional)", text: $name)
-                    DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
-                }
-                .posterRows()
+                TextField("Name (optional)", text: $name)
+                DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
                 Section("Calories") {
                     TextField("kcal", text: $kilocaloriesText).keyboardType(.decimalPad)
                 }
-                .posterRows()
                 Section("Macros (optional)") {
                     TextField("Protein (g)", text: $proteinText).keyboardType(.decimalPad)
                     TextField("Fat (g)", text: $fatText).keyboardType(.decimalPad)
                     TextField("Carbs (g)", text: $carbsText).keyboardType(.decimalPad)
                 }
-                .posterRows()
-                Group {
-                    if unreadableMacro {
-                        Text("Protein, fat and carbs must be numbers.")
-                    } else if let refusal {
-                        Text(refusal.message)
-                    }
+                if unreadableMacro {
+                    Text("Protein, fat and carbs must be numbers.").foregroundStyle(.red)
+                } else if let refusal {
+                    Text(refusal.message).foregroundStyle(.red)
                 }
-                .foregroundStyle(Poster.red)
-                .posterRows()
-                SheetActions(
-                    saveDisabled: draft == nil || refusal != nil,
-                    save: {
-                        if let draft, refusal == nil { save(draft) }
-                        dismiss()
-                    },
-                    destructive: delete.map { delete in
-                        (
-                            title: "Delete Food Entry",
-                            action: {
-                                delete()
-                                dismiss()
-                            }
-                        )
-                    }
-                )
             }
-            .posterForm()
             .navigationTitle(isEditing ? "Edit Food Entry" : "Log Food Entry")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                if let delete {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button("Delete Food Entry", role: .destructive) {
+                            delete()
+                            dismiss()
+                        }
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if let draft, refusal == nil { save(draft) }
+                        dismiss()
+                    }
+                    .disabled(draft == nil || refusal != nil)
+                }
             }
         }
     }

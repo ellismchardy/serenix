@@ -111,7 +111,7 @@ public enum StoryTap: Equatable, Sendable {
 
 /// The Readiness values the This morning step is drawn from, as the Today view worked them out.
 struct StoryReadiness {
-    /// The Readiness headline's text: the score, "—", or "n/4" while Calibrating.
+    /// The ring's text: the score, "—", or "n/4" while Calibrating.
     let text: String
     let band: ReadinessBand?
     let isCalibrating: Bool
