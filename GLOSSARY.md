@@ -130,6 +130,21 @@ A stretch of sleep outside the Sleep Period. A Nap never makes a Night.
 One local calendar day, midnight to midnight.
 _Avoid_: cycle
 
+## Sleep accuracy
+
+**Epoch**:
+30 seconds of a night scored with one label: wake, N1, N2, N3 or REM.
+_Avoid_: frame (a Frame is a Strap message), bin, window
+
+**Reference Night**:
+A night from a sleep-lab dataset whose Epochs a sleep technician scored from polysomnography
+(PSG).
+_Avoid_: ground truth, PSG night, lab night
+
+**Tilt**:
+How far the direction of gravity at the wrist moves from one second to the next, in degrees.
+_Avoid_: turn (the Strap's full rotation), movement
+
 ## Metrics and scores
 
 **Baseline**:
