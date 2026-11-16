@@ -4,6 +4,9 @@
 012 describe the app again). Built 2026-11-14 in #75 and kept here as a record.
 **Last updated:** 2026-11-15
 
+> **Record only: none of this is in the app.** It reads as it did when built. Its terms Verdict
+> and Waiting verdict left GLOSSARY.md with the revert, and its plan was deleted.
+
 ## Problem
 Serenix's look (spec 002, Look: light grey, white rounded cards, soft shadows, a purple accent)
 reads as soft and calm. The owner wants it to feel like a performance tool: bold, direct,
