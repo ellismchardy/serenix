@@ -22,10 +22,6 @@ public struct BodyView: Equatable, Sendable {
     public let goalCard: GoalCard?
     /// Where a new Weight Goal starts by default; nil with no Weigh-ins.
     public let newGoalStart: GoalStart?
-    /// The Trend Weight headline's verdict (spec 018): waiting "NO WEIGH-IN." or "NO GOAL.", a
-    /// hold goal's state, or the pace badge (waiting "SETTLING IN." while settling in); none for
-    /// a goal with neither, e.g. nothing left to go.
-    public let weightVerdict: Verdict?
 
     public init(
         weighIns: [WeighIn],
@@ -55,19 +51,6 @@ public struct BodyView: Equatable, Sendable {
         } else {
             goalCard = nil
         }
-        weightVerdict =
-            if trendWeight == nil {
-                Verdict(text: "NO WEIGH-IN.", kind: .waiting)
-            } else if let card = goalCard {
-                if let state = card.holdState {
-                    Verdict.hold(state)
-                } else {
-                    card.status.map(Verdict.pace)
-                }
-            } else {
-                // With a Trend Weight, a missing goal card means no Weight Goal.
-                Verdict(text: "NO GOAL.", kind: .waiting)
-            }
     }
 
     /// The goal's cards as of `today`, from the Trend Weight points up to it. With `withEase`,

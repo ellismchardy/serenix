@@ -1,18 +1,15 @@
 import SerenixCore
 import SwiftUI
 
-/// What the Today and Sleep tabs share (spec 002, Sync pill; spec 012, Tab bar; spec 018,
-/// Masthead): the masthead, the sync pill over the top, pull to sync, the date picker and the
-/// profile menu, around a tab's own content. The Today view gives the masthead and pill their
-/// content.
+/// What the Today and Sleep tabs share (spec 002, Top bar and Sync pill; spec 012, Tab bar): the
+/// top bar, the sync pill over the top, pull to sync, the date picker and the profile menu, around
+/// a tab's own content. The Today view gives the top bar and pill their content.
 struct ScreenChrome<Content: View>: View {
-    /// The tab's name in the masthead: "Today" or "Sleep".
-    let tabName: String
     @ObservedObject var connection: StrapConnection
     @ObservedObject var profile: ProfileStore
     /// The Day shown, shared by both tabs; nil is today.
     @Binding var pickedDay: Day?
-    /// Owned by the tab, since its content can open the profile menu too (Load, while it asks for the age).
+    /// Owned by the tab, since its content can open the profile menu too (the Load ring).
     @Binding var showsProfileMenu: Bool
     /// The pill the user swiped away, or "Sync successful" once its 3 seconds are up; it shows
     /// again as soon as the Today view gives a different pill. Shared by both tabs, so there is
@@ -32,12 +29,12 @@ struct ScreenChrome<Content: View>: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    masthead
+                    topBar
                     content()
                 }
                 .padding()
             }
-            .background(Poster.paper.ignoresSafeArea())
+            .background(Theme.background.ignoresSafeArea())
             // Pulling down starts a sync (001's Sync now) unless one is running.
             .refreshable { @MainActor in
                 if !connection.phase.isBusy { connection.syncNow() }
@@ -89,34 +86,41 @@ struct ScreenChrome<Content: View>: View {
         }
     }
 
-    /// "Serenix · <tab>" and the Day shown, with the avatar opening the profile menu and the
-    /// calendar and bell buttons as small ink icons (spec 018, Masthead).
-    private var masthead: some View {
-        Masthead(
-            title: "Serenix · \(tabName)",
-            detail: Poster.dayText(today.shownDate)
-        ) {
-            iconButton("calendar", label: "Pick a Day") { showsDatePicker = true }
-            iconButton("bell", label: "Notifications") { showsNotifications = true }
+    /// The avatar opening the profile menu, the greeting over the Profile name, and the calendar
+    /// and bell buttons (spec 002, Top bar).
+    private var topBar: some View {
+        HStack(spacing: 12) {
             Button {
                 showsProfileMenu = true
             } label: {
-                Avatar(letter: today.avatarLetter, diameter: 28)
+                Avatar(letter: today.avatarLetter, diameter: 44)
             }
             .accessibilityLabel("Profile")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(today.greeting)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                if let name = today.greetingName {
+                    Text(name).font(.headline.bold())
+                }
+            }
+            .lineLimit(1)
+            Spacer()
+            roundButton("calendar", label: "Pick a Day") { showsDatePicker = true }
+            roundButton("bell", label: "Notifications") { showsNotifications = true }
         }
     }
 
-    /// A small ink icon button in the masthead.
-    private func iconButton(_ symbol: String, label: String, action: @escaping () -> Void)
+    /// A round icon button in the top bar.
+    private func roundButton(_ symbol: String, label: String, action: @escaping () -> Void)
         -> some View
     {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(Poster.ink)
-                .frame(width: 32, height: 32)
-                .contentShape(Rectangle())
+                .font(.body.weight(.medium))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 40, height: 40)
+                .themeCard(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)

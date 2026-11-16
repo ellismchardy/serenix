@@ -43,17 +43,16 @@ say.
 **Which Day is shown.** Serenix opens on today: the local calendar Day of the current time. The
 Night shown is the one dated that Day (GLOSSARY: dated by the local date of its Final Wake).
 
-**Top bar.** (Superseded by spec 018: its masthead replaces the top bar.) On the left, the profile
-avatar (see Profile), which opens the profile menu. Next to it, the greeting in small text, with
-the Profile name in bold under it. On the right, two round buttons:
+**Top bar.** On the left, the profile avatar (see Profile), which opens the profile menu. Next
+to it, the greeting in small text, with the Profile name in bold under it. On the right, two
+round buttons:
 - **Calendar:** opens a date picker running from the Day of the earliest Night to today (just
   today when there are no Nights); picking a Day shows it.
 - **Bell:** shows "No notifications yet." Notifications are a later spec (see Non-goals).
 
-**Greeting.** (Superseded by spec 018: there is no greeting.) "Good morning!", "Good afternoon!" or
-"Good evening!" by the local time now, on every Day shown: morning is 05:00–11:59, afternoon
-12:00–17:59 and evening 18:00–04:59. The Profile name shows under it in bold; with no name, the
-greeting stands alone.
+**Greeting.** "Good morning!", "Good afternoon!" or "Good evening!" by the local time now, on
+every Day shown: morning is 05:00–11:59, afternoon 12:00–17:59 and evening 18:00–04:59. The
+Profile name shows under it in bold; with no name, the greeting stands alone.
 
 **Week strip.** A card under the top bar showing seven Days, each as its weekday letter (S M T
 W T F S) over its date number, with the Day shown highlighted in the accent colour. The seven
@@ -204,14 +203,13 @@ appears in the Sync Log, a shared log or any report.
 The **avatar** is a circle with the first letter of the name, upper-cased; with no name it
 shows a person icon. It appears in the top bar and, larger, at the top of the profile menu.
 
-**Look.** (Superseded by spec 018's Poster look.) A light grey background with white, rounded cards
-and soft shadows, and purple as the app's accent: the avatar, the Day shown in the week strip,
-buttons, the sync pill's outline and the Sleep Score ring. Band and Zone colours stay green, amber
-and red. **Appearance** is System (the default, following iOS), Light or Dark, chosen in the
-profile menu and kept on the phone; Dark uses a dark version of the same palette with the same
-accent. In Dark, a popup's background is the screen's dark background, so its cards stand out as
-they do on the Today screen rather than sitting on a grey close to their own colour; in Light it
-stays white.
+**Look.** A light grey background with white, rounded cards and soft shadows, and purple as
+the app's accent: the avatar, the Day shown in the week strip, buttons, the sync pill's outline
+and the Sleep Score ring. Band and Zone colours stay green, amber and red. **Appearance** is
+System (the default, following iOS), Light or Dark, chosen in the profile menu and kept on the
+phone; Dark uses a dark version of the same palette with the same accent. In Dark, a popup's
+background is the screen's dark background, so its cards stand out as they do on the Today
+screen rather than sitting on a grey close to their own colour; in Light it stays white.
 
 **Profile menu.** It slides up nearly full height, with an ✕ to close it, and contains, as
 rounded, grouped rows:

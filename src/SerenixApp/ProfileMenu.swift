@@ -106,7 +106,7 @@ struct ProfileMenu: View {
                 }
             }
             .pickerStyle(.navigationLink)
-            .listRowBackground(Poster.paper)
+            .listRowBackground(Theme.card)
             Section("Strap") {
                 LabeledContent {
                     Text(connection.strapModel ?? "—")
@@ -141,14 +141,14 @@ struct ProfileMenu: View {
                     }
                 }
             }
-            .listRowBackground(Poster.paper)
+            .listRowBackground(Theme.card)
             Section("Appearance") {
                 Picker("Appearance", selection: $appearanceStore.selected) {
                     ForEach(Appearance.allCases) { Text($0.label).tag($0) }
                 }
                 .pickerStyle(.segmented)
             }
-            .listRowBackground(Poster.paper)
+            .listRowBackground(Theme.card)
             // Spec 013: Rings or Story, applied to the Today screen at once.
             Section("Today layout") {
                 Picker("Today layout", selection: $todayLayout) {
@@ -156,7 +156,7 @@ struct ProfileMenu: View {
                 }
                 .pickerStyle(.segmented)
             }
-            .listRowBackground(Poster.paper)
+            .listRowBackground(Theme.card)
             // Spec 015, Backup and import: all Body data as one JSON file, and back.
             Section("Body data") {
                 switch backup {
@@ -180,7 +180,7 @@ struct ProfileMenu: View {
                     Label("Import Body data", systemImage: "square.and.arrow.down")
                 }
             }
-            .listRowBackground(Poster.paper)
+            .listRowBackground(Theme.card)
             Section {
                 NavigationLink {
                     DebugView(connection: connection)
@@ -197,11 +197,11 @@ struct ProfileMenu: View {
                 }
                 .padding(.top, 8)
             }
-            .listRowBackground(Poster.paper)
+            .listRowBackground(Theme.card)
         }
-        .listStyle(.grouped)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Poster.paper.ignoresSafeArea())
+        .background(Theme.background.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button {
@@ -387,10 +387,10 @@ private struct SyncProgressView: View {
                     .lineLimit(1)
             }
             ZStack {
-                Circle().stroke(Poster.track, lineWidth: 3)
+                Circle().stroke(Theme.accentSoft, lineWidth: 3)
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(Poster.ink, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
             .frame(width: 22, height: 22)

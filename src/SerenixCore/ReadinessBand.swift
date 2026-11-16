@@ -10,9 +10,9 @@ public enum ReadinessBand: Equatable, Sendable {
     case takeItEasy
 
     /// The lowest Readiness that is Ready, on the 0–100 scale (spec 002, Rings).
-    static let readyFrom = 67
+    private static let readyFrom = 67
     /// The lowest Readiness that is Steady, on the 0–100 scale (spec 002, Rings).
-    static let steadyFrom = 34
+    private static let steadyFrom = 34
 
     /// The top of the 0–100 scale, where Ready ends.
     private static let scaleTop = 100
