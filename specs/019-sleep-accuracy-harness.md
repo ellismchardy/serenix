@@ -1,7 +1,7 @@
 # 019 — Sleep accuracy harness
 
 **Status:** approved
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-18 (Walch input limited to 12 h either side of the PSG)
 **Issue:** https://github.com/ellismchardy/serenix/issues/82 (sleep accuracy map, #78; decisions
 in #81)
 
@@ -52,7 +52,11 @@ unscored). The Walch adapter (sleep-accel 1.0.0):
   direction, and sets the second's angle to the Tilt from the previous second (empty if that
   second has no samples);
 - gives each second the last heart-rate reading from up to 15 s before it, and none after that;
-- keeps every second it has, including those before and after the PSG;
+- keeps the seconds from 12 h before PSG time 0 to 12 h after the end of the last Epoch,
+  including those before the PSG starts, and drops the rest. Some Walch recordings run for days
+  before or after their PSG; without this the labeller could pick its Sleep Period on another
+  night, which the app never does (it looks for one Night per Night window). Walch gives no
+  calendar dates, so the span can't be the Night window itself;
 - maps label 0 to wake, 1 to N1, 2 to N2, 3 and 4 to N3, 5 to REM, and −1 to unscored.
 
 **What is compared.** The labeller runs on the whole series; only some Epochs are compared. An
@@ -160,6 +164,8 @@ Walch adapter:
 - [ ] Labels 0, 1, 2, 3, 4, 5 and −1 become wake, N1, N2, N3, N3, REM and unscored.
 - [ ] PSG time 0 falls on a whole UTC minute: the Epochs at 0 s and 30 s share one Serenix minute.
 - [ ] Seconds before PSG time 0 are kept in the labelling input.
+- [ ] Seconds more than 12 h before PSG time 0, or more than 12 h after the end of the last Epoch,
+      are not in the labelling input; seconds exactly 12 h either side are.
 - [ ] A recording missing its labels file stops the run with a message naming the recording, and
       no report is written.
 

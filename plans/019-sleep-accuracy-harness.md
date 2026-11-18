@@ -144,12 +144,19 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    - Not checked: a run on Windows (git lookup reads `Path` case-insensitively; confirm the stamp
      shows a SHA there).
    - Done when: no `--out` → usage error, nothing written.
-10. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+10. [ ] **Slice: limit Walch input to 12 h either side of the PSG** (spec change, 2026-11-18). The
+    first real Walch run found recordings spanning days (9618981 runs to +69 h; 1449548 and
+    8000685 start 135–148 h early), so the labeller could pick another night's Sleep Period.
+    - Seam: harness library (adapter) · Files: `src/SleepAccuracy/WalchAdapter.swift`,
+      `tests/SleepAccuracyTests/WalchAdapterTests.swift`
+    - Done when: seconds more than 12 h before PSG time 0 or after the end of the last Epoch are
+      not in the input, seconds exactly 12 h either side are; then re-run the baseline sweep.
+11. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
     `swift build` green; every spec criterion checked; `git status` shows no dataset files.
     By hand on the developer machine: download sleep-accel 1.0.0 to a folder outside the repo,
     run `sleep-accuracy walch --sweep …`, confirm every recording is kept or listed; run
     `sleep-accuracy strap` on a folder holding copies of the two fixture night CSVs.
-    - Blocked by: 9
+    - Blocked by: 10
     - Carried to the PR checklist: the macOS CI job builds the app. Posting the baseline on #82
       happens after merge (the ticket's own work).
 
