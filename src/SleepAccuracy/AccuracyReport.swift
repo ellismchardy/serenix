@@ -219,28 +219,3 @@ private func errorRow(_ name: String, _ summary: ErrorSummary, withLimits: Bool 
     let cells = [name, "\(summary.count)", minutes(summary.mean), minutes(summary.sd), limits]
     return "| " + cells.joined(separator: " | ") + " |"
 }
-
-/// 3 decimals; "—" when missing.
-private func rate(_ value: Double?) -> String {
-    value.map { String(format: "%.3f", $0) } ?? "—"
-}
-
-/// 1 decimal; "—" when missing.
-private func minutes(_ value: Double?) -> String {
-    value.map { String(format: "%.1f", $0) } ?? "—"
-}
-
-/// A whole percent, rounded down so a share under 90% never shows as "90%" (the tiny nudge
-/// absorbs binary rounding, e.g. 0.89 × 100 = 88.99999…).
-private func percent(_ share: Double) -> String {
-    "\(Int((share * 100 + 1e-9).rounded(.down)))%"
-}
-
-/// Text for a Markdown table cell: a `|` would end the cell.
-private func cell(_ text: String) -> String {
-    text.replacingOccurrences(of: "|", with: "\\|")
-}
-
-private func degrees(_ value: Double) -> String {
-    String(format: "%g°", value)
-}

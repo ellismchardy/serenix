@@ -109,13 +109,18 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
      specificity, accuracy and κ (custom `encode(to:)` or a report type). Pooled scores also
      have `wakeBoutCountError` (not in the spec's list) and no pooled mean Wake Bout length:
      decide what the report shows.
-8. [ ] **Slice: Strap transfer run.** Fixture-CSV reader in the library (same header as
+8. [x] **Slice: Strap transfer run.** Fixture-CSV reader in the library (same header as
    `NightFixture`); per night two inputs (turn, Tilt), share of turn-active seconds also
    Tilt-active, minute agreement at ≥ 10 active seconds, Time Asleep/Sleep Onset/Final Wake
    from each and differences; its own Markdown/JSON section.
    - Blocked by: 2, 7
-   - Seam: harness library · Files: `src/SleepAccuracy/StrapTransfer.swift`,
-     `src/SleepAccuracy/HistoryRecordCSV.swift`, `tests/SleepAccuracyTests/StrapTransferTests.swift`
+   - Seam: harness library · Files: `src/SleepAccuracy/StrapTransferReport.swift`,
+     `src/SleepAccuracy/HistoryRecordCSV.swift`, `src/SleepAccuracy/MarkdownCells.swift` (report
+     number formats shared with task 7), `tests/SleepAccuracyTests/StrapTransferTests.swift`
+   - Left for later (outside this plan's files): the transfer run copies spec 003's 30-second
+     and 10-second minute rules as its own constants, and `HistoryRecordCSV` parses the same
+     format as the test helper `NightFixture`; making the SerenixCore constants public and
+     merging the two readers would stop them drifting.
    - Done when: the vertical-rotation night gives share 0% and more wake minutes on the turn
      series; the report has both series' values and their differences.
 9. [ ] **Slice: the `sleep-accuracy` executable.** Parse `walch`/`strap`, `--data`, `--out`,
