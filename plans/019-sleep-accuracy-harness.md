@@ -123,7 +123,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
      merging the two readers would stop them drifting.
    - Done when: the vertical-rotation night gives share 0% and more wake minutes on the turn
      series; the report has both series' values and their differences.
-9. [ ] **Slice: the `sleep-accuracy` executable.** Parse `walch`/`strap`, `--data`, `--out`,
+9. [x] **Slice: the `sleep-accuracy` executable.** Parse `walch`/`strap`, `--data`, `--out`,
    `--threshold`/`--sweep`; run `git rev-parse HEAD` (else "unknown"); compute everything before
    writing either file; non-zero exit with usage on bad arguments. Argument parsing lives in the
    library (tested); `main.swift` only does I/O.
@@ -131,8 +131,18 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    - Note from task 7: `AccuracyReport.sweep` returns nil for an empty threshold list, and
      `RunStamp` takes no thresholds (the run fills them in), so parse `--sweep` once and reject
      an empty list with the usage message.
-   - Seam: harness library (argument parsing) · Files: `src/SleepAccuracy/Arguments.swift`,
-     `src/sleep-accuracy/main.swift`, `tests/SleepAccuracyTests/ArgumentsTests.swift`
+   - Seam: harness library (argument parsing) · Files: `src/SleepAccuracy/HarnessArguments.swift`,
+     `src/sleep-accuracy/main.swift`, `tests/SleepAccuracyTests/HarnessArgumentsTests.swift`; the
+     Strap folder reader went into `HistoryRecordCSV.nights(in:)` (tested) so `main.swift` decides
+     nothing.
+   - Found when run by hand: on the 28–29 Oct fixture the transfer run gives 90% of turn-active
+     seconds also Tilt-active; the Walch-motion research note reports 92.3% for the same file. Its
+     figure matches taking the floats as (w, x, y, z) and the vertical as R·z; the harness takes
+     (x, y, z, w) and Rᵀ·z. All four conventions agree within ~2 points and the turn is the same.
+     Which is right is the map's open question (are `d[41:57]` a quaternion, in what order); a
+     still-in-several-positions test on the Strap settles it.
+   - Not checked: a run on Windows (git lookup reads `Path` case-insensitively; confirm the stamp
+     shows a SHA there).
    - Done when: no `--out` → usage error, nothing written.
 10. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
     `swift build` green; every spec criterion checked; `git status` shows no dataset files.

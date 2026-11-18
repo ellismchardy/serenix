@@ -8,6 +8,26 @@ public enum HistoryRecordCSV {
     /// The header every file starts with, exactly, optionally followed by `,steps`.
     static let header = "counter,utc,hr,rr_ms,q0,q1,q2,q3,temp_c,spo2_window,spo2"
 
+    /// The owner's Strap nights in `folder`: every `.csv` file, in file-name order, each named
+    /// by its file name without `.csv`. Throws when there are none, so a wrong folder never passes
+    /// as an empty run.
+    public static func nights(in folder: URL) throws -> [(id: String, records: [HistoryRecord])] {
+        let names =
+            ((try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? [])
+            .filter { $0.hasSuffix(".csv") }
+            .sorted()
+        guard !names.isEmpty else { throw HistoryRecordCSVError.noFiles(folder: folder.path) }
+        return try names.map { name in
+            guard
+                let text = try? String(
+                    contentsOf: folder.appendingPathComponent(name),
+                    encoding: .utf8
+                )
+            else { throw HistoryRecordCSVError.unreadableFile(file: name) }
+            return (String(name.dropLast(".csv".count)), try records(from: text, file: name))
+        }
+    }
+
     /// History Records from `text`, oldest first (by timestamp, then Record Counter), repeats
     /// dropped by identity. `file` names the source in errors.
     public static func records(from text: String, file: String) throws -> [HistoryRecord] {
@@ -75,6 +95,10 @@ public enum HistoryRecordCSV {
 
 /// Why a fixture CSV couldn't be read. Each names the file.
 public enum HistoryRecordCSVError: Error, Equatable {
+    /// The folder has no `.csv` files (or doesn't exist).
+    case noFiles(folder: String)
+    /// The file couldn't be read as UTF-8 text.
+    case unreadableFile(file: String)
     case missingHeader(file: String)
     /// `line` is 1-based; the header is line 1.
     case malformedLine(file: String, line: Int)

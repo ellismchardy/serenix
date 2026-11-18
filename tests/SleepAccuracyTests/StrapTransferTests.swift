@@ -205,3 +205,34 @@ private func verticalRotationReport() -> StrapTransferReport {
         }
     }
 }
+
+/// Spec 019: the Strap run reads every `.csv` in its folder, in file-name order, each named by
+/// its file; a folder with none stops the run, naming it.
+@Test func aStrapFolderGivesOneNightPerCSVFileByName() throws {
+    let folder = FileManager.default.temporaryDirectory
+        .appendingPathComponent("strap-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let header = "counter,utc,hr,rr_ms,q0,q1,q2,q3,temp_c,spo2_window,spo2"
+    let row = "1,2026-10-28T12:00:00+00:00,64,849,0.0200,-0.1653,0.0374,0.9978,32.09,0,0"
+    for name in ["b-night", "a-night"] {
+        let file = folder.appendingPathComponent("\(name).csv")
+        try (header + "\n" + row + "\n").write(to: file, atomically: true, encoding: .utf8)
+    }
+    try "not a night".write(
+        to: folder.appendingPathComponent("notes.txt"),
+        atomically: true,
+        encoding: .utf8
+    )
+
+    let nights = try HistoryRecordCSV.nights(in: folder)
+
+    #expect(nights.map(\.id) == ["a-night", "b-night"])
+    #expect(nights.map(\.records.count) == [1, 1])
+
+    try FileManager.default.removeItem(at: folder.appendingPathComponent("a-night.csv"))
+    try FileManager.default.removeItem(at: folder.appendingPathComponent("b-night.csv"))
+    #expect(throws: HistoryRecordCSVError.noFiles(folder: folder.path)) {
+        try HistoryRecordCSV.nights(in: folder)
+    }
+}
