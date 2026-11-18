@@ -88,7 +88,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    - Seam: harness library · Files: as task 4
    - Done when: the PSG Epoch 2–9 example (60 s / 300 s / 2 bouts of 0.5 min / 3.0 min) and the
      ±10 min → mean 0.0, SD 14.1, limits ±27.7 criteria pass.
-6. [ ] **Slice: Walch adapter.** Read the three files (comma or whitespace separated), sort and
+6. [x] **Slice: Walch adapter.** Read the three files (comma or whitespace separated), sort and
    de-duplicate samples, per-second axis medians → gravity direction → Tilt (empty when the
    previous second has no samples), HR carried ≤ 15 s, label mapping, PSG time 0 at a whole UTC
    minute, seconds before 0 kept; missing file or off-grid label time → error naming the recording.
