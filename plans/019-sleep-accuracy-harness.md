@@ -67,7 +67,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
      `src/SerenixCore/StrapMotion.swift`, `src/SerenixCore/SleepLabelling.swift`,
      `tests/SerenixCoreTests/StrapMotionTests.swift`
    - Done when: 30° about the vertical → Tilt 0°, turn 30°; 30° about a horizontal axis → Tilt 30°.
-3. [ ] **Slice (tracer bullet): scorer, visible verdict, one Reference Night.** Add the three
+3. [x] **Slice (tracer bullet): scorer, visible verdict, one Reference Night.** Add the three
    targets; `Epoch`, `ReferenceNight`, compare at Epochs (minute label → both Epochs),
    sensitivity, specificity, accuracy, κ; a stub `sleep-accuracy` main that prints usage.
    - Blocked by: 1
@@ -77,6 +77,9 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
      sleep for both Epochs.
 4. [ ] **Slice: what is compared, and both layers.** Unscored and no-data Epochs skipped; 90%
    coverage rule with the left-out list; raw-label layer; no Sleep Period → all wake.
+   Note from task 3: `Scorer` already skips unscored Epochs and already scores a Reference Night
+   without a Sleep Period all wake, so those two tests start green. Show them red by temporarily
+   breaking the rule, and replace task 3's "no-data minute counts as wake" fallback.
    - Seam: harness library · Files: `src/SleepAccuracy/Scorer*.swift`, `tests/SleepAccuracyTests/ScorerTests.swift`
    - Done when: the spec's exclusion, 89%/90%, raw-vs-visible and no-Sleep-Period criteria pass.
 5. [ ] **Slice: per-night errors and pooling.** PSG Sleep Onset/Final Wake/Wake Bouts/Time
