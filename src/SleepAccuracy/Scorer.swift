@@ -11,6 +11,24 @@ public struct ReferenceNightResult: Equatable, Codable, Sendable {
     public let visible: EpochAgreement
     /// Each minute's own sleep/wake label, wherever it falls.
     public let raw: EpochAgreement
+    // The visible verdict's errors, in minutes, Serenix minus PSG (`ReferenceSleep`).
+    /// Serenix's Time Asleep (0 when it found no Sleep Period) minus PSG's.
+    public let timeAsleepBias: Double
+    /// Serenix's wake minutes inside its Sleep Period minus PSG's WASO. With no Sleep Period
+    /// Serenix's side is 0, as its Time Asleep is, so the Reference Night still counts.
+    public let wasoBias: Double
+    /// Nil when Serenix found no Sleep Period or PSG scored no sleep.
+    public let sleepOnsetError: Double?
+    /// Nil when Serenix found no Sleep Period or PSG scored no sleep.
+    public let finalWakeError: Double?
+    /// How many Wake Bouts Serenix's Sleep Period has (0 with none).
+    public let serenixWakeBouts: Int
+    /// Minutes; nil with no Wake Bouts.
+    public let serenixMeanWakeBoutMinutes: Double?
+    /// How many Wake Bouts PSG has (`ReferenceSleep.wakeBoutMinutes`).
+    public let referenceWakeBouts: Int
+    /// Minutes; nil with no Wake Bouts.
+    public let referenceMeanWakeBoutMinutes: Double?
 }
 
 /// A Reference Night left out of the scores for too little coverage.
@@ -24,6 +42,34 @@ public struct LeftOutReferenceNight: Equatable, Codable, Sendable {
 public struct ScoredReferenceNights: Equatable, Codable, Sendable {
     public let kept: [ReferenceNightResult]
     public let leftOut: [LeftOutReferenceNight]
+    /// Across the kept Reference Nights; nil when none was kept.
+    public let pooled: PooledScores?
+}
+
+/// Scores across the kept Reference Nights (spec 019). Each error is summed up over the
+/// Reference Nights that have it.
+public struct PooledScores: Equatable, Codable, Sendable {
+    /// Every compared Epoch of every kept Reference Night together.
+    public let visible: EpochAgreement
+    public let raw: EpochAgreement
+    public let timeAsleepBias: ErrorSummary
+    public let wasoBias: ErrorSummary
+    public let sleepOnsetError: ErrorSummary
+    public let finalWakeError: ErrorSummary
+    /// Serenix's Wake Bouts minus PSG's, per Reference Night.
+    public let wakeBoutCountError: ErrorSummary
+
+    init(_ results: [ReferenceNightResult]) {
+        visible = .pooled(results.map(\.visible))
+        raw = .pooled(results.map(\.raw))
+        timeAsleepBias = ErrorSummary(results.map(\.timeAsleepBias))
+        wasoBias = ErrorSummary(results.map(\.wasoBias))
+        sleepOnsetError = ErrorSummary(results.compactMap(\.sleepOnsetError))
+        finalWakeError = ErrorSummary(results.compactMap(\.finalWakeError))
+        wakeBoutCountError = ErrorSummary(
+            results.map { Double($0.serenixWakeBouts - $0.referenceWakeBouts) }
+        )
+    }
 }
 
 /// Scores Serenix's sleep/wake labelling against Reference Nights (spec 019).
@@ -48,7 +94,11 @@ public enum Scorer {
                 kept.append(result)
             }
         }
-        return ScoredReferenceNights(kept: kept, leftOut: leftOut)
+        return ScoredReferenceNights(
+            kept: kept,
+            leftOut: leftOut,
+            pooled: kept.isEmpty ? nil : PooledScores(kept)
+        )
     }
 
     /// Labels `night.seconds` at `threshold` (degrees) and compares each Epoch with the Serenix
@@ -79,16 +129,34 @@ public enum Scorer {
             visible.append(call.visible)
             raw.append(call.raw)
         }
+        let psg = ReferenceSleep(epochs: night.epochs)
+        let serenixBouts = period?.wakeBouts.map { Double($0.minutes) } ?? []
+        let serenixWASO = serenixBouts.reduce(0, +)
         return ReferenceNightResult(
             id: night.id,
             coverage: scored == 0 ? 0 : Double(reference.count) / Double(scored),
             visible: EpochAgreement(referenceAsleep: reference, serenixAsleep: visible),
-            raw: EpochAgreement(referenceAsleep: reference, serenixAsleep: raw)
+            raw: EpochAgreement(referenceAsleep: reference, serenixAsleep: raw),
+            timeAsleepBias: ((period?.timeAsleep ?? 0) - psg.timeAsleep) / secondsPerMinute,
+            wasoBias: serenixWASO - psg.wakeAfterSleepOnset / secondsPerMinute,
+            sleepOnsetError: minutesBetween(psg.sleepOnset, period?.sleepOnset),
+            finalWakeError: minutesBetween(psg.finalWake, period?.finalWake),
+            serenixWakeBouts: serenixBouts.count,
+            serenixMeanWakeBoutMinutes: ErrorSummary(serenixBouts).mean,
+            referenceWakeBouts: psg.wakeBoutMinutes.count,
+            referenceMeanWakeBoutMinutes: ErrorSummary(psg.wakeBoutMinutes).mean
         )
     }
 }
 
+/// Minutes from `reference` to `serenix`; nil when either is missing.
+private func minutesBetween(_ reference: Date?, _ serenix: Date?) -> Double? {
+    guard let reference, let serenix else { return nil }
+    return serenix.timeIntervalSince(reference) / secondsPerMinute
+}
+
 /// The whole UTC minute `time` falls in.
 private func minuteStart(of time: Date) -> Date {
-    Date(timeIntervalSince1970: (time.timeIntervalSince1970 / 60).rounded(.down) * 60)
+    let minutes = (time.timeIntervalSince1970 / secondsPerMinute).rounded(.down)
+    return Date(timeIntervalSince1970: minutes * secondsPerMinute)
 }

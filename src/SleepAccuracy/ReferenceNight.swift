@@ -20,6 +20,11 @@ public enum EpochLabel: String, Codable, Sendable {
     }
 }
 
+/// Seconds in an Epoch (AASM scoring).
+let epochSeconds: TimeInterval = 30
+/// Seconds in a minute, for errors given in minutes.
+let secondsPerMinute: TimeInterval = 60
+
 /// One Epoch of a Reference Night: 30 seconds and its PSG label.
 public struct Epoch: Equatable, Sendable {
     /// UTC.

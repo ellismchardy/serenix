@@ -82,7 +82,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    breaking the rule, and replace task 3's "no-data minute counts as wake" fallback.
    - Seam: harness library · Files: `src/SleepAccuracy/Scorer*.swift`, `tests/SleepAccuracyTests/ScorerTests.swift`
    - Done when: the spec's exclusion, 89%/90%, raw-vs-visible and no-Sleep-Period criteria pass.
-5. [ ] **Slice: per-night errors and pooling.** PSG Sleep Onset/Final Wake/Wake Bouts/Time
+5. [x] **Slice: per-night errors and pooling.** PSG Sleep Onset/Final Wake/Wake Bouts/Time
    Asleep; Time Asleep, WASO, Sleep Onset, Final Wake biases; Wake Bout count/mean length side
    by side; pooled Epoch stats per layer; Bland–Altman; means skipping empty errors.
    - Seam: harness library · Files: as task 4
@@ -104,6 +104,11 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    - Seam: harness library · Files: `src/SleepAccuracy/Sweep.swift`, `src/SleepAccuracy/Report*.swift`,
      `tests/SleepAccuracyTests/ReportTests.swift`
    - Done when: the sweep criterion and the two report-content criteria pass.
+   - Note from task 5: `EpochAgreement` stores its four counts and computes the rates, so its
+     synthesized `Codable` writes counts only. The JSON must also carry sensitivity,
+     specificity, accuracy and κ (custom `encode(to:)` or a report type). Pooled scores also
+     have `wakeBoutCountError` (not in the spec's list) and no pooled mean Wake Bout length:
+     decide what the report shows.
 8. [ ] **Slice: Strap transfer run.** Fixture-CSV reader in the library (same header as
    `NightFixture`); per night two inputs (turn, Tilt), share of turn-active seconds also
    Tilt-active, minute agreement at ≥ 10 active seconds, Time Asleep/Sleep Onset/Final Wake
