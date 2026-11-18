@@ -15,12 +15,15 @@ Strap ──BLE──▶ iOS shell (CoreBluetooth) ──frames──▶ Serenix
                                           └──▶ HealthKit (write-only export)
 ```
 
-The app is split in two (ADR 0002):
+The app is split in two (ADR 0002), with a third, developer-only part beside it:
 - **`SerenixCore`**, a pure Swift package that imports Foundation only. It holds every
   decision worth testing. It builds and tests on Windows, Linux and macOS.
 - **The iOS shell**, a thin layer of SwiftUI, CoreBluetooth, SwiftData and HealthKit that moves
   bytes and values between the outside world and `SerenixCore`. It builds only on macOS (CI)
   and is tested by hand on a real phone.
+- **The sleep accuracy harness** (spec 019): a `SleepAccuracy` library and a `sleep-accuracy`
+  command that score `SerenixCore`'s sleep/wake labelling against sleep-lab Reference Nights.
+  Never linked into the app; its unit tests run in `swift test`, its dataset runs never in CI.
 
 ## Components
 | Component | Responsibility | Location |
@@ -28,7 +31,8 @@ The app is split in two (ADR 0002):
 | Protocol | Build command frames and decode Strap frames (CRC, header check, History Record layout). One decoder per Strap model | `src/SerenixCore/` |
 | Sync logic | The History Sync state machine: which commands to send, when to acknowledge, when a sync is complete. Transport-agnostic | `src/SerenixCore/` |
 | Live HR link | When Live HR runs and on which connection (in a sync or its own), quiet failures and retries, and the sync pill's phase meanwhile (ADR 0007) | `src/SerenixCore/` |
-| Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records | `src/SerenixCore/` |
+| Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records, through a public per-second labeller (time, heart rate, motion angle) that the accuracy harness also uses | `src/SerenixCore/` |
+| Sleep accuracy harness | Reference Nights from sleep-lab datasets (one adapter each), Epoch scoring, threshold sweep, the Strap turn-vs-Tilt run, Markdown and JSON reports (spec 019) | `src/SleepAccuracy/`, `src/sleep-accuracy/` |
 | Metrics & scores | Nightly Metrics, Baseline, Sleep Need, Sleep Score, Readiness, Resting HR, Load | `src/SerenixCore/` |
 | Body | Trend Weight, Weekly Rate, Weight Goals (pace, Milestones, projected dates, hold), and the Body data backup file (spec 015) | `src/SerenixCore/` |
 | BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |

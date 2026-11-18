@@ -16,5 +16,22 @@ let package = Package(
             path: "tests/SerenixCoreTests",
             resources: [.copy("Fixtures")]
         ),
+        // The sleep accuracy harness (spec 019): developer-only, never linked into the app.
+        // Foundation and SerenixCore only.
+        .target(
+            name: "SleepAccuracy",
+            dependencies: ["SerenixCore"],
+            path: "src/SleepAccuracy"
+        ),
+        .executableTarget(
+            name: "sleep-accuracy",
+            dependencies: ["SleepAccuracy"],
+            path: "src/sleep-accuracy"
+        ),
+        .testTarget(
+            name: "SleepAccuracyTests",
+            dependencies: ["SleepAccuracy", "SerenixCore"],
+            path: "tests/SleepAccuracyTests"
+        ),
     ]
 )
