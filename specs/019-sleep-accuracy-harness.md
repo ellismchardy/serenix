@@ -84,7 +84,8 @@ for the visible verdict only:
 
 **Pooled.** Sensitivity, specificity, accuracy and κ over all compared Epochs of all kept
 Reference Nights, per layer. Time Asleep bias: mean, SD and Bland–Altman 95% limits (mean ±
-1.96 SD). Every other error: mean and SD over the Reference Nights that have it. **Headline:**
+1.96 SD). Every other error, and Serenix's Wake Bout count minus PSG's: mean and SD over the
+Reference Nights that have it. **Headline:**
 pooled κ of the visible verdict, with mean Time Asleep bias beside it.
 
 **Threshold sweep.** Given a list of thresholds, the harness scores each one and writes one row
@@ -102,7 +103,9 @@ differences in minutes. There is no Reference Night, so no κ.
 
 **Reports.** Each run writes a Markdown summary and a JSON file with the same numbers into the
 output folder. Both are stamped with the labeller name, its threshold(s), the dataset, the
-command line and the git SHA (`git rev-parse HEAD`, or "unknown" when git can't be run). The
+command line and the git SHA (`git rev-parse HEAD`, or "unknown" when git can't be run).
+Reports are published, so the stamped command line and dataset name each folder by its last
+name only, never the developer's own paths. The
 Markdown has: the headline, the pooled table for both layers, the per-Reference-Night table, the
 sweep table when there is one, and "Reference Nights left out" with each one's coverage.
 
@@ -110,7 +113,8 @@ sweep table when there is one, and "Reference Nights left out" with each one's c
 - `sleep-accuracy walch --data <dir> --out <dir> (--threshold <deg> | --sweep <deg,…>)`
 - `sleep-accuracy strap --data <dir> --out <dir> --threshold <deg>`
 
-`--data` and `--out` are required. A missing or unreadable folder, or a Walch recording missing
+`--data` and `--out` are required; a missing `--out` folder is created. A missing or unreadable
+`--data` folder, or a Walch recording missing
 one of its three files, stops the run with a message naming it; it never writes a partial report.
 
 ## Design decisions
@@ -202,7 +206,7 @@ Reports and tooling:
 - [ ] `swift test`, `swift format lint --strict --recursive src tests Package.swift` and
       `swift build` pass on Linux, and the macOS CI job builds the app.
 - [x] By hand: `sleep-accuracy walch` on the downloaded sleep-accel 1.0.0 nights with a sweep
-      writes a report covering every recording, kept or left out (posted on #82 as the baseline).
+      writes a report covering every recording, kept or left out.
 - [x] By hand: `sleep-accuracy strap` on the two fixture nights writes a transfer report.
 
 ## Non-goals (explicitly out of scope)
@@ -215,15 +219,17 @@ Reports and tooling:
 - Settling whether the Strap's four floats are a quaternion (separate test on the Strap).
 
 ## Open questions
-- **Walch file layout.** Assumed from sleep-accel 1.0.0's description: `motion/<id>_acceleration.txt`
-  (time s, x, y, z in g, space-separated), `heart_rate/<id>_heartrate.txt` (time, bpm,
-  comma-separated) and `labels/<id>_labeled_sleep.txt` (time, label, space-separated), times in
-  seconds from PSG start. The first plan task checks this against a downloaded copy and corrects
-  the adapter's made-up test files to match.
-- **Label times off the 30-s grid.** Assumed none; the adapter rejects a recording whose label
-  times aren't whole multiples of 30 s, naming it, rather than guessing an alignment.
+None left. Settled while building:
+- **Walch file layout.** `motion/<id>_acceleration.txt` (time s, x, y, z in g, space-separated),
+  `heart_rate/<id>_heartrate.txt` (time, bpm, comma-separated) and
+  `labels/<id>_labeled_sleep.txt` (time, label, space-separated), times in seconds from PSG
+  start: checked on PhysioNet and on the downloaded copy (31 recordings). The adapter accepts
+  commas or whitespace in every file.
+- **Label times off the 30-s grid.** None in the downloaded copy; the adapter rejects such a
+  recording, naming it, rather than guessing an alignment.
 
 ## Notes
+- The Walch baseline (best Tilt threshold and its scores) is posted on #82 after merge.
 - Decisions: #81 (What the accuracy harness measures and reports); #79 (Walch motion → Tilt);
   #80 (datasets). Map: #78.
 - Research: `docs/research/sleep-wake-and-sleep-stages.md`,

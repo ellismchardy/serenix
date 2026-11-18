@@ -8,8 +8,8 @@ enum MotionMinutes {
     /// Degrees the Strap must turn in one second for that second to count as active (resting
     /// noise is ~0.2°). sleep.py `ACTIVE_DEG`. The app's labelling threshold.
     static let activeDegrees = 2.0
-    /// Seconds: the longest gap between two records whose turn still counts. sleep.py
-    /// `minutes()`.
+    /// Seconds: the longest gap between two records whose motion angle (turn or Tilt) still
+    /// counts. sleep.py `minutes()`.
     static let longestActiveGap = 2.0
     /// Records a minute needs to count; fewer means off-wrist or not recorded. Not used here:
     /// kept beside the active-second rule for every caller that bins minutes. sleep.py

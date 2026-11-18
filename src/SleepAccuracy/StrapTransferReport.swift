@@ -136,9 +136,9 @@ public struct StrapTransferReport: Equatable, Codable, Sendable {
             "- Command line: `\(stamp.commandLine)`",
             "- Git SHA: \(stamp.gitSHA)",
             "",
-            "## Nights",
+            "## Strap nights",
             "",
-            "| Night | Turn-active seconds | Also Tilt-active | Minutes agreeing "
+            "| Strap night | Turn-active seconds | Also Tilt-active | Minutes agreeing "
                 + "| Time Asleep (min), turn / Tilt / diff "
                 + "| Sleep Onset, turn / Tilt / diff (min) "
                 + "| Final Wake, turn / Tilt / diff (min) |",
