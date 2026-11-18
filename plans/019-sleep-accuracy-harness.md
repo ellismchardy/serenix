@@ -96,7 +96,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    - Seam: harness library (adapter) · Files: `src/SleepAccuracy/WalchAdapter.swift`,
      `tests/SleepAccuracyTests/WalchAdapterTests.swift`
    - Done when: every Walch-adapter criterion in the spec passes.
-7. [ ] **Slice: sweep and reports.** Threshold sweep (best = highest pooled κ, lower threshold on
+7. [x] **Slice: sweep and reports.** Threshold sweep (best = highest pooled κ, lower threshold on
    a tie, full report for it); stamped report value (labeller, thresholds, dataset, command
    line, git SHA passed in); JSON encoding; Markdown with headline, both pooled tables,
    per-Reference-Night table, sweep table, "Reference Nights left out".
@@ -123,6 +123,9 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    writing either file; non-zero exit with usage on bad arguments. Argument parsing lives in the
    library (tested); `main.swift` only does I/O.
    - Blocked by: 6, 8
+   - Note from task 7: `AccuracyReport.sweep` returns nil for an empty threshold list, and
+     `RunStamp` takes no thresholds (the run fills them in), so parse `--sweep` once and reject
+     an empty list with the usage message.
    - Seam: harness library (argument parsing) · Files: `src/SleepAccuracy/Arguments.swift`,
      `src/sleep-accuracy/main.swift`, `tests/SleepAccuracyTests/ArgumentsTests.swift`
    - Done when: no `--out` → usage error, nothing written.

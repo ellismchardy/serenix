@@ -67,6 +67,38 @@ public struct EpochAgreement: Equatable, Codable, Sendable {
     }
 }
 
+// Reports carry the rates as well as the counts (spec 019: the JSON holds the same numbers as
+// the Markdown); decoding rebuilds them from the counts.
+extension EpochAgreement {
+    private enum CodingKeys: String, CodingKey {
+        case sleepAsSleep, sleepAsWake, wakeAsSleep, wakeAsWake
+        case comparedEpochs, sensitivity, specificity, accuracy, kappa
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            sleepAsSleep: try container.decode(Int.self, forKey: .sleepAsSleep),
+            sleepAsWake: try container.decode(Int.self, forKey: .sleepAsWake),
+            wakeAsSleep: try container.decode(Int.self, forKey: .wakeAsSleep),
+            wakeAsWake: try container.decode(Int.self, forKey: .wakeAsWake)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(sleepAsSleep, forKey: .sleepAsSleep)
+        try container.encode(sleepAsWake, forKey: .sleepAsWake)
+        try container.encode(wakeAsSleep, forKey: .wakeAsSleep)
+        try container.encode(wakeAsWake, forKey: .wakeAsWake)
+        try container.encode(comparedEpochs, forKey: .comparedEpochs)
+        try container.encode(sensitivity, forKey: .sensitivity)
+        try container.encode(specificity, forKey: .specificity)
+        try container.encode(accuracy, forKey: .accuracy)
+        try container.encode(kappa, forKey: .kappa)
+    }
+}
+
 /// `part / whole`, nil when `whole` is 0.
 private func share(_ part: Int, of whole: Int) -> Double? {
     whole == 0 ? nil : Double(part) / Double(whole)
