@@ -1,12 +1,12 @@
 import Foundation
 
 /// History Records taken a UTC minute at a time: the minute a record falls in and the fewest
-/// records a minute needs, shared by the Sleep Period and Resting HR, and how many seconds of
-/// each minute the Strap turned in (spec 003's rule, used by the Sleep Period). Constants from
-/// hr-tracker `tools/sleep.py`, which set them by eye on two nights.
+/// records a minute needs, shared by the Sleep Period and Resting HR, and how far the Strap
+/// turned each second (spec 003's motion, used by the Sleep Period). Constants from hr-tracker
+/// `tools/sleep.py`, which set them by eye on two nights.
 enum MotionMinutes {
     /// Degrees the Strap must turn in one second for that second to count as active (resting
-    /// noise is ~0.2°). sleep.py `ACTIVE_DEG`.
+    /// noise is ~0.2°). sleep.py `ACTIVE_DEG`. The app's labelling threshold.
     static let activeDegrees = 2.0
     /// Seconds: the longest gap between two records whose turn still counts. sleep.py
     /// `minutes()`.
@@ -23,24 +23,24 @@ enum MotionMinutes {
         Int((time / secondsPerMinute).rounded(.down))
     }
 
-    /// Active seconds in each minute (by `minuteIndex`) that has any; minutes without are left
-    /// out. A record is active when the Strap turned more than `activeDegrees` since the record
-    /// before it, at most `longestActiveGap` seconds earlier. `records` must be oldest first,
-    /// without repeats. sleep.py `minutes()`.
-    static func activeSeconds(in records: [HistoryRecord]) -> [Int: Int] {
-        var activeSeconds: [Int: Int] = [:]
+    /// Degrees the Strap turned at each record since the record before it, in order; nil unless
+    /// the record before is more than 0 and at most `longestActiveGap` seconds earlier (so always
+    /// nil for the first record). `records` must be oldest first, without repeats.
+    /// sleep.py `minutes()`.
+    static func turns(in records: [HistoryRecord]) -> [Double?] {
+        var turns: [Double?] = []
         var previous: (time: TimeInterval, motion: [Double])?
         for record in records {
             let time = record.timestamp.timeIntervalSince1970
             let motion = normalised(record.motion)
-            if let previous, time - previous.time > 0, time - previous.time <= longestActiveGap,
-                turn(from: previous.motion, to: motion) > activeDegrees
-            {
-                activeSeconds[minuteIndex(time), default: 0] += 1
+            if let previous, time - previous.time > 0, time - previous.time <= longestActiveGap {
+                turns.append(turn(from: previous.motion, to: motion))
+            } else {
+                turns.append(nil)
             }
             previous = (time, motion)
         }
-        return activeSeconds
+        return turns
     }
 
     /// The four motion values scaled to unit length (left as they are when all are 0).

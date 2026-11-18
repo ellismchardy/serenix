@@ -5,28 +5,41 @@ import Foundation
 /// `docs/protocol.md#sleep-and-wake`). Its quirks are kept so the two give the same numbers
 /// (spec 003). Two differences no real night has shown: motion arrives as `Float` where
 /// hr-tracker reads 4-decimal doubles, and records are dropped as repeats and ordered by identity
-/// (timestamp, then Record Counter) where hr-tracker uses the counter alone.
-struct SleepPeriod: Equatable, Sendable {
+/// (timestamp, then Record Counter) where hr-tracker uses the counter alone. The rule itself works
+/// on per-second labelling input (spec 019), so a sleep-lab dataset can be labelled the same way.
+public struct SleepPeriod: Equatable, Sendable {
     /// UTC.
-    var sleepOnset: Date
+    public let sleepOnset: Date
     /// UTC.
-    var finalWake: Date
+    public let finalWake: Date
     /// UTC.
-    var timeInBedStart: Date
+    public let timeInBedStart: Date
     /// UTC.
-    var timeInBedEnd: Date
+    public let timeInBedEnd: Date
     /// Whether each minute from Sleep Onset to Final Wake, in order, was labelled sleep (false for
     /// wake). Every minute inside a Sleep Period has data: it is runs of sleep, merged only
     /// across recorded wake.
-    var minuteIsAsleep: [Bool]
+    public let minuteIsAsleep: [Bool]
     /// Seconds: the sleep minutes inside the Sleep Period, counted from `minuteIsAsleep`.
-    var timeAsleep: TimeInterval { Double(minuteIsAsleep.filter { $0 }.count) * secondsPerMinute }
+    public var timeAsleep: TimeInterval {
+        Double(minuteIsAsleep.filter { $0 }.count) * secondsPerMinute
+    }
+    /// Its Wake Bouts, oldest first.
+    public var wakeBouts: [WakeBout] { WakeBout.bouts(in: minuteIsAsleep, from: sleepOnset) }
 
     /// Nil when no run of sleep minutes is long enough to start a Sleep Period. `records` must be
-    /// oldest first, without repeats.
+    /// oldest first, without repeats. Labelled with the quaternion turn at the app's threshold.
     init?(records: [HistoryRecord]) {
-        let minutes = minuteTable(records)
-        let labels = labelled(minutes)
+        let labelling = SleepWakeLabeller.label(
+            SleepWakeLabeller.input(from: records),
+            activeAboveDegrees: SleepWakeLabeller.appThreshold
+        )
+        guard let period = labelling.sleepPeriod else { return nil }
+        self = period
+    }
+
+    /// The main Sleep Period of labelled minutes, nil when no run of sleep minutes is long enough.
+    fileprivate init?(minutes: [Minute?], labels: [MinuteLabel?]) {
         guard let (onset, end) = mainPeriod(labels) else { return nil }
         let (bedStart, bedEnd) = timeInBed(minutes, onset: onset, end: end)
         // A Sleep Period starts and ends on a sleep minute and Time in Bed only widens over
@@ -70,49 +83,84 @@ private let upMinutes = 3
 /// Seconds in a minute, for minute starts and Time Asleep.
 private let secondsPerMinute = MotionMinutes.secondsPerMinute
 
-/// One UTC minute that has enough records.
+// Here rather than beside the other labeller API in SleepLabelling.swift, so the rule's minute
+// table and helpers can stay private to this file.
+extension SleepWakeLabeller {
+    /// Each minute of `seconds` labelled sleep or wake by spec 003's rule, and the main Sleep
+    /// Period. A second is active when its angle is strictly above `threshold` (degrees).
+    /// `seconds` must be oldest first, without repeats.
+    public static func label(
+        _ seconds: [LabellingSecond],
+        activeAboveDegrees threshold: Double
+    ) -> SleepLabelling {
+        guard let first = seconds.first else {
+            return SleepLabelling(minutes: [], sleepPeriod: nil)
+        }
+        let minutes = minuteTable(seconds, activeAbove: threshold)
+        let labels = labelled(minutes)
+        let firstMinute = MotionMinutes.minuteIndex(first.time.timeIntervalSince1970)
+        let labelledMinutes = labels.enumerated().map { offset, label in
+            LabelledMinute(
+                start: Date(
+                    timeIntervalSince1970: Double(firstMinute + offset) * secondsPerMinute
+                ),
+                label: label
+            )
+        }
+        return SleepLabelling(
+            minutes: labelledMinutes,
+            sleepPeriod: SleepPeriod(minutes: minutes, labels: labels)
+        )
+    }
+}
+
+/// One UTC minute that has enough seconds.
 private struct Minute {
     /// Unix seconds.
     let start: TimeInterval
-    /// bpm, including records whose heart rate is 0, as sleep.py does.
-    let meanHeartRate: Double
+    /// bpm, over the minute's seconds that have a heart rate (in the app, every record, including
+    /// those whose heart rate is 0, as sleep.py does); nil when none has.
+    let meanHeartRate: Double?
     let activeSeconds: Int
 }
 
-private enum Label: Equatable {
-    case sleep
-    case wake
-}
-
-/// Every UTC minute from the first record's to the last's, nil where a minute has too few
-/// records. sleep.py `minutes()`.
-private func minuteTable(_ records: [HistoryRecord]) -> [Minute?] {
-    guard let first = records.first, let last = records.last else { return [] }
-    var heartRates: [Int: [Int]] = [:]
-    for record in records {
-        let minute = MotionMinutes.minuteIndex(record.timestamp.timeIntervalSince1970)
-        heartRates[minute, default: []].append(record.heartRate)
+/// Every UTC minute from the first second's to the last's, nil where a minute has too few
+/// seconds. A second is active when its angle is above `threshold`. sleep.py `minutes()`.
+private func minuteTable(_ seconds: [LabellingSecond], activeAbove threshold: Double) -> [Minute?] {
+    guard let first = seconds.first, let last = seconds.last else { return [] }
+    var counts: [Int: Int] = [:]
+    var heartRates: [Int: (sum: Double, count: Int)] = [:]
+    var activeSeconds: [Int: Int] = [:]
+    for second in seconds {
+        let minute = MotionMinutes.minuteIndex(second.time.timeIntervalSince1970)
+        counts[minute, default: 0] += 1
+        if let rate = second.heartRate {
+            heartRates[minute, default: (0, 0)].sum += rate
+            heartRates[minute, default: (0, 0)].count += 1
+        }
+        if let angle = second.angle, angle > threshold {
+            activeSeconds[minute, default: 0] += 1
+        }
     }
-    let activeSeconds = MotionMinutes.activeSeconds(in: records)
-    let firstMinute = MotionMinutes.minuteIndex(first.timestamp.timeIntervalSince1970)
-    let lastMinute = MotionMinutes.minuteIndex(last.timestamp.timeIntervalSince1970)
+    let firstMinute = MotionMinutes.minuteIndex(first.time.timeIntervalSince1970)
+    let lastMinute = MotionMinutes.minuteIndex(last.time.timeIntervalSince1970)
     return (firstMinute...lastMinute).map { minute in
-        guard let rates = heartRates[minute], rates.count >= MotionMinutes.fewestRecordsPerMinute
-        else {
+        guard let count = counts[minute], count >= MotionMinutes.fewestRecordsPerMinute else {
             return nil
         }
+        let rates = heartRates[minute]
         return Minute(
             start: Double(minute) * secondsPerMinute,
-            meanHeartRate: Double(rates.reduce(0, +)) / Double(rates.count),
+            meanHeartRate: rates.map { $0.sum / Double($0.count) },
             activeSeconds: activeSeconds[minute, default: 0]
         )
     }
 }
 
 /// Each minute labelled sleep or wake (nil without data). sleep.py `classify()`.
-private func labelled(_ minutes: [Minute?]) -> [Label?] {
+private func labelled(_ minutes: [Minute?]) -> [MinuteLabel?] {
     let active = minutes.map { $0?.activeSeconds }
-    var labels: [Label?] = active.indices.map { index in
+    var labels: [MinuteLabel?] = active.indices.map { index in
         guard let seconds = active[index] else { return nil }
         let near = window(active, around: index, reach: wakeMedianReach).map(Double.init)
         let isWake = seconds >= wakeActiveSeconds || median(of: near) >= wakeMedianActiveSeconds
@@ -152,7 +200,7 @@ private func window<Value>(_ values: [Value?], around index: Int, reach: Int) ->
 
 /// The minute range (end exclusive) of the Sleep Period with the most sleep minutes, the first
 /// one on a tie, or nil. sleep.py `sleep_period()`.
-private func mainPeriod(_ labels: [Label?]) -> (onset: Int, end: Int)? {
+private func mainPeriod(_ labels: [MinuteLabel?]) -> (onset: Int, end: Int)? {
     var runs: [(onset: Int, end: Int)] = []
     var index = 0
     while index < labels.count {

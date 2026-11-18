@@ -50,7 +50,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice: public labeller seam, app routed through it.**
+1. [x] **Slice: public labeller seam, app routed through it.**
    - Seam: labeller seam + History Records → Night (spec 003's tests) · Files:
      `src/SerenixCore/SleepPeriod.swift`, `src/SerenixCore/MotionMinutes.swift`, new
      `src/SerenixCore/SleepLabelling.swift`, new `tests/SerenixCoreTests/SleepLabellingTests.swift`
