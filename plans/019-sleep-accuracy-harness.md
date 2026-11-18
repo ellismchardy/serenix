@@ -75,7 +75,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
      `src/sleep-accuracy/main.swift`, `tests/SleepAccuracyTests/ScorerTests.swift`
    - Done when: the 4-Epoch example gives 0.667 / 1.000 / 0.750 / κ 0.500; a sleep minute counts
      sleep for both Epochs.
-4. [ ] **Slice: what is compared, and both layers.** Unscored and no-data Epochs skipped; 90%
+4. [x] **Slice: what is compared, and both layers.** Unscored and no-data Epochs skipped; 90%
    coverage rule with the left-out list; raw-label layer; no Sleep Period → all wake.
    Note from task 3: `Scorer` already skips unscored Epochs and already scores a Reference Night
    without a Sleep Period all wake, so those two tests start green. Show them red by temporarily
