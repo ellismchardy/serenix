@@ -1,6 +1,6 @@
 # 019 — Sleep accuracy harness
 
-**Status:** approved
+**Status:** built
 **Last updated:** 2026-11-18 (Walch input limited to 12 h either side of the PSG)
 **Issue:** https://github.com/ellismchardy/serenix/issues/82 (sleep accuracy map, #78; decisions
 in #81)
@@ -145,65 +145,65 @@ one of its three files, stops the run with a message naming it; it never writes 
 
 ## Success criteria (must be checkable)
 Labeller seam and app:
-- [ ] Every existing `SerenixCoreTests` test passes unchanged (none edited or removed).
-- [ ] The 29–30 Oct 2026 fixture night, turned into the labelling input with the quaternion turn
+- [x] Every existing `SerenixCoreTests` test passes unchanged (none edited or removed).
+- [x] The 29–30 Oct 2026 fixture night, turned into the labelling input with the quaternion turn
       and labelled at 2°, gives the same Sleep Onset, Final Wake, Time in Bed and Time Asleep as
       spec 003's Night for that date.
-- [ ] A labelling input whose seconds each have an angle of 2.0° labels every minute sleep at
+- [x] A labelling input whose seconds each have an angle of 2.0° labels every minute sleep at
       threshold 2°, and every minute wake at threshold 1.9°.
-- [ ] A second whose angle is empty is never active, whatever the threshold.
-- [ ] A minute with 29 seconds has no data; with 30 it has.
-- [ ] Tilt from quaternion: a rotation of 30° about the vertical between two seconds gives a Tilt
+- [x] A second whose angle is empty is never active, whatever the threshold.
+- [x] A minute with 29 seconds has no data; with 30 it has.
+- [x] Tilt from quaternion: a rotation of 30° about the vertical between two seconds gives a Tilt
       of 0° (and a turn of 30°); a rotation of 30° about a horizontal axis gives a Tilt of 30°.
 
 Walch adapter:
-- [ ] Acceleration with gravity along z in second 0 and along x in second 1 gives second 1 a
+- [x] Acceleration with gravity along z in second 0 and along x in second 1 gives second 1 a
       Tilt of 90°; a second with no samples has no angle, and nor does the second after it.
-- [ ] Heart-rate readings at PSG time 0 s (60 bpm) and 20 s (70 bpm) give seconds 0–15 60 bpm,
+- [x] Heart-rate readings at PSG time 0 s (60 bpm) and 20 s (70 bpm) give seconds 0–15 60 bpm,
       seconds 16–19 none, and second 20 70 bpm.
-- [ ] Labels 0, 1, 2, 3, 4, 5 and −1 become wake, N1, N2, N3, N3, REM and unscored.
-- [ ] PSG time 0 falls on a whole UTC minute: the Epochs at 0 s and 30 s share one Serenix minute.
-- [ ] Seconds before PSG time 0 are kept in the labelling input.
-- [ ] Seconds more than 12 h before PSG time 0, or more than 12 h after the end of the last Epoch,
+- [x] Labels 0, 1, 2, 3, 4, 5 and −1 become wake, N1, N2, N3, N3, REM and unscored.
+- [x] PSG time 0 falls on a whole UTC minute: the Epochs at 0 s and 30 s share one Serenix minute.
+- [x] Seconds before PSG time 0 are kept in the labelling input.
+- [x] Seconds more than 12 h before PSG time 0, or more than 12 h after the end of the last Epoch,
       are not in the labelling input; seconds exactly 12 h either side are.
-- [ ] A recording missing its labels file stops the run with a message naming the recording, and
+- [x] A recording missing its labels file stops the run with a message naming the recording, and
       no report is written.
 
 Scorer:
-- [ ] Four compared Epochs, PSG sleep/sleep/sleep/wake against Serenix sleep/sleep/wake/wake, give
+- [x] Four compared Epochs, PSG sleep/sleep/sleep/wake against Serenix sleep/sleep/wake/wake, give
       sensitivity 0.667, specificity 1.000, accuracy 0.750 and κ 0.500.
-- [ ] A Serenix minute labelled sleep counts as sleep for both of its Epochs.
-- [ ] Unscored Epochs, and Epochs whose minute has no data, are not compared.
-- [ ] A Reference Night with 89% of its scored Epochs compared is left out and listed with
+- [x] A Serenix minute labelled sleep counts as sleep for both of its Epochs.
+- [x] Unscored Epochs, and Epochs whose minute has no data, are not compared.
+- [x] A Reference Night with 89% of its scored Epochs compared is left out and listed with
       "89%"; one with 90% is kept.
-- [ ] A sleep-labelled minute outside the Sleep Period is wake in the visible verdict and sleep in
+- [x] A sleep-labelled minute outside the Sleep Period is wake in the visible verdict and sleep in
       the raw labels.
-- [ ] A Reference Night where Serenix finds no Sleep Period scores all Epochs wake, has Time Asleep
+- [x] A Reference Night where Serenix finds no Sleep Period scores all Epochs wake, has Time Asleep
       0, and empty Sleep Onset and Final Wake errors that the pooled means skip.
-- [ ] PSG sleep from Epoch 2 to Epoch 9 (0-based) with wake at Epochs 5 and 7 has Sleep Onset at
+- [x] PSG sleep from Epoch 2 to Epoch 9 (0-based) with wake at Epochs 5 and 7 has Sleep Onset at
       60 s, Final Wake at 300 s, 2 Wake Bouts of 0.5 min each, and 3.0 min Time Asleep.
-- [ ] Time Asleep biases of +10 and −10 minutes pool to mean 0.0, SD 14.1 and limits −27.7 to
+- [x] Time Asleep biases of +10 and −10 minutes pool to mean 0.0, SD 14.1 and limits −27.7 to
       +27.7 minutes.
-- [ ] A sweep over 1.0, 2.0 and 3.0 writes three rows and marks the highest-κ row best; two rows
+- [x] A sweep over 1.0, 2.0 and 3.0 writes three rows and marks the highest-κ row best; two rows
       tied on κ mark the lower threshold.
 
 Strap transfer run:
-- [ ] On a hand-built night where every turn is a rotation about the vertical above 2°, every
+- [x] On a hand-built night where every turn is a rotation about the vertical above 2°, every
       turn-active second is missed by Tilt (share 0%), and the turn series has more wake minutes.
-- [ ] The run reports Time Asleep, Sleep Onset and Final Wake from both series and their
+- [x] The run reports Time Asleep, Sleep Onset and Final Wake from both series and their
       differences in minutes.
 
 Reports and tooling:
-- [ ] The Markdown and JSON from one run hold the same numbers, and both carry the labeller name,
+- [x] The Markdown and JSON from one run hold the same numbers, and both carry the labeller name,
       threshold(s), dataset, command line and git SHA ("unknown" when git can't be run).
-- [ ] The Markdown has the headline, both layers' pooled tables, the per-Reference-Night table,
+- [x] The Markdown has the headline, both layers' pooled tables, the per-Reference-Night table,
       the sweep table (when swept) and "Reference Nights left out".
-- [ ] `sleep-accuracy` with no `--out` exits non-zero with a usage message and writes nothing.
+- [x] `sleep-accuracy` with no `--out` exits non-zero with a usage message and writes nothing.
 - [ ] `swift test`, `swift format lint --strict --recursive src tests Package.swift` and
       `swift build` pass on Linux, and the macOS CI job builds the app.
-- [ ] By hand: `sleep-accuracy walch` on the downloaded sleep-accel 1.0.0 nights with a sweep
+- [x] By hand: `sleep-accuracy walch` on the downloaded sleep-accel 1.0.0 nights with a sweep
       writes a report covering every recording, kept or left out (posted on #82 as the baseline).
-- [ ] By hand: `sleep-accuracy strap` on the two fixture nights writes a transfer report.
+- [x] By hand: `sleep-accuracy strap` on the two fixture nights writes a transfer report.
 
 ## Non-goals (explicitly out of scope)
 - Changing how the app labels sleep or wake, or any constant (the labelling ticket, #83).
