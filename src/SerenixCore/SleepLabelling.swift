@@ -45,16 +45,19 @@ public enum SleepWakeLabeller {
     /// Degrees: the threshold the app labels at (spec 003).
     public static let appThreshold = MotionMinutes.activeDegrees
 
-    /// The app's labelling input: each History Record's heart rate (0 bpm included), and the
-    /// Strap's turn since the record before (nil unless that record is more than 0 and at most
-    /// `MotionMinutes.longestActiveGap` seconds earlier). `records` must be oldest first, without
+    /// Labelling input from History Records: each record's heart rate (0 bpm included), and its
+    /// motion angle since the record before: the Strap's turn (the app's) or its Tilt (spec
+    /// 019's Strap transfer run). Nil unless that record is more than 0 and at most
+    /// `MotionMinutes.longestActiveGap` seconds earlier. `records` must be oldest first, without
     /// repeats.
-    public static func input(from records: [HistoryRecord]) -> [LabellingSecond] {
-        zip(records, MotionMinutes.turns(in: records)).map { record, turn in
+    public static func input(from records: [HistoryRecord], angle: MotionAngle = .turn)
+        -> [LabellingSecond]
+    {
+        zip(records, MotionMinutes.angles(in: records, as: angle)).map { record, angle in
             LabellingSecond(
                 time: record.timestamp,
                 heartRate: Double(record.heartRate),
-                angle: turn
+                angle: angle
             )
         }
     }

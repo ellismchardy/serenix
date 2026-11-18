@@ -58,10 +58,14 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
      seconds = no data, 30 = data; the 29–30 Oct fixture night via the input (quaternion turn,
      2°) matches spec 003's Sleep Onset/Final Wake/Time in Bed/Time Asleep literals; every
      existing `SerenixCoreTests` test passes unedited.
-2. [ ] **Slice: Tilt from quaternion.** Public `tilt(from:to:)` beside a now-public `turn`:
-   rotate the vertical (0,0,1) by each normalised quaternion, angle between the two vectors.
-   - Seam: labeller seam (`SerenixCore`) · Files: `src/SerenixCore/MotionMinutes.swift` (or new
-     `Tilt.swift`), `tests/SerenixCoreTests/TiltTests.swift`
+2. [x] **Slice: Tilt from quaternion.** Public `StrapMotion.tilt(from:to:)` beside a now-public
+   `turn`: the vertical (0,0,1) seen in the Strap's frame (Rᵀ·z, i.e. assuming the quaternion
+   takes the Strap's frame to the world's; floats in (x, y, z, w) order) at each reading, angle
+   between the two vectors. Also `MotionAngle` and `SleepWakeLabeller.input(from:angle:)`, so
+   the Strap transfer run (task 8) gets the same gap rule for both series.
+   - Seam: labeller seam (`SerenixCore`) · Files: `src/SerenixCore/MotionMinutes.swift`, new
+     `src/SerenixCore/StrapMotion.swift`, `src/SerenixCore/SleepLabelling.swift`,
+     `tests/SerenixCoreTests/StrapMotionTests.swift`
    - Done when: 30° about the vertical → Tilt 0°, turn 30°; 30° about a horizontal axis → Tilt 30°.
 3. [ ] **Slice (tracer bullet): scorer, visible verdict, one Reference Night.** Add the three
    targets; `Epoch`, `ReferenceNight`, compare at Epochs (minute label → both Epochs),
