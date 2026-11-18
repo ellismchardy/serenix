@@ -144,7 +144,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
    - Not checked: a run on Windows (git lookup reads `Path` case-insensitively; confirm the stamp
      shows a SHA there).
    - Done when: no `--out` → usage error, nothing written.
-10. [ ] **Slice: limit Walch input to 12 h either side of the PSG** (spec change, 2026-11-18). The
+10. [x] **Slice: limit Walch input to 12 h either side of the PSG** (spec change, 2026-11-18). The
     first real Walch run found recordings spanning days (9618981 runs to +69 h; 1449548 and
     8000685 start 135–148 h early), so the labeller could pick another night's Sleep Period.
     - Seam: harness library (adapter) · Files: `src/SleepAccuracy/WalchAdapter.swift`,

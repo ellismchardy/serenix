@@ -279,3 +279,36 @@ private func second(_ seconds: TimeInterval, in night: ReferenceNight) -> Labell
     #expect(try #require(second(2, in: night)).angle == nil)
     #expect(try #require(second(3, in: night)).angle == 0)
 }
+
+/// Spec 019, Walch adapter: with labels at 0 s and 30 s the last Epoch ends at 60 s, so the
+/// labelling input runs from −43 200 s (12 h before PSG time 0) to 43 260 s (12 h after 60 s),
+/// both ends kept; the seconds just outside, −43 201 s and 43 261 s, are dropped.
+@Test func secondsMoreThan12HoursEitherSideOfThePSGAreDropped() throws {
+    let folder = try WalchFolder()
+    defer { folder.remove() }
+    try folder.recording(
+        "1",
+        motion: [-43_201, -43_200, 0, 43_260, 43_261].map { "\($0).0 0 0 1" },
+        labels: ["0 0", "30 0"]
+    )
+
+    let night = try #require(try WalchAdapter.referenceNights(in: folder.url).first)
+
+    #expect(night.seconds.map(\LabellingSecond.time) == [-43_200, 0, 43_260].map(psgTime))
+}
+
+/// The 12-hour span keeps or drops whole seconds: a sample at −43 200.5 s falls in second
+/// −43 201, outside, so it is dropped; one at 43 260.9 s falls in second 43 260, the last kept.
+@Test func theTwelveHourSpanKeepsOrDropsWholeSeconds() throws {
+    let folder = try WalchFolder()
+    defer { folder.remove() }
+    try folder.recording(
+        "1",
+        motion: ["-43200.5 0 0 1", "0.0 0 0 1", "43260.9 0 0 1"],
+        labels: ["0 0", "30 0"]
+    )
+
+    let night = try #require(try WalchAdapter.referenceNights(in: folder.url).first)
+
+    #expect(night.seconds.map(\LabellingSecond.time) == [0, 43_260].map(psgTime))
+}

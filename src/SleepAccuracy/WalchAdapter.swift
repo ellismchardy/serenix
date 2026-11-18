@@ -13,6 +13,14 @@ public enum WalchAdapter {
     /// Seconds: the longest a heart-rate reading is carried forward. Walch's heart rate comes
     /// every 5–10 s, so this bridges normal gaps without inventing data across dropouts (#81).
     public static let longestHeartRateCarry: TimeInterval = 15
+    /// Seconds kept either side of the PSG: from this long before PSG time 0 to this long after
+    /// the end of the last Epoch, whole seconds kept or dropped together. Some recordings run for
+    /// days around their PSG (9618981 to +69 h; 1449548 and 8000685 from 135–148 h before); the
+    /// app only ever labels one Night window, so the labeller must not find another night's Sleep
+    /// Period (spec 019, after the first real run). Walch gives no dates, so it can't be the
+    /// Night window itself. Heart-rate readings aren't trimmed: one just before the span can
+    /// still be carried into its first seconds, as the seconds are what the spec limits.
+    public static let marginAroundPSG: TimeInterval = 12 * 60 * 60
 
     /// Every recording in `folder` (ids found in any of the three folders), sorted by id. Throws
     /// when there are none, so a wrong folder never passes as an empty dataset.
@@ -26,12 +34,17 @@ public enum WalchAdapter {
         let motion = try DataFile.motion.values(of: id, in: folder, columns: 4)
         let heartRate = try DataFile.heartRate.values(of: id, in: folder, columns: 2)
         let labels = try DataFile.labels.values(of: id, in: folder, columns: 2)
+        let labelTimes = stride(from: 0, to: labels.count, by: 2).map { labels[$0] }
+        let lastEpochEnd = (labelTimes.max() ?? 0) + epochSeconds
+        let kept = -marginAroundPSG...(lastEpochEnd + marginAroundPSG)
         return ReferenceNight(
             id: id,
             seconds: labellingSeconds(
-                motion: stride(from: 0, to: motion.count, by: 4).map {
-                    (time: motion[$0], axes: (motion[$0 + 1], motion[$0 + 2], motion[$0 + 3]))
-                },
+                motion: stride(from: 0, to: motion.count, by: 4)
+                    .filter { kept.contains(motion[$0].rounded(.down)) }
+                    .map {
+                        (time: motion[$0], axes: (motion[$0 + 1], motion[$0 + 2], motion[$0 + 3]))
+                    },
                 heartRate: stride(from: 0, to: heartRate.count, by: 2)
                     .map { (time: heartRate[$0], bpm: heartRate[$0 + 1]) }
                     .sorted { $0.time < $1.time }
