@@ -151,7 +151,7 @@ fixture-night equivalence in `SerenixCoreTests`. Expected values are the spec's 
       `tests/SleepAccuracyTests/WalchAdapterTests.swift`
     - Done when: seconds more than 12 h before PSG time 0 or after the end of the last Epoch are
       not in the input, seconds exactly 12 h either side are; then re-run the baseline sweep.
-11. [ ] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
+11. [x] **Verify:** `swift test`, `swift format lint --strict --recursive src tests Package.swift`,
     `swift build` green; every spec criterion checked; `git status` shows no dataset files.
     By hand on the developer machine: download sleep-accel 1.0.0 to a folder outside the repo,
     run `sleep-accuracy walch --sweep …`, confirm every recording is kept or listed; run
