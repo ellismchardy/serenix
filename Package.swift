@@ -28,12 +28,6 @@ let package = Package(
             dependencies: ["SleepAccuracy"],
             path: "src/sleep-accuracy"
         ),
-        // PROTOTYPE (#83): never merged.
-        .executableTarget(
-            name: "sleep-wake-prototype",
-            dependencies: ["SleepAccuracy", "SerenixCore"],
-            path: "src/sleep-wake-prototype"
-        ),
         .testTarget(
             name: "SleepAccuracyTests",
             dependencies: ["SleepAccuracy", "SerenixCore"],
