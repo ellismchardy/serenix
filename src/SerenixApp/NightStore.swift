@@ -28,8 +28,12 @@ final class StoredNight {
     var heartRateTraceJSON: Data?
     /// The Wake Bouts (spec 012) as JSON; nil for Nights built before them, until rebuilt.
     var wakeBoutsJSON: Data?
+    /// True for a Night added by importing a Backup (spec 020): no rebuild ever replaces or
+    /// deletes it. Nil for every other Night (optional, so the store migrates by itself).
+    var restored: Bool?
 
-    init(_ night: Night) {
+    init(_ night: Night, restored: Bool? = nil) {
+        self.restored = restored
         dateKey = Self.dateKey(night.day)
         year = night.day.year
         month = night.day.month
@@ -114,8 +118,37 @@ enum NightStore {
             .sorted { $0.day < $1.day }
     }
 
+    /// The dates of every Night restored from a Backup (spec 020).
+    static func restoredDays(in container: ModelContainer) throws -> Set<Day> {
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<StoredNight>(predicate: #Predicate { $0.restored == true })
+        return Set(
+            try context.fetch(descriptor).map {
+                Day(year: $0.year, month: $0.month, day: $0.dayOfMonth)
+            }
+        )
+    }
+
+    /// Inserts `nights` from an imported Backup into `context`, marked restored (spec 020); the
+    /// caller saves. A date that already has a Night is left as it is: the phone's copy wins.
+    static func addRestored(_ nights: [Night], in context: ModelContext) throws {
+        for night in nights {
+            guard try stored(night.day, in: context) == nil else { continue }
+            context.insert(StoredNight(night, restored: true))
+        }
+    }
+
+    /// The stored Night dated `day`, if any.
+    private static func stored(_ day: Day, in context: ModelContext) throws -> StoredNight? {
+        let key = StoredNight.dateKey(day)
+        var descriptor = FetchDescriptor<StoredNight>(predicate: #Predicate { $0.dateKey == key })
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
     /// Works out the Night dated `rebuild.day` again from the History Records `rebuild` names
-    /// and replaces the stored one; if they give no Night that date, none is kept.
+    /// and replaces the stored one; if they give no Night that date, none is kept. A restored
+    /// Night is left as it is (spec 020), even when its rebuild was queued before the import.
     static func apply(
         _ rebuild: NightRebuild,
         in container: ModelContainer,
@@ -123,6 +156,7 @@ enum NightStore {
     ) throws {
         let context = ModelContext(container)
         context.autosaveEnabled = false
+        if try stored(rebuild.day, in: context)?.restored == true { return }
         let records = try historyRecords(in: rebuild.records, context: context)
         let night = SerenixCore.nights(from: records, in: timeZone).first {
             $0.day == rebuild.day

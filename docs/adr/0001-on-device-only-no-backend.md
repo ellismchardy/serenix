@@ -9,3 +9,6 @@ surface at zero, and gives WHOOP no service of ours to target. In exchange, algo
 ship as app updates and there is no web or cross-device access. v1 has no backup: the Apple
 Health export keeps Nightly Metrics and sleep, but scores and raw History Records are lost
 with the phone. iCloud sync is a possible later addition.
+
+**Update 2026-11-19:** Nights, Days and Body data now have a user-held Backup file (ADR 0009,
+spec 020). There is still no server.

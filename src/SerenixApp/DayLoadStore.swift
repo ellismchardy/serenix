@@ -24,8 +24,13 @@ final class StoredDayLoad {
     /// missing their values). Nil reads as not kept: a Day stored before this field, or one whose
     /// values another build of Serenix that doesn't store them dropped (it drops this too).
     var valuesKept: Bool?
+    /// True for a Day added by importing a Backup (spec 020): no rebuild ever replaces it, so it
+    /// keeps the Load worked out with the Max HR of its time. Nil for every other Day (optional,
+    /// so the store migrates by itself).
+    var restored: Bool?
 
-    init(_ dayLoad: DayLoad) {
+    init(_ dayLoad: DayLoad, restored: Bool? = nil) {
+        self.restored = restored
         dateKey = StoredNight.dateKey(dayLoad.day)
         year = dayLoad.day.year
         month = dayLoad.day.month
@@ -80,9 +85,42 @@ enum DayLoadStore {
             .sorted { $0.day < $1.day }
     }
 
+    /// The Days restored from a Backup (spec 020).
+    static func restoredDays(in container: ModelContainer) throws -> Set<Day> {
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<StoredDayLoad>(
+            predicate: #Predicate { $0.restored == true }
+        )
+        return Set(
+            try context.fetch(descriptor).map {
+                Day(year: $0.year, month: $0.month, day: $0.dayOfMonth)
+            }
+        )
+    }
+
+    /// Inserts `days` from an imported Backup into `context`, marked restored (spec 020); the
+    /// caller saves. A Day already stored is left as it is: the phone's copy wins.
+    static func addRestored(_ days: [DayLoad], in context: ModelContext) throws {
+        for dayLoad in days {
+            guard try stored(dayLoad.day, in: context) == nil else { continue }
+            context.insert(StoredDayLoad(dayLoad, restored: true))
+        }
+    }
+
+    /// The stored Day `day`, if any.
+    private static func stored(_ day: Day, in context: ModelContext) throws -> StoredDayLoad? {
+        let key = StoredNight.dateKey(day)
+        var descriptor = FetchDescriptor<StoredDayLoad>(
+            predicate: #Predicate { $0.dateKey == key }
+        )
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
     /// Works out the Resting HR of `rebuild.day` again from the History Records `rebuild` names and
     /// the stored `nights` (spec 007), then its Load from those records, the stored Days with this
-    /// Resting HR, and `profile`, and replaces the stored Day.
+    /// Resting HR, and `profile`, and replaces the stored Day. A restored Day is left as it is
+    /// (spec 020), even when its rebuild was queued before the import.
     static func apply(
         _ rebuild: DayRebuild,
         nights: [Night],
@@ -92,6 +130,7 @@ enum DayLoadStore {
     ) throws {
         let context = ModelContext(container)
         context.autosaveEnabled = false
+        if try stored(rebuild.day, in: context)?.restored == true { return }
         let records = try NightStore.historyRecords(in: rebuild.records, context: context)
         let restingHR = SerenixCore.restingHR(
             of: rebuild.day,

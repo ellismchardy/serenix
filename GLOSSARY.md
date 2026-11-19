@@ -65,6 +65,11 @@ The record of every Frame exchanged with the Strap, in order, with direction and
 the phone and shared only when the user chooses to.
 _Avoid_: debug log, trace
 
+**Backup**:
+A file the user keeps outside Serenix holding their Nights, Days and Body data, from which a
+fresh install gets them back.
+_Avoid_: export, archive, snapshot
+
 **Live HR**:
 The user's heart rate as the Strap measures it right now, streamed only while it is on screen.
 Never stored, and never a History Record.

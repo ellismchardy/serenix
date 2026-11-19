@@ -28,6 +28,9 @@ final class StrapConnection: NSObject, ObservableObject {
     @Published private(set) var nights: [Night] = []
     /// Every stored Day Load, oldest first, for the Today screen (spec 005).
     @Published private(set) var dayLoads: [DayLoad] = []
+    /// Called after every rebuild pass, and after an import, with the stored Nights and Days
+    /// before and after it, so the automatic Backup can be written when they changed (spec 020).
+    var onRebuildPass: (@MainActor (AutomaticBackupEvent) -> Void)?
     /// From the Strap's Device Info service, kept across launches.
     @Published private(set) var strapModel: String?
     @Published private(set) var strapFirmware: String?
@@ -265,8 +268,83 @@ final class StrapConnection: NSObject, ObservableObject {
     /// Works out Load again for every Day whose History Records may still be on the phone, after
     /// the birth year, sex or Max HR changed (spec 005, Profile changes). Older Days keep theirs.
     func redoLoadAfterProfileChange() {
-        queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current))
+        // Restored Days keep the Load worked out with the Max HR of their time (spec 020).
+        queueDayRebuilds(dayRebuildsDue(now: Date(), in: .current, sparing: restoredDays().days))
         rebuildNights()
+    }
+
+    /// Every stored Night and Day, oldest first, read now off the main thread: what a Backup
+    /// holds besides Body data (spec 020). Read from the store rather than `nights`, which may
+    /// not be shown yet.
+    func storedNightsAndDays() async throws -> (nights: [Night], days: [DayLoad]) {
+        let container = try store.get().container
+        return try await Task.detached(priority: .userInitiated) {
+            (try NightStore.nights(in: container), try DayLoadStore.dayLoads(in: container))
+        }.value
+    }
+
+    /// Keeps the Nights and Days of an imported Backup, marked restored, after any rebuild pass
+    /// under way, then drops their dates from the rebuild queues and shows them (spec 020). A
+    /// date that gained a Night or Day meanwhile keeps the phone's copy.
+    func importRestored(nights: [Night], days: [DayLoad]) async throws {
+        let container = try store.get().container
+        let previous = nightsRebuild
+        let saving = Task.detached(priority: .userInitiated) {
+            await previous?.value
+            let before = (
+                nights: try NightStore.nights(in: container),
+                days: try DayLoadStore.dayLoads(in: container)
+            )
+            // One store, so one save: the Nights and Days are kept together or not at all.
+            let context = ModelContext(container)
+            context.autosaveEnabled = false
+            try NightStore.addRestored(nights, in: context)
+            try DayLoadStore.addRestored(days, in: context)
+            try context.save()
+            return before
+        }
+        // A rebuild pass started from now on waits for the restored Nights and Days to be kept.
+        nightsRebuild = Task { _ = try? await saving.value }
+        let before = try await saving.value
+        let restored = restoredDays()
+        NightStore.pendingRebuilds = NightStore.pendingRebuilds.sparing(restored.nights)
+        DayLoadStore.pendingRebuilds = DayLoadStore.pendingRebuilds.sparing(restored.days)
+        let nightsAfter = await showStoredNights(in: container)
+        let daysAfter = await showStoredDayLoads(in: container)
+        if let nightsAfter, let daysAfter {
+            onRebuildPass?(
+                .rebuildPass(
+                    nightsBefore: before.nights,
+                    nightsAfter: nightsAfter,
+                    daysBefore: before.days,
+                    daysAfter: daysAfter
+                )
+            )
+        }
+    }
+
+    /// The dates of the stored Nights and Days restored from a Backup (spec 020); none if they
+    /// can't be read, as `NightStore.apply` and `DayLoadStore.apply` leave restored ones alone
+    /// anyway.
+    private func restoredDays() -> (nights: Set<Day>, days: Set<Day>) {
+        guard case .success(let store) = self.store else { return ([], []) }
+        return Self.restoredDays(in: store.container)
+    }
+
+    nonisolated private static func restoredDays(
+        in container: ModelContainer
+    ) -> (nights: Set<Day>, days: Set<Day>) {
+        do {
+            return (
+                try NightStore.restoredDays(in: container),
+                try DayLoadStore.restoredDays(in: container)
+            )
+        } catch {
+            storeLog.error(
+                "Couldn't read restored dates: \(error.localizedDescription, privacy: .public)"
+            )
+            return ([], [])
+        }
     }
 
     /// Stops looking for, connecting to or syncing with the Strap. CoreBluetooth never gives up
@@ -354,15 +432,23 @@ final class StrapConnection: NSObject, ObservableObject {
     /// does (spec 003, When; spec 005, When).
     private func queueNightRebuilds(after recordTimes: [Date]) {
         let now = Date()
+        let restored = restoredDays()
         var pending = NightStore.pendingRebuilds
-        for rebuild in nightRebuilds(after: recordTimes, now: now, in: .current) {
+        for rebuild in nightRebuilds(
+            after: recordTimes,
+            now: now,
+            in: .current,
+            sparing: restored.nights
+        ) {
             // A date being worked out right now may be reading History Records from before this
             // save, so it's queued once more to be worked out again afterwards.
             let copiesWanted = rebuild == rebuildInProgress ? 2 : 1
             if pending.filter({ $0 == rebuild }).count < copiesWanted { pending.append(rebuild) }
         }
         NightStore.pendingRebuilds = pending
-        queueDayRebuilds(dayRebuilds(after: recordTimes, now: now, in: .current))
+        queueDayRebuilds(
+            dayRebuilds(after: recordTimes, now: now, in: .current, sparing: restored.days)
+        )
     }
 
     /// Queues `added`, as `queueNightRebuilds(after:)` queues dates.
@@ -381,6 +467,7 @@ final class StrapConnection: NSObject, ObservableObject {
     /// Serenix that doesn't store it opening the same data.
     private static func queueTraceRebuilds(
         for nights: [Night],
+        sparing restored: Set<Day>,
         now: Date,
         timeZone: TimeZone
     ) {
@@ -389,7 +476,8 @@ final class StrapConnection: NSObject, ObservableObject {
             for: nights,
             alreadyQueued: pending,
             now: now,
-            in: timeZone
+            in: timeZone,
+            sparing: restored
         )
         guard !added.isEmpty else { return }
         NightStore.pendingRebuilds = pending + added
@@ -427,11 +515,18 @@ final class StrapConnection: NSObject, ObservableObject {
             let stored = await showStoredNights(in: container)
             let storedDays = await showStoredDayLoads(in: container)
             let now = Date()
+            // Restored Nights and Days are never queued (spec 020).
+            let restored = Self.restoredDays(in: container)
             // Nights missing a Heart Rate Trace are queued to gain one and their Wake Bouts, while
             // their History Records are still due.
             if let stored {
                 await MainActor.run {
-                    Self.queueTraceRebuilds(for: stored, now: now, timeZone: timeZone)
+                    Self.queueTraceRebuilds(
+                        for: stored,
+                        sparing: restored.nights,
+                        now: now,
+                        timeZone: timeZone
+                    )
                 }
             }
             // Days whose HR Zones and Resting HR weren't kept (stored before them, or dropped by
@@ -445,7 +540,8 @@ final class StrapConnection: NSObject, ObservableObject {
                             missingValuesIn: storedDays,
                             alreadyQueued: DayLoadStore.pendingRebuilds,
                             now: now,
-                            in: timeZone
+                            in: timeZone,
+                            sparing: restored.days
                         )
                     )
                 }
@@ -510,7 +606,20 @@ final class StrapConnection: NSObject, ObservableObject {
                     }
                 }
             }
-            await showStoredDayLoads(in: container)
+            let daysAfter = await showStoredDayLoads(in: container)
+            // Both reads are oldest first, as the stores return them, so equal means unchanged.
+            if let stored, let storedDays, let nights, let daysAfter {
+                await MainActor.run {
+                    self.onRebuildPass?(
+                        .rebuildPass(
+                            nightsBefore: stored,
+                            nightsAfter: nights,
+                            daysBefore: storedDays,
+                            daysAfter: daysAfter
+                        )
+                    )
+                }
+            }
         }
     }
 

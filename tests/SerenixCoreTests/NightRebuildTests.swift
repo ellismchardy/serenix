@@ -302,3 +302,55 @@ private let firstNovemberRebuild = NightRebuild(
 
     #expect(found == [firstNovemberRebuild])
 }
+
+/// Spec 020, Restored Nights and Days: with a restored Night dated 15 Nov, a record at 15 Nov
+/// 01:00 touches the window noon 14 Nov to noon 15 Nov, which can give 14 or 15 Nov. 15 Nov
+/// isn't queued; 14 Nov still is.
+@Test func syncTouchingARestoredNightsWindowQueuesOnlyTheOtherDate() {
+    let found = nightRebuilds(
+        after: [utcDate(2026, 11, 15, 1, 0)],
+        now: afterNovember2026,
+        in: london,
+        sparing: [Day(year: 2026, month: 11, day: 15)]
+    )
+
+    #expect(found == [novemberRebuild(day: 14, from: 13, to: 15)])
+}
+
+/// Spec 020, Restored Nights and Days: stored Nights 14 and 15 Nov have no Heart Rate Trace, and
+/// 15 Nov is restored. Only 14 Nov is queued.
+@Test func missingTraceQueueNeverQueuesARestoredNight() {
+    let nights = [
+        Night(day: Day(year: 2026, month: 11, day: 14)),
+        Night(day: Day(year: 2026, month: 11, day: 15)),
+    ]
+
+    let found = traceRebuilds(
+        for: nights,
+        alreadyQueued: [],
+        now: afterNovember2026,
+        in: london,
+        sparing: [Day(year: 2026, month: 11, day: 15)]
+    )
+
+    #expect(found == [novemberRebuild(day: 14, from: 13, to: 15)])
+}
+
+/// Spec 020, Restored Nights and Days: a pending queue of 14, 15 and 16 Nov, with 15 Nov
+/// restored, keeps 14 and 16 Nov in order.
+@Test func sparingDropsQueuedNightRebuildsOfRestoredDatesKeepingTheRestInOrder() {
+    let pending = [
+        novemberRebuild(day: 14, from: 13, to: 15),
+        novemberRebuild(day: 15, from: 14, to: 16),
+        novemberRebuild(day: 16, from: 15, to: 17),
+    ]
+
+    let kept = pending.sparing([Day(year: 2026, month: 11, day: 15)])
+
+    #expect(
+        kept == [
+            novemberRebuild(day: 14, from: 13, to: 15),
+            novemberRebuild(day: 16, from: 15, to: 17),
+        ]
+    )
+}

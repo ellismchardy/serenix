@@ -34,9 +34,10 @@ The app is split in two (ADR 0002), with a third, developer-only part beside it:
 | Sleep | Find the Sleep Period, Sleep Onset, Final Wake and Time in Bed from History Records, through a public per-second labeller (time, heart rate, motion angle) that the accuracy harness also uses | `src/SerenixCore/` |
 | Sleep accuracy harness | Reference Nights from sleep-lab datasets (one adapter each), Epoch scoring, threshold sweep, the Strap turn-vs-Tilt run, Markdown and JSON reports (spec 019) | `src/SleepAccuracy/`, `src/sleep-accuracy/` |
 | Metrics & scores | Nightly Metrics, Baseline, Sleep Need, Sleep Score, Readiness, Resting HR, Load | `src/SerenixCore/` |
-| Body | Trend Weight, Weekly Rate, Weight Goals (pace, Milestones, projected dates, hold), and the Body data backup file (spec 015) | `src/SerenixCore/` |
+| Body | Trend Weight, Weekly Rate, Weight Goals (pace, Milestones, projected dates, hold) | `src/SerenixCore/` |
+| Backup | The Backup file of Nights, Days and Body data (encode, decode, import preview, refusal; it still reads spec 015's Body data files) and the automatic Backup's decisions (spec 020, ADR 0009) | `src/SerenixCore/` |
 | BLE transport | CoreBluetooth: scan, connect, pair, write and notify. Hands raw bytes to the sync logic | `src/SerenixApp/` |
-| Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever); a separate SwiftData store for user-entered Body data (kept forever, ADR 0008) | `src/SerenixApp/` |
+| Persistence | SwiftData store for raw History Records (30 days) and Nights, metrics and scores (kept forever); a separate SwiftData store for user-entered Body data (kept forever, ADR 0008); the Backup's export, import and restored marks (spec 020) | `src/SerenixApp/` |
 | Health export | Writes Resting HR (Sleeping HR never as resting heart rate), HRV, SpO2, respiratory rate and sleep to Apple Health | `src/SerenixApp/` |
 | UI | SwiftUI screens | `src/SerenixApp/` |
 
@@ -48,9 +49,14 @@ The app is split in two (ADR 0002), with a third, developer-only part beside it:
   Final Wake, Time in Bed, Time Asleep and Nightly Metrics, and its Heart Rate Trace and Wake
   Bouts (spec 012; none for Nights built from History Records no longer kept). Kept forever.
   Sleep Score and Readiness aren't stored: they're worked out from the Nights (and, for
-  Readiness, the Days) each time they're shown (specs 008, 010).
+  Readiness, the Days) each time they're shown (specs 008, 010). A Night restored from a
+  Backup is marked so, and no rebuild ever replaces or deletes it (ADR 0009).
 - **Day**: a local calendar day with its Resting HR (spec 007), its Load, and its HR Zones hour
-  by hour, Highest HR and Max HR used (spec 006). Kept forever.
+  by hour, Highest HR and Max HR used (spec 006). Kept forever. A restored Day is never
+  rebuilt, as for Nights (ADR 0009).
+- **Backup**: one JSON file (`serenix-backup`, version 3) of every Night, Day and all Body data,
+  never History Records, the Sync Log or the Profile. It lives only where the user puts it: the
+  share sheet, or a folder they picked for the automatic Backup (spec 020).
 - **Baseline**: not stored. Each Nightly Metric's median, and HRV's and respiratory rate's
   Spread (spec 004; Sleeping HR's from spec 008), come from the last 14 Nights; typical
   Load comes from the last 28 Days. Readiness is "calibrating" until 4 Nights exist.

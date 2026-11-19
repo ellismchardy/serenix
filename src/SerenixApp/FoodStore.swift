@@ -109,6 +109,8 @@ final class FoodStore: ObservableObject {
     @Published private(set) var targets = FoodTargets()
     /// Why the last open or save failed, shown to the user; nil when all is well.
     @Published var failure: String?
+    /// Called after every change that saved, so the automatic Backup can be written (spec 020).
+    var onChange: (@MainActor () -> Void)?
     /// The store file this one's data lives in.
     private let storage: OnDeviceStore
     private var context: ModelContext? { storage.context }
@@ -277,7 +279,10 @@ final class FoodStore: ObservableObject {
     @discardableResult
     private func change(_ edit: (ModelContext) throws -> Void) -> Bool {
         defer { reload() }
-        guard let message = storage.change(edit) else { return true }
+        guard let message = storage.change(edit) else {
+            onChange?()
+            return true
+        }
         failure = message
         return false
     }

@@ -18,21 +18,31 @@ struct ProfileMenu: View {
     /// The Today view's say on whether a sync is running, so 001's progress shows here.
     let showsSyncProgress: Bool
     @EnvironmentObject private var appearanceStore: AppearanceStore
-    /// The Body data the Export and Import rows back up (spec 015).
+    /// The Body data the Backup holds besides Nights and Days (specs 015, 020).
     @EnvironmentObject private var bodyStore: BodyStore
     /// The food data the backup carries too (spec 016).
     @EnvironmentObject private var foodStore: FoodStore
+    /// The automatic Backup to a folder the user picked (spec 020).
+    @EnvironmentObject private var automaticBackup: AutomaticBackupWriter
     @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
     @State private var draftName = ""
     @State private var picksImportFile = false
-    /// All Body data for Export, read when the menu opens and after an import, not per redraw.
-    @State private var backup: Result<BodyData, Error>?
+    /// The Backup for Export, read when the menu opens and after an import, not per redraw.
+    @State private var backup: Result<Backup, Error>?
     /// What a picked file would import, while its confirmation shows.
-    @State private var pendingImport: BodyImport?
+    @State private var pendingImport: BackupImport?
     /// Why a picked file can't be imported, while that shows.
     @State private var importRefusal: String?
+    @State private var picksBackupFolder = false
+    /// Whether the import question is for the Backup found in a folder just picked for the
+    /// automatic Backup, which turns on only once the user imports it or replaces it.
+    @State private var turnsOnAfterImport = false
+    /// Why the Backup in a folder just picked can't be read, while "Replace it" is offered.
+    @State private var replaceReason: String?
+    /// Why the folder just picked for the automatic Backup can't be used, while that shows.
+    @State private var folderProblem: String?
 
     var body: some View {
         NavigationStack {
@@ -51,7 +61,7 @@ struct ProfileMenu: View {
         .presentationDragIndicator(.visible)
     }
 
-    /// The menu's rows: the Profile, the Strap, Appearance, Today layout, Body data and Debug.
+    /// The menu's rows: the Profile, the Strap, Appearance, Today layout, Backup and Debug.
     private var menuList: some View {
         List {
             Section {
@@ -157,15 +167,16 @@ struct ProfileMenu: View {
                 .pickerStyle(.segmented)
             }
             .listRowBackground(Theme.card)
-            // Spec 015, Backup and import: all Body data as one JSON file, and back.
-            Section("Body data") {
+            // Spec 020: Nights, Days and Body data as one JSON Backup, and back.
+            Section("Backup") {
+                automaticBackupRow
                 switch backup {
-                case .success(let data)?:
+                case .success(let current)?:
                     ShareLink(
-                        item: BodyBackup(data: data),
-                        preview: SharePreview("Serenix Body data")
+                        item: BackupExport(backup: current),
+                        preview: SharePreview("Serenix Backup")
                     ) {
-                        Label("Export Body data", systemImage: "square.and.arrow.up")
+                        Label("Export backup", systemImage: "square.and.arrow.up")
                     }
                 case .failure(let error)?:
                     // Shown in place of the row, so a read failure is never hidden.
@@ -177,7 +188,7 @@ struct ProfileMenu: View {
                 Button {
                     picksImportFile = true
                 } label: {
-                    Label("Import Body data", systemImage: "square.and.arrow.down")
+                    Label("Import backup", systemImage: "square.and.arrow.down")
                 }
             }
             .listRowBackground(Theme.card)
@@ -214,16 +225,39 @@ struct ProfileMenu: View {
         }
     }
 
-    /// The backup's file picker and the import question, refusal and failure alerts (specs
-    /// 015, 016), on `content`.
+    /// The Backup's file picker and the import question, refusal and failure alerts (specs
+    /// 015, 016, 020), on `content`.
     private func backupHandling(_ content: some View) -> some View {
         content
-            .onAppear { readBackup() }
+            .task { await readBackup() }
+            .alert(
+                "That folder can't be used",
+                isPresented: Binding(
+                    get: { folderProblem != nil },
+                    set: { if !$0 { folderProblem = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(folderProblem ?? "")
+            }
+            .alert(
+                "This folder's Backup can't be read",
+                isPresented: Binding(
+                    get: { replaceReason != nil },
+                    set: { if !$0 { replaceReason = nil } }
+                )
+            ) {
+                Button("Replace it", role: .destructive) { automaticBackup.confirmTurningOn() }
+                Button("Cancel", role: .cancel) { automaticBackup.cancelTurningOn() }
+            } message: {
+                Text(replaceReason ?? "")
+            }
             .fileImporter(isPresented: $picksImportFile, allowedContentTypes: [.json]) {
                 readImport($0)
             }
             .alert(
-                "Import Body data?",
+                "Import backup?",
                 isPresented: Binding(
                     get: { pendingImport != nil },
                     set: { if !$0 { pendingImport = nil } }
@@ -231,13 +265,32 @@ struct ProfileMenu: View {
                 presenting: pendingImport
             ) { found in
                 Button("Import") {
-                    // Two store files, so two saves: food first, and Weigh-ins and goals only
-                    // if that saved, so a failed food save imports nothing. Food then saved but
-                    // the second save failed can be retried: what's here is skipped.
-                    if foodStore.add(found) { bodyStore.add(found) }
-                    readBackup()
+                    let turnsOn = turnsOnAfterImport
+                    turnsOnAfterImport = false
+                    Task {
+                        let imported = await importBackup(found)
+                        // The folder's Backup is written over only once it's safely here.
+                        if turnsOn {
+                            if imported {
+                                automaticBackup.confirmTurningOn()
+                            } else {
+                                automaticBackup.cancelTurningOn()
+                            }
+                        }
+                    }
                 }
-                Button("Cancel", role: .cancel) {}
+                if turnsOnAfterImport {
+                    Button("Replace it", role: .destructive) {
+                        turnsOnAfterImport = false
+                        automaticBackup.confirmTurningOn()
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    if turnsOnAfterImport {
+                        turnsOnAfterImport = false
+                        automaticBackup.cancelTurningOn()
+                    }
+                }
             } message: { _ in
                 Text(importQuestion)
             }
@@ -276,53 +329,121 @@ struct ProfileMenu: View {
             }
     }
 
-    /// "Add N Weigh-ins and M Weight Goals? K already here will be skipped." (spec 015).
+    /// "Add N Nights, M Days and K Body entries? J already here will be skipped." (spec 020).
     private var importQuestion: String {
         guard let found = pendingImport else { return "" }
-        let targets = found.foodTargetsToSet == nil ? "" : ", and your Calorie Target and macros"
-        return "Add \(found.weighInsToAdd.count) Weigh-ins, \(found.goalsToAdd.count) Weight "
-            + "Goals, \(found.foodEntriesToAdd.count) Food Entries and "
-            + "\(found.completeDaysToAdd.count) Complete Days\(targets)? "
-            + "\(found.skipped) already here or not needed will be skipped."
+        let body = found.body
+        let bodyEntries =
+            body.weighInsToAdd.count + body.goalsToAdd.count + body.foodEntriesToAdd.count
+            + body.completeDaysToAdd.count + (body.foodTargetsToSet == nil ? 0 : 1)
+        return "Add \(found.nightsToAdd.count) Nights, \(found.daysToAdd.count) Days and "
+            + "\(bodyEntries) Body entries? \(found.skipped) already here will be skipped."
     }
 
-    private func readBackup() {
-        backup = Result { try allData() }
+    /// The automatic Backup's toggle, which asks for a folder when turned on, and its status.
+    private var automaticBackupRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle(
+                "Back up automatically",
+                isOn: Binding(
+                    get: { automaticBackup.isOn },
+                    set: { turnsOn in
+                        if turnsOn {
+                            picksBackupFolder = true
+                        } else {
+                            automaticBackup.turnOff()
+                        }
+                    }
+                )
+            )
+            if let status = automaticBackup.status {
+                Text(status)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        // On this row, not the list: one view takes only one file importer.
+        .fileImporter(isPresented: $picksBackupFolder, allowedContentTypes: [.folder]) { picked in
+            Task { await choseBackupFolder(picked) }
+        }
     }
 
-    /// All Body data from both store files: Weigh-ins and Weight Goals, and food.
-    private func allData() throws -> BodyData {
-        let body = try bodyStore.allData()
-        let food = try foodStore.storedFoodData()
-        return BodyData(
-            weighIns: body.weighIns,
-            goals: body.goals,
-            foodEntries: food.entries,
-            completeDays: food.completeDays,
-            foodTargets: food.targets
-        )
+    /// Turns the automatic Backup on with the picked folder, or offers the Backup already there
+    /// for import, or for replacing when it can't be read (spec 020).
+    private func choseBackupFolder(_ picked: Result<URL, Error>) async {
+        do {
+            switch try await automaticBackup.choose(try picked.get()) {
+            case .write:
+                break
+            case .offerImport(let found):
+                turnsOnAfterImport = true
+                await askToImport(found)
+                if pendingImport == nil {
+                    turnsOnAfterImport = false
+                    automaticBackup.cancelTurningOn()
+                }
+            case .offerReplace(let error):
+                replaceReason = error.message
+            }
+        } catch {
+            folderProblem = error.localizedDescription
+        }
+    }
+
+    /// Keeps what `found` adds, and says whether all of it was kept. Three store files, so three
+    /// saves, each only if the one before saved: Nights and Days (one store), then food, then
+    /// Weigh-ins and goals. One that failed can be retried: what's here is skipped.
+    private func importBackup(_ found: BackupImport) async -> Bool {
+        var imported = false
+        do {
+            try await connection.importRestored(nights: found.nightsToAdd, days: found.daysToAdd)
+            imported = foodStore.add(found.body) && bodyStore.add(found.body)
+        } catch {
+            importRefusal = "The Nights and Days couldn't be kept: \(error.localizedDescription)"
+        }
+        await readBackup()
+        return imported
+    }
+
+    private func readBackup() async {
+        do {
+            backup = .success(try await automaticBackup.currentBackup())
+        } catch {
+            backup = .failure(error)
+        }
     }
 
     /// Reads the picked file and asks before importing; a file that can't be read imports
     /// nothing and says why.
     private func readImport(_ picked: Result<URL, Error>) {
+        let file: Backup
         do {
             let url = try picked.get()
             let opened = url.startAccessingSecurityScopedResource()
             defer { if opened { url.stopAccessingSecurityScopedResource() } }
-            let file = try BodyDataFile.decode(try Data(contentsOf: url))
-            if let refusal = BodyDataFile.refusal(file, now: Date()) { throw refusal }
-            let current = try allData()
-            pendingImport = BodyDataFile.importing(
+            file = try BackupFile.decode(try Data(contentsOf: url))
+            if let refusal = BackupFile.refusal(file, now: Date()) { throw refusal }
+        } catch let error as BackupFileError {
+            importRefusal = error.message
+            return
+        } catch {
+            importRefusal = "The file couldn't be opened: \(error.localizedDescription)"
+            return
+        }
+        Task { await askToImport(file) }
+    }
+
+    /// Works out what `file` adds to what's stored now, for the import question.
+    private func askToImport(_ file: Backup) async {
+        do {
+            pendingImport = BackupFile.importing(
                 file,
-                into: current,
+                into: try await automaticBackup.currentBackup(),
                 now: Date(),
                 timeZone: .current
             )
-        } catch let error as BodyDataFileError {
-            importRefusal = error.message
         } catch {
-            importRefusal = "The file couldn't be opened: \(error.localizedDescription)"
+            importRefusal = "This phone's data couldn't be read: \(error.localizedDescription)"
         }
     }
 
