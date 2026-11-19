@@ -15,6 +15,19 @@ public struct Backup: Equatable, Sendable {
     }
 }
 
+/// What importing a Backup adds, and how much of it is already here (spec 020).
+public struct BackupImport: Equatable, Sendable {
+    /// The file's Nights whose date has no Night here, in file order.
+    public let nightsToAdd: [Night]
+    /// The file's Days whose date has no Day here, in file order.
+    public let daysToAdd: [DayLoad]
+    /// What the file's Body data adds, by the Body data file's rules (specs 015–017).
+    public let body: BodyImport
+    /// Nights and Days whose date is already here (the phone's copy wins), plus the Body data
+    /// skipped.
+    public let skipped: Int
+}
+
 /// Why a file can't be imported as a Backup; nothing from it is imported (spec 020).
 public enum BackupFileError: Error, Equatable {
     /// Not JSON, cut short, or missing what a Backup holds.
@@ -105,6 +118,36 @@ public enum BackupFile {
                 completeDays: Set(backup.completeDays),
                 foodTargets: backup.foodTargets
             )
+        )
+    }
+
+    /// What importing `file` into `current` adds. A Night or Day whose date already has one here
+    /// is skipped, so the phone's copy, built from History Records it holds, wins; Body data
+    /// follows `BodyDataFile.importing`. `file` must have passed `refusal` (spec 020, all or
+    /// nothing), which turns away one holding two Nights or two Days with one date.
+    public static func importing(
+        _ file: Backup,
+        into current: Backup,
+        now: Date,
+        timeZone: TimeZone
+    ) -> BackupImport {
+        let datesWithNight = Set(current.nights.map(\.day))
+        let datesWithDay = Set(current.days.map(\.day))
+        let nightsToAdd = file.nights.filter { !datesWithNight.contains($0.day) }
+        let daysToAdd = file.days.filter { !datesWithDay.contains($0.day) }
+        let body = BodyDataFile.importing(
+            file.body,
+            into: current.body,
+            now: now,
+            timeZone: timeZone
+        )
+        let datesSkipped =
+            file.nights.count - nightsToAdd.count + file.days.count - daysToAdd.count
+        return BackupImport(
+            nightsToAdd: nightsToAdd,
+            daysToAdd: daysToAdd,
+            body: body,
+            skipped: datesSkipped + body.skipped
         )
     }
 

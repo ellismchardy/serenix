@@ -63,7 +63,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
      - Version 1 and 2 Body files import with 0 Nights and 0 Days.
      - `BodyDataFileTests` are untouched and green.
 
-2. [ ] **Slice: import preview with the phone-wins date rule.**
+2. [x] **Slice: import preview with the phone-wins date rule.**
    - What it builds: `BackupFile.importing(_:into:now:timeZone:) -> BackupImport`, holding
      `nightsToAdd`, `daysToAdd`, `body: BodyImport` (from `BodyDataFile.importing`) and a total
      `skipped`. A file Night or Day whose date is already stored is skipped.

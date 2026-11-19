@@ -236,3 +236,91 @@ private struct VersionOneBodyFile: Encodable {
     #expect(decoded.days == [])
     #expect(decoded.body == body)
 }
+
+// MARK: - Import (phone wins on a date clash)
+
+/// A Night on `day` November 2026 with `sleepingHR`, so two Nights of one date tell apart.
+private func night(_ day: Int, sleepingHR: Double) -> Night {
+    Night(day: Day(year: 2026, month: 11, day: day), sleepingHR: sleepingHR)
+}
+
+/// A Day on `day` November 2026 with `load`, so two Days of one date tell apart.
+private func dayLoad(_ day: Int, load: Int) -> DayLoad {
+    DayLoad(day: Day(year: 2026, month: 11, day: day), load: load)
+}
+
+private let utc = TimeZone(identifier: "UTC")!
+
+@Test func importingSkipsTheFilesNightsAndDaysWhoseDateIsAlreadyOnThePhone() {
+    let file = Backup(
+        nights: [
+            night(10, sleepingHR: 50), night(11, sleepingHR: 51), night(12, sleepingHR: 52),
+            night(13, sleepingHR: 53), night(14, sleepingHR: 54),
+        ],
+        days: [
+            dayLoad(10, load: 20), dayLoad(11, load: 21), dayLoad(12, load: 22),
+            dayLoad(13, load: 23), dayLoad(14, load: 24),
+        ],
+        body: emptyBody
+    )
+    let phone = Backup(
+        nights: [night(11, sleepingHR: 61), night(13, sleepingHR: 63)],
+        days: [dayLoad(12, load: 72)],
+        body: emptyBody
+    )
+
+    let result = BackupFile.importing(file, into: phone, now: at(15, 9), timeZone: utc)
+
+    #expect(
+        result.nightsToAdd == [
+            night(10, sleepingHR: 50), night(12, sleepingHR: 52), night(14, sleepingHR: 54),
+        ]
+    )
+    #expect(
+        result.daysToAdd == [
+            dayLoad(10, load: 20), dayLoad(11, load: 21), dayLoad(13, load: 23),
+            dayLoad(14, load: 24),
+        ]
+    )
+    #expect(result.skipped == 3)
+}
+
+@Test func importingAFullBackupIntoAnEmptyPhoneAddsEverything() {
+    let phone = Backup(nights: [], days: [], body: emptyBody)
+
+    let result = BackupFile.importing(fullBackup, into: phone, now: at(15, 9), timeZone: utc)
+
+    #expect(result.nightsToAdd == [fullNight, bareNight, unbrokenNight])
+    #expect(result.daysToAdd == [loadedDay, loadMissingDay])
+    #expect(result.body.weighInsToAdd == body.weighIns)
+    #expect(result.body.goalsToAdd == body.goals)
+    #expect(result.body.foodEntriesToAdd == body.foodEntries)
+    #expect(result.body.completeDaysToAdd == [Day(year: 2026, month: 11, day: 4)])
+    #expect(
+        result.body.foodTargetsToSet
+            == FoodTargets(calorieTarget: 2000, proteinOverride: 150, fatOverride: 70)
+    )
+    #expect(result.body.skipped == 0)
+    #expect(result.skipped == 0)
+}
+
+@Test func theSkippedTotalCountsBodyEntriesAndNightsAlreadyHere() {
+    let weighIn = WeighIn(time: at(10, 7, 30), kilograms: 79.6)
+    let file = Backup(
+        nights: [night(10, sleepingHR: 50)],
+        days: [],
+        body: BodyData(weighIns: [weighIn], goals: [])
+    )
+    let phone = Backup(
+        nights: [night(10, sleepingHR: 60)],
+        days: [],
+        body: BodyData(weighIns: [weighIn], goals: [])
+    )
+
+    let result = BackupFile.importing(file, into: phone, now: at(15, 9), timeZone: utc)
+
+    #expect(result.nightsToAdd == [])
+    #expect(result.body.weighInsToAdd == [])
+    #expect(result.body.skipped == 1)
+    #expect(result.skipped == 2)
+}
