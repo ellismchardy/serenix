@@ -74,7 +74,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
        Nights and 4 Days to add and 3 skipped.
      - Importing into empty data adds everything.
 
-3. [ ] **Slice: refusing invalid Nights and Days.**
+3. [x] **Slice: refusing invalid Nights and Days.**
    - What it builds: `BackupFile.refusal(_:now:) -> BackupFileError?`. It returns
      `invalidEntry` with a reason for each of these:
      - Final Wake before Sleep Onset.

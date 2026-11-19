@@ -22,11 +22,12 @@ private func at(_ day: Int, _ hour: Int, _ minute: Int = 0, _ second: Int = 0) -
     )!
 }
 
-/// A Sleep Onset with a sub-second part, which the file must keep exactly.
-private let subSecondOnset = Date(timeIntervalSinceReferenceDate: 815_872_500.123456)
+/// A Sleep Onset with a sub-second part, which the file must keep exactly: 02 Nov 23:15:00.123456
+/// UTC, inside `fullNight`'s Time in Bed and before its first Wake Bout.
+private let subSecondOnset = Date(timeIntervalSinceReferenceDate: 815_354_100.123456)
 
 /// A Night with every value: all five Nightly Metrics, its Heart Rate Trace (two steps missing)
-/// and two Wake Bouts.
+/// and two Wake Bouts. Its Time in Bed (22:41:03 to 06:55:00, 29,637 s) takes 99 steps.
 private let fullNight = Night(
     day: Day(year: 2026, month: 11, day: 3),
     sleepingHR: 52.5,
@@ -41,7 +42,7 @@ private let fullNight = Night(
     timeInBedEnd: at(3, 6, 55),
     heartRateTrace: HeartRateTrace(
         start: at(2, 22, 41, 3),
-        steps: [68.4, 61.0, nil, 55.25, 53.9, nil, 57.1]
+        steps: [68.4, 61.0, nil, 55.25, 53.9, nil, 57.1] + Array(repeating: 55.0, count: 92)
     ),
     wakeBouts: [
         WakeBout(start: at(3, 1, 12), minutes: 6),
@@ -52,7 +53,8 @@ private let fullNight = Night(
 /// A Night with only its date: every optional value missing.
 private let bareNight = Night(day: Day(year: 2026, month: 11, day: 4))
 
-/// A Night where the user didn't wake: a Heart Rate Trace and no Wake Bouts.
+/// A Night where the user didn't wake: a Heart Rate Trace and no Wake Bouts. Its Time in Bed
+/// (23:00 to 06:40, 27,600 s) takes 92 steps.
 private let unbrokenNight = Night(
     day: Day(year: 2026, month: 11, day: 5),
     sleepingHR: 50,
@@ -62,7 +64,10 @@ private let unbrokenNight = Night(
     timeAsleep: 26_400,
     timeInBedStart: at(4, 23, 0),
     timeInBedEnd: at(5, 6, 40),
-    heartRateTrace: HeartRateTrace(start: at(4, 23, 0), steps: [62.5, 58.0, 54.75]),
+    heartRateTrace: HeartRateTrace(
+        start: at(4, 23, 0),
+        steps: [62.5, 58.0, 54.75] + Array(repeating: 55.0, count: 89)
+    ),
     wakeBouts: []
 )
 
@@ -323,4 +328,190 @@ private let utc = TimeZone(identifier: "UTC")!
     #expect(result.body.weighInsToAdd == [])
     #expect(result.body.skipped == 1)
     #expect(result.skipped == 2)
+}
+
+// MARK: - Invalid entries (all or nothing)
+
+/// When the refusal tests judge a file: after every entry in it.
+private let refusalNow = at(15, 9)
+
+/// 10 November 2026, the date of `shortNight`.
+private let tenth = Day(year: 2026, month: 11, day: 10)
+
+/// A valid Night on 10 November unless a parameter makes it otherwise. Time in Bed runs 23:00 to
+/// 00:00 (3,600 s, so 12 trace steps); asleep 23:10 to 23:55.
+private func shortNight(
+    sleepOnset: Date = at(9, 23, 10),
+    finalWake: Date = at(9, 23, 55),
+    heartRateTrace: HeartRateTrace = HeartRateTrace(
+        start: at(9, 23, 0),
+        steps: Array(repeating: 58.0, count: 12)
+    ),
+    wakeBouts: [WakeBout] = [WakeBout(start: at(9, 23, 30), minutes: 4)]
+) -> Night {
+    Night(
+        day: tenth,
+        sleepingHR: 51,
+        sleepOnset: sleepOnset,
+        finalWake: finalWake,
+        timeAsleep: 2_460,
+        timeInBedStart: at(9, 23, 0),
+        timeInBedEnd: at(10, 0, 0),
+        heartRateTrace: heartRateTrace,
+        wakeBouts: wakeBouts
+    )
+}
+
+/// `fullBackup` with `nights`, `days` and `foodEntries` added to it.
+private func fullBackupAdding(
+    nights: [Night] = [],
+    days: [DayLoad] = [],
+    foodEntries: [FoodEntry] = []
+) -> Backup {
+    Backup(
+        nights: fullBackup.nights + nights,
+        days: fullBackup.days + days,
+        body: BodyData(
+            weighIns: body.weighIns,
+            goals: body.goals,
+            foodEntries: body.foodEntries + foodEntries,
+            completeDays: body.completeDays,
+            foodTargets: body.foodTargets
+        )
+    )
+}
+
+@Test func aBackupWithEveryEntryValidIsNotRefused() {
+    #expect(BackupFile.refusal(fullBackup, now: refusalNow) == nil)
+}
+
+@Test func aNightWhoseFinalWakeIsBeforeItsSleepOnsetIsRefused() {
+    let file = fullBackupAdding(nights: [
+        shortNight(sleepOnset: at(9, 23, 55), finalWake: at(9, 23, 10), wakeBouts: [])
+    ])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.finalWakeBeforeSleepOnset(tenth))
+    )
+}
+
+@Test func aNightWhoseFinalWakeIsItsSleepOnsetIsNotRefused() {
+    let file = fullBackupAdding(nights: [
+        shortNight(sleepOnset: at(9, 23, 30), finalWake: at(9, 23, 30), wakeBouts: [])
+    ])
+
+    #expect(BackupFile.refusal(file, now: refusalNow) == nil)
+}
+
+@Test func twoNightsWithOneDateAreRefused() {
+    let file = fullBackupAdding(nights: [night(3, sleepingHR: 60)])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.repeatedNightDate(Day(year: 2026, month: 11, day: 3)))
+    )
+}
+
+@Test func twoDaysWithOneDateAreRefused() {
+    let file = fullBackupAdding(days: [dayLoad(3, load: 10)])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.repeatedDayDate(Day(year: 2026, month: 11, day: 3)))
+    )
+}
+
+@Test func aHeartRateTraceOneStepShortOfItsTimeInBedIsRefused() {
+    let file = fullBackupAdding(nights: [
+        shortNight(
+            heartRateTrace: HeartRateTrace(
+                start: at(9, 23, 0),
+                steps: Array(repeating: 58.0, count: 11)
+            )
+        )
+    ])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.traceDoesNotFitTimeInBed(tenth))
+    )
+}
+
+@Test func aHeartRateTraceStartingAfterTimeInBedStartsIsRefused() {
+    let file = fullBackupAdding(nights: [
+        shortNight(
+            heartRateTrace: HeartRateTrace(
+                start: at(9, 23, 5),
+                steps: Array(repeating: 58.0, count: 12)
+            )
+        )
+    ])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.traceDoesNotFitTimeInBed(tenth))
+    )
+}
+
+@Test func aWakeBoutEndingAfterFinalWakeIsRefused() {
+    // Starts 23:50 and lasts 6 minutes, so it ends 23:56, a minute after Final Wake.
+    let file = fullBackupAdding(nights: [
+        shortNight(wakeBouts: [WakeBout(start: at(9, 23, 50), minutes: 6)])
+    ])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.wakeBoutOutsideSleepPeriod(tenth))
+    )
+}
+
+@Test func aWakeBoutStartingBeforeSleepOnsetIsRefused() {
+    // Starts 23:05, five minutes before Sleep Onset at 23:10.
+    let file = fullBackupAdding(nights: [
+        shortNight(wakeBouts: [WakeBout(start: at(9, 23, 5), minutes: 3)])
+    ])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.wakeBoutOutsideSleepPeriod(tenth))
+    )
+}
+
+@Test func aHeartRateTraceOnANightWithNoTimeInBedIsRefused() {
+    var night = shortNight()
+    night.timeInBedStart = nil
+    night.timeInBedEnd = nil
+    let file = fullBackupAdding(nights: [night])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.traceDoesNotFitTimeInBed(tenth))
+    )
+}
+
+@Test func wakeBoutsOnANightWithNoSleepOnsetAreRefused() {
+    var night = shortNight()
+    night.sleepOnset = nil
+    let file = fullBackupAdding(nights: [night])
+
+    #expect(
+        BackupFile.refusal(file, now: refusalNow)
+            == .invalidEntry(.wakeBoutOutsideSleepPeriod(tenth))
+    )
+}
+
+@Test func aWakeBoutEndingExactlyAtFinalWakeIsNotRefused() {
+    // Starts 23:50 and lasts 5 minutes, so it ends 23:55, at Final Wake.
+    let file = fullBackupAdding(nights: [
+        shortNight(wakeBouts: [WakeBout(start: at(9, 23, 50), minutes: 5)])
+    ])
+
+    #expect(BackupFile.refusal(file, now: refusalNow) == nil)
+}
+
+@Test func aFoodEntryOverFiveThousandKilocaloriesIsRefused() {
+    let file = fullBackupAdding(foodEntries: [FoodEntry(time: at(4, 19), kilocalories: 5_001)])
+
+    #expect(BackupFile.refusal(file, now: refusalNow) == .invalidEntry(.bodyEntry))
 }

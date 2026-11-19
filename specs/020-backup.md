@@ -66,7 +66,8 @@ from it.
   in it is invalid, nothing is imported and Serenix says why. Invalid means any of:
   - Final Wake before Sleep Onset.
   - Two Nights, or two Days, with the same date.
-  - A Heart Rate Trace whose steps aren't 5 minutes apart.
+  - A Heart Rate Trace that doesn't fit its Night's Time in Bed (5-minute steps from Time in
+    Bed start to Time in Bed end).
   - A Wake Bout outside its Night's Sleep Period.
   - A Body entry that spec 015–017 refuses.
   A file from a newer version is refused with "made by a newer Serenix".
@@ -175,7 +176,7 @@ Backup file
   - A Night whose Final Wake is before its Sleep Onset.
   - Two Nights with one date.
   - Two Days with one date.
-  - A Heart Rate Trace with a step that isn't 5 minutes.
+  - A Heart Rate Trace that doesn't fit its Night's Time in Bed.
   - A Wake Bout outside its Sleep Period.
   - A Food Entry over 5,000 kcal.
 - [ ] A `serenix-body` version 1 file and a version 2 file each import their Body data with
