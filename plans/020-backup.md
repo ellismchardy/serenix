@@ -35,7 +35,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
 
 ## Tasks (ordered; each is one vertical slice, green and committable on its own)
 
-1. [ ] **Slice: Backup file round trip (tracer bullet).**
+1. [x] **Slice: Backup file round trip (tracer bullet).**
    - What it builds:
      - `Night: Codable`.
      - A `Backup` value: nights, days (`[DayLoad]`) and body (`BodyData`).
