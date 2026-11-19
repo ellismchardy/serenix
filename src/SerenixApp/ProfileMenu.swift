@@ -18,7 +18,7 @@ struct ProfileMenu: View {
     /// The Today view's say on whether a sync is running, so 001's progress shows here.
     let showsSyncProgress: Bool
     @EnvironmentObject private var appearanceStore: AppearanceStore
-    /// The Body data the Export and Import rows back up (spec 015).
+    /// The Body data the Backup holds besides Nights and Days (specs 015, 020).
     @EnvironmentObject private var bodyStore: BodyStore
     /// The food data the backup carries too (spec 016).
     @EnvironmentObject private var foodStore: FoodStore
@@ -27,10 +27,10 @@ struct ProfileMenu: View {
     @State private var editsName = false
     @State private var draftName = ""
     @State private var picksImportFile = false
-    /// All Body data for Export, read when the menu opens and after an import, not per redraw.
-    @State private var backup: Result<BodyData, Error>?
+    /// The Backup for Export, read when the menu opens and after an import, not per redraw.
+    @State private var backup: Result<Backup, Error>?
     /// What a picked file would import, while its confirmation shows.
-    @State private var pendingImport: BodyImport?
+    @State private var pendingImport: BackupImport?
     /// Why a picked file can't be imported, while that shows.
     @State private var importRefusal: String?
 
@@ -51,7 +51,7 @@ struct ProfileMenu: View {
         .presentationDragIndicator(.visible)
     }
 
-    /// The menu's rows: the Profile, the Strap, Appearance, Today layout, Body data and Debug.
+    /// The menu's rows: the Profile, the Strap, Appearance, Today layout, Backup and Debug.
     private var menuList: some View {
         List {
             Section {
@@ -157,15 +157,15 @@ struct ProfileMenu: View {
                 .pickerStyle(.segmented)
             }
             .listRowBackground(Theme.card)
-            // Spec 015, Backup and import: all Body data as one JSON file, and back.
-            Section("Body data") {
+            // Spec 020: Nights, Days and Body data as one JSON Backup, and back.
+            Section("Backup") {
                 switch backup {
-                case .success(let data)?:
+                case .success(let current)?:
                     ShareLink(
-                        item: BodyBackup(data: data),
-                        preview: SharePreview("Serenix Body data")
+                        item: BackupExport(backup: current),
+                        preview: SharePreview("Serenix Backup")
                     ) {
-                        Label("Export Body data", systemImage: "square.and.arrow.up")
+                        Label("Export backup", systemImage: "square.and.arrow.up")
                     }
                 case .failure(let error)?:
                     // Shown in place of the row, so a read failure is never hidden.
@@ -177,7 +177,7 @@ struct ProfileMenu: View {
                 Button {
                     picksImportFile = true
                 } label: {
-                    Label("Import Body data", systemImage: "square.and.arrow.down")
+                    Label("Import backup", systemImage: "square.and.arrow.down")
                 }
             }
             .listRowBackground(Theme.card)
@@ -214,16 +214,16 @@ struct ProfileMenu: View {
         }
     }
 
-    /// The backup's file picker and the import question, refusal and failure alerts (specs
-    /// 015, 016), on `content`.
+    /// The Backup's file picker and the import question, refusal and failure alerts (specs
+    /// 015, 016, 020), on `content`.
     private func backupHandling(_ content: some View) -> some View {
         content
-            .onAppear { readBackup() }
+            .task { await readBackup() }
             .fileImporter(isPresented: $picksImportFile, allowedContentTypes: [.json]) {
                 readImport($0)
             }
             .alert(
-                "Import Body data?",
+                "Import backup?",
                 isPresented: Binding(
                     get: { pendingImport != nil },
                     set: { if !$0 { pendingImport = nil } }
@@ -231,11 +231,7 @@ struct ProfileMenu: View {
                 presenting: pendingImport
             ) { found in
                 Button("Import") {
-                    // Two store files, so two saves: food first, and Weigh-ins and goals only
-                    // if that saved, so a failed food save imports nothing. Food then saved but
-                    // the second save failed can be retried: what's here is skipped.
-                    if foodStore.add(found) { bodyStore.add(found) }
-                    readBackup()
+                    Task { await importBackup(found) }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: { _ in
@@ -276,18 +272,43 @@ struct ProfileMenu: View {
             }
     }
 
-    /// "Add N Weigh-ins and M Weight Goals? K already here will be skipped." (spec 015).
+    /// "Add N Nights, M Days and K Body entries? J already here will be skipped." (spec 020).
     private var importQuestion: String {
         guard let found = pendingImport else { return "" }
-        let targets = found.foodTargetsToSet == nil ? "" : ", and your Calorie Target and macros"
-        return "Add \(found.weighInsToAdd.count) Weigh-ins, \(found.goalsToAdd.count) Weight "
-            + "Goals, \(found.foodEntriesToAdd.count) Food Entries and "
-            + "\(found.completeDaysToAdd.count) Complete Days\(targets)? "
-            + "\(found.skipped) already here or not needed will be skipped."
+        let body = found.body
+        let bodyEntries =
+            body.weighInsToAdd.count + body.goalsToAdd.count + body.foodEntriesToAdd.count
+            + body.completeDaysToAdd.count + (body.foodTargetsToSet == nil ? 0 : 1)
+        return "Add \(found.nightsToAdd.count) Nights, \(found.daysToAdd.count) Days and "
+            + "\(bodyEntries) Body entries? \(found.skipped) already here will be skipped."
     }
 
-    private func readBackup() {
-        backup = Result { try allData() }
+    /// Keeps what `found` adds. Three store files, so three saves, each only if the one before
+    /// saved: Nights and Days (one store), then food, then Weigh-ins and goals. One that failed
+    /// can be retried: what's here is skipped.
+    private func importBackup(_ found: BackupImport) async {
+        do {
+            try await connection.importRestored(nights: found.nightsToAdd, days: found.daysToAdd)
+            if foodStore.add(found.body) { bodyStore.add(found.body) }
+        } catch {
+            importRefusal = "The Nights and Days couldn't be kept: \(error.localizedDescription)"
+        }
+        await readBackup()
+    }
+
+    private func readBackup() async {
+        do {
+            backup = .success(try await currentBackup())
+        } catch {
+            backup = .failure(error)
+        }
+    }
+
+    /// Everything a Backup holds, as stored now; the Nights and Days are read off the main
+    /// thread.
+    private func currentBackup() async throws -> Backup {
+        let stored = try await connection.storedNightsAndDays()
+        return Backup(nights: stored.nights, days: stored.days, body: try allData())
     }
 
     /// All Body data from both store files: Weigh-ins and Weight Goals, and food.
@@ -306,23 +327,34 @@ struct ProfileMenu: View {
     /// Reads the picked file and asks before importing; a file that can't be read imports
     /// nothing and says why.
     private func readImport(_ picked: Result<URL, Error>) {
+        let file: Backup
         do {
             let url = try picked.get()
             let opened = url.startAccessingSecurityScopedResource()
             defer { if opened { url.stopAccessingSecurityScopedResource() } }
-            let file = try BodyDataFile.decode(try Data(contentsOf: url))
-            if let refusal = BodyDataFile.refusal(file, now: Date()) { throw refusal }
-            let current = try allData()
-            pendingImport = BodyDataFile.importing(
+            file = try BackupFile.decode(try Data(contentsOf: url))
+            if let refusal = BackupFile.refusal(file, now: Date()) { throw refusal }
+        } catch let error as BackupFileError {
+            importRefusal = error.message
+            return
+        } catch {
+            importRefusal = "The file couldn't be opened: \(error.localizedDescription)"
+            return
+        }
+        Task { await askToImport(file) }
+    }
+
+    /// Works out what `file` adds to what's stored now, for the import question.
+    private func askToImport(_ file: Backup) async {
+        do {
+            pendingImport = BackupFile.importing(
                 file,
-                into: current,
+                into: try await currentBackup(),
                 now: Date(),
                 timeZone: .current
             )
-        } catch let error as BodyDataFileError {
-            importRefusal = error.message
         } catch {
-            importRefusal = "The file couldn't be opened: \(error.localizedDescription)"
+            importRefusal = "This phone's data couldn't be read: \(error.localizedDescription)"
         }
     }
 

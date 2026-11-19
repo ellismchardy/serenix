@@ -131,7 +131,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
      - `tests/SerenixCoreTests/AutomaticBackupTests.swift` (new)
    - Done when: the spec's three automatic-Backup criteria pass.
 
-6. [ ] **Shell: manual Backup, export and import, with restored Nights and Days.**
+6. [x] **Shell: manual Backup, export and import, with restored Nights and Days.**
    - Blocked by: 2, 3, 4.
    - What it changes:
      - `BodyBackup` becomes a `Backup` `Transferable` named "Serenix Backup.json".
