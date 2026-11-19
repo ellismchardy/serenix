@@ -82,12 +82,13 @@ public enum Scorer {
     /// under `fewestComparedShare`.
     public static func score(
         _ nights: [ReferenceNight],
-        activeAboveDegrees threshold: Double
+        activeAboveDegrees threshold: Double,
+        settings: LabellerSettings = LabellerSettings()
     ) -> ScoredReferenceNights {
         var kept: [ReferenceNightResult] = []
         var leftOut: [LeftOutReferenceNight] = []
         for night in nights {
-            let result = score(night, activeAboveDegrees: threshold)
+            let result = score(night, activeAboveDegrees: threshold, settings: settings)
             if result.coverage < fewestComparedShare {
                 leftOut.append(LeftOutReferenceNight(id: result.id, coverage: result.coverage))
             } else {
@@ -105,9 +106,14 @@ public enum Scorer {
     /// minute it falls in. An Epoch is compared when PSG scored it and its minute has data.
     public static func score(
         _ night: ReferenceNight,
-        activeAboveDegrees threshold: Double
+        activeAboveDegrees threshold: Double,
+        settings: LabellerSettings = LabellerSettings()
     ) -> ReferenceNightResult {
-        let labelling = SleepWakeLabeller.label(night.seconds, activeAboveDegrees: threshold)
+        let labelling = SleepWakeLabeller.label(
+            night.seconds,
+            activeAboveDegrees: threshold,
+            settings: settings
+        )
         let period = labelling.sleepPeriod
         var asleepByMinute: [Date: (visible: Bool, raw: Bool)] = [:]
         for minute in labelling.minutes {
