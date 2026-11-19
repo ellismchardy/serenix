@@ -36,10 +36,14 @@ public struct NightRebuild: Equatable, Codable, Sendable {
 /// The dates to work out again after a sync stored History Records at `recordTimes`, oldest
 /// first (spec 003, When). A night window from noon on Day k−1 to noon on Day k gives a Night
 /// dated k−1 or k, so both dates of every window a record falls in are rebuilt, except dates not
-/// due at `now` (`NightRebuild.isDue(at:)`).
-public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: TimeZone)
-    -> [NightRebuild]
-{
+/// due at `now` (`NightRebuild.isDue(at:)`) and `restored` dates (spec 020: a restored Night is
+/// never rebuilt).
+public func nightRebuilds(
+    after recordTimes: [Date],
+    now: Date,
+    in timeZone: TimeZone,
+    sparing restored: Set<Day> = []
+) -> [NightRebuild] {
     var windows: [DateInterval] = []
     // Sorted, so one comparison skips every other record in the window just found.
     for time in recordTimes.sorted() where windows.last.map({ !$0.contains(time) }) ?? true {
@@ -52,7 +56,9 @@ public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: Tim
             NightRebuild(day: Day(containing: window.end, in: timeZone), in: timeZone),
         ]
         for rebuild in candidates
-        where rebuild.isDue(at: now) && !rebuilds.contains(where: { $0.day == rebuild.day }) {
+        where rebuild.isDue(at: now) && !restored.contains(rebuild.day)
+            && !rebuilds.contains(where: { $0.day == rebuild.day })
+        {
             rebuilds.append(rebuild)
         }
     }
@@ -64,16 +70,26 @@ public func nightRebuilds(after recordTimes: [Date], now: Date, in timeZone: Tim
 /// (`NightRebuild.isDue(at:)`), oldest first, each reading the same two night windows a sync's
 /// rebuild would; any already in `alreadyQueued` are left out. The shell asks on every launch and
 /// rebuild pass (spec 012, Nights missing a Heart Rate Trace), so a Night is never queued twice.
+/// A `restored` Night is never queued (spec 020).
 public func traceRebuilds(
     for nights: [Night],
     alreadyQueued: [NightRebuild],
     now: Date,
-    in timeZone: TimeZone
+    in timeZone: TimeZone,
+    sparing restored: Set<Day> = []
 ) -> [NightRebuild] {
     nights
-        .filter { $0.heartRateTrace == nil }
+        .filter { $0.heartRateTrace == nil && !restored.contains($0.day) }
         .map(\.day)
         .sorted()
         .map { NightRebuild(day: $0, in: timeZone) }
         .filter { $0.isDue(at: now) && !alreadyQueued.contains($0) }
+}
+
+extension [NightRebuild] {
+    /// This queue without the rebuilds of `restored` dates, in order: a Night restored from a
+    /// Backup is never rebuilt, even when it was queued before the import (spec 020).
+    public func sparing(_ restored: Set<Day>) -> [NightRebuild] {
+        filter { !restored.contains($0.day) }
+    }
 }

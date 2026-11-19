@@ -94,7 +94,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
    - Done when: every refusal case in the spec's error criterion returns its typed error,
      including a Food Entry over 5,000 kcal, and a valid file returns nil.
 
-4. [ ] **Slice: rebuild queues spare restored dates.**
+4. [x] **Slice: rebuild queues spare restored dates.**
    - Blocked by: none. This touches different files from 1–3.
    - What it builds:
      - A `sparing restored: Set<Day> = []` parameter on `nightRebuilds(after:)`,

@@ -21,11 +21,16 @@ public struct DayRebuild: Equatable, Codable, Sendable {
 }
 
 /// The Days to work out again after a sync stored History Records at `recordTimes`: every Day a
-/// record falls on, oldest first, except Days not due at `now` (`DayRebuild.isDue(at:)`).
-public func dayRebuilds(after recordTimes: [Date], now: Date, in timeZone: TimeZone)
-    -> [DayRebuild]
-{
+/// record falls on, oldest first, except Days not due at `now` (`DayRebuild.isDue(at:)`) and
+/// `restored` Days (spec 020: a restored Day is never rebuilt).
+public func dayRebuilds(
+    after recordTimes: [Date],
+    now: Date,
+    in timeZone: TimeZone,
+    sparing restored: Set<Day> = []
+) -> [DayRebuild] {
     Set(recordTimes.map { Day(containing: $0, in: timeZone) })
+        .subtracting(restored)
         .sorted()
         .map { DayRebuild(day: $0, records: $0.span(in: timeZone)) }
         .filter { $0.isDue(at: now) }
@@ -35,26 +40,43 @@ public func dayRebuilds(after recordTimes: [Date], now: Date, in timeZone: TimeZ
 /// stored before HR Zones or Resting HR existed, or dropped since by another build of Serenix)
 /// and that are still due at `now` (`DayRebuild.isDue(at:)`), oldest first; any already in
 /// `alreadyQueued` are left out. The shell asks on every rebuild pass (spec 007, Days missing
-/// their values), so this never queues a Day that's already queued.
+/// their values), so this never queues a Day that's already queued. A `restored` Day is never
+/// queued (spec 020).
 public func dayRebuilds(
     missingValuesIn days: [DayLoad],
     alreadyQueued: [DayRebuild],
     now: Date,
-    in timeZone: TimeZone
+    in timeZone: TimeZone,
+    sparing restored: Set<Day> = []
 ) -> [DayRebuild] {
     Set(days.filter { !$0.valuesKept }.map(\.day))
+        .subtracting(restored)
         .sorted()
         .map { DayRebuild(day: $0, records: $0.span(in: timeZone)) }
         .filter { $0.isDue(at: now) && !alreadyQueued.contains($0) }
 }
 
 /// Every Day still due at `now`, oldest first: the Days whose History Records may still be on the
-/// phone, for working out Load again after a Profile change (spec 005, Profile changes).
-public func dayRebuildsDue(now: Date, in timeZone: TimeZone) -> [DayRebuild] {
+/// phone, for working out Load again after a Profile change (spec 005, Profile changes), except
+/// `restored` Days, which keep the Load worked out with the Max HR of their time (spec 020).
+public func dayRebuildsDue(
+    now: Date,
+    in timeZone: TimeZone,
+    sparing restored: Set<Day> = []
+) -> [DayRebuild] {
     let today = Day(containing: now, in: timeZone)
     let oldest = Day(containing: now.addingTimeInterval(-historyRecordRetention), in: timeZone)
     return (0...max(0, oldest.days(until: today)))
         .map { oldest.adding(days: $0) }
         .map { DayRebuild(day: $0, records: $0.span(in: timeZone)) }
         .filter { $0.isDue(at: now) }
+        .sparing(restored)
+}
+
+extension [DayRebuild] {
+    /// This queue without the rebuilds of `restored` Days, in order: a Day restored from a Backup
+    /// is never rebuilt, even when it was queued before the import (spec 020).
+    public func sparing(_ restored: Set<Day>) -> [DayRebuild] {
+        filter { !restored.contains($0.day) }
+    }
 }

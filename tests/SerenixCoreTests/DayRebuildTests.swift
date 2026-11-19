@@ -265,3 +265,56 @@ private func storedDay(_ month: Int, _ day: Int, valuesKept: Bool) -> DayLoad {
     #expect(worked.heartRate == nil)
     #expect(worked.valuesKept)
 }
+
+/// Spec 020, Restored Nights and Days: records on 14 and 15 Nov with 15 Nov restored queue only
+/// 14 Nov.
+@Test func syncNeverQueuesARestoredDay() {
+    let times = [utcDate(2026, 11, 14, 23, 0), utcDate(2026, 11, 15, 7, 0)]
+
+    let found = dayRebuilds(
+        after: times,
+        now: endOfNovember2026,
+        in: london,
+        sparing: [Day(year: 2026, month: 11, day: 15)]
+    )
+
+    #expect(found == [novemberRebuild(day: 14)])
+}
+
+/// Spec 020, Restored Nights and Days: stored Days 10 and 12 Nov without their values kept, with
+/// 12 Nov restored, queue only 10 Nov.
+@Test func missingValuesRebuildNeverQueuesARestoredDay() {
+    let stored = [storedDay(11, 10, valuesKept: false), storedDay(11, 12, valuesKept: false)]
+
+    let found = dayRebuilds(
+        missingValuesIn: stored,
+        alreadyQueued: [],
+        now: endOfNovember2026,
+        in: london,
+        sparing: [Day(year: 2026, month: 11, day: 12)]
+    )
+
+    #expect(found == [novemberRebuild(day: 10)])
+}
+
+/// Spec 020, Restored Nights and Days: after a Profile change with now 30 Nov 2026 12:00 and
+/// 12 Nov restored, the other 29 Days 1 Nov to 30 Nov are queued, oldest first; 12 Nov isn't.
+@Test func profileChangeRebuildNeverQueuesARestoredDay() {
+    let restored = Day(year: 2026, month: 11, day: 12)
+
+    let found = dayRebuildsDue(now: endOfNovember2026, in: london, sparing: [restored])
+
+    #expect(!found.contains { $0.day == restored })
+    #expect(found.count == 29)
+    #expect(found == (1...30).filter { $0 != 12 }.map { novemberRebuild(day: $0) })
+}
+
+/// Spec 020, Restored Nights and Days: a pending queue of 10, 11 and 12 Nov, with 11 Nov
+/// restored, keeps 10 and 12 Nov in order.
+@Test func sparingDropsQueuedDayRebuildsOfRestoredDatesKeepingTheRestInOrder() {
+    let pending = [novemberRebuild(day: 10), novemberRebuild(day: 11), novemberRebuild(day: 12)]
+
+    let kept = pending.sparing([Day(year: 2026, month: 11, day: 11)])
+
+    #expect(kept == [novemberRebuild(day: 10), novemberRebuild(day: 12)])
+}
