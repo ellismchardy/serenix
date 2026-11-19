@@ -9,6 +9,8 @@ struct MainTabs: View {
     @StateObject private var bodyStore = BodyStore()
     /// The user's Food Entries, in their own store file (spec 016).
     @StateObject private var foodStore = FoodStore()
+    /// The automatic Backup, written after syncs and Body changes (spec 020).
+    @StateObject private var automaticBackup = AutomaticBackupWriter()
     /// The Day picked on either tab; nil is today, whatever today is when the tabs draw.
     @State private var pickedDay: Day?
     /// The sync pill swiped away on either tab: one pill across both (spec 002, Sync pill).
@@ -36,9 +38,20 @@ struct MainTabs: View {
         }
         // The selected tab in the accent colour (spec 012, Tab bar).
         .tint(Theme.accent)
-        // For the profile menu's Body data export and import (spec 015).
+        // For the profile menu's Backup (specs 015, 020).
         .environmentObject(bodyStore)
         .environmentObject(foodStore)
+        .environmentObject(automaticBackup)
+        .onAppear {
+            automaticBackup.attach(
+                connection: connection,
+                bodyStore: bodyStore,
+                foodStore: foodStore
+            )
+            bodyStore.onChange = { [automaticBackup] in automaticBackup.handle(.bodyChanged) }
+            foodStore.onChange = { [automaticBackup] in automaticBackup.handle(.bodyChanged) }
+            connection.onRebuildPass = { [automaticBackup] in automaticBackup.handle($0) }
+        }
         // Serenix opens on today (spec 002), on both tabs, also when iOS kept it suspended
         // overnight.
         .onChange(of: scenePhase) { oldPhase, newPhase in

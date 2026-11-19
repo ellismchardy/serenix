@@ -53,6 +53,8 @@ final class BodyStore: ObservableObject {
     /// Why the last open or save failed, shown to the user; nil when all is well. Typed-in Body
     /// data can't be rebuilt, so a failure is never swallowed (ADR 0008).
     @Published var failure: String?
+    /// Called after every change that saved, so the automatic Backup can be written (spec 020).
+    var onChange: (@MainActor () -> Void)?
     /// The store file this one's data lives in.
     private let storage: OnDeviceStore
     private var context: ModelContext? { storage.context }
@@ -179,8 +181,9 @@ final class BodyStore: ObservableObject {
     }
 
     /// Adds what an import found new, all or nothing: one refused Weigh-in or a failed save
-    /// keeps none of it and tells the user.
-    func add(_ found: BodyImport) {
+    /// keeps none of it and tells the user. Returns whether it saved.
+    @discardableResult
+    func add(_ found: BodyImport) -> Bool {
         change { context in
             for weighIn in found.weighInsToAdd {
                 try Self.check(weighIn)
@@ -213,7 +216,10 @@ final class BodyStore: ObservableObject {
     @discardableResult
     private func change(_ edit: (ModelContext) throws -> Void) -> Bool {
         defer { reload() }
-        guard let message = storage.change(edit) else { return true }
+        guard let message = storage.change(edit) else {
+            onChange?()
+            return true
+        }
         failure = message
         return false
     }

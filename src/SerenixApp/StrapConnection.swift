@@ -28,6 +28,9 @@ final class StrapConnection: NSObject, ObservableObject {
     @Published private(set) var nights: [Night] = []
     /// Every stored Day Load, oldest first, for the Today screen (spec 005).
     @Published private(set) var dayLoads: [DayLoad] = []
+    /// Called after every rebuild pass, and after an import, with the stored Nights and Days
+    /// before and after it, so the automatic Backup can be written when they changed (spec 020).
+    var onRebuildPass: (@MainActor (AutomaticBackupEvent) -> Void)?
     /// From the Strap's Device Info service, kept across launches.
     @Published private(set) var strapModel: String?
     @Published private(set) var strapFirmware: String?
@@ -288,21 +291,36 @@ final class StrapConnection: NSObject, ObservableObject {
         let previous = nightsRebuild
         let saving = Task.detached(priority: .userInitiated) {
             await previous?.value
+            let before = (
+                nights: try NightStore.nights(in: container),
+                days: try DayLoadStore.dayLoads(in: container)
+            )
             // One store, so one save: the Nights and Days are kept together or not at all.
             let context = ModelContext(container)
             context.autosaveEnabled = false
             try NightStore.addRestored(nights, in: context)
             try DayLoadStore.addRestored(days, in: context)
             try context.save()
+            return before
         }
         // A rebuild pass started from now on waits for the restored Nights and Days to be kept.
         nightsRebuild = Task { _ = try? await saving.value }
-        try await saving.value
+        let before = try await saving.value
         let restored = restoredDays()
         NightStore.pendingRebuilds = NightStore.pendingRebuilds.sparing(restored.nights)
         DayLoadStore.pendingRebuilds = DayLoadStore.pendingRebuilds.sparing(restored.days)
-        await showStoredNights(in: container)
-        await showStoredDayLoads(in: container)
+        let nightsAfter = await showStoredNights(in: container)
+        let daysAfter = await showStoredDayLoads(in: container)
+        if let nightsAfter, let daysAfter {
+            onRebuildPass?(
+                .rebuildPass(
+                    nightsBefore: before.nights,
+                    nightsAfter: nightsAfter,
+                    daysBefore: before.days,
+                    daysAfter: daysAfter
+                )
+            )
+        }
     }
 
     /// The dates of the stored Nights and Days restored from a Backup (spec 020); none if they
@@ -588,7 +606,20 @@ final class StrapConnection: NSObject, ObservableObject {
                     }
                 }
             }
-            await showStoredDayLoads(in: container)
+            let daysAfter = await showStoredDayLoads(in: container)
+            // Both reads are oldest first, as the stores return them, so equal means unchanged.
+            if let stored, let storedDays, let nights, let daysAfter {
+                await MainActor.run {
+                    self.onRebuildPass?(
+                        .rebuildPass(
+                            nightsBefore: stored,
+                            nightsAfter: nights,
+                            daysBefore: storedDays,
+                            daysAfter: daysAfter
+                        )
+                    )
+                }
+            }
         }
     }
 

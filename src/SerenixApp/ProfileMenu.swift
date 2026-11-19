@@ -22,6 +22,8 @@ struct ProfileMenu: View {
     @EnvironmentObject private var bodyStore: BodyStore
     /// The food data the backup carries too (spec 016).
     @EnvironmentObject private var foodStore: FoodStore
+    /// The automatic Backup to a folder the user picked (spec 020).
+    @EnvironmentObject private var automaticBackup: AutomaticBackupWriter
     @AppStorage(TodayLayout.storageKey) private var todayLayout = TodayLayout.rings
     @Environment(\.dismiss) private var dismiss
     @State private var editsName = false
@@ -33,6 +35,12 @@ struct ProfileMenu: View {
     @State private var pendingImport: BackupImport?
     /// Why a picked file can't be imported, while that shows.
     @State private var importRefusal: String?
+    @State private var picksBackupFolder = false
+    /// Whether the import question is for the Backup found in a folder just picked for the
+    /// automatic Backup, which turns on only once the user imports it or replaces it.
+    @State private var turnsOnAfterImport = false
+    /// Why the Backup in a folder just picked can't be read, while "Replace it" is offered.
+    @State private var replaceReason: String?
 
     var body: some View {
         NavigationStack {
@@ -159,6 +167,7 @@ struct ProfileMenu: View {
             .listRowBackground(Theme.card)
             // Spec 020: Nights, Days and Body data as one JSON Backup, and back.
             Section("Backup") {
+                automaticBackupRow
                 switch backup {
                 case .success(let current)?:
                     ShareLink(
@@ -219,6 +228,18 @@ struct ProfileMenu: View {
     private func backupHandling(_ content: some View) -> some View {
         content
             .task { await readBackup() }
+            .alert(
+                "This folder's Backup can't be read",
+                isPresented: Binding(
+                    get: { replaceReason != nil },
+                    set: { if !$0 { replaceReason = nil } }
+                )
+            ) {
+                Button("Replace it", role: .destructive) { automaticBackup.confirmTurningOn() }
+                Button("Cancel", role: .cancel) { automaticBackup.cancelTurningOn() }
+            } message: {
+                Text(replaceReason ?? "")
+            }
             .fileImporter(isPresented: $picksImportFile, allowedContentTypes: [.json]) {
                 readImport($0)
             }
@@ -231,9 +252,32 @@ struct ProfileMenu: View {
                 presenting: pendingImport
             ) { found in
                 Button("Import") {
-                    Task { await importBackup(found) }
+                    let turnsOn = turnsOnAfterImport
+                    turnsOnAfterImport = false
+                    Task {
+                        let imported = await importBackup(found)
+                        // The folder's Backup is written over only once it's safely here.
+                        if turnsOn {
+                            if imported {
+                                automaticBackup.confirmTurningOn()
+                            } else {
+                                automaticBackup.cancelTurningOn()
+                            }
+                        }
+                    }
                 }
-                Button("Cancel", role: .cancel) {}
+                if turnsOnAfterImport {
+                    Button("Replace it", role: .destructive) {
+                        turnsOnAfterImport = false
+                        automaticBackup.confirmTurningOn()
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    if turnsOnAfterImport {
+                        turnsOnAfterImport = false
+                        automaticBackup.cancelTurningOn()
+                    }
+                }
             } message: { _ in
                 Text(importQuestion)
             }
@@ -283,45 +327,77 @@ struct ProfileMenu: View {
             + "\(bodyEntries) Body entries? \(found.skipped) already here will be skipped."
     }
 
-    /// Keeps what `found` adds. Three store files, so three saves, each only if the one before
-    /// saved: Nights and Days (one store), then food, then Weigh-ins and goals. One that failed
-    /// can be retried: what's here is skipped.
-    private func importBackup(_ found: BackupImport) async {
+    /// The automatic Backup's toggle, which asks for a folder when turned on, and its status.
+    private var automaticBackupRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle(
+                "Back up automatically",
+                isOn: Binding(
+                    get: { automaticBackup.isOn },
+                    set: { turnsOn in
+                        if turnsOn {
+                            picksBackupFolder = true
+                        } else {
+                            automaticBackup.turnOff()
+                        }
+                    }
+                )
+            )
+            if let status = automaticBackup.status {
+                Text(status)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        // On this row, not the list: one view takes only one file importer.
+        .fileImporter(isPresented: $picksBackupFolder, allowedContentTypes: [.folder]) { picked in
+            Task { await choseBackupFolder(picked) }
+        }
+    }
+
+    /// Turns the automatic Backup on with the picked folder, or offers the Backup already there
+    /// for import, or for replacing when it can't be read (spec 020).
+    private func choseBackupFolder(_ picked: Result<URL, Error>) async {
+        do {
+            switch try await automaticBackup.choose(try picked.get()) {
+            case .write:
+                break
+            case .offerImport(let found):
+                turnsOnAfterImport = true
+                await askToImport(found)
+                if pendingImport == nil {
+                    turnsOnAfterImport = false
+                    automaticBackup.cancelTurningOn()
+                }
+            case .offerReplace(let error):
+                replaceReason = error.message
+            }
+        } catch {
+            importRefusal = "That folder can't be used: \(error.localizedDescription)"
+        }
+    }
+
+    /// Keeps what `found` adds, and says whether all of it was kept. Three store files, so three
+    /// saves, each only if the one before saved: Nights and Days (one store), then food, then
+    /// Weigh-ins and goals. One that failed can be retried: what's here is skipped.
+    private func importBackup(_ found: BackupImport) async -> Bool {
+        var imported = false
         do {
             try await connection.importRestored(nights: found.nightsToAdd, days: found.daysToAdd)
-            if foodStore.add(found.body) { bodyStore.add(found.body) }
+            imported = foodStore.add(found.body) && bodyStore.add(found.body)
         } catch {
             importRefusal = "The Nights and Days couldn't be kept: \(error.localizedDescription)"
         }
         await readBackup()
+        return imported
     }
 
     private func readBackup() async {
         do {
-            backup = .success(try await currentBackup())
+            backup = .success(try await automaticBackup.currentBackup())
         } catch {
             backup = .failure(error)
         }
-    }
-
-    /// Everything a Backup holds, as stored now; the Nights and Days are read off the main
-    /// thread.
-    private func currentBackup() async throws -> Backup {
-        let stored = try await connection.storedNightsAndDays()
-        return Backup(nights: stored.nights, days: stored.days, body: try allData())
-    }
-
-    /// All Body data from both store files: Weigh-ins and Weight Goals, and food.
-    private func allData() throws -> BodyData {
-        let body = try bodyStore.allData()
-        let food = try foodStore.storedFoodData()
-        return BodyData(
-            weighIns: body.weighIns,
-            goals: body.goals,
-            foodEntries: food.entries,
-            completeDays: food.completeDays,
-            foodTargets: food.targets
-        )
     }
 
     /// Reads the picked file and asks before importing; a file that can't be read imports
@@ -349,7 +425,7 @@ struct ProfileMenu: View {
         do {
             pendingImport = BackupFile.importing(
                 file,
-                into: try await currentBackup(),
+                into: try await automaticBackup.currentBackup(),
                 now: Date(),
                 timeZone: .current
             )

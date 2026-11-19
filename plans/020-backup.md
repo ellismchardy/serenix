@@ -158,7 +158,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
      checklist: export and import on a fresh install, and restored Nights unchanged after a
      sync.
 
-7. [ ] **Shell: automatic Backup.**
+7. [x] **Shell: automatic Backup.**
    - Blocked by: 5, 6.
    - What it adds to the Backup section:
      - A toggle with a folder picker. A security-scoped bookmark is kept in UserDefaults.
