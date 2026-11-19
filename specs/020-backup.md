@@ -1,7 +1,7 @@
 # 020 — Backup
 
-**Status:** approved
-**Last updated:** 2026-11-19
+**Status:** built
+**Last updated:** 2026-11-19 (built; phone checks in the PR)
 
 ## Problem
 Deleting a sideloaded build loses every Night and Day it held, for good. Free-signed builds expire
@@ -161,15 +161,15 @@ from it.
 
 ## Success criteria (must be checkable)
 Backup file
-- [ ] Encoding then decoding Nights (with and without a Heart Rate Trace, Wake Bouts and each
+- [x] Encoding then decoding Nights (with and without a Heart Rate Trace, Wake Bouts and each
       Nightly Metric), Days (with Load, and with a missing reason) and Body data gives back equal
       values.
-- [ ] The encoded file has `format` `serenix-backup` and `version` 3.
-- [ ] Importing a file of 5 Nights and 5 Days into a phone holding 2 of those Night dates and 1
+- [x] The encoded file has `format` `serenix-backup` and `version` 3.
+- [x] Importing a file of 5 Nights and 5 Days into a phone holding 2 of those Night dates and 1
       of those Day dates reports 3 Nights and 4 Days to add, 3 skipped, and adds only those.
       The phone's copies are unchanged.
-- [ ] Importing into empty data adds every Night, Day and Body entry in the file.
-- [ ] Each of these imports nothing and returns its typed error:
+- [x] Importing into empty data adds every Night, Day and Body entry in the file.
+- [x] Each of these imports nothing and returns its typed error:
   - A truncated file.
   - A file of another format.
   - A version 4 file.
@@ -179,23 +179,23 @@ Backup file
   - A Heart Rate Trace that doesn't fit its Night's Time in Bed.
   - A Wake Bout outside its Sleep Period.
   - A Food Entry over 5,000 kcal.
-- [ ] A `serenix-body` version 1 file and a version 2 file each import their Body data with
+- [x] A `serenix-body` version 1 file and a version 2 file each import their Body data with
       0 Nights and 0 Days.
-- [ ] The existing Body data file tests pass unchanged against the Backup file.
+- [x] The existing Body data file tests pass unchanged against the Backup file.
 
 Restored Nights and Days
-- [ ] With a restored Night dated D, a sync whose History Records touch D's Night window queues
+- [x] With a restored Night dated D, a sync whose History Records touch D's Night window queues
       no rebuild for D but still queues the other date of that window.
-- [ ] A restored Night without a Heart Rate Trace is never queued by the trace rebuild.
-- [ ] A restored Day is never queued by the missing-values rebuild or by the Profile-change
+- [x] A restored Night without a Heart Rate Trace is never queued by the trace rebuild.
+- [x] A restored Day is never queued by the missing-values rebuild or by the Profile-change
       rebuild of every Day.
 
 Automatic Backup
-- [ ] A write is due after turning it on, after a sync that added or changed a Night or Day,
+- [x] A write is due after turning it on, after a sync that added or changed a Night or Day,
       and after a Body change. None is due after a sync that changed nothing.
-- [ ] Turning it on with a folder holding a readable Backup returns "offer import"; with an
+- [x] Turning it on with a folder holding a readable Backup returns "offer import"; with an
       unreadable one, "offer replace"; with none, "write".
-- [ ] The status reads "Last backup: <time>" after a write and "Backup failed: <reason>"
+- [x] The status reads "Last backup: <time>" after a write and "Backup failed: <reason>"
       after a failure, until the next write succeeds.
 
 Shell (checked by hand on the phone, steps in the PR)

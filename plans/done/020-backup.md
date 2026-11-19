@@ -188,7 +188,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
      checklist: the iCloud folder updated after a sync and a Weigh-in, the reinstall offer,
      the failed-folder status, and the bookmark surviving a relaunch (the spec's open question).
 
-8. [ ] **Verify:** full suite, lint and typecheck green, and every `SerenixCore` success
+8. [x] **Verify:** full suite, lint and typecheck green, and every `SerenixCore` success
    criterion in spec 020 ticked.
    - Blocked by: 7.
    - The macOS CI build and the phone checks for tasks 6 and 7 are carried to the PR checklist.
