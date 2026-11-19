@@ -115,7 +115,7 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
      - The missing-values rebuild and the Profile-change rebuild never queue a restored Day.
      - The helper drops restored dates from a queue.
 
-5. [ ] **Slice: automatic Backup decisions.**
+5. [x] **Slice: automatic Backup decisions.**
    - Blocked by: 1 (uses `Backup` and `BackupFileError`).
    - What it builds, in a new `AutomaticBackup` with pure functions:
      - `isWriteDue(after:)` over the events "turned on", "rebuild pass" (Nights and Days before
@@ -171,7 +171,11 @@ a folder you picked. Restored Nights and Days are protected from rebuilds.
        - after a successful save in the private `change` of `BodyStore` (:214) and
          `FoodStore` (:278);
        - on turning it on.
-     - The last write time or error kept in UserDefaults, and the status line under the toggle.
+     - The last write's outcome kept in UserDefaults as one `BackupOutcome` (task 5 built
+       `AutomaticBackup.status(after:in:)` on a single outcome, so the latest always wins), and
+       the status line under the toggle.
+     - The rebuild-pass hook passes its before and after reads oldest first, as the stores
+       return them: `isWriteDue` compares the arrays in order.
      - A failed write never blocks a sync or a save.
    - Seam: Automatic Backup decisions, via task 5. The shell itself is checked by hand.
    - Files:
