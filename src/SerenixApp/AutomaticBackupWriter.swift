@@ -240,8 +240,6 @@ final class AutomaticBackupWriter: ObservableObject {
     }
 }
 
-/// The Backup's file name in the chosen folder (spec 020).
-private let backupFileName = "Serenix Backup.json"
 private let folderBookmarkKey = "automaticBackupFolder"
 private let lastOutcomeTimeKey = "automaticBackupLastOutcomeTime"
 private let lastFailureKey = "automaticBackupLastFailure"

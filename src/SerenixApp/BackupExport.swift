@@ -11,6 +11,9 @@ struct BackupExport: Transferable {
         DataRepresentation(exportedContentType: .json) { export in
             try BackupFile.encode(export.backup)
         }
-        .suggestedFileName("Serenix Backup.json")
+        .suggestedFileName(backupFileName)
     }
 }
+
+/// The Backup's file name, shared and in the automatic Backup's folder (spec 020).
+let backupFileName = "Serenix Backup.json"

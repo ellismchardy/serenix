@@ -41,6 +41,8 @@ struct ProfileMenu: View {
     @State private var turnsOnAfterImport = false
     /// Why the Backup in a folder just picked can't be read, while "Replace it" is offered.
     @State private var replaceReason: String?
+    /// Why the folder just picked for the automatic Backup can't be used, while that shows.
+    @State private var folderProblem: String?
 
     var body: some View {
         NavigationStack {
@@ -229,6 +231,17 @@ struct ProfileMenu: View {
         content
             .task { await readBackup() }
             .alert(
+                "That folder can't be used",
+                isPresented: Binding(
+                    get: { folderProblem != nil },
+                    set: { if !$0 { folderProblem = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(folderProblem ?? "")
+            }
+            .alert(
                 "This folder's Backup can't be read",
                 isPresented: Binding(
                     get: { replaceReason != nil },
@@ -373,7 +386,7 @@ struct ProfileMenu: View {
                 replaceReason = error.message
             }
         } catch {
-            importRefusal = "That folder can't be used: \(error.localizedDescription)"
+            folderProblem = error.localizedDescription
         }
     }
 
